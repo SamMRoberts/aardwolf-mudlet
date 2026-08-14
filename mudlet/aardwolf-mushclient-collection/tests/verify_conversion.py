@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 
 
@@ -36,6 +37,12 @@ def main() -> None:
     assert "registerNamedTimer(" in lifecycle
     assert "deleteNamedTimer(" in lifecycle
     assert "aardwolf-mushclient-collection::timer::time-display" in lifecycle
+
+    xml_export = read("dist/aardwolf-mushclient-collection.xml")
+    assert "<MudletPackage" in xml_export
+    assert f"{NAMESPACE}.omit_blank_lines" in xml_export
+    with zipfile.ZipFile(ROOT / "dist" / "aardwolf-mushclient-collection.mpackage") as archive:
+        assert "aardwolf-mushclient-collection.xml" in archive.namelist()
 
 
 if __name__ == "__main__":

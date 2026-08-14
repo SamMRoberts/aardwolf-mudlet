@@ -12,10 +12,16 @@ All other discovered behavior is traceable in `reports/conversion-report.md`.
 Items marked `manual-action-required` or `unsupported-blocker` are not present
 in the running package and prevent release packaging.
 
+## Preview import artifacts
+
+The generated [XML export](dist/aardwolf-mushclient-collection.xml) and [Mudlet package](dist/aardwolf-mushclient-collection.mpackage) contain only the two safe behaviors listed above. They are importable preview artifacts, not a complete conversion or a release; the conversion report remains the authority for unresolved behavior.
+
 ## Install and lifecycle
 
-Import this project's generated package only after the conversion report has no
-release blockers. On script load, the clock starts through a named Mudlet timer.
+For a complete release, import this project's generated package only after the
+conversion report has no release blockers. The preview artifacts above may be
+imported to exercise only the two listed safe behaviors. On script load, the
+clock starts through a named Mudlet timer.
 Before disabling or reloading the package, run
 `aardwolf_mushclient_collection.lifecycle.shutdown()` to remove that timer and
 the label. Re-run `aardwolf_mushclient_collection.lifecycle.start()` to restore
