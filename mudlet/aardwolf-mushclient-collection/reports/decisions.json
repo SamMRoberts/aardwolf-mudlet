@@ -1,0 +1,4187 @@
+{
+  "decisions": [
+    {
+      "item_id": "companion:asset:companion-1-.DS_Store",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Aardwolf_Bigmap_Graphical.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Aardwolf_Tick_Timer.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Automatic_Backup.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Config_Option_Changer.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Hyperlink_URL2.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-MUSHclient_Help.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Omit_Blank_Lines.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-README_command_output_plugin.txt",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-SAPI.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-Time.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_ASCII_map.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_Command_Tag_Handler.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_Copy_Colour_Codes.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_GMCP_handler.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_GMCP_mapper.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_Theme_Controller.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_VI_command_output.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_channels_fiendish.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_chat_echo.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_group_monitor_gmcp.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_health_bars_gmcp.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_help.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_ingame_help_window.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_inventory_serials.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_keyboard_lockout.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_layout.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_miniwindow_z_order_monitor.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_new_connection.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_new_connection_no_UI.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_note_mode.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_package_update_checker.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_prompt_fixer.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_repaint_buffer.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_requirements.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_soundpack.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_splitscreen_scrollback.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_statmon_gmcp.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_text_substitution.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_translate_foreign_friends.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_vi_review_buffers.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-aard_vital_shortcuts.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-constants.js",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-constants.pl",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-constants.pys",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-constants.vbs",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-aardbg13.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-aardbg8.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-bg1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-bg2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-chess1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-cloud.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-cobble2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-darkrock.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-darkstone.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-default.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-dirt.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-dirt2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-dirtgrass.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-dragon1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-fire1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-forest.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-forest2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-forest3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-grass.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-grass1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-grass2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-grass3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-grass4.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-hell.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-hell2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-ocean1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-ocean2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-ocean3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-ocean4.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-rocky.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-rocky2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-rocky3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-sand.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-smallwolf.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-snow.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-snow2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-snow3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-space2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-sparse.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-stone.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-stones.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-temple.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-test.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-test3.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-test4.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-test5.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-tile1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-tile2.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-wood.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-images-wood1.png",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-plugin_list.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-plugin_summary.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-3e7dedbe37e44942dd46d264-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-9f796334ab9ed476ef44f1dc-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b555825a4a5700c35fa80780-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b6eae87ccedd84f510b74714-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-c293f9e7f04dde889f65cb90-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69385-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69386-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-f178e68512c685b3be1e9b07-state.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:asset:companion-1-universal_text_to_speech.xml",
+      "reason": "The resource is retained only in the source inventory because no safe converted feature declares a package-local use for it.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:script:companion-1-aardwolf_colors.lua",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:script:companion-1-constants.lua",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:script:companion-1-telnet_options.lua",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:signal:script-companion-1-aardwolf_colors.lua:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "companion:signal:script-companion-1-telnet_options.lua:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Bigmap_Graphical/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/alias:aard-tick-help-miniwin-status",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/callback:OnPluginTelnetOption",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Aardwolf_Tick_Timer/timer:seconds_since_tick",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Automatic_Backup/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Automatic_Backup/callback:OnPluginWorldSave",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Automatic_Backup/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Automatic_Backup/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Automatic_Backup/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Config_Option_Changer/alias:config_options",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Config_Option_Changer/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Config_Option_Changer/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Hyperlink_URL2/callback:OnPluginInstall",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Hyperlink_URL2/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Hyperlink_URL2/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Hyperlink_URL2/trigger:https-mailto-s-w",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/alias:mchelp-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/alias:mchelp-d",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/alias:mchelps",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/alias:mchelps-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/callback:OnPluginInstall",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:MUSHclient_Help/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Omit_Blank_Lines/metadata:plugin",
+      "reason": "The source identity is recorded in the collection manifest and the converted package has synchronized Mudlet metadata.",
+      "status": "converted",
+      "target_paths": [
+        "package-metadata.json",
+        "mfile",
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Omit_Blank_Lines/trigger:1",
+      "reason": "The exact empty-line regular expression is preserved and Mudlet deleteLine() omits only the current matched output line.",
+      "status": "converted",
+      "target_paths": [
+        "src/triggers/aardwolf_mushclient_collection/triggers.json",
+        "src/triggers/aardwolf_mushclient_collection/aardwolf_mushclient_collection_omit_blank_lines.lua"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-clear",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-debug",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-faster",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-filtering",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-help-printed",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-list-voices",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-off",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-on",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-rate",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-say",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-skip",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-slower",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-test",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/alias:sapi-voice",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/callback:OnPluginInstall",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/callback:OnPluginListChanged",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/callback:OnPluginScreendraw",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/callback:OnPluginTabComplete",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:SAPI/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:Time/metadata:plugin",
+      "reason": "The source identity is recorded in the collection manifest and the converted package has synchronized Mudlet metadata.",
+      "status": "converted",
+      "target_paths": [
+        "package-metadata.json",
+        "mfile",
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:Time/script:1",
+      "reason": "The one-second local clock becomes a named Mudlet timer and Geyser label; label placement and styling require live visual review.",
+      "status": "converted-with-review",
+      "target_paths": [
+        "src/scripts/aardwolf_mushclient_collection/aardwolf_mushclient_collection_state.lua",
+        "src/scripts/aardwolf_mushclient_collection/aardwolf_mushclient_collection_ui.lua",
+        "src/scripts/aardwolf_mushclient_collection/aardwolf_mushclient_collection_lifecycle.lua"
+      ]
+    },
+    {
+      "item_id": "source:aard_ASCII_map/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Command_Tag_Handler/alias:showcommandtags-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Command_Tag_Handler/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Command_Tag_Handler/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Command_Tag_Handler/trigger:tag",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/alias:copy_with_colour",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Copy_Colour_Codes/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/alias:gmcpdebug-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/alias:sendgmcp",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginDisable",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginInstall",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginListChanged",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginPacketReceived",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginTelnetRequest",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/callback:OnPluginTelnetSubnegotiation",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/script:1",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/signal:script-1:windows-api",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/trigger:compact-mode-set-removed-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_handler/trigger:you-will-now-no-longer-see-prompts-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_GMCP_mapper/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/alias:aard-theme-change",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_Theme_Controller/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/alias:mc-command-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_VI_command_output/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/alias:chats-hide",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/alias:chats-scroll",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/alias:chats-show",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:claninfo",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:global_quest",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:info",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:raidinfo",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:remort_auction",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:remote_socials",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_channels_fiendish/trigger:warfare",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/alias:chats-echo-on-off-channels-nonchannels",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/alias:chats-mute-clear",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/alias:chats-un-mute-w-d",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/alias:ig-n-no-nor-nore-w",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginConnect",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:claninfo",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:end_gag_keep",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:end_gag_omit",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:global_quest",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:ignoreend",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:ignorelimit",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:ignorestart",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:info",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:raidinfo",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:remort_auction",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_chat_echo/trigger:warfare",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupcompact",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupoff",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupon",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:grouproom",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupsetall",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupsetnone",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:groupsetroom",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:hidep-s-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/alias:showp-s-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginConnect",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:you-have-declined-the-group-invitation-from-w-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:you-have-no-invitation-outstanding-from-w-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-that-group-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-the-game-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_group_monitor_gmcp/trigger:your-group-invite-from-w-is-cancelled-because-the-group-has-been-disbanded-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/callback:OnPluginWorldOutputResized",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_health_bars_gmcp/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_help/alias:aard-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_help/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_help/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_help/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_help/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:closehelp",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:copyhelp",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:h-he-hel-help-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:h-he-hel-help-search-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:scrollhelpdown",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/alias:scrollhelpup",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginConnect",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_ingame_help_window/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory-keyr-i-in-ing-l-i-is-ist-vau-l-lt-l-i-is-ist-serials-help-off-on-color-.-hint-clear",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/alias:keyr-i-in-ing-l-i-is-ist",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/alias:vau-l-lt-l-i-is-ist",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/callback:OnPluginConnect",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_inventory_serials/trigger:asleep",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/alias:aard-input",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/callback:OnPluginCommandEntered",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/callback:OnPluginSend",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_keyboard_lockout/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/alias:aard-layout-lock-unlock-save-forget-restore-list-help-reset-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/alias:aard-logo",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/alias:resetmain",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginDrawOutputWindow",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginScreendraw",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/callback:OnPluginWorldOutputResized",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_layout/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_miniwindow_z_order_monitor/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection_no_UI/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection_no_UI/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection_no_UI/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_new_connection_no_UI/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_note_mode/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/alias:checkversion",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/alias:package-update-check",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_package_update_checker/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_prompt_fixer/trigger:battle-p-p-rompt-set-to-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/callback:OnPluginBroadcast",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/callback:OnPluginDisable",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/callback:OnPluginTick",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_repaint_buffer/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/alias:aard-plugins-check",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/alias:aard-sounds-in-background",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/callback:OnPluginClose",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/callback:OnPluginInstall",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/callback:OnPluginListChanged",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/callback:OnPluginSaveState",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_requirements/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_soundpack/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginClose",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginDisable",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginDrawOutputWindow",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginEnable",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginInstall",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginScreendraw",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginSelectionChanged",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginTick",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/callback:OnPluginTrace",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/script:1",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_splitscreen_scrollback/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/alias:resetaard",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginClose",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginConnect",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginDisable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginEnable",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginInstall",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_statmon_gmcp/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:gag-s-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:gags",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:oldpatterns-clear",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:sub-.-.-nocase-alone-function-regex",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:subs",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:subs-s-.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:ungag-d",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:ungag.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:unsub-d",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/alias:unsub.",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/callback:OnPluginListChanged",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/callback:OnPluginSaveState",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_text_substitution/trigger:prevent_double_blanks",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_translate_foreign_friends/callback:OnPluginBroadcast",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_translate_foreign_friends/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_translate_foreign_friends/script:1",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_translate_foreign_friends/signal:script-1:filesystem",
+      "reason": "The source crosses a filesystem boundary; persistence, location, consent, and failure behavior must be designed for Mudlet before conversion.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_translate_foreign_friends/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_vi_review_buffers/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:aard_vital_shortcuts/unknown:parse-failure",
+      "reason": "The XML was malformed or declared an external/custom entity, so static inspection could not establish behavior without unsafe repair or parsing.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_list/alias:plugin_list",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_list/alias:plugin_list-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_list/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_list/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_list/script:2",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_summary/alias:plugins",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_summary/alias:plugins-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_summary/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_summary/script:1",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:plugin_summary/script:2",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-faster",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-filtering",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-list-voices",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-rate",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-slower",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-test",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:sapi-voice",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts-focus",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts-help",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts-running",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts_interrupt",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts_note",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/alias:tts_stop",
+      "reason": "This source behavior is not enabled because its MUSHclient-specific semantics, dependencies, or safety boundary require an explicit Mudlet design review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginBroadcast",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginClose",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginGetFocus",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginInstall",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginLoseFocus",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginSaveState",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginScreendraw",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/callback:OnPluginTabComplete",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/metadata:plugin",
+      "reason": "Original plugin metadata is preserved in the collection source manifest; its behavior remains subject to the item-specific disposition.",
+      "status": "converted",
+      "target_paths": [
+        "reports/source-manifest.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/script:1",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/signal:script-1:dll-loading",
+      "reason": "The source relies on a native library or Windows-specific API, which has no safe, portable Mudlet replacement in this conversion.",
+      "status": "unsupported-blocker",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/signal:script-1:gmcp",
+      "reason": "The source uses a MUSHclient GMCP relay or dependency; its exact native Mudlet GMCP event/table mapping requires feature-specific review.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/signal:script-1:miniwindow",
+      "reason": "The source miniwindow behavior needs a Mudlet UI design covering layout, input, cleanup, and accessibility.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    },
+    {
+      "item_id": "source:universal_text_to_speech/signal:script-1:plugin-dependency",
+      "reason": "The source depends on an unnamed MUSHclient plugin contract; no equivalent Mudlet provider and namespace contract has been declared.",
+      "status": "manual-action-required",
+      "target_paths": [
+        "reports/manual-work.md"
+      ]
+    }
+  ]
+}
