@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 
@@ -32,6 +33,11 @@ def main() -> int:
     require(report["source"]["sha256"] == source_hash, "inventory source hash differs from Aardwolf.db")
     require(report["source_schema"]["sqlite_user_version"] == 11, "inventory source schema is unexpected")
     require(all(report["reference_checks"].values()), "inventory contains a failed source reference check")
+    xml_export = (PACKAGE / "dist" / "aardwolf-map.xml").read_text(encoding="utf-8")
+    require("<MudletPackage" in xml_export and "aardwolf_map.import" in xml_export, "importable XML export is missing map objects")
+    with zipfile.ZipFile(PACKAGE / "dist" / "aardwolf-map.mpackage") as archive:
+        require("aardwolf-map.xml" in archive.namelist(), "distribution package is missing XML")
+        require("resources/aardwolf-map-v11.json" in archive.namelist(), "distribution package is missing map resource")
 
     aliases = json.loads((PACKAGE / "src" / "aliases" / "aardwolf_map" / "aliases.json").read_text(encoding="utf-8"))
     require([alias["name"] for alias in aliases] == ["aardwolf_map.import", "aardwolf_map.import_cancel", "aardwolf_map.status"], "explicit map aliases are missing")

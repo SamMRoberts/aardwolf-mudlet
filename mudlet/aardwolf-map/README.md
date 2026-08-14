@@ -20,8 +20,20 @@ After installation, the package registers a namespaced `gmcp.room.info` event ha
 
 This package does not reproduce the MUSHclient mapper's editing workflow, portal support, search UI, or automatic synchronization behavior.
 
+## Installation and distributable artifacts
+
+Import [the native XML export](dist/aardwolf-map.xml) in Mudlet when you only need the package objects. The map JSON resource is not embedded in a raw Mudlet XML export, so a functional installation should import [the native package](dist/aardwolf-map.mpackage), which includes the declared JSON asset.
+
+Both files are generated, never hand-edited. Regenerate them with:
+
+```sh
+python3 plugin/aardwolf-mudlet-dev/scripts/build_mudlet_package.py mudlet/aardwolf-map --backend native
+cp mudlet/aardwolf-map/build/aardwolf-map.xml mudlet/aardwolf-map/dist/aardwolf-map.xml
+cp mudlet/aardwolf-map/build/aardwolf-map.mpackage mudlet/aardwolf-map/dist/aardwolf-map.mpackage
+```
+
 ## Data provenance
 
 `src/resources/aardwolf-map-v11.json` is a deterministic, transformed export of the supplied `Aardwolf.db` v11 snapshot; the source database itself is not packaged. [The inventory report](reports/aardwolf-db-inventory.md) records the source SHA-256, validated schema, reference checks, counts, and omitted tables. Permission to redistribute this generated map-data resource has been confirmed for this package. No upstream license is inferred or claimed.
 
-Build the package from this source project with the repository's native package builder. The generated `.mpackage` contains the declared JSON asset and Mudlet installs it beneath its package directory, where the importer reads it.
+The `.mpackage` contains the declared JSON asset and Mudlet installs it beneath its package directory, where the importer reads it.
