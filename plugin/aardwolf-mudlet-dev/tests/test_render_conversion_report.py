@@ -52,6 +52,21 @@ class ConversionReportTests(unittest.TestCase):
         self.assertEqual(document["status_counts"], {"converted": 6, "converted-with-review": 2})
         self.assertIn("gmcp.comm.tick", markdown)
 
+    def test_retirement_requires_a_migration_note_and_ledger_target(self) -> None:
+        inventory = inspect_xml(self.fixtures / "mushclient" / "simple_alias.xml", [])
+        decisions = load_json(self.fixtures / "expected" / "simple_alias_decisions.json")["decisions"]
+        decisions[0]["status"] = "intentionally-retired"
+        decisions[0]["target_paths"] = ["reports/retirements.md"]
+        with self.assertRaisesRegex(ToolError, "retirement metadata"):
+            report(inventory, decisions)
+        decisions[0]["retirement"] = {
+            "user_impact": "The legacy helper is unavailable.",
+            "migration": "Use the documented native alias.",
+        }
+        document, markdown = report(inventory, decisions)
+        self.assertEqual(document["status_counts"]["intentionally-retired"], 1)
+        self.assertIn("Intentional retirements", markdown)
+
 
 if __name__ == "__main__":
     unittest.main()

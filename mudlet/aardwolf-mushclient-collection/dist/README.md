@@ -1,5 +1,9 @@
-# Preview import artifacts
+# Aardwolf MUSHclient Collection release artifacts
 
-`aardwolf-mushclient-collection.xml` and `aardwolf-mushclient-collection.mpackage` are generated native Mudlet imports for the two behaviors already converted in this project: the local time display and blank-line omission trigger.
+Install `aardwolf-mushclient-collection.mpackage` in Mudlet. It contains the
+complete package archive. `aardwolf-mushclient-collection.xml` is the raw
+Mudlet-object export for inspection or controlled import.
 
-They are deliberately preview artifacts, not a release of the complete MUSHclient collection. The conversion report still records unresolved items, which remain absent from these artifacts. Do not edit the generated files.
+These deterministic release artifacts contain only the local clock and
+blank-line compatibility behavior. The native feature packages listed in the
+package README are independent artifacts. Do not edit generated files.

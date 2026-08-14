@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_gmcp_diagnostics.status",
+    "regex": "^aard gmcp status$"
+  },
+  {
+    "name": "aardwolf_gmcp_diagnostics.toggle",
+    "regex": "^gmcpdebug (on|off)$"
+  }
+]

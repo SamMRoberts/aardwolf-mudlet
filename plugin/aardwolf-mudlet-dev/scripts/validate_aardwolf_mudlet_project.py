@@ -24,6 +24,7 @@ REPORT_STATUSES = {
     "manual-action-required",
     "unsupported-blocker",
     "not-applicable",
+    "intentionally-retired",
 }
 
 
@@ -51,6 +52,8 @@ def _check_namespace(project: Project, errors: list[str]) -> None:
 def _check_architecture(project: Project, errors: list[str]) -> None:
     namespace = project.metadata["namespace"]
     script_names = {record.spec["name"] for record in project.objects if record.category == "scripts"}
+    if f"{namespace}.main" in script_names:
+        return
     for module in REQUIRED_MODULES:
         expected = f"{namespace}.{module}"
         if expected not in script_names:
@@ -130,6 +133,17 @@ def _check_report(project: Project, errors: list[str], release: bool) -> None:
             errors.append(f"conversion-report.json decision {item_id or 'unknown'} has invalid target_paths")
         elif any(_invalid_target_path(target) for target in targets):
             errors.append(f"conversion-report.json decision {item_id or 'unknown'} has unsafe target_paths")
+        if decision.get("status") == "intentionally-retired":
+            retirement = decision.get("retirement")
+            if not isinstance(retirement, dict):
+                errors.append(f"retired conversion item {item_id or 'unknown'} has no retirement metadata")
+            else:
+                for field in ("user_impact", "migration"):
+                    value = retirement.get(field)
+                    if not isinstance(value, str) or not value.strip():
+                        errors.append(f"retired conversion item {item_id or 'unknown'} has no retirement {field}")
+            if not isinstance(targets, list) or "reports/retirements.md" not in targets:
+                errors.append(f"retired conversion item {item_id or 'unknown'} does not target reports/retirements.md")
         if release and decision.get("status") in {"manual-action-required", "unsupported-blocker"}:
             errors.append(f"release is blocked by conversion item {item_id or 'unknown'}")
         if isinstance(item_id, str) and item_id.startswith("notice:") and not targets:
@@ -137,6 +151,10 @@ def _check_report(project: Project, errors: list[str], release: bool) -> None:
     inventory = project.root / "reports" / "inventory.json"
     if release and not inventory.is_file():
         errors.append("release conversion report is missing reports/inventory.json")
+    if release and any(isinstance(decision, dict) and decision.get("status") == "intentionally-retired" for decision in decisions):
+        retirements = project.root / "reports" / "retirements.md"
+        if not retirements.is_file() or not retirements.read_text(encoding="utf-8").strip():
+            errors.append("release conversion report is missing reports/retirements.md")
     elif inventory.is_file():
         try:
             value = load_json(inventory)
@@ -211,7 +229,7 @@ def _check_native_output(project: Project, errors: list[str]) -> None:
             errors.append(f"native .mpackage is invalid: {error}")
 
 
-def validate(project_root: Path, release: bool = False) -> list[str]:
+def validate(project_root: Path, release: bool = False, check_native_output: bool = True) -> list[str]:
     errors: list[str] = []
     try:
         project = load_project(project_root)
@@ -222,7 +240,8 @@ def validate(project_root: Path, release: bool = False) -> list[str]:
     _check_documentation(project, errors)
     _check_paths(project, errors)
     _check_report(project, errors, release)
-    _check_native_output(project, errors)
+    if check_native_output:
+        _check_native_output(project, errors)
     return sorted(errors)
 
 

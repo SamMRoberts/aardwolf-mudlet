@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_help.help",
+    "regex": "^aard help$"
+  },
+  {
+    "name": "aardwolf_help.legacy_help",
+    "regex": "^mchelps?(?: .*)?$"
+  }
+]

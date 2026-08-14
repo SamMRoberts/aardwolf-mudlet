@@ -1,7 +1,7 @@
 {
   "input": {
     "name": ".resources/worlds/plugins (43 MUSHclient XML plugins and companion root)",
-    "sha256": "367e25d02518c2ab0996d83442af36d11b6a523a9afba5cecc3df3e962165619"
+    "sha256": "750aa4dd6a5fbebe4ccee1a937ea0374e0888781cc17cadfe636e3fc2ad1f514"
   },
   "items": [
     {
@@ -12,7 +12,7 @@
       "id": "companion:asset:companion-1-.DS_Store",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/.DS_Store",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/.DS_Store",
       "summary": "companion resource"
     },
     {
@@ -23,7 +23,7 @@
       "id": "companion:asset:companion-1-Aardwolf_Bigmap_Graphical.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Aardwolf_Bigmap_Graphical.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Bigmap_Graphical.xml",
       "summary": "companion resource"
     },
     {
@@ -34,7 +34,7 @@
       "id": "companion:asset:companion-1-Aardwolf_Tick_Timer.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "companion resource"
     },
     {
@@ -45,7 +45,7 @@
       "id": "companion:asset:companion-1-Automatic_Backup.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "companion resource"
     },
     {
@@ -56,7 +56,7 @@
       "id": "companion:asset:companion-1-Config_Option_Changer.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Config_Option_Changer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Config_Option_Changer.xml",
       "summary": "companion resource"
     },
     {
@@ -67,7 +67,7 @@
       "id": "companion:asset:companion-1-Hyperlink_URL2.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Hyperlink_URL2.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Hyperlink_URL2.xml",
       "summary": "companion resource"
     },
     {
@@ -78,7 +78,7 @@
       "id": "companion:asset:companion-1-MUSHclient_Help.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "companion resource"
     },
     {
@@ -89,7 +89,7 @@
       "id": "companion:asset:companion-1-Omit_Blank_Lines.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Omit_Blank_Lines.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Omit_Blank_Lines.xml",
       "summary": "companion resource"
     },
     {
@@ -100,7 +100,7 @@
       "id": "companion:asset:companion-1-README_command_output_plugin.txt",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/README_command_output_plugin.txt",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/README_command_output_plugin.txt",
       "summary": "companion resource"
     },
     {
@@ -111,7 +111,7 @@
       "id": "companion:asset:companion-1-SAPI.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "companion resource"
     },
     {
@@ -122,7 +122,7 @@
       "id": "companion:asset:companion-1-Time.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/Time.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Time.xml",
       "summary": "companion resource"
     },
     {
@@ -133,7 +133,7 @@
       "id": "companion:asset:companion-1-aard_ASCII_map.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_ASCII_map.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ASCII_map.xml",
       "summary": "companion resource"
     },
     {
@@ -144,7 +144,7 @@
       "id": "companion:asset:companion-1-aard_Command_Tag_Handler.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_Command_Tag_Handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Command_Tag_Handler.xml",
       "summary": "companion resource"
     },
     {
@@ -155,7 +155,7 @@
       "id": "companion:asset:companion-1-aard_Copy_Colour_Codes.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "companion resource"
     },
     {
@@ -166,7 +166,7 @@
       "id": "companion:asset:companion-1-aard_GMCP_handler.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "companion resource"
     },
     {
@@ -177,7 +177,7 @@
       "id": "companion:asset:companion-1-aard_GMCP_mapper.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_GMCP_mapper.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_mapper.xml",
       "summary": "companion resource"
     },
     {
@@ -188,7 +188,7 @@
       "id": "companion:asset:companion-1-aard_Theme_Controller.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "companion resource"
     },
     {
@@ -199,7 +199,7 @@
       "id": "companion:asset:companion-1-aard_VI_command_output.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "companion resource"
     },
     {
@@ -210,7 +210,7 @@
       "id": "companion:asset:companion-1-aard_channels_fiendish.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "companion resource"
     },
     {
@@ -221,7 +221,7 @@
       "id": "companion:asset:companion-1-aard_chat_echo.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "companion resource"
     },
     {
@@ -232,7 +232,7 @@
       "id": "companion:asset:companion-1-aard_group_monitor_gmcp.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "companion resource"
     },
     {
@@ -243,7 +243,7 @@
       "id": "companion:asset:companion-1-aard_health_bars_gmcp.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "companion resource"
     },
     {
@@ -254,7 +254,7 @@
       "id": "companion:asset:companion-1-aard_help.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "companion resource"
     },
     {
@@ -265,7 +265,7 @@
       "id": "companion:asset:companion-1-aard_ingame_help_window.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "companion resource"
     },
     {
@@ -276,7 +276,7 @@
       "id": "companion:asset:companion-1-aard_inventory_serials.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "companion resource"
     },
     {
@@ -287,7 +287,7 @@
       "id": "companion:asset:companion-1-aard_keyboard_lockout.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "companion resource"
     },
     {
@@ -298,7 +298,7 @@
       "id": "companion:asset:companion-1-aard_layout.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "companion resource"
     },
     {
@@ -309,7 +309,7 @@
       "id": "companion:asset:companion-1-aard_miniwindow_z_order_monitor.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "companion resource"
     },
     {
@@ -320,7 +320,7 @@
       "id": "companion:asset:companion-1-aard_new_connection.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_new_connection.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection.xml",
       "summary": "companion resource"
     },
     {
@@ -331,7 +331,7 @@
       "id": "companion:asset:companion-1-aard_new_connection_no_UI.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_new_connection_no_UI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection_no_UI.xml",
       "summary": "companion resource"
     },
     {
@@ -342,7 +342,7 @@
       "id": "companion:asset:companion-1-aard_note_mode.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "companion resource"
     },
     {
@@ -353,7 +353,7 @@
       "id": "companion:asset:companion-1-aard_package_update_checker.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "companion resource"
     },
     {
@@ -364,7 +364,7 @@
       "id": "companion:asset:companion-1-aard_prompt_fixer.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "companion resource"
     },
     {
@@ -375,7 +375,7 @@
       "id": "companion:asset:companion-1-aard_repaint_buffer.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "companion resource"
     },
     {
@@ -386,7 +386,7 @@
       "id": "companion:asset:companion-1-aard_requirements.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "companion resource"
     },
     {
@@ -397,7 +397,7 @@
       "id": "companion:asset:companion-1-aard_soundpack.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_soundpack.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_soundpack.xml",
       "summary": "companion resource"
     },
     {
@@ -408,7 +408,7 @@
       "id": "companion:asset:companion-1-aard_splitscreen_scrollback.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "companion resource"
     },
     {
@@ -419,7 +419,7 @@
       "id": "companion:asset:companion-1-aard_statmon_gmcp.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "companion resource"
     },
     {
@@ -430,7 +430,7 @@
       "id": "companion:asset:companion-1-aard_text_substitution.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "companion resource"
     },
     {
@@ -441,7 +441,7 @@
       "id": "companion:asset:companion-1-aard_translate_foreign_friends.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "companion resource"
     },
     {
@@ -452,7 +452,7 @@
       "id": "companion:asset:companion-1-aard_vi_review_buffers.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_vi_review_buffers.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_vi_review_buffers.xml",
       "summary": "companion resource"
     },
     {
@@ -463,7 +463,7 @@
       "id": "companion:asset:companion-1-aard_vital_shortcuts.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/aard_vital_shortcuts.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_vital_shortcuts.xml",
       "summary": "companion resource"
     },
     {
@@ -474,7 +474,7 @@
       "id": "companion:asset:companion-1-constants.js",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/constants.js",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/constants.js",
       "summary": "companion resource"
     },
     {
@@ -485,7 +485,7 @@
       "id": "companion:asset:companion-1-constants.pl",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/constants.pl",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/constants.pl",
       "summary": "companion resource"
     },
     {
@@ -496,7 +496,7 @@
       "id": "companion:asset:companion-1-constants.pys",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/constants.pys",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/constants.pys",
       "summary": "companion resource"
     },
     {
@@ -507,7 +507,7 @@
       "id": "companion:asset:companion-1-constants.vbs",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/constants.vbs",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/constants.vbs",
       "summary": "companion resource"
     },
     {
@@ -518,7 +518,7 @@
       "id": "companion:asset:companion-1-images-aardbg13.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/aardbg13.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/aardbg13.png",
       "summary": "companion resource"
     },
     {
@@ -529,7 +529,7 @@
       "id": "companion:asset:companion-1-images-aardbg8.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/aardbg8.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/aardbg8.png",
       "summary": "companion resource"
     },
     {
@@ -540,7 +540,7 @@
       "id": "companion:asset:companion-1-images-bg1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/bg1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/bg1.png",
       "summary": "companion resource"
     },
     {
@@ -551,7 +551,7 @@
       "id": "companion:asset:companion-1-images-bg2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/bg2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/bg2.png",
       "summary": "companion resource"
     },
     {
@@ -562,7 +562,7 @@
       "id": "companion:asset:companion-1-images-chess1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/chess1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/chess1.png",
       "summary": "companion resource"
     },
     {
@@ -573,7 +573,7 @@
       "id": "companion:asset:companion-1-images-cloud.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/cloud.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/cloud.png",
       "summary": "companion resource"
     },
     {
@@ -584,7 +584,7 @@
       "id": "companion:asset:companion-1-images-cobble2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/cobble2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/cobble2.png",
       "summary": "companion resource"
     },
     {
@@ -595,7 +595,7 @@
       "id": "companion:asset:companion-1-images-darkrock.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/darkrock.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/darkrock.png",
       "summary": "companion resource"
     },
     {
@@ -606,7 +606,7 @@
       "id": "companion:asset:companion-1-images-darkstone.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/darkstone.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/darkstone.png",
       "summary": "companion resource"
     },
     {
@@ -617,7 +617,7 @@
       "id": "companion:asset:companion-1-images-default.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/default.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/default.png",
       "summary": "companion resource"
     },
     {
@@ -628,7 +628,7 @@
       "id": "companion:asset:companion-1-images-dirt.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/dirt.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/dirt.png",
       "summary": "companion resource"
     },
     {
@@ -639,7 +639,7 @@
       "id": "companion:asset:companion-1-images-dirt2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/dirt2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/dirt2.png",
       "summary": "companion resource"
     },
     {
@@ -650,7 +650,7 @@
       "id": "companion:asset:companion-1-images-dirtgrass.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/dirtgrass.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/dirtgrass.png",
       "summary": "companion resource"
     },
     {
@@ -661,7 +661,7 @@
       "id": "companion:asset:companion-1-images-dragon1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/dragon1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/dragon1.png",
       "summary": "companion resource"
     },
     {
@@ -672,7 +672,7 @@
       "id": "companion:asset:companion-1-images-fire1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/fire1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/fire1.png",
       "summary": "companion resource"
     },
     {
@@ -683,7 +683,7 @@
       "id": "companion:asset:companion-1-images-forest.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/forest.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/forest.png",
       "summary": "companion resource"
     },
     {
@@ -694,7 +694,7 @@
       "id": "companion:asset:companion-1-images-forest2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/forest2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/forest2.png",
       "summary": "companion resource"
     },
     {
@@ -705,7 +705,7 @@
       "id": "companion:asset:companion-1-images-forest3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/forest3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/forest3.png",
       "summary": "companion resource"
     },
     {
@@ -716,7 +716,7 @@
       "id": "companion:asset:companion-1-images-grass.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/grass.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/grass.png",
       "summary": "companion resource"
     },
     {
@@ -727,7 +727,7 @@
       "id": "companion:asset:companion-1-images-grass1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/grass1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/grass1.png",
       "summary": "companion resource"
     },
     {
@@ -738,7 +738,7 @@
       "id": "companion:asset:companion-1-images-grass2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/grass2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/grass2.png",
       "summary": "companion resource"
     },
     {
@@ -749,7 +749,7 @@
       "id": "companion:asset:companion-1-images-grass3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/grass3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/grass3.png",
       "summary": "companion resource"
     },
     {
@@ -760,7 +760,7 @@
       "id": "companion:asset:companion-1-images-grass4.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/grass4.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/grass4.png",
       "summary": "companion resource"
     },
     {
@@ -771,7 +771,7 @@
       "id": "companion:asset:companion-1-images-hell.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/hell.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/hell.png",
       "summary": "companion resource"
     },
     {
@@ -782,7 +782,7 @@
       "id": "companion:asset:companion-1-images-hell2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/hell2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/hell2.png",
       "summary": "companion resource"
     },
     {
@@ -793,7 +793,7 @@
       "id": "companion:asset:companion-1-images-ocean1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/ocean1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/ocean1.png",
       "summary": "companion resource"
     },
     {
@@ -804,7 +804,7 @@
       "id": "companion:asset:companion-1-images-ocean2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/ocean2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/ocean2.png",
       "summary": "companion resource"
     },
     {
@@ -815,7 +815,7 @@
       "id": "companion:asset:companion-1-images-ocean3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/ocean3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/ocean3.png",
       "summary": "companion resource"
     },
     {
@@ -826,7 +826,7 @@
       "id": "companion:asset:companion-1-images-ocean4.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/ocean4.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/ocean4.png",
       "summary": "companion resource"
     },
     {
@@ -837,7 +837,7 @@
       "id": "companion:asset:companion-1-images-rocky.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/rocky.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/rocky.png",
       "summary": "companion resource"
     },
     {
@@ -848,7 +848,7 @@
       "id": "companion:asset:companion-1-images-rocky2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/rocky2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/rocky2.png",
       "summary": "companion resource"
     },
     {
@@ -859,7 +859,7 @@
       "id": "companion:asset:companion-1-images-rocky3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/rocky3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/rocky3.png",
       "summary": "companion resource"
     },
     {
@@ -870,7 +870,7 @@
       "id": "companion:asset:companion-1-images-sand.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/sand.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/sand.png",
       "summary": "companion resource"
     },
     {
@@ -881,7 +881,7 @@
       "id": "companion:asset:companion-1-images-smallwolf.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/smallwolf.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/smallwolf.png",
       "summary": "companion resource"
     },
     {
@@ -892,7 +892,7 @@
       "id": "companion:asset:companion-1-images-snow.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/snow.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/snow.png",
       "summary": "companion resource"
     },
     {
@@ -903,7 +903,7 @@
       "id": "companion:asset:companion-1-images-snow2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/snow2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/snow2.png",
       "summary": "companion resource"
     },
     {
@@ -914,7 +914,7 @@
       "id": "companion:asset:companion-1-images-snow3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/snow3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/snow3.png",
       "summary": "companion resource"
     },
     {
@@ -925,7 +925,7 @@
       "id": "companion:asset:companion-1-images-space2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/space2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/space2.png",
       "summary": "companion resource"
     },
     {
@@ -936,7 +936,7 @@
       "id": "companion:asset:companion-1-images-sparse.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/sparse.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/sparse.png",
       "summary": "companion resource"
     },
     {
@@ -947,7 +947,7 @@
       "id": "companion:asset:companion-1-images-stone.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/stone.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/stone.png",
       "summary": "companion resource"
     },
     {
@@ -958,7 +958,7 @@
       "id": "companion:asset:companion-1-images-stones.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/stones.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/stones.png",
       "summary": "companion resource"
     },
     {
@@ -969,7 +969,7 @@
       "id": "companion:asset:companion-1-images-temple.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/temple.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/temple.png",
       "summary": "companion resource"
     },
     {
@@ -980,7 +980,7 @@
       "id": "companion:asset:companion-1-images-test.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/test.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/test.png",
       "summary": "companion resource"
     },
     {
@@ -991,7 +991,7 @@
       "id": "companion:asset:companion-1-images-test3.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/test3.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/test3.png",
       "summary": "companion resource"
     },
     {
@@ -1002,7 +1002,7 @@
       "id": "companion:asset:companion-1-images-test4.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/test4.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/test4.png",
       "summary": "companion resource"
     },
     {
@@ -1013,7 +1013,7 @@
       "id": "companion:asset:companion-1-images-test5.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/test5.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/test5.png",
       "summary": "companion resource"
     },
     {
@@ -1024,7 +1024,7 @@
       "id": "companion:asset:companion-1-images-tile1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/tile1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/tile1.png",
       "summary": "companion resource"
     },
     {
@@ -1035,7 +1035,7 @@
       "id": "companion:asset:companion-1-images-tile2.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/tile2.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/tile2.png",
       "summary": "companion resource"
     },
     {
@@ -1046,7 +1046,7 @@
       "id": "companion:asset:companion-1-images-wood.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/wood.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/wood.png",
       "summary": "companion resource"
     },
     {
@@ -1057,7 +1057,7 @@
       "id": "companion:asset:companion-1-images-wood1.png",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/images/wood1.png",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/images/wood1.png",
       "summary": "companion resource"
     },
     {
@@ -1068,7 +1068,7 @@
       "id": "companion:asset:companion-1-plugin_list.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "companion resource"
     },
     {
@@ -1079,7 +1079,7 @@
       "id": "companion:asset:companion-1-plugin_summary.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "companion resource"
     },
     {
@@ -1090,7 +1090,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-3e7dedbe37e44942dd46d264-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-3e7dedbe37e44942dd46d264-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-3e7dedbe37e44942dd46d264-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1101,7 +1101,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-9f796334ab9ed476ef44f1dc-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-9f796334ab9ed476ef44f1dc-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-9f796334ab9ed476ef44f1dc-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1112,7 +1112,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b555825a4a5700c35fa80780-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-b555825a4a5700c35fa80780-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-b555825a4a5700c35fa80780-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1123,7 +1123,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b6eae87ccedd84f510b74714-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-b6eae87ccedd84f510b74714-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-b6eae87ccedd84f510b74714-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1134,7 +1134,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-c293f9e7f04dde889f65cb90-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-c293f9e7f04dde889f65cb90-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-c293f9e7f04dde889f65cb90-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1145,7 +1145,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69385-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69385-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69385-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1156,7 +1156,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69386-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69386-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69386-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1167,7 +1167,7 @@
       "id": "companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-f178e68512c685b3be1e9b07-state.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/state/e0eb198d8d5698e3b2f61483-f178e68512c685b3be1e9b07-state.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/state/e0eb198d8d5698e3b2f61483-f178e68512c685b3be1e9b07-state.xml",
       "summary": "companion resource"
     },
     {
@@ -1178,7 +1178,7 @@
       "id": "companion:asset:companion-1-universal_text_to_speech.xml",
       "kind": "asset",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "companion resource"
     },
     {
@@ -1191,7 +1191,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/companion-1/aardwolf_colors.lua",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aardwolf_colors.lua",
       "summary": "companion Lua file"
     },
     {
@@ -1202,7 +1202,7 @@
       "id": "companion:script:companion-1-constants.lua",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/companion-1/constants.lua",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/constants.lua",
       "summary": "companion Lua file"
     },
     {
@@ -1215,7 +1215,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/companion-1/telnet_options.lua",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/telnet_options.lua",
       "summary": "companion Lua file"
     },
     {
@@ -1228,7 +1228,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/companion-1/aardwolf_colors.lua",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aardwolf_colors.lua",
       "summary": "static miniwindow signal"
     },
     {
@@ -1241,7 +1241,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/companion-1/telnet_options.lua",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/telnet_options.lua",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -1254,7 +1254,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Bigmap_Graphical.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Bigmap_Graphical.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -1272,7 +1272,7 @@
       "id": "source:Aardwolf_Tick_Timer/alias:aard-tick-help-miniwin-status",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1289,7 +1289,7 @@
       "id": "source:Aardwolf_Tick_Timer/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1304,7 +1304,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1319,7 +1319,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1334,7 +1334,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1349,7 +1349,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1364,7 +1364,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1379,7 +1379,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1394,7 +1394,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1409,7 +1409,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1427,7 +1427,7 @@
       "id": "source:Aardwolf_Tick_Timer/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1443,7 +1443,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -1456,7 +1456,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -1469,7 +1469,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -1482,7 +1482,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -1499,7 +1499,7 @@
       "id": "source:Aardwolf_Tick_Timer/timer:seconds_since_tick",
       "kind": "timer",
       "signals": [],
-      "source": ".resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Aardwolf_Tick_Timer.xml",
       "summary": "MUSHclient timer"
     },
     {
@@ -1512,7 +1512,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1525,7 +1525,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1542,7 +1542,7 @@
       "id": "source:Automatic_Backup/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1556,7 +1556,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -1569,7 +1569,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/Automatic_Backup.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Automatic_Backup.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -1585,7 +1585,7 @@
       "id": "source:Config_Option_Changer/alias:config_options",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/Config_Option_Changer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Config_Option_Changer.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1603,7 +1603,7 @@
       "id": "source:Config_Option_Changer/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Config_Option_Changer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Config_Option_Changer.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1615,7 +1615,7 @@
       "id": "source:Config_Option_Changer/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/Config_Option_Changer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Config_Option_Changer.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -1626,7 +1626,7 @@
       "id": "source:Hyperlink_URL2/callback:OnPluginInstall",
       "kind": "callback",
       "signals": [],
-      "source": ".resources/worlds/plugins/Hyperlink_URL2.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Hyperlink_URL2.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1646,7 +1646,7 @@
       "id": "source:Hyperlink_URL2/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Hyperlink_URL2.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Hyperlink_URL2.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1658,7 +1658,7 @@
       "id": "source:Hyperlink_URL2/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/Hyperlink_URL2.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Hyperlink_URL2.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -1677,7 +1677,7 @@
       "id": "source:Hyperlink_URL2/trigger:https-mailto-s-w",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/Hyperlink_URL2.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Hyperlink_URL2.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -1695,7 +1695,7 @@
       "id": "source:MUSHclient_Help/alias:mchelp-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1713,7 +1713,7 @@
       "id": "source:MUSHclient_Help/alias:mchelp-d",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1729,7 +1729,7 @@
       "id": "source:MUSHclient_Help/alias:mchelps",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1747,7 +1747,7 @@
       "id": "source:MUSHclient_Help/alias:mchelps-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1760,7 +1760,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -1779,7 +1779,7 @@
       "id": "source:MUSHclient_Help/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1793,7 +1793,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -1806,7 +1806,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/MUSHclient_Help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/MUSHclient_Help.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -1823,7 +1823,7 @@
       "id": "source:Omit_Blank_Lines/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Omit_Blank_Lines.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Omit_Blank_Lines.xml",
       "summary": "plugin metadata"
     },
     {
@@ -1840,7 +1840,7 @@
       "id": "source:Omit_Blank_Lines/trigger:1",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/Omit_Blank_Lines.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Omit_Blank_Lines.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -1859,7 +1859,7 @@
       "id": "source:SAPI/alias:sapi-clear",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1878,7 +1878,7 @@
       "id": "source:SAPI/alias:sapi-debug",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1897,7 +1897,7 @@
       "id": "source:SAPI/alias:sapi-faster",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1917,7 +1917,7 @@
       "id": "source:SAPI/alias:sapi-filtering",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1937,7 +1937,7 @@
       "id": "source:SAPI/alias:sapi-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1957,7 +1957,7 @@
       "id": "source:SAPI/alias:sapi-help-printed",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1976,7 +1976,7 @@
       "id": "source:SAPI/alias:sapi-list-voices",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -1995,7 +1995,7 @@
       "id": "source:SAPI/alias:sapi-off",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2014,7 +2014,7 @@
       "id": "source:SAPI/alias:sapi-on",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2034,7 +2034,7 @@
       "id": "source:SAPI/alias:sapi-rate",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2054,7 +2054,7 @@
       "id": "source:SAPI/alias:sapi-say",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2073,7 +2073,7 @@
       "id": "source:SAPI/alias:sapi-skip",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2092,7 +2092,7 @@
       "id": "source:SAPI/alias:sapi-slower",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2111,7 +2111,7 @@
       "id": "source:SAPI/alias:sapi-test",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2131,7 +2131,7 @@
       "id": "source:SAPI/alias:sapi-voice",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2142,7 +2142,7 @@
       "id": "source:SAPI/callback:OnPluginInstall",
       "kind": "callback",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2153,7 +2153,7 @@
       "id": "source:SAPI/callback:OnPluginListChanged",
       "kind": "callback",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2164,7 +2164,7 @@
       "id": "source:SAPI/callback:OnPluginScreendraw",
       "kind": "callback",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2175,7 +2175,7 @@
       "id": "source:SAPI/callback:OnPluginTabComplete",
       "kind": "callback",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2193,7 +2193,7 @@
       "id": "source:SAPI/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2205,7 +2205,7 @@
       "id": "source:SAPI/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/SAPI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/SAPI.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2222,7 +2222,7 @@
       "id": "source:Time/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/Time.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Time.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2234,7 +2234,7 @@
       "id": "source:Time/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/Time.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/Time.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2247,7 +2247,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/aard_ASCII_map.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ASCII_map.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -2265,7 +2265,7 @@
       "id": "source:aard_Command_Tag_Handler/alias:showcommandtags-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Command_Tag_Handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Command_Tag_Handler.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2283,7 +2283,7 @@
       "id": "source:aard_Command_Tag_Handler/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Command_Tag_Handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Command_Tag_Handler.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2295,7 +2295,7 @@
       "id": "source:aard_Command_Tag_Handler/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Command_Tag_Handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Command_Tag_Handler.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2316,7 +2316,7 @@
       "id": "source:aard_Command_Tag_Handler/trigger:tag",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Command_Tag_Handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Command_Tag_Handler.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -2335,7 +2335,7 @@
       "id": "source:aard_Copy_Colour_Codes/alias:copy_with_colour",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2349,7 +2349,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2367,7 +2367,7 @@
       "id": "source:aard_Copy_Colour_Codes/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2382,7 +2382,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2395,7 +2395,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -2408,7 +2408,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Copy_Colour_Codes.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -2426,7 +2426,7 @@
       "id": "source:aard_GMCP_handler/alias:gmcpdebug-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2443,7 +2443,7 @@
       "id": "source:aard_GMCP_handler/alias:sendgmcp",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2459,7 +2459,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2475,7 +2475,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2491,7 +2491,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2507,7 +2507,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2523,7 +2523,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2539,7 +2539,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2557,7 +2557,7 @@
       "id": "source:aard_GMCP_handler/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2574,7 +2574,7 @@
         "plugin-dependency",
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2587,7 +2587,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -2600,7 +2600,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -2613,7 +2613,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -2626,7 +2626,7 @@
       "signals": [
         "windows-api"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "static windows-api signal"
     },
     {
@@ -2643,7 +2643,7 @@
       "id": "source:aard_GMCP_handler/trigger:compact-mode-set-removed-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -2660,7 +2660,7 @@
       "id": "source:aard_GMCP_handler/trigger:you-will-now-no-longer-see-prompts-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_GMCP_handler.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_handler.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -2673,7 +2673,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/aard_GMCP_mapper.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_GMCP_mapper.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -2690,7 +2690,7 @@
       "id": "source:aard_Theme_Controller/alias:aard-theme-change",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2704,7 +2704,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2720,7 +2720,7 @@
       "id": "source:aard_Theme_Controller/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2735,7 +2735,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2748,7 +2748,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -2761,7 +2761,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_Theme_Controller.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_Theme_Controller.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -2779,7 +2779,7 @@
       "id": "source:aard_VI_command_output/alias:mc-command-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2793,7 +2793,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2812,7 +2812,7 @@
       "id": "source:aard_VI_command_output/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "plugin metadata"
     },
     {
@@ -2827,7 +2827,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -2840,7 +2840,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -2853,7 +2853,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_VI_command_output.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_VI_command_output.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -2870,7 +2870,7 @@
       "id": "source:aard_channels_fiendish/alias:chats-hide",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2887,7 +2887,7 @@
       "id": "source:aard_channels_fiendish/alias:chats-scroll",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2904,7 +2904,7 @@
       "id": "source:aard_channels_fiendish/alias:chats-show",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2921,7 +2921,7 @@
       "id": "source:aard_channels_fiendish/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -2937,7 +2937,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2953,7 +2953,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2969,7 +2969,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -2985,7 +2985,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3001,7 +3001,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3017,7 +3017,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3033,7 +3033,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3052,7 +3052,7 @@
       "id": "source:aard_channels_fiendish/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "plugin metadata"
     },
     {
@@ -3069,7 +3069,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -3082,7 +3082,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -3095,7 +3095,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -3108,7 +3108,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -3121,7 +3121,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -3139,7 +3139,7 @@
       "id": "source:aard_channels_fiendish/trigger:claninfo",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3157,7 +3157,7 @@
       "id": "source:aard_channels_fiendish/trigger:global_quest",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3175,7 +3175,7 @@
       "id": "source:aard_channels_fiendish/trigger:info",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3193,7 +3193,7 @@
       "id": "source:aard_channels_fiendish/trigger:raidinfo",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3211,7 +3211,7 @@
       "id": "source:aard_channels_fiendish/trigger:remort_auction",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3229,7 +3229,7 @@
       "id": "source:aard_channels_fiendish/trigger:remote_socials",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3247,7 +3247,7 @@
       "id": "source:aard_channels_fiendish/trigger:warfare",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_channels_fiendish.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_channels_fiendish.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3266,7 +3266,7 @@
       "id": "source:aard_chat_echo/alias:chats-echo-on-off-channels-nonchannels",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3285,7 +3285,7 @@
       "id": "source:aard_chat_echo/alias:chats-mute-clear",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3304,7 +3304,7 @@
       "id": "source:aard_chat_echo/alias:chats-un-mute-w-d",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3323,7 +3323,7 @@
       "id": "source:aard_chat_echo/alias:ig-n-no-nor-nore-w",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3338,7 +3338,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3353,7 +3353,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3368,7 +3368,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3383,7 +3383,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3398,7 +3398,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3413,7 +3413,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3428,7 +3428,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3443,7 +3443,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3462,7 +3462,7 @@
       "id": "source:aard_chat_echo/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "plugin metadata"
     },
     {
@@ -3478,7 +3478,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -3491,7 +3491,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -3504,7 +3504,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -3517,7 +3517,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -3537,7 +3537,7 @@
       "id": "source:aard_chat_echo/trigger:claninfo",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3557,7 +3557,7 @@
       "id": "source:aard_chat_echo/trigger:end_gag_keep",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3577,7 +3577,7 @@
       "id": "source:aard_chat_echo/trigger:end_gag_omit",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3597,7 +3597,7 @@
       "id": "source:aard_chat_echo/trigger:global_quest",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3615,7 +3615,7 @@
       "id": "source:aard_chat_echo/trigger:ignoreend",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3634,7 +3634,7 @@
       "id": "source:aard_chat_echo/trigger:ignorelimit",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3652,7 +3652,7 @@
       "id": "source:aard_chat_echo/trigger:ignorestart",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3672,7 +3672,7 @@
       "id": "source:aard_chat_echo/trigger:info",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3692,7 +3692,7 @@
       "id": "source:aard_chat_echo/trigger:raidinfo",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3712,7 +3712,7 @@
       "id": "source:aard_chat_echo/trigger:remort_auction",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3732,7 +3732,7 @@
       "id": "source:aard_chat_echo/trigger:warfare",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_chat_echo.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_chat_echo.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -3749,7 +3749,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupcompact",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3766,7 +3766,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupoff",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3783,7 +3783,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupon",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3800,7 +3800,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:grouproom",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3817,7 +3817,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupsetall",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3834,7 +3834,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupsetnone",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3851,7 +3851,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:groupsetroom",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3870,7 +3870,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:hidep-s-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3887,7 +3887,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3906,7 +3906,7 @@
       "id": "source:aard_group_monitor_gmcp/alias:showp-s-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -3922,7 +3922,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3938,7 +3938,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3954,7 +3954,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3970,7 +3970,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -3986,7 +3986,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4002,7 +4002,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4018,7 +4018,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4034,7 +4034,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4052,7 +4052,7 @@
       "id": "source:aard_group_monitor_gmcp/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "plugin metadata"
     },
     {
@@ -4069,7 +4069,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -4082,7 +4082,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -4095,7 +4095,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -4108,7 +4108,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -4121,7 +4121,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -4141,7 +4141,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4161,7 +4161,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4181,7 +4181,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:you-have-declined-the-group-invitation-from-w-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4201,7 +4201,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:you-have-no-invitation-outstanding-from-w-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4221,7 +4221,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-that-group-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4241,7 +4241,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-the-game-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4261,7 +4261,7 @@
       "id": "source:aard_group_monitor_gmcp/trigger:your-group-invite-from-w-is-cancelled-because-the-group-has-been-disbanded-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_group_monitor_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_group_monitor_gmcp.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -4278,7 +4278,7 @@
       "id": "source:aard_health_bars_gmcp/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4294,7 +4294,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4310,7 +4310,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4326,7 +4326,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4342,7 +4342,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4358,7 +4358,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4374,7 +4374,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4390,7 +4390,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4406,7 +4406,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4424,7 +4424,7 @@
       "id": "source:aard_health_bars_gmcp/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "plugin metadata"
     },
     {
@@ -4441,7 +4441,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -4454,7 +4454,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -4467,7 +4467,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -4480,7 +4480,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -4493,7 +4493,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_health_bars_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_health_bars_gmcp.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -4511,7 +4511,7 @@
       "id": "source:aard_help/alias:aard-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4529,7 +4529,7 @@
       "id": "source:aard_help/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "plugin metadata"
     },
     {
@@ -4544,7 +4544,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -4557,7 +4557,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -4570,7 +4570,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_help.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_help.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -4588,7 +4588,7 @@
       "id": "source:aard_ingame_help_window/alias:closehelp",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4607,7 +4607,7 @@
       "id": "source:aard_ingame_help_window/alias:copyhelp",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4625,7 +4625,7 @@
       "id": "source:aard_ingame_help_window/alias:h-he-hel-help-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4643,7 +4643,7 @@
       "id": "source:aard_ingame_help_window/alias:h-he-hel-help-search-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4661,7 +4661,7 @@
       "id": "source:aard_ingame_help_window/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4679,7 +4679,7 @@
       "id": "source:aard_ingame_help_window/alias:scrollhelpdown",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4697,7 +4697,7 @@
       "id": "source:aard_ingame_help_window/alias:scrollhelpup",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4712,7 +4712,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4727,7 +4727,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4742,7 +4742,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4757,7 +4757,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4772,7 +4772,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4787,7 +4787,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4806,7 +4806,7 @@
       "id": "source:aard_ingame_help_window/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "plugin metadata"
     },
     {
@@ -4822,7 +4822,7 @@
         "gmcp",
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -4835,7 +4835,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -4848,7 +4848,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -4861,7 +4861,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_ingame_help_window.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_ingame_help_window.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -4880,7 +4880,7 @@
       "id": "source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4899,7 +4899,7 @@
       "id": "source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory-keyr-i-in-ing-l-i-is-ist-vau-l-lt-l-i-is-ist-serials-help-off-on-color-.-hint-clear",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4918,7 +4918,7 @@
       "id": "source:aard_inventory_serials/alias:keyr-i-in-ing-l-i-is-ist",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4937,7 +4937,7 @@
       "id": "source:aard_inventory_serials/alias:vau-l-lt-l-i-is-ist",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -4952,7 +4952,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4967,7 +4967,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4982,7 +4982,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -4997,7 +4997,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5015,7 +5015,7 @@
       "id": "source:aard_inventory_serials/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5031,7 +5031,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5044,7 +5044,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5057,7 +5057,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -5070,7 +5070,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -5091,7 +5091,7 @@
       "id": "source:aard_inventory_serials/trigger:asleep",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_inventory_serials.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_inventory_serials.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -5108,7 +5108,7 @@
       "id": "source:aard_keyboard_lockout/alias:aard-input",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5121,7 +5121,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5134,7 +5134,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5153,7 +5153,7 @@
       "id": "source:aard_keyboard_lockout/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5167,7 +5167,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5180,7 +5180,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_keyboard_lockout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_keyboard_lockout.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -5198,7 +5198,7 @@
       "id": "source:aard_layout/alias:aard-layout-lock-unlock-save-forget-restore-list-help-reset-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5216,7 +5216,7 @@
       "id": "source:aard_layout/alias:aard-logo",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5234,7 +5234,7 @@
       "id": "source:aard_layout/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5251,7 +5251,7 @@
       "id": "source:aard_layout/alias:resetmain",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5266,7 +5266,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5281,7 +5281,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5296,7 +5296,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5311,7 +5311,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5326,7 +5326,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5341,7 +5341,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5356,7 +5356,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5371,7 +5371,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5389,7 +5389,7 @@
       "id": "source:aard_layout/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5405,7 +5405,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5418,7 +5418,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5431,7 +5431,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -5444,7 +5444,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_layout.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_layout.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -5459,7 +5459,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5474,7 +5474,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5489,7 +5489,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5504,7 +5504,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5522,7 +5522,7 @@
       "id": "source:aard_miniwindow_z_order_monitor/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5538,7 +5538,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5551,7 +5551,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5564,7 +5564,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -5577,7 +5577,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_miniwindow_z_order_monitor.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -5590,7 +5590,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5608,7 +5608,7 @@
       "id": "source:aard_new_connection/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_new_connection.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5622,7 +5622,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5635,7 +5635,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5648,7 +5648,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection_no_UI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection_no_UI.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5666,7 +5666,7 @@
       "id": "source:aard_new_connection_no_UI/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_new_connection_no_UI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection_no_UI.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5680,7 +5680,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection_no_UI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection_no_UI.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5693,7 +5693,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_new_connection_no_UI.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_new_connection_no_UI.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5708,7 +5708,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5723,7 +5723,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5738,7 +5738,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5753,7 +5753,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5768,7 +5768,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5786,7 +5786,7 @@
       "id": "source:aard_note_mode/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5802,7 +5802,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5815,7 +5815,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5828,7 +5828,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -5841,7 +5841,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_note_mode.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_note_mode.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -5858,7 +5858,7 @@
       "id": "source:aard_package_update_checker/alias:checkversion",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5876,7 +5876,7 @@
       "id": "source:aard_package_update_checker/alias:package-update-check",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -5889,7 +5889,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5907,7 +5907,7 @@
       "id": "source:aard_package_update_checker/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "plugin metadata"
     },
     {
@@ -5921,7 +5921,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -5934,7 +5934,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_package_update_checker.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_package_update_checker.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -5949,7 +5949,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5964,7 +5964,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5979,7 +5979,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -5998,7 +5998,7 @@
       "id": "source:aard_prompt_fixer/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6014,7 +6014,7 @@
         "gmcp",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6027,7 +6027,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -6040,7 +6040,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -6053,7 +6053,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -6070,7 +6070,7 @@
       "id": "source:aard_prompt_fixer/trigger:battle-p-p-rompt-set-to-.",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_prompt_fixer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_prompt_fixer.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -6083,7 +6083,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6096,7 +6096,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6109,7 +6109,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6126,7 +6126,7 @@
       "id": "source:aard_repaint_buffer/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6140,7 +6140,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6153,7 +6153,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_repaint_buffer.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_repaint_buffer.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -6171,7 +6171,7 @@
       "id": "source:aard_requirements/alias:aard-plugins-check",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6189,7 +6189,7 @@
       "id": "source:aard_requirements/alias:aard-sounds-in-background",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6202,7 +6202,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6215,7 +6215,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6228,7 +6228,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6241,7 +6241,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6257,7 +6257,7 @@
       "id": "source:aard_requirements/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6271,7 +6271,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6284,7 +6284,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_requirements.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_requirements.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -6297,7 +6297,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/aard_soundpack.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_soundpack.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -6311,7 +6311,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6325,7 +6325,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6339,7 +6339,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6353,7 +6353,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6367,7 +6367,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6381,7 +6381,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6395,7 +6395,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6409,7 +6409,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6423,7 +6423,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6442,7 +6442,7 @@
       "id": "source:aard_splitscreen_scrollback/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6457,7 +6457,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6470,7 +6470,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -6483,7 +6483,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_splitscreen_scrollback.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_splitscreen_scrollback.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -6500,7 +6500,7 @@
       "id": "source:aard_statmon_gmcp/alias:resetaard",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6516,7 +6516,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6532,7 +6532,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6548,7 +6548,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6564,7 +6564,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6580,7 +6580,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6596,7 +6596,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6612,7 +6612,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6628,7 +6628,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6646,7 +6646,7 @@
       "id": "source:aard_statmon_gmcp/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6663,7 +6663,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6676,7 +6676,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -6689,7 +6689,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -6702,7 +6702,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -6715,7 +6715,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_statmon_gmcp.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_statmon_gmcp.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -6733,7 +6733,7 @@
       "id": "source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6751,7 +6751,7 @@
       "id": "source:aard_text_substitution/alias:gag-s-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6769,7 +6769,7 @@
       "id": "source:aard_text_substitution/alias:gags",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6786,7 +6786,7 @@
       "id": "source:aard_text_substitution/alias:oldpatterns-clear",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6804,7 +6804,7 @@
       "id": "source:aard_text_substitution/alias:sub-.-.-nocase-alone-function-regex",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6822,7 +6822,7 @@
       "id": "source:aard_text_substitution/alias:subs",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6840,7 +6840,7 @@
       "id": "source:aard_text_substitution/alias:subs-s-.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6858,7 +6858,7 @@
       "id": "source:aard_text_substitution/alias:ungag-d",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6876,7 +6876,7 @@
       "id": "source:aard_text_substitution/alias:ungag.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6894,7 +6894,7 @@
       "id": "source:aard_text_substitution/alias:unsub-d",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6912,7 +6912,7 @@
       "id": "source:aard_text_substitution/alias:unsub.",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -6926,7 +6926,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6940,7 +6940,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -6959,7 +6959,7 @@
       "id": "source:aard_text_substitution/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "plugin metadata"
     },
     {
@@ -6974,7 +6974,7 @@
         "filesystem",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -6987,7 +6987,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -7000,7 +7000,7 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "static plugin-dependency signal"
     },
     {
@@ -7019,7 +7019,7 @@
       "id": "source:aard_text_substitution/trigger:prevent_double_blanks",
       "kind": "trigger",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_text_substitution.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_text_substitution.xml",
       "summary": "MUSHclient trigger"
     },
     {
@@ -7033,7 +7033,7 @@
         "filesystem",
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7049,7 +7049,7 @@
       "id": "source:aard_translate_foreign_friends/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "plugin metadata"
     },
     {
@@ -7064,7 +7064,7 @@
         "filesystem",
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7077,7 +7077,7 @@
       "signals": [
         "filesystem"
       ],
-      "source": ".resources/worlds/plugins/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "static filesystem signal"
     },
     {
@@ -7090,7 +7090,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/aard_translate_foreign_friends.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_translate_foreign_friends.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -7103,7 +7103,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/aard_vi_review_buffers.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_vi_review_buffers.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -7116,7 +7116,7 @@
       "signals": [
         "parse-failure"
       ],
-      "source": ".resources/worlds/plugins/aard_vital_shortcuts.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/aard_vital_shortcuts.xml",
       "summary": "MUSHclient XML inspection failed"
     },
     {
@@ -7131,7 +7131,7 @@
       "id": "source:plugin_list/alias:plugin_list",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7146,7 +7146,7 @@
       "id": "source:plugin_list/alias:plugin_list-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7163,7 +7163,7 @@
       "id": "source:plugin_list/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "plugin metadata"
     },
     {
@@ -7175,7 +7175,7 @@
       "id": "source:plugin_list/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7187,7 +7187,7 @@
       "id": "source:plugin_list/script:2",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_list.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_list.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7202,7 +7202,7 @@
       "id": "source:plugin_summary/alias:plugins",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7217,7 +7217,7 @@
       "id": "source:plugin_summary/alias:plugins-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7233,7 +7233,7 @@
       "id": "source:plugin_summary/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "plugin metadata"
     },
     {
@@ -7245,7 +7245,7 @@
       "id": "source:plugin_summary/script:1",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7257,7 +7257,7 @@
       "id": "source:plugin_summary/script:2",
       "kind": "script",
       "signals": [],
-      "source": ".resources/worlds/plugins/plugin_summary.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/plugin_summary.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7277,7 +7277,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-faster",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7298,7 +7298,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-filtering",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7319,7 +7319,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7339,7 +7339,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-list-voices",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7360,7 +7360,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-rate",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7380,7 +7380,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-slower",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7400,7 +7400,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-test",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7421,7 +7421,7 @@
       "id": "source:universal_text_to_speech/alias:sapi-voice",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7442,7 +7442,7 @@
       "id": "source:universal_text_to_speech/alias:tts",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7463,7 +7463,7 @@
       "id": "source:universal_text_to_speech/alias:tts-focus",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7484,7 +7484,7 @@
       "id": "source:universal_text_to_speech/alias:tts-help",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7505,7 +7505,7 @@
       "id": "source:universal_text_to_speech/alias:tts-running",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7522,7 +7522,7 @@
       "id": "source:universal_text_to_speech/alias:tts_interrupt",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7539,7 +7539,7 @@
       "id": "source:universal_text_to_speech/alias:tts_note",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7556,7 +7556,7 @@
       "id": "source:universal_text_to_speech/alias:tts_stop",
       "kind": "alias",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient alias"
     },
     {
@@ -7572,7 +7572,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7588,7 +7588,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7604,7 +7604,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7620,7 +7620,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7636,7 +7636,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7652,7 +7652,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7668,7 +7668,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7684,7 +7684,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "MUSHclient callback"
     },
     {
@@ -7701,7 +7701,7 @@
       "id": "source:universal_text_to_speech/metadata:plugin",
       "kind": "metadata",
       "signals": [],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "plugin metadata"
     },
     {
@@ -7718,7 +7718,7 @@
         "miniwindow",
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "embedded Lua script"
     },
     {
@@ -7731,7 +7731,7 @@
       "signals": [
         "dll-loading"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "static dll-loading signal"
     },
     {
@@ -7744,7 +7744,7 @@
       "signals": [
         "gmcp"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "static gmcp signal"
     },
     {
@@ -7757,7 +7757,7 @@
       "signals": [
         "miniwindow"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "static miniwindow signal"
     },
     {
@@ -7770,15 +7770,19 @@
       "signals": [
         "plugin-dependency"
       ],
-      "source": ".resources/worlds/plugins/universal_text_to_speech.xml",
+      "source": "/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/.resources/worlds/plugins/universal_text_to_speech.xml",
       "summary": "static plugin-dependency signal"
     }
   ],
   "metadata": {
-    "collection_package": "aardwolf-mushclient-collection",
-    "inventory_strategy": "each XML plugin inspected without execution; companion root inventoried once"
+    "parse_failures": [
+      "source:Aardwolf_Bigmap_Graphical/unknown:parse-failure",
+      "source:aard_ASCII_map/unknown:parse-failure",
+      "source:aard_GMCP_mapper/unknown:parse-failure",
+      "source:aard_soundpack/unknown:parse-failure",
+      "source:aard_vi_review_buffers/unknown:parse-failure",
+      "source:aard_vital_shortcuts/unknown:parse-failure"
+    ]
   },
-  "notices": [],
-  "schema_version": 1,
-  "unknown_elements": []
+  "schema_version": 1
 }

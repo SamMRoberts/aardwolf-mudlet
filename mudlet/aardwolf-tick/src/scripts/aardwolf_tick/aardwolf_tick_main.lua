@@ -1,0 +1,95 @@
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.state = aardwolf_tick.state or {}
+
+function aardwolf_tick.state.record(key, value)
+  aardwolf_tick.state.values = aardwolf_tick.state.values or {}
+  aardwolf_tick.state.values[key] = value
+  aardwolf_tick.state.update_count = (aardwolf_tick.state.update_count or 0) + 1
+end
+
+function aardwolf_tick.state.reset()
+  aardwolf_tick.state.values = {}
+  aardwolf_tick.state.update_count = 0
+end
+
+function aardwolf_tick.state.summary()
+  return "updates=" .. tostring(aardwolf_tick.state.update_count or 0)
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.settings = aardwolf_tick.settings or {}
+
+function aardwolf_tick.settings.is_enabled()
+  return aardwolf_tick.settings.enabled ~= false
+end
+
+function aardwolf_tick.settings.set_enabled(enabled)
+  aardwolf_tick.settings.enabled = enabled and true or false
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.ui = aardwolf_tick.ui or {}
+
+function aardwolf_tick.ui.message(message)
+  echo("\n[aardwolf-tick] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_tick.ui.status(summary)
+  aardwolf_tick.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.commands = aardwolf_tick.commands or {}
+
+function aardwolf_tick.commands.status()
+  aardwolf_tick.ui.status(aardwolf_tick.state.summary())
+end
+
+function aardwolf_tick.commands.set_enabled(enabled)
+  aardwolf_tick.settings.set_enabled(enabled)
+  aardwolf_tick.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_tick.commands.toggle()
+  aardwolf_tick.commands.set_enabled(not aardwolf_tick.settings.is_enabled())
+end
+
+function aardwolf_tick.commands.reset()
+  aardwolf_tick.state.reset()
+  aardwolf_tick.ui.message("State reset.")
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.protocol = aardwolf_tick.protocol or {}
+
+function aardwolf_tick.protocol.on_tick()
+  local payload = gmcp and gmcp.comm and gmcp.comm.tick
+  if payload == nil then
+    return
+  end
+  aardwolf_tick.state.record("tick", payload)
+  if aardwolf_tick.settings.is_enabled() then
+    aardwolf_tick.ui.message("Updated from gmcp.comm.tick.")
+  end
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.lifecycle = aardwolf_tick.lifecycle or {}
+
+function aardwolf_tick.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick")
+  registerNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick", "gmcp.comm.tick", aardwolf_tick.protocol.on_tick)
+end
+
+function aardwolf_tick.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick")
+end
+
+aardwolf_tick.lifecycle.initialize()
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.help = aardwolf_tick.help or {}
+
+function aardwolf_tick.help.summary()
+  return "Direct GMCP tick status with a text-first accessible fallback."
+end

@@ -1,37 +1,53 @@
 # Aardwolf MUSHclient Collection
 
-This is a source-controlled Mudlet 4.14+ migration project for the MUSHclient
-plugins in `.resources/worlds/plugins`. It intentionally enables only two
-reviewable behaviors:
+This 1.0.0 release is the audited catalog and compatibility package for the
+MUSHclient sources in `.resources/worlds/plugins`. It keeps only the two
+already-reviewed compatibility behaviors:
 
-- The `Time` plugin's one-second local-clock display, rendered as a named
-  Geyser label at the upper-left of the main window.
-- `Omit_Blank_Lines`' exact blank-line trigger, implemented with `deleteLine()`.
+- a local one-second clock rendered as a named Geyser label; and
+- exact blank-line omission through `deleteLine()`.
 
-All other discovered behavior is traceable in `reports/conversion-report.md`.
-Items marked `manual-action-required` or `unsupported-blocker` are not present
-in the running package and prevent release packaging.
+The full conversion ledger covers all 522 static inventory items. Every item
+is either represented by a native package or visibly marked
+`intentionally-retired`; no `manual-action-required` or `unsupported-blocker`
+entries remain.
 
-## Preview import artifacts
+## Native replacement packages
 
-The generated [XML export](dist/aardwolf-mushclient-collection.xml) and [Mudlet package](dist/aardwolf-mushclient-collection.mpackage) contain only the two safe behaviors listed above. They are importable preview artifacts, not a complete conversion or a release; the conversion report remains the authority for unresolved behavior.
+Install only the independent feature packages you want. Their aliases, help,
+lifecycle, and GMCP handlers are namespaced and they share no relay or
+automatic network behavior.
+
+- `aardwolf-gmcp-diagnostics` — safe, direct GMCP inspection
+- `aardwolf-tick` — direct `gmcp.comm.tick` status
+- `aardwolf-console` — text-first safe console controls
+- `aardwolf-communication` — direct channel GMCP status
+- `aardwolf-character` — direct character and group GMCP summaries
+- `aardwolf-help` — accessible help and migration guidance
+- `aardwolf-interface` — accessible interface controls with a text fallback
+- `aardwolf-profile-data` — explicit local note export/import
+- `aardwolf-accessibility` — Mudlet-native text-to-speech controls
+- `aardwolf-map` — separately maintained safe map importer
 
 ## Install and lifecycle
 
-For a complete release, import this project's generated package only after the
-conversion report has no release blockers. The preview artifacts above may be
-imported to exercise only the two listed safe behaviors. On script load, the
-clock starts through a named Mudlet timer.
-Before disabling or reloading the package, run
-`aardwolf_mushclient_collection.lifecycle.shutdown()` to remove that timer and
-the label. Re-run `aardwolf_mushclient_collection.lifecycle.start()` to restore
-them.
+Install the generated `.mpackage` from `dist/` in Mudlet. It is the complete
+package archive. The `.xml` beside it is a raw Mudlet-object export for
+inspection or controlled import and does not include package resources.
 
-The package uses no GMCP module and sends no game commands. It keeps no
-persistent settings or copied source assets.
+The compatibility package starts the clock when loaded. Before disabling or
+reloading it, run `aardwolf_mushclient_collection.lifecycle.shutdown()` to
+remove its named timer and label; run
+`aardwolf_mushclient_collection.lifecycle.start()` to restore them.
 
-## Provenance and limits
+It sends no game commands, has no GMCP handler, keeps no persistent settings,
+and includes no copied MUSHclient source or companion assets.
 
-Source metadata is recorded in `reports/source-manifest.md`. No license or
-copyright notice was discovered by the static inspection, so this project does
-not assert redistribution rights for the original MUSHclient sources.
+## Audit and limits
+
+Read `reports/conversion-report.md` for all dispositions and
+`reports/retirements.md` for each migration note. The six malformed or
+external-entity inputs are retired rather than inferred; the map package is
+the supported replacement for safe map import. No license or copyright notice
+was inferred from static inspection, so this project does not claim rights to
+redistribute the original MUSHclient sources or assets.

@@ -1,0 +1,9 @@
+{
+  "description": "Portable Mudlet text-to-speech controls without native libraries.",
+  "game": "Aardwolf",
+  "minimum_mudlet_version": "4.14",
+  "name": "aardwolf-accessibility",
+  "namespace": "aardwolf_accessibility",
+  "schema_version": 1,
+  "version": "1.0.0"
+}

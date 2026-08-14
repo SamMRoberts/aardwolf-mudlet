@@ -205,7 +205,10 @@ def main(argv: list[str] | None = None) -> int:
         project = load_project(args.project)
         _release_gate(project)
         from validate_aardwolf_mudlet_project import validate
-        release_errors = validate(project.root, release=True)
+        # A previous native build may be stale after source changes. Validate
+        # the source contract first, regenerate the artifacts, then validate
+        # those artifacts below.
+        release_errors = validate(project.root, release=True, check_native_output=False)
         if release_errors:
             raise ToolError("release validation failed: " + "; ".join(release_errors))
         outputs: dict[str, dict[str, str]] = {}
@@ -213,6 +216,9 @@ def main(argv: list[str] | None = None) -> int:
             outputs["native"] = build_native(project)
         if args.backend in {"muddler", "both"}:
             outputs["muddler"] = build_muddler(project)
+        output_errors = validate(project.root, release=True)
+        if output_errors:
+            raise ToolError("built output validation failed: " + "; ".join(output_errors))
         print(json.dumps(outputs, indent=2, sort_keys=True))
         return 0
     except (OSError, ToolError) as error:

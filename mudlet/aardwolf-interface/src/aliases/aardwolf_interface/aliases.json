@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_interface.status",
+    "regex": "^aard interface status$"
+  },
+  {
+    "name": "aardwolf_interface.theme",
+    "regex": "^aard theme change$"
+  }
+]

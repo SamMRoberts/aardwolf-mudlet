@@ -1,0 +1,434 @@
+# Intentional retirements
+
+Every item below was reviewed from the read-only source inventory. These are explicit release decisions, not untracked omissions.
+
+| Item | User impact | Migration |
+| --- | --- | --- |
+| `companion:asset:companion-1-.DS_Store` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Aardwolf_Bigmap_Graphical.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Aardwolf_Tick_Timer.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Automatic_Backup.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Config_Option_Changer.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Hyperlink_URL2.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-MUSHclient_Help.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Omit_Blank_Lines.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-README_command_output_plugin.txt` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-SAPI.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-Time.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_ASCII_map.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_Command_Tag_Handler.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_Copy_Colour_Codes.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_GMCP_handler.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_GMCP_mapper.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_Theme_Controller.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_VI_command_output.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_channels_fiendish.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_chat_echo.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_group_monitor_gmcp.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_health_bars_gmcp.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_help.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_ingame_help_window.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_inventory_serials.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_keyboard_lockout.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_layout.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_miniwindow_z_order_monitor.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_new_connection.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_new_connection_no_UI.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_note_mode.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_package_update_checker.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_prompt_fixer.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_repaint_buffer.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_requirements.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_soundpack.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_splitscreen_scrollback.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_statmon_gmcp.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_text_substitution.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_translate_foreign_friends.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_vi_review_buffers.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-aard_vital_shortcuts.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-constants.js` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-constants.pl` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-constants.pys` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-constants.vbs` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-aardbg13.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-aardbg8.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-bg1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-bg2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-chess1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-cloud.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-cobble2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-darkrock.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-darkstone.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-default.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-dirt.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-dirt2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-dirtgrass.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-dragon1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-fire1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-forest.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-forest2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-forest3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-grass.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-grass1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-grass2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-grass3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-grass4.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-hell.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-hell2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-ocean1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-ocean2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-ocean3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-ocean4.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-rocky.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-rocky2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-rocky3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-sand.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-smallwolf.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-snow.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-snow2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-snow3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-space2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-sparse.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-stone.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-stones.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-temple.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-test.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-test3.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-test4.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-test5.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-tile1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-tile2.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-wood.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-images-wood1.png` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-plugin_list.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-plugin_summary.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-3e7dedbe37e44942dd46d264-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-9f796334ab9ed476ef44f1dc-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b555825a4a5700c35fa80780-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-b6eae87ccedd84f510b74714-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-c293f9e7f04dde889f65cb90-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69385-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-ef4a86dbc9cd4dd6f4c69386-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-state-e0eb198d8d5698e3b2f61483-f178e68512c685b3be1e9b07-state.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:asset:companion-1-universal_text_to_speech.xml` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:script:companion-1-aardwolf_colors.lua` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:script:companion-1-constants.lua` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:script:companion-1-telnet_options.lua` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:signal:script-companion-1-aardwolf_colors.lua:miniwindow` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `companion:signal:script-companion-1-telnet_options.lua:plugin-dependency` | Original companion resources are not redistributed. | Use only assets declared by a portable destination package. |
+| `source:Aardwolf_Bigmap_Graphical/unknown:parse-failure` | The source could not be inspected safely. | No safe behavior can be established from the supplied malformed source. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/callback:OnPluginTelnetOption` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Aardwolf_Tick_Timer/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
+| `source:Automatic_Backup/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Automatic_Backup/callback:OnPluginWorldSave` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Automatic_Backup/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Automatic_Backup/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Config_Option_Changer/alias:config_options` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Config_Option_Changer/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:Hyperlink_URL2/callback:OnPluginInstall` | The source behavior has no safe portable Mudlet equivalent. | No replacement is available in this release. |
+| `source:Hyperlink_URL2/metadata:plugin` | The source behavior has no safe portable Mudlet equivalent. | No replacement is available in this release. |
+| `source:Hyperlink_URL2/script:1` | The source behavior has no safe portable Mudlet equivalent. | No replacement is available in this release. |
+| `source:Hyperlink_URL2/trigger:https-mailto-s-w` | The source behavior has no safe portable Mudlet equivalent. | No replacement is available in this release. |
+| `source:MUSHclient_Help/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:MUSHclient_Help/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:MUSHclient_Help/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:SAPI/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:SAPI/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:SAPI/callback:OnPluginScreendraw` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:SAPI/callback:OnPluginTabComplete` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:SAPI/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:aard_ASCII_map/unknown:parse-failure` | The source could not be inspected safely. | No safe behavior can be established from the supplied malformed source. |
+| `source:aard_Command_Tag_Handler/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Command_Tag_Handler/trigger:tag` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Copy_Colour_Codes/alias:copy_with_colour` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Copy_Colour_Codes/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Copy_Colour_Codes/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Copy_Colour_Codes/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_Copy_Colour_Codes/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/alias:gmcpdebug-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/alias:sendgmcp` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/callback:OnPluginDisable` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/callback:OnPluginInstall` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/callback:OnPluginListChanged` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/callback:OnPluginPacketReceived` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/callback:OnPluginTelnetRequest` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/callback:OnPluginTelnetSubnegotiation` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/script:1` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/signal:script-1:windows-api` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:aard_GMCP_handler/trigger:compact-mode-set-removed-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_handler/trigger:you-will-now-no-longer-see-prompts-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-gmcp-diagnostics's documented native Mudlet commands and lifecycle. |
+| `source:aard_GMCP_mapper/unknown:parse-failure` | The source could not be inspected safely. | Use aardwolf-map for supported map import. |
+| `source:aard_Theme_Controller/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_Theme_Controller/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_Theme_Controller/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_Theme_Controller/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_VI_command_output/alias:mc-command-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_VI_command_output/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_VI_command_output/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_VI_command_output/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_VI_command_output/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/alias:chats-hide` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/alias:chats-scroll` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/alias:chats-show` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:claninfo` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:global_quest` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:info` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:raidinfo` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:remort_auction` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:remote_socials` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_channels_fiendish/trigger:warfare` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/alias:chats-mute-clear` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/alias:chats-un-mute-w-d` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/alias:ig-n-no-nor-nore-w` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginConnect` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:claninfo` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:end_gag_keep` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:end_gag_omit` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:global_quest` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:ignoreend` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:ignorelimit` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:ignorestart` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:info` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:raidinfo` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:remort_auction` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_chat_echo/trigger:warfare` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:groupcompact` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:grouproom` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:groupsetall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:groupsetnone` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:groupsetroom` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:hidep-s-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/alias:showp-s-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginConnect` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:you-have-declined-the-group-invitation-from-w-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:you-have-no-invitation-outstanding-from-w-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-that-group-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:your-group-invitation-from-w-is-cancelled-because-w-has-left-the-game-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_group_monitor_gmcp/trigger:your-group-invite-from-w-is-cancelled-because-the-group-has-been-disbanded-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/callback:OnPluginWorldOutputResized` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_health_bars_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_help/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_help/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:closehelp` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:copyhelp` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:h-he-hel-help-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:h-he-hel-help-search-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:scrollhelpdown` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/alias:scrollhelpup` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginConnect` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_ingame_help_window/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/alias:i-in-inv-inve-inven-invent-invento-inventor-inventory-keyr-i-in-ing-l-i-is-ist-vau-l-lt-l-i-is-ist-serials-help-off-on-color-.-hint-clear` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/alias:keyr-i-in-ing-l-i-is-ist` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/alias:vau-l-lt-l-i-is-ist` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/callback:OnPluginConnect` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_inventory_serials/trigger:asleep` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_keyboard_lockout/alias:aard-input` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_keyboard_lockout/callback:OnPluginCommandEntered` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_keyboard_lockout/callback:OnPluginSend` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_keyboard_lockout/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_keyboard_lockout/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/alias:aard-layout-lock-unlock-save-forget-restore-list-help-reset-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/alias:aard-logo` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/alias:resetmain` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginDrawOutputWindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginScreendraw` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/callback:OnPluginWorldOutputResized` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_layout/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_miniwindow_z_order_monitor/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection_no_UI/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection_no_UI/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_new_connection_no_UI/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_note_mode/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_package_update_checker/alias:checkversion` | Automatic update checks are retired to avoid unattended network access. | Check release artifacts manually. |
+| `source:aard_package_update_checker/alias:package-update-check` | Automatic update checks are retired to avoid unattended network access. | Check release artifacts manually. |
+| `source:aard_package_update_checker/callback:OnPluginListChanged` | Automatic update checks are retired to avoid unattended network access. | Check release artifacts manually. |
+| `source:aard_package_update_checker/script:1` | Automatic update checks are retired to avoid unattended network access. | Check release artifacts manually. |
+| `source:aard_package_update_checker/signal:script-1:filesystem` | Automatic update checks are retired to avoid unattended network access. | Check release artifacts manually. |
+| `source:aard_prompt_fixer/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_prompt_fixer/trigger:battle-p-p-rompt-set-to-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_repaint_buffer/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_repaint_buffer/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_repaint_buffer/callback:OnPluginTick` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_repaint_buffer/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_repaint_buffer/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/alias:aard-plugins-check` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/alias:aard-sounds-in-background` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_requirements/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
+| `source:aard_soundpack/unknown:parse-failure` | The source could not be inspected safely. | No safe behavior can be established from the supplied malformed source. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginDrawOutputWindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginScreendraw` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginSelectionChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginTick` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/callback:OnPluginTrace` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_splitscreen_scrollback/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/alias:resetaard` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginClose` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginConnect` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginEnable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_statmon_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:gag-s-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:gags` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:oldpatterns-clear` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:sub-.-.-nocase-alone-function-regex` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:subs` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:subs-s-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:ungag-d` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:ungag.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:unsub-d` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/alias:unsub.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_text_substitution/trigger:prevent_double_blanks` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
+| `source:aard_translate_foreign_friends/callback:OnPluginBroadcast` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_translate_foreign_friends/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_translate_foreign_friends/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-communication's documented native Mudlet commands and lifecycle. |
+| `source:aard_vi_review_buffers/unknown:parse-failure` | The source could not be inspected safely. | No safe behavior can be established from the supplied malformed source. |
+| `source:aard_vital_shortcuts/unknown:parse-failure` | The source could not be inspected safely. | No safe behavior can be established from the supplied malformed source. |
+| `source:plugin_list/alias:plugin_list` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_list/alias:plugin_list-help` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_list/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_list/script:2` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_summary/alias:plugins` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_summary/alias:plugins-help` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_summary/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:plugin_summary/script:2` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
+| `source:universal_text_to_speech/callback:OnPluginBroadcast` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginClose` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginGetFocus` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginInstall` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginLoseFocus` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginSaveState` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginScreendraw` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/callback:OnPluginTabComplete` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/script:1` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/signal:script-1:dll-loading` | Windows or native-library behavior is not portable. | Use aardwolf-accessibility for Mudlet-native text-to-speech or aardwolf-gmcp-diagnostics for native GMCP. |
+| `source:universal_text_to_speech/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |
+| `source:universal_text_to_speech/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-accessibility's documented native Mudlet commands and lifecycle. |

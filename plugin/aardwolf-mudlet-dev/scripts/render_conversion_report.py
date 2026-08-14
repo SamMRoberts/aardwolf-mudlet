@@ -19,6 +19,7 @@ ALLOWED_STATUSES = {
     "manual-action-required",
     "unsupported-blocker",
     "not-applicable",
+    "intentionally-retired",
 }
 
 
@@ -59,6 +60,16 @@ def _validate(inventory: dict[str, Any], decisions: list[dict[str, Any]]) -> lis
             raise ToolError(f"decision for {item_id} needs a target_paths string array")
         for target in target_paths:
             require_relative_path(target, f"decision for {item_id} target path")
+        if status == "intentionally-retired":
+            retirement = decision.get("retirement")
+            if not isinstance(retirement, dict):
+                raise ToolError(f"retired decision for {item_id} needs retirement metadata")
+            for field in ("user_impact", "migration"):
+                value = retirement.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    raise ToolError(f"retired decision for {item_id} needs non-empty retirement {field}")
+            if "reports/retirements.md" not in target_paths:
+                raise ToolError(f"retired decision for {item_id} must target reports/retirements.md")
         by_id[item_id] = decision
     missing = sorted(item_ids - set(by_id))
     if missing:
@@ -98,6 +109,12 @@ def report(inventory: dict[str, Any], decisions: list[dict[str, Any]]) -> tuple[
         lines.extend(["", "## Release blockers", ""])
         for decision in blockers:
             lines.append(f"- `{decision['item_id']}`: {decision['reason']}")
+    retirements = [decision for decision in ordered_decisions if decision["status"] == "intentionally-retired"]
+    if retirements:
+        lines.extend(["", "## Intentional retirements", ""])
+        for decision in retirements:
+            retirement = decision["retirement"]
+            lines.append(f"- `{decision['item_id']}`: {retirement['user_impact']} Migration: {retirement['migration']}")
     notices = [decision for decision in ordered_decisions if items[decision["item_id"]]["kind"] == "notice"]
     if notices:
         lines.extend(["", "## License and attribution preservation", ""])
