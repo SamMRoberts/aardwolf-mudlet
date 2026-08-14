@@ -1,0 +1,6 @@
+[
+  {
+    "name": "aw_simple_alias.greet",
+    "regex": "^greet (.+)$"
+  }
+]

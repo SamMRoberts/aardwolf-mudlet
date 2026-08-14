@@ -1,0 +1,96 @@
+{
+  "input": {
+    "name": "simple_alias.xml",
+    "sha256": "b863672298b68a547880eddd78124ba1f42b947e78d49b048249264e763a3fb0"
+  },
+  "items": [
+    {
+      "details": {
+        "attributes": {
+          "enabled": "y",
+          "match": "^greet (.+)$",
+          "name": "greet_friend",
+          "send_to": "12"
+        },
+        "text": "send_greeting"
+      },
+      "id": "alias:greet_friend",
+      "kind": "alias",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "MUSHclient alias"
+    },
+    {
+      "details": {
+        "callback": "OnPluginInstall",
+        "script_item": "script:1"
+      },
+      "id": "callback:OnPluginInstall",
+      "kind": "callback",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "MUSHclient callback"
+    },
+    {
+      "details": {
+        "author": "Fixture Author",
+        "id": "fixture-simple-alias",
+        "language": "Lua",
+        "name": "Simple Alias",
+        "purpose": "Send a concise greeting",
+        "requires": "4.00",
+        "version": "1.0"
+      },
+      "id": "metadata:plugin",
+      "kind": "metadata",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "plugin metadata"
+    },
+    {
+      "details": {
+        "text": "Copyright 2026 Fixture Author. Permission is granted for conversion tests."
+      },
+      "id": "notice:1",
+      "kind": "notice",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "license or attribution notice"
+    },
+    {
+      "details": {
+        "attributes": {},
+        "bytes": 151,
+        "sha256": "225b0b34c29f067fb73cc59d488b87db226b3422687bf173ac2304435a27766f"
+      },
+      "id": "script:1",
+      "kind": "script",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "embedded Lua script"
+    }
+  ],
+  "metadata": {
+    "author": "Fixture Author",
+    "id": "fixture-simple-alias",
+    "language": "Lua",
+    "name": "Simple Alias",
+    "purpose": "Send a concise greeting",
+    "requires": "4.00",
+    "version": "1.0"
+  },
+  "notices": [
+    {
+      "details": {
+        "text": "Copyright 2026 Fixture Author. Permission is granted for conversion tests."
+      },
+      "id": "notice:1",
+      "kind": "notice",
+      "signals": [],
+      "source": "simple_alias.xml",
+      "summary": "license or attribution notice"
+    }
+  ],
+  "schema_version": 1,
+  "unknown_elements": []
+}

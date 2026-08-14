@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001"><AliasPackage><Alias isActive="yes" isFolder="no"><name>aw_simple_alias.greet</name><script>function aw_simple_alias.greet()
+  aw_simple_alias.send_greeting()
+end
+</script><command></command><packageName></packageName><regex>^greet (.+)$</regex></Alias></AliasPackage><TriggerPackage></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aw_simple_alias.state</name><script>function aw_simple_alias.state_get()
+  return {}
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.settings</name><script>function aw_simple_alias.settings_get()
+  return {}
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.commands</name><script>function aw_simple_alias.send_greeting()
+  send("say Hello")
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.protocol</name><script>function aw_simple_alias.protocol_start()
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.ui</name><script>function aw_simple_alias.ui_refresh()
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.lifecycle</name><script>aw_simple_alias = aw_simple_alias or {}
+
+function aw_simple_alias.initialize()
+  aw_simple_alias.protocol_start()
+end
+</script><packageName></packageName><eventHandlerList><string>sysInstall</string></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aw_simple_alias.help</name><script>function aw_simple_alias.help()
+  cecho("&lt;green&gt;Simple Alias: use greet NAME")
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

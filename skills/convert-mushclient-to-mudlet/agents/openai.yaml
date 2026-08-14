@@ -1,0 +1,4 @@
+interface:
+  display_name: "Convert MUSHclient to Mudlet"
+  short_description: "Migrate MUSHclient plugins into Mudlet projects"
+  default_prompt: "Use $convert-mushclient-to-mudlet to safely convert this Aardwolf MUSHclient plugin."

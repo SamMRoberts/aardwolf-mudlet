@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Aardwolf Mudlet Package"
+  short_description: "Audit Aardwolf Mudlet package quality and safety"
+  default_prompt: "Use $review-aardwolf-mudlet-package to audit this Aardwolf Mudlet package."

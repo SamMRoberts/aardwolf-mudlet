@@ -1,0 +1,52 @@
+{
+  "decisions": [
+    {
+      "item_id": "callback:OnPluginBroadcast",
+      "status": "converted",
+      "target_paths": ["src/scripts/aw_tick_timer/aw_tick_timer_protocol.lua"],
+      "reason": "The Aardwolf GMCP-handler broadcast maps directly to the native gmcp.comm.tick event and gmcp.comm.tick table."
+    },
+    {
+      "item_id": "callback:OnPluginDisable",
+      "status": "converted",
+      "target_paths": ["src/scripts/aw_tick_timer/aw_tick_timer_lifecycle.lua"],
+      "reason": "Teardown removes namespaced event handlers, the repeating timer, and the UI object."
+    },
+    {
+      "item_id": "metadata:plugin",
+      "status": "converted",
+      "target_paths": ["package-metadata.json", "mfile"],
+      "reason": "Plugin metadata maps to the source-project contract."
+    },
+    {
+      "item_id": "notice:1",
+      "status": "converted",
+      "target_paths": ["NOTICE"],
+      "reason": "The discovered attribution is copied verbatim without inferring a license."
+    },
+    {
+      "item_id": "script:1",
+      "status": "converted-with-review",
+      "target_paths": ["src/scripts/aw_tick_timer/aw_tick_timer_protocol.lua", "src/scripts/aw_tick_timer/aw_tick_timer_state.lua", "src/scripts/aw_tick_timer/aw_tick_timer_ui.lua", "src/scripts/aw_tick_timer/aw_tick_timer_lifecycle.lua"],
+      "reason": "The broadcast relay is replaced with native GMCP handling; the miniwindow implementation needs visual review in Mudlet."
+    },
+    {
+      "item_id": "signal:script-1:gmcp",
+      "status": "converted",
+      "target_paths": ["src/scripts/aw_tick_timer/aw_tick_timer_protocol.lua"],
+      "reason": "The GMCP-handler relay is replaced with a native gmcp.comm.tick event handler and table read."
+    },
+    {
+      "item_id": "signal:script-1:miniwindow",
+      "status": "converted-with-review",
+      "target_paths": ["src/scripts/aw_tick_timer/aw_tick_timer_ui.lua"],
+      "reason": "The miniwindow calls require a Mudlet UI implementation and live visual review."
+    },
+    {
+      "item_id": "timer:tick_timer_update",
+      "status": "converted",
+      "target_paths": ["src/timers/aw_tick_timer/timers.json", "src/timers/aw_tick_timer/aw_tick_timer_second.lua"],
+      "reason": "The second timer becomes a namespaced Mudlet timer with state owned by the timer package."
+    }
+  ]
+}

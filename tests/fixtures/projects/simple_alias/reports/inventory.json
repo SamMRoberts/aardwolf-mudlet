@@ -1,0 +1,14 @@
+{
+  "input": {
+    "name": "simple_alias.xml",
+    "sha256": "b863672298b68a547880eddd78124ba1f42b947e78d49b048249264e763a3fb0"
+  },
+  "items": [
+    {"id": "alias:greet_friend"},
+    {"id": "callback:OnPluginInstall"},
+    {"id": "metadata:plugin"},
+    {"id": "notice:1"},
+    {"id": "script:1"}
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,9 @@
+[
+  {"name": "aw_simple_alias.state"},
+  {"name": "aw_simple_alias.settings"},
+  {"name": "aw_simple_alias.commands"},
+  {"name": "aw_simple_alias.protocol"},
+  {"name": "aw_simple_alias.ui"},
+  {"eventHandlerList": ["sysInstall"], "name": "aw_simple_alias.lifecycle"},
+  {"name": "aw_simple_alias.help"}
+]

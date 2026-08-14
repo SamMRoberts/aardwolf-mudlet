@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Aardwolf Mudlet Package"
+  short_description: "Create Aardwolf Mudlet package projects"
+  default_prompt: "Use $create-aardwolf-mudlet-package to build a namespaced Aardwolf Mudlet extension project."

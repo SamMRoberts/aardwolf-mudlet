@@ -1,0 +1,32 @@
+{
+  "name": "aardwolf-mudlet-dev",
+  "version": "0.1.0",
+  "description": "Create, convert, review, test, and package Mudlet extensions for Aardwolf MUD.",
+  "author": {
+    "name": "Sam Roberts"
+  },
+  "repository": "https://github.com/SamMRoberts/aardwolf-mudlet",
+  "keywords": [
+    "aardwolf",
+    "mudlet",
+    "mushclient",
+    "gmcp",
+    "lua"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Aardwolf Mudlet Dev",
+    "shortDescription": "Build and convert Aardwolf Mudlet packages.",
+    "longDescription": "Create, convert, review, test, and package source-controlled Mudlet extensions for Aardwolf MUD.",
+    "developerName": "Sam Roberts",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create a source-controlled Mudlet package for this Aardwolf feature request.",
+      "Convert this Aardwolf MUSHclient plugin into a reviewed Mudlet package project."
+    ]
+  }
+}

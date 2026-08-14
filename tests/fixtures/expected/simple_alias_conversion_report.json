@@ -1,0 +1,65 @@
+{
+  "decisions": [
+    {
+      "item_id": "alias:greet_friend",
+      "reason": "The regular-expression alias maps to a Mudlet alias and namespaced Lua handler.",
+      "status": "converted",
+      "target_paths": [
+        "src/aliases/aw_simple_alias/aliases.json",
+        "src/aliases/aw_simple_alias/greet_friend.lua"
+      ]
+    },
+    {
+      "item_id": "callback:OnPluginInstall",
+      "reason": "Initialization maps to package lifecycle setup and needs final event selection.",
+      "status": "converted-with-review",
+      "target_paths": [
+        "src/scripts/aw_simple_alias/aw_simple_alias_lifecycle.lua"
+      ]
+    },
+    {
+      "item_id": "metadata:plugin",
+      "reason": "Plugin metadata maps to source-project metadata.",
+      "status": "converted",
+      "target_paths": [
+        "package-metadata.json",
+        "mfile"
+      ]
+    },
+    {
+      "item_id": "notice:1",
+      "reason": "The fixture attribution is preserved verbatim.",
+      "status": "converted",
+      "target_paths": [
+        "NOTICE"
+      ]
+    },
+    {
+      "item_id": "script:1",
+      "reason": "The Lua is split between lifecycle and alias modules for namespace safety.",
+      "status": "converted-with-review",
+      "target_paths": [
+        "src/scripts/aw_simple_alias/aw_simple_alias_lifecycle.lua",
+        "src/aliases/aw_simple_alias/greet_friend.lua"
+      ]
+    }
+  ],
+  "input": {
+    "name": "simple_alias.xml",
+    "sha256": "b863672298b68a547880eddd78124ba1f42b947e78d49b048249264e763a3fb0"
+  },
+  "metadata": {
+    "author": "Fixture Author",
+    "id": "fixture-simple-alias",
+    "language": "Lua",
+    "name": "Simple Alias",
+    "purpose": "Send a concise greeting",
+    "requires": "4.00",
+    "version": "1.0"
+  },
+  "schema_version": 1,
+  "status_counts": {
+    "converted": 3,
+    "converted-with-review": 2
+  }
+}

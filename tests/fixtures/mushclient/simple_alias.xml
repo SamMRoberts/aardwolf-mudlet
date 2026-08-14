@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE muclient>
+<!-- Copyright 2026 Fixture Author. Permission is granted for conversion tests. -->
+<muclient>
+  <plugin name="Simple Alias" author="Fixture Author" id="fixture-simple-alias" language="Lua" purpose="Send a concise greeting" requires="4.00" version="1.0" />
+  <aliases>
+    <alias name="greet_friend" match="^greet (.+)$" enabled="y" send_to="12">
+      <send>send_greeting</send>
+    </alias>
+  </aliases>
+  <script><![CDATA[
+function OnPluginInstall()
+  Note("Simple Alias installed")
+end
+
+function send_greeting(name, line, wildcards)
+  Send("say Hello " .. wildcards[1])
+end
+]]></script>
+</muclient>

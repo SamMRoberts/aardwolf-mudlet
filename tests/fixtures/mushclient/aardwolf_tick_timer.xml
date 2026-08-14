@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE muclient>
+<!-- Copyright 2026 Fixture Author. Retain this attribution in converted output. -->
+<muclient>
+  <plugin name="Aardwolf Tick Timer" author="Fixture Author" id="fixture-aardwolf-tick" language="Lua" purpose="Display time since the last Aardwolf tick" requires="4.71" version="1.0" />
+  <timers>
+    <timer name="tick_timer_update" second="1" enabled="y" send_to="12">
+      <send>update_tick_timer</send>
+    </timer>
+  </timers>
+  <script><![CDATA[
+local GMCP_HANDLER = "3e7dedbe37e44942dd46d264"
+local seconds_since_tick = 0
+
+function OnPluginBroadcast(msg, id, name, text)
+  if id == GMCP_HANDLER and text == "comm.tick" then
+    seconds_since_tick = 0
+  end
+end
+
+function update_tick_timer()
+  seconds_since_tick = seconds_since_tick + 1
+  WindowShow("tick_timer", true)
+end
+
+function OnPluginDisable()
+  WindowDelete("tick_timer")
+end
+]]></script>
+</muclient>

@@ -1,0 +1,35 @@
+{
+  "decisions": [
+    {
+      "item_id": "alias:greet_friend",
+      "reason": "The regular-expression alias maps to a Mudlet alias and namespaced Lua handler.",
+      "status": "converted",
+      "target_paths": ["src/aliases/aw_simple_alias/aliases.json", "src/aliases/aw_simple_alias/aw_simple_alias_greet.lua"]
+    },
+    {
+      "item_id": "callback:OnPluginInstall",
+      "reason": "Initialization maps to package lifecycle setup and needs final event selection.",
+      "status": "converted-with-review",
+      "target_paths": ["src/scripts/aw_simple_alias/aw_simple_alias_lifecycle.lua"]
+    },
+    {
+      "item_id": "metadata:plugin",
+      "reason": "Plugin metadata maps to source-project metadata.",
+      "status": "converted",
+      "target_paths": ["package-metadata.json", "mfile"]
+    },
+    {
+      "item_id": "notice:1",
+      "reason": "The fixture attribution is preserved verbatim.",
+      "status": "converted",
+      "target_paths": ["NOTICE"]
+    },
+    {
+      "item_id": "script:1",
+      "reason": "The Lua is split between lifecycle and alias modules for namespace safety.",
+      "status": "converted-with-review",
+      "target_paths": ["src/scripts/aw_simple_alias/aw_simple_alias_lifecycle.lua", "src/aliases/aw_simple_alias/aw_simple_alias_greet.lua"]
+    }
+  ],
+  "schema_version": 1
+}

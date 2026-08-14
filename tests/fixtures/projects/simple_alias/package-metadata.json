@@ -1,0 +1,9 @@
+{
+  "description": "Converted simple alias fixture",
+  "game": "Aardwolf",
+  "minimum_mudlet_version": "4.14",
+  "name": "simple-alias",
+  "namespace": "aw_simple_alias",
+  "schema_version": 1,
+  "version": "1.0.0"
+}
