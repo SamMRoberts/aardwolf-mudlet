@@ -67,7 +67,7 @@ FEATURES = (
         (("help", "^aard help$", "aardwolf_help.commands.status()"), ("legacy_help", "^mchelps?(?: .*)?$", "aardwolf_help.commands.status()")),
     ),
     Feature(
-        "aardwolf-interface", "aardwolf_interface", "Responsive Aardwolf Geyser dashboard with a mapper, collapsible character details, and text fallbacks.",
+        "aardwolf-interface", "aardwolf_interface", "Responsive Aardwolf Geyser dashboard with a bottom gauge HUD, mapper, collapsible character details, and text fallbacks.",
         ("aard_Theme_Controller", "aard_layout", "aard_miniwindow_z_order_monitor", "aard_splitscreen_scrollback"),
         (("window_resize", "true", "window_resize"),),
         (
@@ -81,7 +81,7 @@ FEATURES = (
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
         ),
-        "interface", "1.3.5",
+        "interface", "1.4.0",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -577,7 +577,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
     runtime_boundary = (
-        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Character condition is rendered below Character directly from validated `gmcp.char.status` updates. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional Equipment and Bags details column issues only bounded Aardwolf tagged-data queries while expanded, suppresses their package-owned response lines, never polls, and restores a confirmed temporary Invmon setting through `aardwolf_interface.lifecycle.shutdown()`."
+        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. HP, Mana, Moves, TNL, Enemy, Hunger, and Thirst render in a package-owned two-row bottom HUD; Position and State render in Character. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional Equipment and Bags details column issues only bounded Aardwolf tagged-data queries while expanded, suppresses their package-owned response lines, never polls, and restores a confirmed temporary Invmon setting through `aardwolf_interface.lifecycle.shutdown()`."
         if feature.kind == "interface"
         else "GMCP diagnostics remain in bounded state, but console logging defaults off and is emitted only after explicit `gmcpdebug on`. Namespaced handlers are removed through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`."
         if feature.kind == "diagnostics"
@@ -586,7 +586,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "The main dashboard is shown whenever the Mudlet profile loads; `aard interface hide` hides it only for the current loaded session. Run `aard interface show|hide|status` for manual control. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Character condition updates from `gmcp.char.status` without game commands. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default Equipment and Bags column. Package-owned `eqdata`, `invdata`, and `invdetails` refresh output is consumed instead of printed; unrelated gameplay and user-issued output remains visible."
+        "The main dashboard and two-row bottom HUD are shown whenever the Mudlet profile loads; `aard interface hide` hides both only for the current loaded session. Run `aard interface show|hide|status` for manual control. The bottom HUD shows HP, Mana, Moves, TNL, Enemy, Hunger, and Thirst without extending beneath the sidebar. The sidebar tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Position and State update in Character from `gmcp.char.status` without game commands. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default Equipment and Bags column. Package-owned `eqdata`, `invdata`, and `invdetails` refresh output is consumed instead of printed; unrelated gameplay and user-issued output remains visible."
         if feature.kind == "interface"
         else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
         if feature.kind == "diagnostics"
@@ -597,13 +597,13 @@ def write_feature(feature: Feature, destination: Path) -> None:
     feature_notes = '''
 ## Dashboard behavior
 
-The sidebar appears automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows the dashboard again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+The sidebar and bottom HUD appear automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows both again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. The HUD preserves an existing bottom border and stops at the effective sidebar edge. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
 
 Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. A completed package-owned import raises a namespaced event so the dashboard reveals the map immediately without waiting for another movement update.
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay after its embedded mapper is created and shown. This prevents adjacent floors from appearing stacked behind the active floor even when Mudlet rejects mapper configuration writes made before mapper creation. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-The room, character, condition, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Condition appears directly below Character and renders hunger, thirst, position, and decoded state solely from validated `gmcp.char.status` updates; it sends no refresh commands. The tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
+The room, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Position and decoded State appear in Character. HP, Mana, Moves, TNL, and Enemy share the first bottom-HUD row; Hunger and Thirst are clamped percentage gauges on the second row. These values update solely from validated GMCP and send no refresh commands. The sidebar tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
 
 The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment and Bags sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
 
@@ -611,7 +611,7 @@ Expanding details waits for active `gmcp.char.status`, then performs one paced r
 
 While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon` and `invitem` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.5 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.4.0 so Mudlet does not retain duplicate static objects.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -644,10 +644,13 @@ Artifacts are regenerated by the native package builder after the source and rel
 assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert all(command in source for command in ("commands.show", "commands.hide", "commands.toggle_theme", "commands.details_show", "commands.details_hide", "commands.details_toggle", "commands.details_refresh", "commands.details_status"))
 assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
-assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
+assert "setBorderRight" in source and "getBorderRight" in source and "setBorderBottom" in source and "getBorderBottom" in source and "map.showMap" in source
 assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
 assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
-assert 'widgets.condition = new_label("condition", primary)' in source and 'safe_call(widget("condition"), "echo", condition_text)' in source
+assert 'UI_PREFIX .. "bottom-root"' in source and 'bottom_border_claim' in source
+assert 'percentage_gauge("hunger"' in source and 'percentage_gauge("thirst"' in source
+assert '<b>Position</b> %s' in source and '<b>State</b> %s' in source
+assert 'widgets.condition' not in source and 'widget("condition")' not in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source

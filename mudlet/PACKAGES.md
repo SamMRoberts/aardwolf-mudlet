@@ -24,7 +24,7 @@ it for inspection, but cannot provide the map resource on its own.
 | `aardwolf-communication` | Channel status | Channel, chat echo, translation |
 | `aardwolf-character` | Character/group status | Group monitor, health bars, stat monitor |
 | `aardwolf-help` | Accessible help | MUSHclient help, Aardwolf help, plugin list/summary |
-| `aardwolf-interface` | Responsive dashboard, diminishing tick gauge, mapper, and collapsed character-details column | Theme, layout, miniwindow order, split scrollback, bounded tagged character data |
+| `aardwolf-interface` | Responsive sidebar, two-row bottom gauge HUD, diminishing tick gauge, mapper, and collapsed character-details column | Theme, layout, miniwindow order, split scrollback, bounded tagged character data |
 | `aardwolf-profile-data` | Explicit local data import/export | Backup, config, serials, connection, notes, update checker, requirements |
 | `aardwolf-accessibility` | Mudlet-native text-to-speech | SAPI, universal TTS |
 | `aardwolf-map` | Safe native map import | Supersedes the safe mapper use case |

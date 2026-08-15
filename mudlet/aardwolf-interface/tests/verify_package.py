@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
-assert metadata["version"] == "1.3.5"
+assert metadata["version"] == "1.4.0"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -22,10 +22,13 @@ assert "Geyser.Container:new" in source and "Geyser.Gauge:new" in source and "Ge
 assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert all(command in source for command in ("commands.show", "commands.hide", "commands.toggle_theme", "commands.details_show", "commands.details_hide", "commands.details_toggle", "commands.details_refresh", "commands.details_status"))
 assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
-assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
+assert "setBorderRight" in source and "getBorderRight" in source and "setBorderBottom" in source and "getBorderBottom" in source and "map.showMap" in source
 assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
 assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
-assert 'widgets.condition = new_label("condition", primary)' in source and 'safe_call(widget("condition"), "echo", condition_text)' in source
+assert 'UI_PREFIX .. "bottom-root"' in source and 'bottom_border_claim' in source
+assert 'percentage_gauge("hunger"' in source and 'percentage_gauge("thirst"' in source
+assert '<b>Position</b> %s' in source and '<b>State</b> %s' in source
+assert 'widgets.condition' not in source and 'widget("condition")' not in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source

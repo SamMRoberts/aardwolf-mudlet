@@ -11,10 +11,11 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
-The current suite version is 1.3.5. It includes Mudlet's required `config.lua`
-Package Manager metadata and the responsive right-sidebar dashboard with its
-numeric diminishing tick gauge and collapsed-by-default, expanded-only
-character-details column. Diagnostic event logging is disabled until the user
+The current suite version is 1.4.0. It includes Mudlet's required `config.lua`
+Package Manager metadata, the responsive right-sidebar dashboard, and a two-row
+bottom HUD that stops at the sidebar edge. The sidebar retains its numeric
+diminishing tick gauge and collapsed-by-default, expanded-only character-details
+column. Diagnostic event logging is disabled until the user
 runs `gmcpdebug on`. If an
 older `Aardwolf Mudlet Suite` entry is already installed, remove it in Mudlet's
 Package Manager before installing this archive.

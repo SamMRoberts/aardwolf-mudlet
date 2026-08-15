@@ -1,7 +1,7 @@
 {
   "author": "Aardwolf Mudlet",
-  "description": "Responsive Aardwolf Geyser dashboard with a mapper, collapsible character details, and text fallbacks.",
+  "description": "Responsive Aardwolf Geyser dashboard with a bottom gauge HUD, mapper, collapsible character details, and text fallbacks.",
   "package": "aardwolf-interface",
   "title": "Aardwolf Interface",
-  "version": "1.3.5"
+  "version": "1.4.0"
 }

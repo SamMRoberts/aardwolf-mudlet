@@ -811,13 +811,14 @@ end
 -- filename ends in .lua. Stored text is never loaded or executed as Lua.
 aardwolf_interface.settings = aardwolf_interface.settings or {}
 
-local SETTINGS_SCHEMA = 2
+local SETTINGS_SCHEMA = 3
 local SETTINGS_DEFAULTS = {
   ["schema_version"] = SETTINGS_SCHEMA,
   ["visible"] = true,
   ["details_visible"] = false,
   ["theme"] = "dark",
   ["border_claim"] = nil,
+  ["bottom_border_claim"] = nil,
 }
 
 local function copy_defaults()
@@ -827,7 +828,21 @@ local function copy_defaults()
     ["details_visible"] = SETTINGS_DEFAULTS.details_visible,
     ["theme"] = SETTINGS_DEFAULTS.theme,
     ["border_claim"] = nil,
+    ["bottom_border_claim"] = nil,
   }
+end
+
+local function validated_border_claim(candidate, size_name, maximum_size)
+  if type(candidate) ~= "table" then
+    return nil
+  end
+  local base = bounded_number(candidate.base, 0, 10000)
+  local size = bounded_number(candidate[size_name], 0, maximum_size)
+  local applied = bounded_number(candidate.applied, 0, 12000)
+  if not base or not size or not applied or applied ~= base + size then
+    return nil
+  end
+  return {base = base, [size_name] = size, applied = applied}
 end
 
 function aardwolf_interface.settings.directory()
@@ -840,27 +855,20 @@ end
 
 function aardwolf_interface.settings.validate(candidate)
   local validated = copy_defaults()
-  if type(candidate) ~= "table" or (candidate.schema_version ~= 1 and candidate.schema_version ~= SETTINGS_SCHEMA) then
+  if type(candidate) ~= "table" or not ({[1] = true, [2] = true, [SETTINGS_SCHEMA] = true})[candidate.schema_version] then
     return validated
   end
   if type(candidate.visible) == "boolean" then
     validated.visible = candidate.visible
   end
-  if candidate.schema_version == SETTINGS_SCHEMA and type(candidate.details_visible) == "boolean" then
+  if candidate.schema_version &gt;= 2 and type(candidate.details_visible) == "boolean" then
     validated.details_visible = candidate.details_visible
   end
   if candidate.theme == "dark" or candidate.theme == "high-contrast" then
     validated.theme = candidate.theme
   end
-  local claim = candidate.border_claim
-  if type(claim) == "table" then
-    local base = bounded_number(claim.base, 0, 10000)
-    local width = bounded_number(claim.width, 0, 2000)
-    local applied = bounded_number(claim.applied, 0, 12000)
-    if base and width and applied and applied == base + width then
-      validated.border_claim = {base = base, width = width, applied = applied}
-    end
-  end
+  validated.border_claim = validated_border_claim(candidate.border_claim, "width", 2000)
+  validated.bottom_border_claim = validated_border_claim(candidate.bottom_border_claim, "height", 1000)
   return validated
 end
 
@@ -941,7 +949,7 @@ function aardwolf_interface.settings.cycle_theme()
   return aardwolf_interface.settings.data.theme
 end
 
--- UI owns the sidebar, all widgets, the right-border claim, and mapper display.
+-- UI owns the sidebar, bottom HUD, border claims, and mapper display.
 aardwolf_interface.ui = aardwolf_interface.ui or {}
 
 local UI_PREFIX = "aardwolf-interface::ui::"
@@ -962,6 +970,10 @@ local COLUMN_GAP = 6
 local GROUP_LIMIT = 10
 local DETAIL_LIMIT = 100
 local TICK_DURATION = 30
+local HUD_HEIGHT = 64
+local HUD_MARGIN = 6
+local HUD_GAP = 4
+local HUD_ROW_HEIGHT = 24
 
 local WEAR_LOCATIONS = {
   [0] = "Light", [1] = "Head", [2] = "Eyes", [3] = "Left ear", [4] = "Right ear",
@@ -983,13 +995,15 @@ local THEMES = {
     ["panel"] = "#10141b", ["section"] = "#171d27", ["border"] = "#48566a",
     ["text"] = "#edf2f7", ["muted"] = "#aeb9c8", ["accent"] = "#55c2ff",
     ["hp"] = "#28a745", ["mana"] = "#3489eb", ["moves"] = "#d3a72f",
-    ["enemy"] = "#d9534f", ["gauge_back"] = "#29313d",
+    ["enemy"] = "#d9534f", ["hunger"] = "#e08a2e", ["thirst"] = "#33b5e5",
+    ["gauge_back"] = "#29313d",
   },
   ["high-contrast"] = {
     ["panel"] = "#000000", ["section"] = "#090909", ["border"] = "#ffffff",
     ["text"] = "#ffffff", ["muted"] = "#e6e6e6", ["accent"] = "#00ffff",
     ["hp"] = "#00ff5a", ["mana"] = "#00aaff", ["moves"] = "#ffff00",
-    ["enemy"] = "#ff3b30", ["gauge_back"] = "#333333",
+    ["enemy"] = "#ff3b30", ["hunger"] = "#ff9900", ["thirst"] = "#00ffff",
+    ["gauge_back"] = "#333333",
   },
 }
 
@@ -1038,6 +1052,8 @@ function aardwolf_interface.ui.available()
     and type(Geyser.ScrollBox) == "table"
     and type(getBorderRight) == "function"
     and type(setBorderRight) == "function"
+    and type(getBorderBottom) == "function"
+    and type(setBorderBottom) == "function"
 end
 
 function aardwolf_interface.ui.details_width()
@@ -1112,6 +1128,50 @@ function aardwolf_interface.ui.release_border()
   return not aardwolf_interface.state.border_conflict
 end
 
+function aardwolf_interface.ui.claim_bottom_border(height)
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local current = finite_number(getBorderBottom()) or 0
+  local stored = settings.bottom_border_claim
+  local base = type(stored) == "table" and current == stored.applied and stored.base or current
+  local applied = base + height
+  setBorderBottom(applied)
+  settings.bottom_border_claim = {base = base, height = height, applied = applied}
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.state.bottom_border_conflict = false
+  aardwolf_interface.settings.save()
+  return base, applied
+end
+
+function aardwolf_interface.ui.release_bottom_border()
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local claim = settings.bottom_border_claim
+  if type(claim) ~= "table" then
+    return true
+  end
+  local current = finite_number(getBorderBottom()) or 0
+  if current == claim.applied then
+    setBorderBottom(claim.base)
+    aardwolf_interface.state.bottom_border_conflict = false
+  else
+    aardwolf_interface.state.bottom_border_conflict = true
+  end
+  settings.bottom_border_claim = nil
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.settings.save()
+  return not aardwolf_interface.state.bottom_border_conflict
+end
+
+function aardwolf_interface.ui.hud_width()
+  local right_border = finite_number(getBorderRight()) or 0
+  if type(getMainWindowSize) == "function" then
+    local ok, width = pcall(getMainWindowSize)
+    if ok and finite_number(width) then
+      return math.max(0, width - right_border)
+    end
+  end
+  return math.max(0, 1200 - right_border)
+end
+
 function aardwolf_interface.ui.capture_mapper_owner()
   if not aardwolf_interface.state.mapper_claimed then
     local generic_was_shown = type(map) == "table"
@@ -1178,8 +1238,10 @@ function aardwolf_interface.ui.build()
   end
   local width = aardwolf_interface.ui.total_width()
   local base = aardwolf_interface.ui.claim_border(width)
+  local bottom_base = aardwolf_interface.ui.claim_bottom_border(HUD_HEIGHT)
   aardwolf_interface.ui.width = aardwolf_interface.ui.panel_width()
   aardwolf_interface.ui.base_right = base
+  aardwolf_interface.ui.base_bottom = bottom_base
   aardwolf_interface.ui.root = Geyser.Container:new({
     ["name"] = UI_PREFIX .. "root",
     ["x"] = -(base + width), ["y"] = 0, ["width"] = width, ["height"] = "100%",
@@ -1187,6 +1249,15 @@ function aardwolf_interface.ui.build()
   local root = aardwolf_interface.ui.root
   local widgets = {}
   aardwolf_interface.ui.widgets = widgets
+  aardwolf_interface.ui.bottom_root = Geyser.Container:new({
+    ["name"] = UI_PREFIX .. "bottom-root", ["x"] = 0, ["y"] = -(bottom_base + HUD_HEIGHT),
+    ["width"] = aardwolf_interface.ui.hud_width(), ["height"] = HUD_HEIGHT,
+  })
+  local bottom_root = aardwolf_interface.ui.bottom_root
+  widgets.bottom_background = new_label("bottom-background", bottom_root)
+  for _, name in ipairs({"hp", "mana", "moves", "tnl", "enemy", "hunger", "thirst"}) do
+    widgets[name] = new_gauge(name, bottom_root)
+  end
   widgets.primary = Geyser.Container:new({name = UI_PREFIX .. "primary", x = 0, y = 0, width = 10, height = "100%"}, root)
   local primary = widgets.primary
   widgets.background = new_label("background", primary)
@@ -1194,13 +1265,7 @@ function aardwolf_interface.ui.build()
   widgets.details_toggle = new_label("details-toggle", primary)
   widgets.room = new_label("room", primary)
   widgets.tick = new_gauge("tick", primary)
-  widgets.hp = new_gauge("hp", primary)
-  widgets.mana = new_gauge("mana", primary)
-  widgets.moves = new_gauge("moves", primary)
-  widgets.tnl = new_gauge("tnl", primary)
-  widgets.enemy = new_gauge("enemy", primary)
   widgets.stats = new_label("stats", primary)
-  widgets.condition = new_label("condition", primary)
   widgets.group = new_label("group", primary)
   aardwolf_interface.ui.capture_mapper_owner()
   widgets.mapper = Geyser.Mapper:new({
@@ -1220,7 +1285,7 @@ function aardwolf_interface.ui.build()
     widgets["details_" .. name] = new_label("details-" .. name, widgets.details_scroll)
   end
   safe_call(widgets.header, "setFontSize", 11)
-  for _, name in ipairs({"room", "stats", "condition", "group", "map_status", "details_header", "details_equipment", "details_bags"}) do
+  for _, name in ipairs({"room", "stats", "group", "map_status", "details_header", "details_equipment", "details_bags"}) do
     safe_call(widgets[name], "setFontSize", 10)
   end
   safe_call(widgets.map_status, "enableClickthrough")
@@ -1244,6 +1309,7 @@ function aardwolf_interface.ui.apply_theme()
   local section_css = string.format("background-color: %s; color: %s; border: 1px solid %s; padding: 5px; font-size: 10pt;", theme.section, theme.text, theme.border)
   local header_css = string.format("background-color: %s; color: %s; border-bottom: 2px solid %s; padding: 6px; font-size: 11pt; font-weight: bold;", theme.section, theme.accent, theme.border)
   safe_call(widget("background"), "setStyleSheet", panel_css)
+  safe_call(widget("bottom_background"), "setStyleSheet", panel_css)
   safe_call(widget("details_background"), "setStyleSheet", panel_css)
   safe_call(widget("header"), "setStyleSheet", header_css)
   safe_call(widget("details_header"), "setStyleSheet", header_css)
@@ -1251,10 +1317,13 @@ function aardwolf_interface.ui.apply_theme()
   for _, name in ipairs({"details_toggle", "details_collapse", "details_refresh"}) do
     safe_call(widget(name), "setStyleSheet", button_css)
   end
-  for _, name in ipairs({"room", "stats", "condition", "group", "map_status", "details_equipment", "details_bags"}) do
+  for _, name in ipairs({"room", "stats", "group", "map_status", "details_equipment", "details_bags"}) do
     safe_call(widget(name), "setStyleSheet", section_css)
   end
-  local colors = {hp = theme.hp, mana = theme.mana, moves = theme.moves, tnl = theme.accent, enemy = theme.enemy, tick = theme.accent}
+  local colors = {
+    ["hp"] = theme.hp, ["mana"] = theme.mana, ["moves"] = theme.moves, ["tnl"] = theme.accent,
+    ["enemy"] = theme.enemy, ["hunger"] = theme.hunger, ["thirst"] = theme.thirst, ["tick"] = theme.accent,
+  }
   for name, color in pairs(colors) do
     local gauge = widget(name)
     safe_call(gauge, "setStyleSheet",
@@ -1290,6 +1359,35 @@ function aardwolf_interface.ui.reflow()
   aardwolf_interface.ui.base_right = base
   safe_call(root, "move", -(base + total_width), 0)
   safe_call(root, "resize", total_width, "100%")
+
+  local bottom_claim = settings.bottom_border_claim
+  local bottom_base = type(bottom_claim) == "table" and bottom_claim.base or (aardwolf_interface.ui.base_bottom or 0)
+  if type(bottom_claim) == "table" and (finite_number(getBorderBottom()) or 0) ~= bottom_claim.applied then
+    aardwolf_interface.state.bottom_border_conflict = true
+  end
+  aardwolf_interface.ui.base_bottom = bottom_base
+  local hud_width = aardwolf_interface.ui.hud_width()
+  safe_call(aardwolf_interface.ui.bottom_root, "move", 0, -(bottom_base + HUD_HEIGHT))
+  safe_call(aardwolf_interface.ui.bottom_root, "resize", hud_width, HUD_HEIGHT)
+  safe_call(widget("bottom_background"), "move", 0, 0)
+  safe_call(widget("bottom_background"), "resize", "100%", "100%")
+
+  local hud_content_width = math.max(0, hud_width - HUD_MARGIN * 2)
+  local first_width = math.max(0, (hud_content_width - HUD_GAP * 4) / 5)
+  local first_y = HUD_MARGIN
+  for index, name in ipairs({"hp", "mana", "moves", "tnl", "enemy"}) do
+    local x = HUD_MARGIN + (index - 1) * (first_width + HUD_GAP)
+    safe_call(widget(name), "move", x, first_y)
+    safe_call(widget(name), "resize", first_width, HUD_ROW_HEIGHT)
+  end
+  local second_width = math.max(0, (hud_content_width - HUD_GAP) / 2)
+  local second_y = first_y + HUD_ROW_HEIGHT + HUD_GAP
+  for index, name in ipairs({"hunger", "thirst"}) do
+    local x = HUD_MARGIN + (index - 1) * (second_width + HUD_GAP)
+    safe_call(widget(name), "move", x, second_y)
+    safe_call(widget(name), "resize", second_width, HUD_ROW_HEIGHT)
+  end
+
   safe_call(widget("primary"), "move", 0, 0)
   safe_call(widget("primary"), "resize", width, "100%")
   safe_call(widget("background"), "move", 0, 0)
@@ -1317,19 +1415,10 @@ function aardwolf_interface.ui.reflow()
   safe_call(widget("room"), "resize", content_width - 96, 48)
   safe_call(widget("tick"), "move", width - margin - 90, room_y)
   safe_call(widget("tick"), "resize", 90, 48)
-  local gauge_y = room_y + 56
-  for index, name in ipairs({"hp", "mana", "moves", "tnl", "enemy"}) do
-    local item_y = gauge_y + (index - 1) * 28
-    safe_call(widget(name), "move", margin, item_y)
-    safe_call(widget(name), "resize", content_width, 24)
-  end
-  local stats_y = gauge_y + 5 * 28
+  local stats_y = room_y + 56
   safe_call(widget("stats"), "move", margin, stats_y)
-  safe_call(widget("stats"), "resize", content_width, 108)
-  local condition_y = stats_y + 116
-  safe_call(widget("condition"), "move", margin, condition_y)
-  safe_call(widget("condition"), "resize", content_width, 70)
-  local group_y = condition_y + 78
+  safe_call(widget("stats"), "resize", content_width, 126)
+  local group_y = stats_y + 134
   local remaining = math.max(0, height - group_y - margin)
   local group_members = aardwolf_interface.state.session
     and aardwolf_interface.state.session.group
@@ -1379,6 +1468,13 @@ local function gauge_value(name, current, maximum, label)
   else
     safe_call(gauge, "setValue", 0, 100, text)
   end
+end
+
+local function percentage_gauge(name, value, label)
+  local gauge = widget(name)
+  local percent = aardwolf_interface.state.percent(value)
+  local text = label .. "  " .. (percent and (display_number(percent) .. "%") or "--")
+  safe_call(gauge, "setValue", percent or 0, 100, text)
 end
 
 local function room_count()
@@ -1504,11 +1600,14 @@ function aardwolf_interface.ui.render()
   local enemy_percent = aardwolf_interface.state.percent(snapshot.status.enemypct)
   safe_call(widget("enemy"), "setValue", enemy_percent or 0, 100,
     "Enemy  " .. enemy_name .. (enemy_percent and ("  " .. display_number(enemy_percent) .. "%") or ""))
+  percentage_gauge("hunger", snapshot.status.hunger, "Hunger")
+  percentage_gauge("thirst", snapshot.status.thirst, "Thirst")
 
   local stats = snapshot.stats
   local maximums = snapshot.maxstats
   local worth = snapshot.worth
   local status = snapshot.status
+  local state_number = finite_number(status.state)
   local stats_text = string.format([[
 &lt;table width="100%%" cellspacing="0" cellpadding="1"&gt;
 &lt;tr&gt;&lt;td colspan="4"&gt;&lt;b&gt;Character&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
@@ -1517,6 +1616,7 @@ function aardwolf_interface.ui.render()
 &lt;tr&gt;&lt;td&gt;&lt;b&gt;Level&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;Hitroll&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;Damroll&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;Align&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
 &lt;tr&gt;&lt;td&gt;&lt;b&gt;QP&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;TP&lt;/b&gt; %s&lt;/td&gt;&lt;td colspan="2"&gt;&lt;b&gt;Gold&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
 &lt;tr&gt;&lt;td colspan="2"&gt;&lt;b&gt;Trains&lt;/b&gt; %s&lt;/td&gt;&lt;td colspan="2"&gt;&lt;b&gt;Practices&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="2"&gt;&lt;b&gt;Position&lt;/b&gt; %s&lt;/td&gt;&lt;td colspan="2"&gt;&lt;b&gt;State&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
 &lt;/table&gt;]],
     display_number(stats.str), display_number(maximums.maxstr),
     display_number(stats.int), display_number(maximums.maxint),
@@ -1526,18 +1626,9 @@ function aardwolf_interface.ui.render()
     display_number(stats.luck), display_number(maximums.maxluck),
     display_number(status.level), display_number(stats.hr), display_number(stats.dr), display_number(status.align),
     display_number(worth.qp), display_number(worth.tp), display_number(worth.gold),
-    display_number(worth.trains), display_number(worth.pracs))
-  safe_call(widget("stats"), "echo", stats_text)
-
-  local state_number = finite_number(status.state)
-  local condition_text = string.format([[
-&lt;table width="100%%" cellspacing="0" cellpadding="1"&gt;
-&lt;tr&gt;&lt;td colspan="4"&gt;&lt;b&gt;Condition&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
-&lt;tr&gt;&lt;td&gt;&lt;b&gt;Hunger&lt;/b&gt; %s%%&lt;/td&gt;&lt;td&gt;&lt;b&gt;Thirst&lt;/b&gt; %s%%&lt;/td&gt;&lt;td&gt;&lt;b&gt;Position&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;State&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
-&lt;/table&gt;]],
-    display_number(status.hunger), display_number(status.thirst),
+    display_number(worth.trains), display_number(worth.pracs),
     html_escape(status.pos or "--"), html_escape(CHARACTER_STATES[state_number] or display_number(state_number)))
-  safe_call(widget("condition"), "echo", condition_text)
+  safe_call(widget("stats"), "echo", stats_text)
 
   local group_rows = {[[&lt;table width="100%" cellspacing="0" cellpadding="1"&gt;]], [[&lt;tr&gt;&lt;td colspan="3"&gt;&lt;b&gt;Group&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;]]}
   local members = snapshot.group.members or {}
@@ -1600,6 +1691,10 @@ function aardwolf_interface.ui.show(persist)
     local base = aardwolf_interface.ui.claim_border(width)
     aardwolf_interface.ui.base_right = base
   end
+  if not (aardwolf_interface.settings.data and aardwolf_interface.settings.data.bottom_border_claim) then
+    local base = aardwolf_interface.ui.claim_bottom_border(HUD_HEIGHT)
+    aardwolf_interface.ui.base_bottom = base
+  end
   aardwolf_interface.ui.capture_mapper_owner()
   if persist ~= false then
     aardwolf_interface.settings.set_visible(true)
@@ -1607,6 +1702,7 @@ function aardwolf_interface.ui.show(persist)
     aardwolf_interface.settings.data.visible = true
   end
   safe_call(aardwolf_interface.ui.root, "show")
+  safe_call(aardwolf_interface.ui.bottom_root, "show")
   aardwolf_interface.ui.reflow()
   aardwolf_interface.ui.render()
   if aardwolf_interface.settings.details_are_visible() then
@@ -1622,10 +1718,12 @@ function aardwolf_interface.ui.hide(persist)
     aardwolf_interface.settings.data.visible = false
   end
   safe_call(aardwolf_interface.ui.root, "hide")
+  safe_call(aardwolf_interface.ui.bottom_root, "hide")
   if aardwolf_interface.details and aardwolf_interface.details.stop then
     aardwolf_interface.details.stop(true)
   end
   aardwolf_interface.ui.restore_mapper_owner()
+  aardwolf_interface.ui.release_bottom_border()
   aardwolf_interface.ui.release_border()
 end
 
@@ -1635,8 +1733,13 @@ function aardwolf_interface.ui.destroy()
   if root and type(root.delete) == "function" then
     pcall(root.delete, root)
     aardwolf_interface.ui.root = nil
-    aardwolf_interface.ui.widgets = nil
   end
+  local bottom_root = aardwolf_interface.ui.bottom_root
+  if bottom_root and type(bottom_root.delete) == "function" then
+    pcall(bottom_root.delete, bottom_root)
+    aardwolf_interface.ui.bottom_root = nil
+  end
+  aardwolf_interface.ui.widgets = nil
 end
 
 -- Details owns bounded tagged-output parsing and expanded-only command traffic.
@@ -2104,6 +2207,7 @@ function aardwolf_interface.commands.status()
     "mapper_owned=" .. tostring(aardwolf_interface.state.mapper_claimed == true),
     "adjacent_levels_hidden=" .. tostring(aardwolf_interface.state.upper_lower_levels_claimed == true),
     "border_conflict=" .. tostring(aardwolf_interface.state.border_conflict == true),
+    "bottom_border_conflict=" .. tostring(aardwolf_interface.state.bottom_border_conflict == true),
   }
   aardwolf_interface.ui.message("Status:\n" .. table.concat(lines, "\n"))
 end

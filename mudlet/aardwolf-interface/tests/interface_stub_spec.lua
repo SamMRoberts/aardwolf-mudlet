@@ -5,6 +5,7 @@ local project_root = test_source:match("^(.*)/tests/")
 assert(project_root, "could not locate aardwolf-interface project root")
 
 local right_border = 10
+local bottom_border = 12
 local messages = {}
 local events = {}
 local timers = {}
@@ -42,6 +43,14 @@ end
 
 function setBorderRight(value)
   right_border = value
+end
+
+function getBorderBottom()
+  return bottom_border
+end
+
+function setBorderBottom(value)
+  bottom_border = value
 end
 
 function getMainWindowSize()
@@ -157,6 +166,11 @@ yajl = {
         width = value.border_claim.width,
         applied = value.border_claim.applied,
       } or nil,
+      bottom_border_claim = value.bottom_border_claim and {
+        base = value.bottom_border_claim.base,
+        height = value.bottom_border_claim.height,
+        applied = value.bottom_border_claim.applied,
+      } or nil,
     }
     return "settings"
   end,
@@ -231,8 +245,16 @@ local function deliver_output(text)
 end
 
 local migrated = aardwolf_interface.settings.validate({schema_version = 1, visible = false, theme = "high-contrast"})
-assert(migrated.schema_version == 2 and migrated.visible == false and migrated.theme == "high-contrast")
+assert(migrated.schema_version == 3 and migrated.visible == false and migrated.theme == "high-contrast")
 assert(migrated.details_visible == false, "schema migration must default details to collapsed")
+assert(migrated.bottom_border_claim == nil, "legacy settings must not invent a bottom-border claim")
+local migrated_v2 = aardwolf_interface.settings.validate({
+  schema_version = 2, visible = true, details_visible = true, theme = "dark",
+  border_claim = {base = 10, width = 360, applied = 370},
+})
+assert(migrated_v2.schema_version == 3 and migrated_v2.details_visible == true)
+assert(migrated_v2.border_claim and migrated_v2.border_claim.applied == 370)
+assert(migrated_v2.bottom_border_claim == nil)
 
 local START_TIMER = "aardwolf-interface::timer::start"
 local RENDER_TIMER = "aardwolf-interface::timer::render"
@@ -242,6 +264,10 @@ local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
 fire_timer(START_TIMER)
 assert(aardwolf_interface.ui.root and not aardwolf_interface.ui.root.hidden)
 assert(right_border == 370, "expected 10px baseline plus 360px dashboard")
+assert(bottom_border == 76, "expected 12px baseline plus 64px bottom HUD")
+assert(aardwolf_interface.ui.bottom_root and not aardwolf_interface.ui.bottom_root.hidden)
+assert(aardwolf_interface.ui.bottom_root.width == 830, "bottom HUD must stop at the sidebar edge")
+assert(aardwolf_interface.ui.bottom_root.y == -76)
 assert(aardwolf_interface.state.mapper_claimed == true)
 assert(aardwolf_interface.state.generic_mapper_was_shown == true)
 assert(show_upper_lower_levels == false, "adjacent floors should be hidden while the sidebar owns the mapper")
@@ -250,6 +276,11 @@ assert(objects["aardwolf-interface::ui::header"].font_size == 11)
 assert(objects["aardwolf-interface::ui::stats"].font_size == 10)
 assert(objects["aardwolf-interface::ui::details-scroll"].kind == "scrollbox")
 assert(objects["aardwolf-interface::ui::details"].hidden == true, "details must start collapsed")
+assert(objects["aardwolf-interface::ui::hp"].parent == aardwolf_interface.ui.bottom_root)
+assert(objects["aardwolf-interface::ui::enemy"].parent == aardwolf_interface.ui.bottom_root)
+assert(objects["aardwolf-interface::ui::hunger"].y > objects["aardwolf-interface::ui::hp"].y)
+assert(objects["aardwolf-interface::ui::hp"].width == objects["aardwolf-interface::ui::enemy"].width)
+assert(objects["aardwolf-interface::ui::hunger"].width == objects["aardwolf-interface::ui::thirst"].width)
 assert(type(objects["aardwolf-interface::ui::details-toggle"].click_callback) == "function")
 assert(type(objects["aardwolf-interface::ui::details-refresh"].click_callback) == "function")
 assert(persisted_settings.details_visible == false)
@@ -259,6 +290,16 @@ assert(aardwolf_interface.ui.details_width() == 360)
 main_window_width = 3000
 assert(aardwolf_interface.ui.details_width() == 460)
 main_window_width = 1200
+aardwolf_interface.ui.reflow()
+
+-- Narrow windows retain two bounded rows and never extend under the sidebar.
+main_window_width = 500
+aardwolf_interface.ui.reflow()
+assert(aardwolf_interface.ui.bottom_root.width == 150)
+assert(objects["aardwolf-interface::ui::enemy"].x + objects["aardwolf-interface::ui::enemy"].width <= 144)
+assert(objects["aardwolf-interface::ui::thirst"].x + objects["aardwolf-interface::ui::thirst"].width <= 144)
+main_window_width = 1200
+aardwolf_interface.ui.reflow()
 
 -- Valid and malformed GMCP are normalized, escaped, bounded, and coalesced.
 gmcp.char.base = {name = "Tester", perlevel = 1000}
@@ -286,6 +327,9 @@ fire_timer(RENDER_TIMER)
 assert(objects["aardwolf-interface::ui::hp"].current == 75)
 assert(objects["aardwolf-interface::ui::moves"].current == 0)
 assert(objects["aardwolf-interface::ui::enemy"].current == 100)
+assert(objects["aardwolf-interface::ui::hunger"].current == 72 and objects["aardwolf-interface::ui::hunger"].maximum == 100)
+assert(objects["aardwolf-interface::ui::hunger"].message == "Hunger  72%")
+assert(objects["aardwolf-interface::ui::thirst"].current == 48 and objects["aardwolf-interface::ui::thirst"].message == "Thirst  48%")
 assert(objects["aardwolf-interface::ui::room"].message:find("&lt;Room&gt;", 1, true))
 assert(objects["aardwolf-interface::ui::room"].message:find("<br>", 1, true), "room metadata is not split into readable rows")
 assert(objects["aardwolf-interface::ui::tick"].kind == "gauge")
@@ -296,23 +340,29 @@ assert(timers[runtime_key("aardwolf_interface", TICK_TIMER)], "tick countdown ti
 assert(objects["aardwolf-interface::ui::stats"].message:find("<table", 1, true), "stats are not rendered as a grid")
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Hitroll</b>", 1, true))
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Practices</b>", 1, true))
-assert(objects["aardwolf-interface::ui::condition"].message:find("Standing", 1, true))
-assert(objects["aardwolf-interface::ui::condition"].message:find("<b>Hunger</b> 72%", 1, true))
-assert(objects["aardwolf-interface::ui::condition"].y > objects["aardwolf-interface::ui::stats"].y, "condition is not below Character")
+assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Position</b> Standing", 1, true))
+assert(objects["aardwolf-interface::ui::stats"].message:find("<b>State</b> Active", 1, true))
+assert(objects["aardwolf-interface::ui::condition"] == nil, "dedicated Condition pane still exists")
 assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true), "group is not rendered as a grid")
 assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
 assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
 assert(aardwolf_interface.state.snapshot().tick.last_seen)
 
--- Condition is refreshed from char.status GMCP without issuing detail queries.
+-- Condition gauges and Character rows refresh from char.status GMCP without queries.
 local sent_before_condition_update = #sent
 local gmcp_sent_before_condition_update = #gmcp_sent
 gmcp.char.status = {tnl = 200, level = 10, hunger = 33, thirst = 22, state = 3, pos = "Resting"}
 aardwolf_interface.protocol.on_char_status()
 fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::condition"].message:find("<b>Hunger</b> 33%", 1, true))
-assert(objects["aardwolf-interface::ui::condition"].message:find("Resting", 1, true))
+assert(objects["aardwolf-interface::ui::hunger"].current == 33)
+assert(objects["aardwolf-interface::ui::thirst"].current == 22)
+assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Position</b> Resting", 1, true))
 assert(#sent == sent_before_condition_update and #gmcp_sent == gmcp_sent_before_condition_update, "GMCP condition update sent a refresh command")
+gmcp.char.status = {hunger = 133, thirst = "bad", state = 3, pos = "Standing"}
+aardwolf_interface.protocol.on_char_status()
+fire_timer(RENDER_TIMER)
+assert(objects["aardwolf-interface::ui::hunger"].current == 100, "hunger was not clamped")
+assert(objects["aardwolf-interface::ui::thirst"].current == 0 and objects["aardwolf-interface::ui::thirst"].message == "Thirst  --")
 
 -- A map imported after the interface starts must remove the empty-map overlay
 -- without requiring another movement/GMCP event.
@@ -334,6 +384,8 @@ assert(objects["aardwolf-interface::ui::tick"].message == "23", "tick gauge is n
 -- transport settings before changing them.
 aardwolf_interface.commands.details_show()
 assert(right_border == 760, "expected dashboard + gap + 384px details column")
+assert(aardwolf_interface.ui.bottom_root.width == 440, "expanded details must reduce HUD width")
+assert(objects["aardwolf-interface::ui::enemy"].x + objects["aardwolf-interface::ui::enemy"].width <= 434)
 assert(persisted_settings.details_visible == true)
 assert(objects["aardwolf-interface::ui::details"].hidden == false)
 assert(#gmcp_sent == 1 and gmcp_sent[1] == "config invmon")
@@ -403,6 +455,7 @@ assert(timers[runtime_key("aardwolf_interface", QUEUE_TIMER)], "targeted refresh
 -- data, and prevents further automatic sends.
 aardwolf_interface.commands.details_hide()
 assert(right_border == 370)
+assert(aardwolf_interface.ui.bottom_root.width == 830)
 assert(persisted_settings.details_visible == false)
 assert(gmcp_sent[#gmcp_sent] == "config invmon off")
 assert(aardwolf_interface.state.snapshot().details.stale == true)
@@ -448,6 +501,8 @@ aardwolf_interface.ui.reflow()
 -- Explicit hide works for the current session and releases shared UI ownership.
 aardwolf_interface.commands.hide()
 assert(right_border == 10)
+assert(bottom_border == 12)
+assert(aardwolf_interface.ui.bottom_root.hidden == true)
 assert(persisted_settings.visible == false)
 assert(map.restored == true)
 assert(show_upper_lower_levels == true, "the prior adjacent-floor setting was not restored")
@@ -458,6 +513,7 @@ aardwolf_interface.lifecycle.on_load()
 assert(persisted_settings.visible == true)
 fire_timer(START_TIMER)
 assert(right_border == 370)
+assert(bottom_border == 76)
 assert(aardwolf_interface.ui.root.hidden == false)
 assert(show_upper_lower_levels == false)
 
@@ -466,23 +522,29 @@ aardwolf_interface.commands.hide()
 aardwolf_interface.lifecycle.initialize()
 fire_timer(START_TIMER)
 assert(right_border == 370)
+assert(bottom_border == 76)
 assert(persisted_settings.visible == true)
 assert(show_upper_lower_levels == false)
 
 -- A conflicting external border change is preserved and reported rather than overwritten.
 right_border = 999
+bottom_border = 888
 show_upper_lower_levels = true
 aardwolf_interface.commands.hide()
 assert(right_border == 999)
+assert(bottom_border == 888)
 assert(aardwolf_interface.state.border_conflict == true)
+assert(aardwolf_interface.state.bottom_border_conflict == true)
 assert(show_upper_lower_levels == true, "an external mapper preference change should be preserved")
 
 -- The mapper adapter is optional; absence of generic_mapper remains safe.
 right_border = 10
+bottom_border = 12
 map = nil
 aardwolf_interface.commands.show()
 aardwolf_interface.commands.hide()
 assert(right_border == 10)
+assert(bottom_border == 12)
 
 -- Mudlet versions before the adjacent-level option existed remain supported.
 getConfig = nil
@@ -490,6 +552,7 @@ setConfig = nil
 aardwolf_interface.commands.show()
 aardwolf_interface.commands.hide()
 assert(right_border == 10)
+assert(bottom_border == 12)
 
 aardwolf_interface.lifecycle.shutdown()
 assert(next(events) == nil, "named handlers leaked after shutdown")
