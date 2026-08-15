@@ -74,7 +74,7 @@ FEATURES = (
             ("hide", "^aard interface hide$", "aardwolf_interface.commands.hide()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
         ),
-        "interface", "1.1.1",
+        "interface", "1.1.2",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -439,7 +439,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "Run `aard interface show` or `aard interface hide` to control the right sidebar. `aard interface status` prints the same essential room, vital, group, tick, and mapper state as a text fallback. `aard theme change` cycles the dark and high-contrast themes. Visibility and theme are stored as JSON data in `aardwolf-interface/settings.lua` below the Mudlet profile; the file is never executed as Lua. While visible, the sidebar owns Mudlet's singleton mapper display, temporarily hides Mudlet 4.20+'s adjacent-floor overlay, and restores both that preference and a previously visible `generic_mapper` view when hidden or unloaded. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, unattended network behavior, or game-command sending."
+        "Run `aard interface show` or `aard interface hide` to control the right sidebar. Character and group values are arranged in readable rich-text rows, and empty group state collapses to preserve mapper space. `aard interface status` prints the same essential room, vital, group, tick, and mapper state as a text fallback. `aard theme change` cycles the dark and high-contrast themes. Visibility and theme are stored as JSON data in `aardwolf-interface/settings.lua` below the Mudlet profile; the file is never executed as Lua. While visible, the sidebar owns Mudlet's singleton mapper display, temporarily hides Mudlet 4.20+'s adjacent-floor overlay, and restores both that preference and a previously visible `generic_mapper` view when hidden or unloaded. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, unattended network behavior, or game-command sending."
         if feature.kind == "interface"
         else "Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
     )
@@ -452,7 +452,9 @@ Mudlet has one native mapper display per profile. While this dashboard is visibl
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.1 so Mudlet does not retain duplicate static objects.
+The room, tick, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Empty group state stays compact to preserve mapper space in shorter profile windows.
+
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.2 so Mudlet does not retain duplicate static objects.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -486,10 +488,17 @@ assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert "commands.show" in source and "commands.hide" in source and "commands.toggle_theme" in source
 assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
 assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
+assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
+assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "send(" not in source and "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source
 ''' if feature.kind == "interface" else ""
+    version_assertion = (
+        f'\nassert metadata["version"] == "{feature.version}"'
+        if feature.kind == "interface"
+        else ""
+    )
     test = f'''#!/usr/bin/env python3
 import json
 from pathlib import Path
@@ -497,7 +506,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "{feature.name}"
-assert metadata["namespace"] == "{feature.namespace}"
+assert metadata["namespace"] == "{feature.namespace}"{version_assertion}
 aliases = json.loads((root / "src" / "aliases" / "{feature.namespace}" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:

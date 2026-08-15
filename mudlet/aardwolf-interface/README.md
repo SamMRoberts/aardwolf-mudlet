@@ -19,6 +19,8 @@ Mudlet has one native mapper display per profile. While this dashboard is visibl
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.1 so Mudlet does not retain duplicate static objects.
+The room, tick, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Empty group state stays compact to preserve mapper space in shorter profile windows.
+
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.2 so Mudlet does not retain duplicate static objects.
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

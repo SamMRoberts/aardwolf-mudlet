@@ -413,6 +413,11 @@ function aardwolf_interface.ui.build()
     ["name"] = UI_PREFIX .. "mapper", ["x"] = 0, ["y"] = 0, ["width"] = 10, ["height"] = 10,
   }, root)
   widgets.map_status = new_label("map-status", root)
+  safe_call(widgets.header, "setFontSize", 11)
+  for _, name in ipairs({"room", "stats", "group", "map_status"}) do
+    safe_call(widgets[name], "setFontSize", 10)
+  end
+  safe_call(widgets.tick, "setFontSize", 9)
   safe_call(widgets.map_status, "enableClickthrough")
   aardwolf_interface.ui.apply_theme()
   aardwolf_interface.ui.reflow()
@@ -425,8 +430,8 @@ function aardwolf_interface.ui.apply_theme()
   end
   local theme = current_theme()
   local panel_css = string.format("background-color: %s; color: %s; border: 1px solid %s;", theme.panel, theme.text, theme.border)
-  local section_css = string.format("background-color: %s; color: %s; border: 1px solid %s; padding: 5px;", theme.section, theme.text, theme.border)
-  local header_css = string.format("background-color: %s; color: %s; border-bottom: 2px solid %s; padding: 6px; font-weight: bold;", theme.section, theme.accent, theme.border)
+  local section_css = string.format("background-color: %s; color: %s; border: 1px solid %s; padding: 5px; font-size: 10pt;", theme.section, theme.text, theme.border)
+  local header_css = string.format("background-color: %s; color: %s; border-bottom: 2px solid %s; padding: 6px; font-size: 11pt; font-weight: bold;", theme.section, theme.accent, theme.border)
   safe_call(widget("background"), "setStyleSheet", panel_css)
   safe_call(widget("header"), "setStyleSheet", header_css)
   for _, name in ipairs({"room", "tick", "stats", "group", "map_status"}) do
@@ -438,7 +443,7 @@ function aardwolf_interface.ui.apply_theme()
     safe_call(gauge, "setStyleSheet",
       string.format("background-color: %s; border: 1px solid %s;", color, theme.border),
       string.format("background-color: %s; border: 1px solid %s;", theme.gauge_back, theme.border),
-      string.format("color: %s; font-weight: bold;", theme.text))
+      string.format("color: %s; font-size: 9pt; font-weight: bold;", theme.text))
   end
 end
 
@@ -487,9 +492,21 @@ function aardwolf_interface.ui.reflow()
   safe_call(widget("stats"), "move", margin, stats_y)
   safe_call(widget("stats"), "resize", content_width, 108)
   local group_y = stats_y + 116
-  local remaining = math.max(250, height - group_y - margin)
-  local group_height = math.max(88, math.min(142, math.floor(remaining * 0.30)))
-  local map_height = math.max(155, remaining - group_height - 8)
+  local remaining = math.max(0, height - group_y - margin)
+  local group_members = aardwolf_interface.state.session
+    and aardwolf_interface.state.session.group
+    and aardwolf_interface.state.session.group.members
+    or {}
+  local displayed_group_rows = math.min(#group_members, GROUP_LIMIT)
+    + (#group_members > GROUP_LIMIT and 1 or 0)
+  local desired_group_height = #group_members == 0
+    and 48
+    or math.min(228, 30 + displayed_group_rows * 18)
+  local group_height = math.max(44, math.min(desired_group_height, math.max(44, remaining - 128)))
+  local map_height = math.max(0, remaining - group_height - 8)
+  aardwolf_interface.ui.group_height = group_height
+  aardwolf_interface.ui.group_member_count = #group_members
+  aardwolf_interface.ui.group_row_capacity = math.max(1, math.floor((group_height - 28) / 18))
   safe_call(widget("group"), "move", margin, group_y)
   safe_call(widget("group"), "resize", content_width, group_height)
   local map_y = group_y + group_height + 8
@@ -536,15 +553,16 @@ function aardwolf_interface.ui.render()
   end
   local snapshot = aardwolf_interface.state.snapshot()
   local theme_name = aardwolf_interface.settings.data and aardwolf_interface.settings.data.theme or "dark"
-  safe_call(widget("header"), "echo", "Aardwolf Dashboard  |  " .. html_escape(theme_name))
+  safe_call(widget("header"), "echo", "<b>Aardwolf Dashboard</b> &nbsp;|&nbsp; " .. html_escape(theme_name))
   local room_name = html_escape(snapshot.room.name or "Waiting for room.info")
   local area = html_escape(snapshot.room.area or snapshot.room.zone or "Unknown area")
   local vnum = display_number(snapshot.room.num)
-  safe_call(widget("room"), "echo", room_name .. "\n" .. area .. "  [" .. vnum .. "]")
+  safe_call(widget("room"), "echo", "<b>" .. room_name .. "</b><br>" .. area .. " &nbsp;[" .. vnum .. "]")
 
-  local tick_text = snapshot.tick.remaining and ("Tick\n" .. display_number(snapshot.tick.remaining) .. "s")
-    or snapshot.tick.last_seen and ("Tick\n" .. os.date("%H:%M:%S", snapshot.tick.last_seen))
-    or "Tick\n--"
+  local tick_value = snapshot.tick.remaining and (display_number(snapshot.tick.remaining) .. "s")
+    or snapshot.tick.last_seen and os.date("%H:%M:%S", snapshot.tick.last_seen)
+    or "--"
+  local tick_text = "<b>Tick</b><br>" .. tick_value
   safe_call(widget("tick"), "echo", tick_text)
   gauge_value("hp", snapshot.vitals.hp, snapshot.maxstats.maxhp, "HP")
   gauge_value("mana", snapshot.vitals.mana, snapshot.maxstats.maxmana, "Mana")
@@ -559,8 +577,15 @@ function aardwolf_interface.ui.render()
   local maximums = snapshot.maxstats
   local worth = snapshot.worth
   local status = snapshot.status
-  local stats_text = string.format(
-    "Stats\nStr %s/%s   Int %s/%s   Wis %s/%s\nDex %s/%s   Con %s/%s   Luck %s/%s\nLvl %s   HR %s   DR %s   Align %s\nQP %s   TP %s   Gold %s\nTrains %s   Pracs %s",
+  local stats_text = string.format([[
+<table width="100%%" cellspacing="0" cellpadding="1">
+<tr><td colspan="4"><b>Character</b></td></tr>
+<tr><td><b>Str</b> %s/%s</td><td><b>Int</b> %s/%s</td><td><b>Wis</b> %s/%s</td><td></td></tr>
+<tr><td><b>Dex</b> %s/%s</td><td><b>Con</b> %s/%s</td><td><b>Luck</b> %s/%s</td><td></td></tr>
+<tr><td><b>Level</b> %s</td><td><b>Hitroll</b> %s</td><td><b>Damroll</b> %s</td><td><b>Align</b> %s</td></tr>
+<tr><td><b>QP</b> %s</td><td><b>TP</b> %s</td><td colspan="2"><b>Gold</b> %s</td></tr>
+<tr><td colspan="2"><b>Trains</b> %s</td><td colspan="2"><b>Practices</b> %s</td></tr>
+</table>]],
     display_number(stats.str), display_number(maximums.maxstr),
     display_number(stats.int), display_number(maximums.maxint),
     display_number(stats.wis), display_number(maximums.maxwis),
@@ -572,27 +597,36 @@ function aardwolf_interface.ui.render()
     display_number(worth.trains), display_number(worth.pracs))
   safe_call(widget("stats"), "echo", stats_text)
 
-  local group_lines = {"Group"}
+  local group_rows = {[[<table width="100%" cellspacing="0" cellpadding="1">]], [[<tr><td colspan="3"><b>Group</b></td></tr>]]}
   local members = snapshot.group.members or {}
+  if aardwolf_interface.ui.group_member_count ~= #members then
+    aardwolf_interface.ui.reflow()
+  end
   if #members == 0 then
-    group_lines[#group_lines + 1] = "No group data"
+    group_rows[#group_rows + 1] = [[<tr><td colspan="3">No group data</td></tr>]]
   else
-    for index = 1, math.min(#members, GROUP_LIMIT) do
+    local row_capacity = aardwolf_interface.ui.group_row_capacity or GROUP_LIMIT + 1
+    local member_limit = math.min(#members, GROUP_LIMIT, row_capacity)
+    local displayed_member_limit = #members > member_limit and member_limit == row_capacity
+      and math.max(0, member_limit - 1)
+      or member_limit
+    for index = 1, displayed_member_limit do
       local member = members[index]
       local hp = member.info and member.info.hp
       local maxhp = member.info and member.info.mhp
-      group_lines[#group_lines + 1] = string.format("%s  L%s  HP %s/%s",
+      group_rows[#group_rows + 1] = string.format("<tr><td>%s</td><td>Lvl %s</td><td>HP %s/%s</td></tr>",
         html_escape(member.name or "Unknown"), display_number(member.info and member.info.lvl),
         display_number(hp), display_number(maxhp))
     end
-    if #members > GROUP_LIMIT then
-      group_lines[#group_lines + 1] = "+" .. tostring(#members - GROUP_LIMIT) .. " more"
+    if #members > displayed_member_limit then
+      group_rows[#group_rows + 1] = "<tr><td colspan=\"3\">+" .. tostring(#members - displayed_member_limit) .. " more</td></tr>"
     end
   end
-  safe_call(widget("group"), "echo", table.concat(group_lines, "\n"))
+  group_rows[#group_rows + 1] = "</table>"
+  safe_call(widget("group"), "echo", table.concat(group_rows))
 
   if room_count() == 0 then
-    safe_call(widget("map_status"), "echo", "Map is empty.\nRun: aard map import")
+    safe_call(widget("map_status"), "echo", "<div align=\"center\"><b>Map is empty.</b><br>Run: aard map import</div>")
     safe_call(widget("map_status"), "show")
   else
     safe_call(widget("map_status"), "hide")

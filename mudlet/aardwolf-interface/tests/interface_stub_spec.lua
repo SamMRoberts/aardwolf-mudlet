@@ -12,6 +12,7 @@ local objects = {}
 local persisted_settings = nil
 local rooms = {}
 local show_upper_lower_levels = true
+local main_window_height = 900
 
 local function runtime_key(user, name)
   return user .. "::" .. name
@@ -34,7 +35,7 @@ function setBorderRight(value)
 end
 
 function getMainWindowSize()
-  return 1200, 900
+  return 1200, main_window_height
 end
 
 function getRooms()
@@ -141,6 +142,7 @@ local function new_object(kind, constraints, parent)
   function object:hide() self.hidden = true end
   function object:delete() self.deleted = true end
   function object:echo(text) self.message = text end
+  function object:setFontSize(size) self.font_size = size end
   function object:setStyleSheet(...) self.styles = {...} end
   function object:setValue(current, maximum, text)
     self.current, self.maximum, self.message = current, maximum, text
@@ -189,6 +191,8 @@ assert(aardwolf_interface.state.mapper_claimed == true)
 assert(aardwolf_interface.state.generic_mapper_was_shown == true)
 assert(show_upper_lower_levels == false, "adjacent floors should be hidden while the sidebar owns the mapper")
 assert(aardwolf_interface.state.upper_lower_levels_claimed == true)
+assert(objects["aardwolf-interface::ui::header"].font_size == 11)
+assert(objects["aardwolf-interface::ui::stats"].font_size == 10)
 
 -- Valid and malformed GMCP are normalized, escaped, bounded, and coalesced.
 gmcp.char.base = {name = "Tester", perlevel = 1000}
@@ -217,8 +221,27 @@ assert(objects["aardwolf-interface::ui::hp"].current == 75)
 assert(objects["aardwolf-interface::ui::moves"].current == 0)
 assert(objects["aardwolf-interface::ui::enemy"].current == 100)
 assert(objects["aardwolf-interface::ui::room"].message:find("&lt;Room&gt;", 1, true))
+assert(objects["aardwolf-interface::ui::room"].message:find("<br>", 1, true), "room metadata is not split into readable rows")
+assert(objects["aardwolf-interface::ui::tick"].message:find("<br>", 1, true), "tick status is not split into readable rows")
+assert(objects["aardwolf-interface::ui::stats"].message:find("<table", 1, true), "stats are not rendered as a grid")
+assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Hitroll</b>", 1, true))
+assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Practices</b>", 1, true))
+assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true), "group is not rendered as a grid")
 assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
+assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
 assert(aardwolf_interface.state.snapshot().tick.last_seen)
+
+-- Empty groups collapse in short windows so the mapper remains visible.
+gmcp.group = {members = {}}
+aardwolf_interface.protocol.on_group()
+fire_timer(RENDER_TIMER)
+main_window_height = 515
+aardwolf_interface.ui.reflow()
+assert(objects["aardwolf-interface::ui::group"].height == 44, "empty group did not use compact short-window height")
+assert(objects["aardwolf-interface::ui::mapper"].height > 0, "short window lost the mapper")
+assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 515, "short-window mapper extends outside the dashboard")
+main_window_height = 900
+aardwolf_interface.ui.reflow()
 
 -- Hide/show persists, restores generic mapper ownership, and releases the border.
 aardwolf_interface.commands.hide()
