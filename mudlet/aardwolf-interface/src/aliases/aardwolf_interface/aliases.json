@@ -12,6 +12,10 @@
     "regex": "^aard interface hide$"
   },
   {
+    "name": "aardwolf_interface.repair",
+    "regex": "^aard interface repair$"
+  },
+  {
     "name": "aardwolf_interface.details_show",
     "regex": "^aard interface details show$"
   },
@@ -34,5 +38,53 @@
   {
     "name": "aardwolf_interface.theme",
     "regex": "^aard theme change$"
+  },
+  {
+    "name": "aardwolf_interface.tab",
+    "regex": "^aard interface tab (overview|map|character|group|inventory)$"
+  },
+  {
+    "name": "aardwolf_interface.pin",
+    "regex": "^aard interface pin(?: (overview|map|character|group|inventory|off))?$"
+  },
+  {
+    "name": "aardwolf_interface.palette",
+    "regex": "^aard interface palette(?: (show|hide|toggle))?$"
+  },
+  {
+    "name": "aardwolf_interface.summary",
+    "regex": "^aard interface summary (room|character|quest|group|equipment|bags|actions|all)$"
+  },
+  {
+    "name": "aardwolf_interface.theme_set",
+    "regex": "^aard interface theme (obsidian|high-contrast)$"
+  },
+  {
+    "name": "aardwolf_interface.density",
+    "regex": "^aard interface density (compact|comfortable)$"
+  },
+  {
+    "name": "aardwolf_interface.scale",
+    "regex": "^aard interface scale (90|100|115|130)$"
+  },
+  {
+    "name": "aardwolf_interface.action_add",
+    "regex": "^aard interface action add ([^|]{1,32})[|]([^|]{1,24})[|]([^\\r\\n]{1,200})$"
+  },
+  {
+    "name": "aardwolf_interface.action_edit",
+    "regex": "^aard interface action edit (custom%-[0-9]+)[|]([^|]{1,32})[|]([^|]{1,24})[|]([^\\r\\n]{1,200})$"
+  },
+  {
+    "name": "aardwolf_interface.action_remove",
+    "regex": "^aard interface action remove (custom%-[0-9]+)$"
+  },
+  {
+    "name": "aardwolf_interface.action_move",
+    "regex": "^aard interface action move (custom%-[0-9]+) ([0-9]{1,2})$"
+  },
+  {
+    "name": "aardwolf_interface.action_list",
+    "regex": "^aard interface action list$"
   }
 ]

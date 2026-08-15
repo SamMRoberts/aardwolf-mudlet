@@ -9,10 +9,19 @@ After an import completes, the package re-resolves the current `gmcp.room.info` 
 - `aard map import` starts or safely resumes a bounded-batch import.
 - `aard map import cancel` stops after the current batch. Imported package-owned rooms remain in place, and a later import safely reuses them.
 - `aard map status` reports the active phase and progress counters.
+- `aard map palette source|obsidian|high-contrast` selects and persists the terrain palette. Standalone installs default to the source palette.
 
 Import never clears a map. A source vnum is mapped through the stable room hash `aardwolf-map:vnum:<vnum>`, while Mudlet receives a compact `createRoomID()` identifier. If that hash already belongs to a non-package room, the room and any dependent exits are skipped and counted; the package never overwrites it. Repeated imports reuse package-owned rooms. Once a source snapshot has completed, a repeat import does not rewrite its exits, preserving later mapper edits.
 
-The importer creates namespaced area labels of the form `Aardwolf (<source-id>): <name>`. It records source vnums, terrain, details, source coordinates, area metadata, and snapshot metadata as `aardwolf_map.*` map/area/room user data. Standard `n`, `s`, `e`, `w`, `u`, and `d` exits use native mapper exits. Terrain values use the custom environment range beginning at 1000. On every package/profile load and before room batches run, the package converts the source mapper's ANSI terrain indices to their exact RGB equivalents and registers all referenced colors with Mudlet. Repeating the import repairs terrain assignments only on package-owned rooms.
+The importer creates namespaced area labels of the form `Aardwolf (<source-id>): <name>`. It records source vnums, terrain, details, source coordinates, area metadata, and snapshot metadata as `aardwolf_map.*` map/area/room user data. Standard `n`, `s`, `e`, `w`, `u`, and `d` exits use native mapper exits. Source terrain UIDs map to persisted, collision-free Mudlet custom environment IDs. Allocation excludes Mudlet's reserved ranges (1–16 and 257–272), existing custom colors, and IDs used by foreign rooms. Before any global color write the package scans room usage again; if a late collision occurs, it reallocates and migrates only package-owned legacy rooms. It never recolors or changes a foreign room.
+
+The source palette reproduces the source mapper's ANSI colors. Obsidian is a lower-glare jewel palette, and High Contrast maximizes terrain distinction. Reloading restores the chosen palette without creating or deleting rooms.
+
+## Integration status and lifecycle
+
+`aardwolf_map.integration.snapshot()` returns the import phase/progress, source hash, package-owned room count, current vnum and resolved room ID, palette, freshness timestamp, and current error. The package raises `aardwolf-map::status-changed` with that snapshot on import start/progress/cancel/error/finish, palette changes, and room resolution. The older `aardwolf-map::import-finished` signal remains available.
+
+Initialization first removes all package timers and handlers. If a reload or exit interrupts an import, the snapshot reports `interrupted`; running `aard map import` resumes safely by reusing package-owned rooms. Uninstall and Mudlet exit handlers remove the importer timer and all package handlers. Partial package-owned map data remains in place and is never destructively cleared.
 
 ## Layout and live location
 
@@ -24,7 +33,11 @@ This package does not reproduce the MUSHclient mapper's editing workflow, portal
 
 ## Installation and distributable artifacts
 
-Import [the native XML export](dist/aardwolf-map.xml) in Mudlet when you only need the package objects. The map JSON resource is not embedded in a raw Mudlet XML export, so a functional installation should import [the native package](dist/aardwolf-map.mpackage), which includes the declared JSON asset.
+Install [the native package](dist/aardwolf-map.mpackage) with Mudlet's **Package Manager** (`Alt+O`), then enter `aard map import` in the game command line. The package contains a merge-safe conversion resource; it is not itself a Mudlet map backup.
+
+Do not select `Aardwolf.db`, `aardwolf-map-v11.json`, `aardwolf-map.xml`, or an `.mpackage` from **Preferences > Mapper > Load another map**, and do not pass them to the generic mapper's `map load` command. Mudlet's native map loader accepts Mudlet map backups or MMP XML and requires an embedded map format version. Using that loader for one of this package's inputs produces `no format version detected`; it does not mean the packaged snapshot is corrupt. Use `aard map status` followed by `aard map import` instead.
+
+The raw [native XML export](dist/aardwolf-map.xml) contains only package objects and is intended for controlled inspection/import through Package Manager tooling. It omits the required JSON resource and cannot provide a functional map installation by itself.
 
 The all-in-one `mudlet/dist/aardwolf-mudlet-suite.mpackage` also includes this
 asset. The importer checks its standalone package directory first, then the

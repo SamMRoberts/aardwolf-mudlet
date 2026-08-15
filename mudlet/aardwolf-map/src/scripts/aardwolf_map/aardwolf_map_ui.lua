@@ -15,5 +15,10 @@ end
 
 function aardwolf_map.ui.status(status)
   local phase = status.phase or "idle"
-  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. ".")
+  local error_text = status.error_message and ("; error " .. tostring(status.error_message)) or ""
+  local guidance = ""
+  if (status.owned_count or 0) == 0 and phase ~= "rooms" and phase ~= "exits" then
+    guidance = " No Aardwolf rooms have been merged yet. Run 'aard map import'; do not use Mudlet's 'map load' or Mapper > Load Map for the packaged database, JSON, XML, or .mpackage files."
+  end
+  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. "." .. guidance)
 end

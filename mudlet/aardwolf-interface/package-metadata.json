@@ -1,9 +1,9 @@
 {
-  "description": "Responsive Aardwolf Geyser dashboard with a bottom gauge HUD, mapper, collapsible character details, and text fallbacks.",
+  "description": "Adaptive Obsidian Jewel Aardwolf command deck with responsive workspace, structured GMCP views, safe actions, and text fallbacks.",
   "game": "Aardwolf",
   "minimum_mudlet_version": "4.14",
   "name": "aardwolf-interface",
   "namespace": "aardwolf_interface",
   "schema_version": 1,
-  "version": "1.4.0"
+  "version": "1.6.0"
 }

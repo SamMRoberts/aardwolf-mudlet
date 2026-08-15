@@ -3,7 +3,8 @@
 <MudletPackage version="1.001"><AliasPackage><Alias isActive="yes" isFolder="no"><name>aardwolf_map.import</name><script>aardwolf_map.commands.start_import()
 </script><command></command><packageName></packageName><regex>^aard map import$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.import_cancel</name><script>aardwolf_map.commands.cancel_import()
 </script><command></command><packageName></packageName><regex>^aard map import cancel$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.status</name><script>aardwolf_map.commands.show_status()
-</script><command></command><packageName></packageName><regex>^aard map status$</regex></Alias></AliasPackage><TriggerPackage></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aardwolf_map.state</name><script>aardwolf_map = aardwolf_map or {}
+</script><command></command><packageName></packageName><regex>^aard map status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.palette</name><script>aardwolf_map.commands.set_palette(matches[2])
+</script><command></command><packageName></packageName><regex>^aard map palette (source|obsidian|high-contrast)$</regex></Alias></AliasPackage><TriggerPackage></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aardwolf_map.state</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.state = aardwolf_map.state or {}
 
 function aardwolf_map.state.resource_path()
@@ -61,6 +62,41 @@ end
 
 function aardwolf_map.state.is_owned_room(room_id)
   return getRoomUserData(room_id, aardwolf_map.state.owner_key()) == aardwolf_map.state.owner_value()
+end
+
+function aardwolf_map.state.room_ids()
+  if type(getRooms) ~= "function" then
+    return {}
+  end
+  local succeeded, rooms = pcall(getRooms)
+  if not succeeded or type(rooms) ~= "table" then
+    return {}
+  end
+  local result = {}
+  local seen = {}
+  for key, value in pairs(rooms) do
+    local room_id = tonumber(key)
+    if not room_id or room_id ~= math.floor(room_id) then
+      local value_room_id = tonumber(value)
+      if value_room_id then room_id = value_room_id end
+    end
+    if room_id and room_id == math.floor(room_id) and room_id &gt;= 0 and not seen[room_id] then
+      seen[room_id] = true
+      result[#result + 1] = room_id
+    end
+  end
+  table.sort(result)
+  return result
+end
+
+function aardwolf_map.state.owned_room_count()
+  local count = 0
+  for _, room_id in ipairs(aardwolf_map.state.room_ids()) do
+    if aardwolf_map.state.is_owned_room(room_id) then
+      if count &gt;= 0 then count = count + 1 end
+    end
+  end
+  return count
 end
 
 function aardwolf_map.state.write_room_data(room_id, key, value)
@@ -136,6 +172,53 @@ function aardwolf_map.settings.record_source_metadata(data)
     aardwolf_map.settings.set_map_value("source_environments", environments)
   end
 end
+
+function aardwolf_map.settings.get_environment_ids()
+  local value = aardwolf_map.state.decode_value(aardwolf_map.settings.get_map_value("environment_ids"))
+  if type(value) ~= "table" then
+    return {}
+  end
+  local result = {}
+  for source_uid, environment_id in pairs(value) do
+    local numeric = tonumber(environment_id)
+    if numeric and numeric == math.floor(numeric) and numeric &gt; 0 then
+      result[tostring(source_uid)] = numeric
+    end
+  end
+  return result
+end
+
+function aardwolf_map.settings.set_environment_ids(environment_ids)
+  local encoded = aardwolf_map.state.encode_value(environment_ids)
+  if encoded then
+    aardwolf_map.settings.set_map_value("environment_ids", encoded)
+  end
+end
+
+function aardwolf_map.settings.palette()
+  local value = aardwolf_map.settings.get_map_value("palette")
+  if value == "obsidian" or value == "high-contrast" then
+    return value
+  end
+  return "source"
+end
+
+function aardwolf_map.settings.set_palette(palette)
+  aardwolf_map.settings.set_map_value("palette", palette)
+end
+
+function aardwolf_map.settings.mark_import_active(source_hash)
+  aardwolf_map.settings.set_map_value("import_active_source_sha256", tostring(source_hash or ""))
+end
+
+function aardwolf_map.settings.active_import_hash()
+  local value = aardwolf_map.settings.get_map_value("import_active_source_sha256")
+  return type(value) == "string" and value ~= "" and value or nil
+end
+
+function aardwolf_map.settings.clear_import_active()
+  aardwolf_map.settings.set_map_value("import_active_source_sha256", "")
+end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.commands</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.commands = aardwolf_map.commands or {}
 
@@ -150,6 +233,10 @@ end
 function aardwolf_map.commands.show_status()
   aardwolf_map.lifecycle.show_status()
 end
+
+function aardwolf_map.commands.set_palette(palette)
+  aardwolf_map.lifecycle.set_palette(palette)
+end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.protocol</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.protocol = aardwolf_map.protocol or {}
 
@@ -163,8 +250,13 @@ function aardwolf_map.protocol.on_room_info()
     return
   end
   local room_id = aardwolf_map.state.room_id_for_vnum(vnum)
+  local resolved_room_id = nil
   if room_id and aardwolf_map.state.is_owned_room(room_id) then
+    if room_id then resolved_room_id = room_id end
     centerview(room_id)
+  end
+  if aardwolf_map.lifecycle and aardwolf_map.lifecycle.record_room_resolution then
+    aardwolf_map.lifecycle.record_room_resolution(vnum, resolved_room_id)
   end
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.ui</name><script>aardwolf_map = aardwolf_map or {}
@@ -184,107 +276,280 @@ end
 
 function aardwolf_map.ui.status(status)
   local phase = status.phase or "idle"
-  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. ".")
+  local error_text = status.error_message and ("; error " .. tostring(status.error_message)) or ""
+  local guidance = ""
+  if (status.owned_count or 0) == 0 and phase ~= "rooms" and phase ~= "exits" then
+    guidance = " No Aardwolf rooms have been merged yet. Run 'aard map import'; do not use Mudlet's 'map load' or Mapper &gt; Load Map for the packaged database, JSON, XML, or .mpackage files."
+  end
+  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. "." .. guidance)
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.lifecycle</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.lifecycle = aardwolf_map.lifecycle or {}
 aardwolf_map.lifecycle.runtime = aardwolf_map.lifecycle.runtime or {}
+aardwolf_map.integration = aardwolf_map.integration or {}
 
 local batch_size = 100
 local timer_namespace = "aardwolf_map"
 local timer_name = "aardwolf-map::timer::import"
-local event_handler_name = "aardwolf-map::event::room-info"
+local room_handler_name = "aardwolf-map::event::room-info"
+local uninstall_handler_name = "aardwolf-map::event::uninstall"
+local exit_handler_name = "aardwolf-map::event::exit"
+local status_changed_event = "aardwolf-map::status-changed"
 local import_finished_event = "aardwolf-map::import-finished"
-local environment_id_base = 1000
+local environment_id_start = 1000
+local environment_id_limit = 65535
 
--- Exact RGB equivalents of the MUSHclient ColourNameToRGB names used by the
--- source mapper's ANSI terrain palette.
 local source_ansi_rgb = {
-  [0] = {0, 0, 0},
-  [1] = {128, 0, 0},
-  [2] = {0, 128, 0},
-  [3] = {128, 128, 0},
-  [4] = {0, 0, 128},
-  [5] = {128, 0, 128},
-  [6] = {0, 128, 128},
-  [7] = {192, 192, 192},
-  [8] = {128, 128, 128},
-  [9] = {255, 0, 0},
-  [10] = {0, 255, 0},
-  [11] = {255, 255, 0},
-  [12] = {0, 0, 255},
-  [13] = {255, 0, 255},
-  [14] = {0, 255, 255},
-  [15] = {255, 255, 255},
+  [0] = {0, 0, 0}, [1] = {128, 0, 0}, [2] = {0, 128, 0}, [3] = {128, 128, 0},
+  [4] = {0, 0, 128}, [5] = {128, 0, 128}, [6] = {0, 128, 128}, [7] = {192, 192, 192},
+  [8] = {128, 128, 128}, [9] = {255, 0, 0}, [10] = {0, 255, 0}, [11] = {255, 255, 0},
+  [12] = {0, 0, 255}, [13] = {255, 0, 255}, [14] = {0, 255, 255}, [15] = {255, 255, 255},
 }
+
+local obsidian_rgb = {
+  [0] = {13, 17, 23}, [1] = {134, 48, 72}, [2] = {46, 139, 87}, [3] = {184, 134, 11},
+  [4] = {45, 87, 154}, [5] = {125, 70, 152}, [6] = {25, 135, 143}, [7] = {184, 192, 204},
+  [8] = {91, 99, 112}, [9] = {232, 85, 106}, [10] = {75, 210, 130}, [11] = {245, 194, 66},
+  [12] = {82, 143, 255}, [13] = {190, 111, 229}, [14] = {65, 208, 218}, [15] = {245, 247, 250},
+}
+
+local high_contrast_rgb = {
+  [0] = {0, 0, 0}, [1] = {180, 0, 0}, [2] = {0, 150, 0}, [3] = {180, 120, 0},
+  [4] = {0, 70, 210}, [5] = {160, 0, 180}, [6] = {0, 150, 170}, [7] = {210, 210, 210},
+  [8] = {110, 110, 110}, [9] = {255, 70, 70}, [10] = {60, 255, 90}, [11] = {255, 230, 0},
+  [12] = {80, 150, 255}, [13] = {255, 80, 255}, [14] = {50, 240, 255}, [15] = {255, 255, 255},
+}
+
+local palettes = { source = source_ansi_rgb, obsidian = obsidian_rgb, ["high-contrast"] = high_contrast_rgb }
 
 local function status()
   return aardwolf_map.lifecycle.runtime
 end
 
-local function set_idle(phase)
+local function copy_progress(current)
+  local room_total = current.room_total or 0
+  local exit_total = current.exit_total or 0
+  local completed = (current.room_index or 0) + (current.exit_index or 0)
+  local total = room_total + exit_total
+  return {
+    ["rooms"] = {current = current.room_index or 0, total = room_total},
+    ["exits"] = {current = current.exit_index or 0, total = exit_total},
+    ["percent"] = total &gt; 0 and math.floor((completed * 1000) / total) / 10 or 0,
+  }
+end
+
+function aardwolf_map.integration.snapshot()
+  local current = status()
+  return {
+    ["phase"] = current.phase or "idle",
+    ["progress"] = copy_progress(current),
+    ["source_hash"] = current.source_hash or aardwolf_map.settings.completed_source_hash(),
+    ["owned_count"] = current.owned_count or 0,
+    ["current_vnum"] = current.current_vnum,
+    ["resolved_room_id"] = current.resolved_room_id,
+    ["palette"] = current.palette or aardwolf_map.settings.palette(),
+    ["freshness"] = current.updated_at,
+    ["error"] = current.error_message or current.palette_error,
+  }
+end
+
+local function emit_status_changed()
+  status().updated_at = os.time()
+  if type(raiseEvent) == "function" then
+    pcall(raiseEvent, status_changed_event, aardwolf_map.integration.snapshot())
+  end
+end
+
+local function set_phase(phase, error_message)
   status().phase = phase
-  status().data = nil
-  status().room_index = 0
-  status().exit_index = 0
+  status().error_message = error_message
+  emit_status_changed()
+end
+
+local function release_runtime_objects()
+  if type(deleteNamedTimer) == "function" then pcall(deleteNamedTimer, timer_namespace, timer_name) end
+  if type(deleteNamedEventHandler) == "function" then
+    pcall(deleteNamedEventHandler, timer_namespace, room_handler_name)
+    pcall(deleteNamedEventHandler, timer_namespace, uninstall_handler_name)
+    pcall(deleteNamedEventHandler, timer_namespace, exit_handler_name)
+  end
+end
+
+local function clear_import_data()
+  local current = status()
+  current.data = nil
+  current.area_ids = nil
+  current.blocked_vnums = nil
+  current.cancel_requested = false
 end
 
 local function is_import_area(data, area_uid)
   for _, candidate in ipairs(data.import_area_uids) do
-    if candidate == area_uid then
-      return true
-    end
+    if candidate == area_uid then return true end
   end
   return false
 end
 
-local function custom_environment_id(source_uid)
-  local uid = tonumber(source_uid)
-  if not uid or uid ~= math.floor(uid) or uid &lt; 0 or uid &gt; 999 then
-    return nil
+local function is_reserved_environment_id(environment_id)
+  return (environment_id &gt;= 1 and environment_id &lt;= 16) or (environment_id &gt;= 257 and environment_id &lt;= 272)
+end
+
+local function room_environment_usage()
+  local usage = {}
+  if type(getRoomEnv) ~= "function" then return usage end
+  for _, room_id in ipairs(aardwolf_map.state.room_ids()) do
+    local succeeded, environment_id = pcall(getRoomEnv, room_id)
+    local normalized_environment_id = succeeded and tonumber(environment_id) or nil
+    if normalized_environment_id then environment_id = normalized_environment_id else environment_id = nil end
+    if environment_id and environment_id == math.floor(environment_id) then
+      usage[environment_id] = usage[environment_id] or {owned = {}, foreign = {}}
+      local bucket = aardwolf_map.state.is_owned_room(room_id) and usage[environment_id].owned or usage[environment_id].foreign
+      bucket[#bucket + 1] = room_id
+    end
   end
-  return environment_id_base + uid
+  return usage
+end
+
+local function custom_color_exists(environment_id)
+  if type(getCustomEnvColor) ~= "function" then return false end
+  local succeeded, red = pcall(getCustomEnvColor, environment_id)
+  return succeeded and red ~= nil and red ~= false
+end
+
+local function allocate_environment_id(used_ids, occupied_colors)
+  for environment_id = environment_id_start, environment_id_limit do
+    if not is_reserved_environment_id(environment_id) and not used_ids[environment_id]
+        and not occupied_colors[environment_id] and not custom_color_exists(environment_id) then
+      return environment_id
+    end
+  end
+  return nil
+end
+
+local function legacy_environment_id(source_uid)
+  local numeric = tonumber(source_uid)
+  if numeric and numeric == math.floor(numeric) and numeric &gt;= 0 and numeric &lt;= 999 then return 1000 + numeric end
+  return nil
+end
+
+local function resolve_environment_ids(data)
+  local saved = aardwolf_map.settings.get_environment_ids()
+  local usage = room_environment_usage()
+  local used_ids, occupied_colors = {}, {}
+  for environment_id, buckets in pairs(usage) do
+    if #buckets.foreign &gt; 0 then used_ids[environment_id] = true end
+  end
+  for _, environment_id in pairs(saved) do used_ids[environment_id] = true end
+  local resolved, migrations = {}, {}
+  for _, environment in ipairs(data.environments) do
+    local source_uid = tostring(environment.uid)
+    local candidate = saved[source_uid]
+    local candidate_usage = candidate and usage[candidate]
+    local collision = candidate and (is_reserved_environment_id(candidate) or (candidate_usage and #candidate_usage.foreign &gt; 0))
+    local legacy_to_migrate = nil
+    if not candidate then
+      local legacy = legacy_environment_id(source_uid)
+      local legacy_usage = legacy and usage[legacy]
+      if legacy and legacy_usage and #legacy_usage.owned &gt; 0 and #legacy_usage.foreign == 0 and not is_reserved_environment_id(legacy) then
+        if legacy then candidate = legacy end
+      elseif legacy and legacy_usage and #legacy_usage.owned &gt; 0 then
+        if legacy then legacy_to_migrate = legacy end
+      end
+    end
+    if not candidate or collision then
+      local old_id = candidate
+      local allocated_environment_id = allocate_environment_id(used_ids, occupied_colors)
+      if allocated_environment_id then candidate = allocated_environment_id else candidate = nil end
+      if not candidate then return nil, nil, "No collision-free Mudlet custom environment ID is available." end
+      if old_id then migrations[old_id] = candidate end
+      if legacy_to_migrate then migrations[legacy_to_migrate] = candidate end
+    end
+    resolved[source_uid] = candidate
+    used_ids[candidate] = true
+    occupied_colors[candidate] = nil
+  end
+  aardwolf_map.settings.set_environment_ids(resolved)
+  return resolved, migrations, nil
+end
+
+local function migrate_owned_room_environments(migrations)
+  if type(getRoomEnv) ~= "function" then return end
+  for _, room_id in ipairs(aardwolf_map.state.room_ids()) do
+    if aardwolf_map.state.is_owned_room(room_id) then
+      local succeeded, environment_id = pcall(getRoomEnv, room_id)
+      local replacement = succeeded and migrations[tonumber(environment_id)] or nil
+      if replacement then pcall(setRoomEnv, room_id, replacement) end
+    end
+  end
 end
 
 local function ensure_environments(data)
   if type(data.environments) ~= "table" or type(setCustomEnvColor) ~= "function" then
     return nil, "Mudlet custom environment colors are unavailable."
   end
-  local result = {registered = 0}
+  local environment_ids, migrations, allocation_error = resolve_environment_ids(data)
+  if not environment_ids then return nil, allocation_error end
+  migrate_owned_room_environments(migrations)
+  local palette_name = aardwolf_map.settings.palette()
+  local palette = palettes[palette_name]
+  local registered = 0
   for _, environment in ipairs(data.environments) do
-    local environment_id = type(environment) == "table" and custom_environment_id(environment.uid) or nil
-    local color_index = type(environment) == "table" and tonumber(environment.color) or nil
-    local rgb = color_index and color_index == math.floor(color_index) and source_ansi_rgb[color_index] or nil
+    local environment_id = environment_ids[tostring(environment.uid)]
+    local color_index = tonumber(environment.color)
+    local rgb = color_index and color_index == math.floor(color_index) and palette[color_index] or nil
     if not environment_id or not rgb then
-      return nil, "The packaged terrain record is invalid for environment " .. tostring(type(environment) == "table" and environment.name or "unknown") .. "."
+      return nil, "The packaged terrain record is invalid for environment " .. tostring(environment.name or "unknown") .. "."
     end
-    local succeeded, error_message = pcall(setCustomEnvColor, environment_id, rgb[1], rgb[2], rgb[3], 255)
-    if not succeeded then
-      return nil, "Could not register terrain color for " .. tostring(environment.name) .. ": " .. tostring(error_message)
+    -- Recheck immediately before the global write. Never recolor an ID that a
+    -- foreign room claimed after the allocation scan.
+    local latest_usage = room_environment_usage()[environment_id]
+    if latest_usage and #latest_usage.foreign &gt; 0 then
+      return nil, "Terrain environment " .. tostring(environment_id) .. " was claimed by a foreign room; retry to allocate a replacement."
     end
-    result.registered = result.registered + 1
+    local succeeded, color_error = pcall(setCustomEnvColor, environment_id, rgb[1], rgb[2], rgb[3], 255)
+    if not succeeded then return nil, "Could not register terrain color for " .. tostring(environment.name) .. ": " .. tostring(color_error) end
+    if registered &gt;= 0 then registered = registered + 1 end
   end
-  aardwolf_map.settings.set_map_value("environment_id_base", tostring(environment_id_base))
-  aardwolf_map.settings.set_map_value("registered_environment_count", tostring(result.registered))
-  return result.registered, nil
+  aardwolf_map.settings.set_map_value("registered_environment_count", tostring(registered))
+  status().environment_ids = environment_ids
+  status().palette = palette_name
+  return registered, nil
 end
 
 function aardwolf_map.lifecycle.refresh_environment_colors()
   local data, resource_error = aardwolf_map.state.read_resource()
   if not data then
     status().palette_error = resource_error
+    emit_status_changed()
     return nil, resource_error
   end
   local registered, environment_error = ensure_environments(data)
+  if not registered and environment_error and environment_error:find("claimed by a foreign room", 1, true) then
+    if environment_error then registered, environment_error = ensure_environments(data) end
+  end
   if not registered then
     status().palette_error = environment_error
+    emit_status_changed()
     return nil, environment_error
   end
   status().palette_error = nil
-  if type(updateMap) == "function" then
-    pcall(updateMap)
-  end
+  status().source_hash = data.source.sha256
+  if type(updateMap) == "function" then pcall(updateMap) end
+  emit_status_changed()
   return registered, nil
+end
+
+function aardwolf_map.lifecycle.set_palette(palette, silent)
+  if not palettes[palette] then
+    aardwolf_map.ui.message("Palette must be source, obsidian, or high-contrast.")
+    return false
+  end
+  aardwolf_map.settings.set_palette(palette)
+  status().palette = palette
+  local registered, error_message = aardwolf_map.lifecycle.refresh_environment_colors()
+  if not registered then aardwolf_map.ui.message(error_message); return false end
+  if not silent then aardwolf_map.ui.message("Terrain palette changed to " .. palette .. ".") end
+  return true
 end
 
 local function ensure_areas(data)
@@ -293,51 +558,37 @@ local function ensure_areas(data)
   for _, area in ipairs(data.areas) do
     source_records[area.uid] = area
     if is_import_area(data, area.uid) then
-      local area_context = { id = tonumber(area_ids[area.uid]) }
-      if not area_context.id or area_context.id &lt; 0 then
-        area_context.id = addAreaName("Aardwolf (" .. tostring(area.uid) .. "): " .. tostring(area.name))
-        if type(area_context.id) ~= "number" or area_context.id &lt; 0 then
-          return nil, "Could not create the namespaced area for source area " .. tostring(area.uid) .. "."
-        end
-        area_ids[area.uid] = area_context.id
+      local area_id = tonumber(area_ids[area.uid])
+      if not area_id or area_id &lt; 0 then
+        local created_area_id = addAreaName("Aardwolf (" .. tostring(area.uid) .. "): " .. tostring(area.name))
+        if type(created_area_id) ~= "number" or created_area_id &lt; 0 then return nil, "Could not create the namespaced area for source area " .. tostring(area.uid) .. "." end
+        if created_area_id then area_id = created_area_id end
+        area_ids[area.uid] = area_id
       end
-      setAreaUserData(area_context.id, "aardwolf_map.owner", aardwolf_map.state.owner_value())
-      setAreaUserData(area_context.id, "aardwolf_map.source_uid", tostring(area.uid))
-      if area.texture then
-        setAreaUserData(area_context.id, "aardwolf_map.texture", tostring(area.texture))
-      end
-      if area.color then
-        setAreaUserData(area_context.id, "aardwolf_map.source_color", tostring(area.color))
-      end
-      if area.flags then
-        setAreaUserData(area_context.id, "aardwolf_map.flags", tostring(area.flags))
-      end
+      setAreaUserData(area_id, "aardwolf_map.owner", aardwolf_map.state.owner_value())
+      setAreaUserData(area_id, "aardwolf_map.source_uid", tostring(area.uid))
+      if area.texture then setAreaUserData(area_id, "aardwolf_map.texture", tostring(area.texture)) end
+      if area.color then setAreaUserData(area_id, "aardwolf_map.source_color", tostring(area.color)) end
+      if area.flags then setAreaUserData(area_id, "aardwolf_map.flags", tostring(area.flags)) end
     end
   end
   aardwolf_map.settings.set_area_ids(area_ids)
   local encoded_records = aardwolf_map.state.encode_value(source_records)
-  if encoded_records then
-    aardwolf_map.settings.set_map_value("source_area_records", encoded_records)
-  end
+  if encoded_records then aardwolf_map.settings.set_map_value("source_area_records", encoded_records) end
   return area_ids, nil
 end
 
+local function environment_id_for(source_uid)
+  return (status().environment_ids or aardwolf_map.settings.get_environment_ids())[tostring(source_uid)]
+end
+
 local function create_source_room(room, area_ids)
-  local environment_id = custom_environment_id(room.terrain_uid)
-  if not environment_id then
-    return nil, "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "."
-  end
+  local environment_id = environment_id_for(room.terrain_uid)
+  if not environment_id then return nil, "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "." end
   local room_id = createRoomID()
-  if type(room_id) ~= "number" or room_id &lt; 0 then
-    return nil, "Mudlet could not allocate a compact room ID."
-  end
-  if not addRoom(room_id) then
-    return nil, "Mudlet could not create a room for source vnum " .. tostring(room.vnum) .. "."
-  end
+  if type(room_id) ~= "number" or room_id &lt; 0 or not addRoom(room_id) then return nil, "Mudlet could not create a room for source vnum " .. tostring(room.vnum) .. "." end
   local area_id = tonumber(area_ids[room.area_uid])
-  if not area_id then
-    return nil, "The source room area is unavailable for vnum " .. tostring(room.vnum) .. "."
-  end
+  if not area_id then return nil, "The source room area is unavailable for vnum " .. tostring(room.vnum) .. "." end
   setRoomIDbyHash(room_id, aardwolf_map.state.hash_for_vnum(room.vnum))
   setRoomName(room_id, room.name)
   setRoomArea(room_id, area_id)
@@ -354,9 +605,7 @@ local function create_source_room(room, area_ids)
   aardwolf_map.state.write_room_data(room_id, "noportal", room.noportal)
   aardwolf_map.state.write_room_data(room_id, "ignore_exits_mismatch", room.ignore_exits_mismatch)
   local source_coordinates = aardwolf_map.state.encode_value(room.source_coordinates)
-  if source_coordinates then
-    aardwolf_map.state.write_room_data(room_id, "source_coordinates", source_coordinates)
-  end
+  if source_coordinates then aardwolf_map.state.write_room_data(room_id, "source_coordinates", source_coordinates) end
   setRoomUserData(room_id, aardwolf_map.state.owner_key(), aardwolf_map.state.owner_value())
   return room_id, nil
 end
@@ -366,179 +615,156 @@ local function import_room(room)
   local room_id = aardwolf_map.state.room_id_for_vnum(room.vnum)
   if room_id then
     if aardwolf_map.state.is_owned_room(room_id) then
-      local environment_id = custom_environment_id(room.terrain_uid)
-      if not environment_id then
-        current.error_message = "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "."
-        return nil
-      end
+      local environment_id = environment_id_for(room.terrain_uid)
+      if not environment_id then current.error_message = "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "."; return end
       setRoomEnv(room_id, environment_id)
       current.reused_rooms = current.reused_rooms + 1
     else
       current.skipped_rooms = current.skipped_rooms + 1
       current.blocked_vnums[tostring(room.vnum)] = true
     end
-    return nil
+    return
   end
   local created_id, error_message = create_source_room(room, current.area_ids)
-  if not created_id then
-    current.error_message = error_message
-    return nil
-  end
+  if not created_id then current.error_message = error_message; return end
   current.created_rooms = current.created_rooms + 1
-  return created_id
+  current.owned_count = current.owned_count + 1
 end
 
 local function import_exit(exit_record)
   local current = status()
-  if current.blocked_vnums[tostring(exit_record.from_vnum)] or current.blocked_vnums[tostring(exit_record.to_vnum)] then
-    current.skipped_exits = current.skipped_exits + 1
-    return
-  end
+  if current.blocked_vnums[tostring(exit_record.from_vnum)] or current.blocked_vnums[tostring(exit_record.to_vnum)] then current.skipped_exits = current.skipped_exits + 1; return end
   local from_id = aardwolf_map.state.room_id_for_vnum(exit_record.from_vnum)
   local to_id = aardwolf_map.state.room_id_for_vnum(exit_record.to_vnum)
-  if not from_id or not to_id or not aardwolf_map.state.is_owned_room(from_id) or not aardwolf_map.state.is_owned_room(to_id) then
-    current.skipped_exits = current.skipped_exits + 1
-    return
-  end
+  if not from_id or not to_id or not aardwolf_map.state.is_owned_room(from_id) or not aardwolf_map.state.is_owned_room(to_id) then current.skipped_exits = current.skipped_exits + 1; return end
   setExit(from_id, to_id, exit_record.direction)
   current.imported_exits = current.imported_exits + 1
 end
 
+local function stop_import(phase, message)
+  pcall(deleteNamedTimer, timer_namespace, timer_name)
+  aardwolf_map.settings.clear_import_active()
+  clear_import_data()
+  set_phase(phase, phase == "error" and message or nil)
+  if message then aardwolf_map.ui.message(message) end
+end
+
 local function finish_import()
-  deleteNamedTimer(timer_namespace, timer_name)
   local current = status()
+  pcall(deleteNamedTimer, timer_namespace, timer_name)
   aardwolf_map.settings.mark_completed(current.data.source.sha256)
+  aardwolf_map.settings.clear_import_active()
   current.phase = "complete"
-  current.data = nil
-  if type(updateMap) == "function" then
-    pcall(updateMap)
-  end
-  -- The current GMCP room may have arrived before any imported room existed.
-  -- Resolve it again now so the singleton native mapper has a valid center.
+  current.error_message = nil
+  current.source_hash = current.data.source.sha256
+  clear_import_data()
+  if type(updateMap) == "function" then pcall(updateMap) end
   aardwolf_map.protocol.on_room_info()
-  if type(raiseEvent) == "function" then
-    pcall(raiseEvent, import_finished_event)
-  end
+  emit_status_changed()
+  if type(raiseEvent) == "function" then pcall(raiseEvent, import_finished_event, aardwolf_map.integration.snapshot()) end
   aardwolf_map.ui.import_finished(current)
 end
 
 function aardwolf_map.lifecycle.process_import()
   local current = status()
-  if current.cancel_requested then
-    deleteNamedTimer(timer_namespace, timer_name)
-    set_idle("cancelled")
-    aardwolf_map.ui.message("Import cancelled. Existing package-owned rooms remain; run aard map import to resume safely.")
-    return
-  end
-  if current.error_message then
-    deleteNamedTimer(timer_namespace, timer_name)
-    local error_message = current.error_message
-    set_idle("error")
-    aardwolf_map.ui.message(error_message)
-    return
-  end
+  if current.cancel_requested then stop_import("cancelled", "Import cancelled. Existing package-owned rooms remain; run aard map import to resume safely."); return end
+  if current.error_message then stop_import("error", current.error_message); return end
   if current.phase == "rooms" then
     local last_room = math.min(current.room_index + batch_size, current.room_total)
     while current.room_index &lt; last_room do
       current.room_index = current.room_index + 1
       import_room(current.data.rooms[current.room_index])
-      if current.error_message then
-        return
-      end
+      if current.error_message then break end
     end
-    if current.room_index == current.room_total then
-      if current.write_exits then
-        current.phase = "exits"
-      else
-        finish_import()
-      end
+    if not current.error_message and current.room_index == current.room_total then
+      if current.write_exits then current.phase = "exits" else finish_import(); return end
     end
+    emit_status_changed()
     return
   end
   if current.phase == "exits" then
     local last_exit = math.min(current.exit_index + batch_size, current.exit_total)
-    while current.exit_index &lt; last_exit do
-      current.exit_index = current.exit_index + 1
-      import_exit(current.data.exits[current.exit_index])
-    end
-    if current.exit_index == current.exit_total then
-      finish_import()
-    end
+    while current.exit_index &lt; last_exit do current.exit_index = current.exit_index + 1; import_exit(current.data.exits[current.exit_index]) end
+    if current.exit_index == current.exit_total then finish_import(); return end
+    emit_status_changed()
   end
 end
 
 function aardwolf_map.lifecycle.begin_import()
   local current = status()
-  if current.phase == "rooms" or current.phase == "exits" then
-    aardwolf_map.ui.message("An import is already running. Use aard map import cancel before starting another one.")
-    return
-  end
+  if current.phase == "rooms" or current.phase == "exits" then aardwolf_map.ui.message("An import is already running. Use aard map import cancel before starting another one."); return end
+  pcall(deleteNamedTimer, timer_namespace, timer_name)
   local data, error_message = aardwolf_map.state.read_resource()
-  if not data then
-    aardwolf_map.ui.message(error_message)
-    return
-  end
+  if not data then stop_import("error", error_message); return end
   local registered_environments, environment_error = ensure_environments(data)
-  if not registered_environments then
-    aardwolf_map.ui.message(environment_error)
-    return
-  end
+  if not registered_environments then stop_import("error", environment_error); return end
   local area_ids, area_error = ensure_areas(data)
-  if not area_ids then
-    aardwolf_map.ui.message(area_error)
-    return
-  end
+  if not area_ids then stop_import("error", area_error); return end
   aardwolf_map.settings.record_source_metadata(data)
-  current.phase = "rooms"
-  current.data = data
-  current.area_ids = area_ids
-  current.room_index = 0
-  current.exit_index = 0
-  current.room_total = #data.rooms
-  current.exit_total = #data.exits
-  current.created_rooms = 0
+  aardwolf_map.settings.mark_import_active(data.source.sha256)
+  current.phase, current.data, current.source_hash, current.area_ids = "rooms", data, data.source.sha256, area_ids
+  current.room_index, current.exit_index, current.room_total, current.exit_total = 0, 0, #data.rooms, #data.exits
+  current.created_rooms, current.reused_rooms, current.skipped_rooms = 0, 0, 0
   current.registered_environments = registered_environments
-  current.reused_rooms = 0
-  current.skipped_rooms = 0
-  current.imported_exits = 0
-  current.skipped_exits = 0
-  current.blocked_vnums = {}
-  current.cancel_requested = false
-  current.error_message = nil
+  current.imported_exits, current.skipped_exits = 0, 0
+  current.blocked_vnums, current.cancel_requested, current.error_message = {}, false, nil
   current.write_exits = aardwolf_map.settings.completed_source_hash() ~= data.source.sha256
   registerNamedTimer(timer_namespace, timer_name, 0.01, aardwolf_map.lifecycle.process_import, true)
+  emit_status_changed()
   aardwolf_map.ui.import_started(current.room_total, current.exit_total)
 end
 
 function aardwolf_map.lifecycle.cancel_import()
   local current = status()
-  if current.phase ~= "rooms" and current.phase ~= "exits" then
-    aardwolf_map.ui.message("No map import is running.")
-    return
-  end
+  if current.phase ~= "rooms" and current.phase ~= "exits" then aardwolf_map.ui.message("No map import is running."); return end
   current.cancel_requested = true
 end
 
-function aardwolf_map.lifecycle.show_status()
-  aardwolf_map.ui.status(status())
+function aardwolf_map.lifecycle.show_status() aardwolf_map.ui.status(status()) end
+
+function aardwolf_map.lifecycle.record_room_resolution(vnum, room_id)
+  local current = status()
+  if current.current_vnum == vnum and current.resolved_room_id == room_id then return end
+  current.current_vnum, current.resolved_room_id = vnum, room_id
+  emit_status_changed()
 end
+
+function aardwolf_map.lifecycle.on_uninstall(_, package_name)
+  if package_name == nil or tostring(package_name) == "aardwolf-map" then aardwolf_map.lifecycle.shutdown("uninstalled") end
+end
+
+function aardwolf_map.lifecycle.on_exit() aardwolf_map.lifecycle.shutdown("exited") end
 
 function aardwolf_map.lifecycle.initialize()
-  set_idle("idle")
-  registerNamedEventHandler(timer_namespace, event_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
-  -- Custom environment definitions are display state and may not be available
-  -- yet when a profile or replacement package loads. Re-register the bundled
-  -- palette without creating rooms or sending game commands.
+  local was_importing = status().phase == "rooms" or status().phase == "exits" or aardwolf_map.settings.active_import_hash() ~= nil
+  release_runtime_objects()
+  local current = status()
+  current.phase = was_importing and "interrupted" or "idle"
+  current.data, current.area_ids = nil, nil
+  current.room_index, current.exit_index, current.room_total, current.exit_total = 0, 0, 0, 0
+  current.cancel_requested, current.error_message, current.palette_error = false, nil, nil
+  current.palette = aardwolf_map.settings.palette()
+  current.owned_count = aardwolf_map.state.owned_room_count()
+  current.source_hash = aardwolf_map.settings.active_import_hash() or aardwolf_map.settings.completed_source_hash()
+  registerNamedEventHandler(timer_namespace, room_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
+  registerNamedEventHandler(timer_namespace, uninstall_handler_name, "sysUninstallPackage", aardwolf_map.lifecycle.on_uninstall)
+  registerNamedEventHandler(timer_namespace, exit_handler_name, "sysExitEvent", aardwolf_map.lifecycle.on_exit)
   aardwolf_map.lifecycle.refresh_environment_colors()
-  -- Packages can be installed or reloaded after Mudlet has already populated
-  -- gmcp.room.info, so do not wait for the player to move before centering.
   aardwolf_map.protocol.on_room_info()
+  emit_status_changed()
 end
 
-function aardwolf_map.lifecycle.shutdown()
-  deleteNamedTimer(timer_namespace, timer_name)
-  deleteNamedEventHandler(timer_namespace, event_handler_name)
-  set_idle("unloaded")
+function aardwolf_map.lifecycle.shutdown(phase)
+  local was_importing = status().phase == "rooms" or status().phase == "exits"
+  release_runtime_objects()
+  clear_import_data()
+  if was_importing then
+    status().phase = "interrupted"
+  else
+    status().phase = phase or "unloaded"
+    aardwolf_map.settings.clear_import_active()
+  end
+  emit_status_changed()
 end
 
 aardwolf_map.lifecycle.initialize()
@@ -546,6 +772,6 @@ aardwolf_map.lifecycle.initialize()
 aardwolf_map.help = aardwolf_map.help or {}
 
 function aardwolf_map.help.summary()
-  return "Commands: aard map import, aard map import cancel, and aard map status."
+  return "Commands: aard map import, aard map import cancel, aard map status, and aard map palette (source|obsidian|high-contrast). Install the .mpackage with Package Manager, then use aard map import; the Mapper loadMap path cannot read Aardwolf.db or the packaged JSON."
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

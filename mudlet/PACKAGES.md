@@ -22,12 +22,12 @@ it for inspection, but cannot provide the map resource on its own.
 | `aardwolf-tick` | 30-second numeric tick prediction | `Aardwolf_Tick_Timer` |
 | `aardwolf-console` | Safe console controls | Command-tag, color-copy, VI, lockout, prompt, repaint, substitution |
 | `aardwolf-communication` | Channel status | Channel, chat echo, translation |
-| `aardwolf-character` | Character/group status | Group monitor, health bars, stat monitor |
+| `aardwolf-character` | Quiet, on-demand character and group summaries; `groupon`/`groupoff` control update notifications | Group monitor, health bars, stat monitor |
 | `aardwolf-help` | Accessible help | MUSHclient help, Aardwolf help, plugin list/summary |
-| `aardwolf-interface` | Responsive sidebar, two-row bottom gauge HUD, diminishing tick gauge, mapper, and collapsed character-details column | Theme, layout, miniwindow order, split scrollback, bounded tagged character data |
+| `aardwolf-interface` | Obsidian Jewel adaptive command deck with room context, Map/Character/Group/Inventory tabs, optional inspector, balanced HUD, accessible summaries, and confirmed custom actions | Theme, responsive layout, structured GMCP, mapper integration, strict tagged details |
 | `aardwolf-profile-data` | Explicit local data import/export | Backup, config, serials, connection, notes, update checker, requirements |
 | `aardwolf-accessibility` | Mudlet-native text-to-speech | SAPI, universal TTS |
-| `aardwolf-map` | Safe native map import | Supersedes the safe mapper use case |
+| `aardwolf-map` | Safe native map import with collision-free environment colors, source/Obsidian/high-contrast palettes, resumable lifecycle, and integration status snapshots | Supersedes the safe mapper use case |
 
 All unportable, malformed, or uninspectable source behavior remains visible in
 `aardwolf-mushclient-collection/reports/retirements.md`; it is not silently

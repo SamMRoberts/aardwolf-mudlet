@@ -1,562 +1,280 @@
--- Run with a Lua 5.1-compatible interpreter when available. Mudlet APIs are
--- stubbed so dashboard behavior can be checked without connecting to a game.
-local test_source = debug.getinfo(1, "S").source:sub(2)
-local project_root = test_source:match("^(.*)/tests/")
-assert(project_root, "could not locate aardwolf-interface project root")
+-- Run with a Lua 5.1-compatible interpreter. Mudlet APIs are stubbed so the
+-- adaptive layout and trust boundaries can be tested without a game session.
+local source=debug.getinfo(1,"S").source:sub(2)
+local root=assert(source:match("^(.*)/tests/"))
+local width,height,right,bottom=1200,800,8,10
+local sent,gmcp_sent,events,timers,triggers,objects,created,deleted={},{},{},{},{},{},{},0
+local trigger_id=0
+function echo() end
+function cecho() end
+function getMudletHomeDir() return "/tmp/aardwolf-interface-test" end
+function getMainWindowSize() return width,height end
+function getBorderRight() return right end
+function setBorderRight(value) right=value end
+function getBorderBottom() return bottom end
+function setBorderBottom(value) bottom=value end
+function getConnectionInfo() return "aardmud.org",4000,true end
+function send(command,echoed) sent[#sent+1]={command=command,echoed=echoed} end
+function sendGMCP(command) gmcp_sent[#gmcp_sent+1]=command end
+function centerview(room) objects.centered=room end
+function deleteLine() deleted=deleted+1 end
+function tempTimer(_,callback) callback(); return 1 end
+function tempRegexTrigger(pattern,callback) trigger_id=trigger_id+1; triggers[trigger_id]={pattern=pattern,callback=callback}; return trigger_id end
+function killTrigger(id) triggers[id]=nil end
+function registerNamedEventHandler(user,name,event,callback) events[user..":"..name]={event=event,callback=callback} end
+function deleteNamedEventHandler(user,name) events[user..":"..name]=nil end
+function registerNamedTimer(user,name,delay,callback,repeating) timers[user..":"..name]={delay=delay,callback=callback,repeating=repeating} end
+function deleteNamedTimer(user,name) timers[user..":"..name]=nil end
+function killNamedTimer(user,name) timers[user..":"..name]=nil end
+local disabled_scripts={}
+function exists(name,kind) return name=="aardwolf_interface.main" and kind=="script" and 1 or 0 end
+function disableScript(name) disabled_scripts[name]=true end
 
-local right_border = 10
-local bottom_border = 12
-local messages = {}
-local events = {}
-local timers = {}
-local objects = {}
-local persisted_settings = nil
-local rooms = {}
-local show_upper_lower_levels = true
-local embedded_mapper_ready = false
-local main_window_height = 900
-local main_window_width = 1200
-local sent = {}
-local gmcp_sent = {}
-local triggers = {}
-local next_trigger = 1
-local deleted_lines = 0
-local fake_time = 1000
-
-os.time = function() return fake_time end
-
-local function runtime_key(user, name)
-  return user .. "::" .. name
-end
-
-function echo(text)
-  messages[#messages + 1] = text
-end
-
-function getMudletHomeDir()
-  return "/tmp/aardwolf-interface-test"
-end
-
-function getBorderRight()
-  return right_border
-end
-
-function setBorderRight(value)
-  right_border = value
-end
-
-function getBorderBottom()
-  return bottom_border
-end
-
-function setBorderBottom(value)
-  bottom_border = value
-end
-
-function getMainWindowSize()
-  return main_window_width, main_window_height
-end
-
-function getRooms()
-  return rooms
-end
-
-function getConfig(name)
-  assert(name == "showUpperLowerLevels")
-  return show_upper_lower_levels
-end
-
-function setConfig(name, value)
-  assert(name == "showUpperLowerLevels")
-  if not embedded_mapper_ready then
-    return nil, "mapper is not open"
+lfs={attributes=function() return "directory" end,mkdir=function() return true end}
+local saved
+yajl={to_string=function(value) saved=value; return "{}" end,to_value=function() return saved end}
+local real_open=io.open
+io.open=function(path,mode)
+  if path:find("aardwolf%-interface/settings%.lua") then
+    if mode=="r" then return nil end
+    return {write=function() end,close=function() end}
   end
-  show_upper_lower_levels = value
-  return true
+  return real_open(path,mode)
 end
+os.rename=function() return true end
 
-function registerNamedEventHandler(user, name, event, handler)
-  events[runtime_key(user, name)] = {event = event, handler = handler}
-  return true
+local function object(kind,constraints,parent)
+  local result={kind=kind,name=constraints.name,parent=parent,hidden=false}
+  function result:move(x,y) self.x,self.y=x,y end
+  function result:resize(w,h) self.width,self.height=w,h end
+  function result:show() self.hidden=false end
+  function result:hide() self.hidden=true end
+  function result:delete() self.deleted=true end
+  function result:echo(text) self.text=text end
+  function result:setText(text) self.text=text end
+  function result:getText() return self.text or "" end
+  function result:setStyleSheet(style) self.style=style end
+  function result:setClickCallback(callback) self.callback=callback end
+  function result:setToolTip(text) self.tooltip=text end
+  function result:setCursor() end
+  function result:setFocus() end
+  objects[result.name]=result
+  created[result.name]=(created[result.name] or 0)+1
+  return result
 end
-
-function deleteNamedEventHandler(user, name)
-  events[runtime_key(user, name)] = nil
-  return true
-end
-
-function registerNamedTimer(user, name, delay, handler, one_shot)
-  timers[runtime_key(user, name)] = {delay = delay, handler = handler, one_shot = one_shot}
-  return true
-end
-
-function deleteNamedTimer(user, name)
-  timers[runtime_key(user, name)] = nil
-  return true
-end
-
-function send(command, echo_command)
-  sent[#sent + 1] = {command = command, echo_command = echo_command}
-end
-
-function sendGMCP(payload)
-  gmcp_sent[#gmcp_sent + 1] = payload
-end
-
-function tempRegexTrigger(pattern, callback)
-  local id = next_trigger
-  next_trigger = next_trigger + 1
-  triggers[id] = {pattern = pattern, callback = callback}
-  return id
-end
-
-function killTrigger(id)
-  triggers[id] = nil
-end
-
-function deleteLine()
-  deleted_lines = deleted_lines + 1
-end
-
-local function fire_timer(name)
-  local key = runtime_key("aardwolf_interface", name)
-  local timer = assert(timers[key], "missing timer " .. name)
-  if timer.one_shot then
-    timers[key] = nil
-  end
-  timer.handler()
-end
-
-lfs = {
-  attributes = function() return "directory" end,
-  mkdir = function() return true end,
+local function class(kind) return {new=function(_,constraints,parent) return object(kind,constraints,parent) end} end
+Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline"),ScrollBox=class("scrollbox")}
+gmcp={
+  char={
+    base={clan="",class="Ranger",classes="4",level=3,name="Denzil",perlevel=1000,pretitle="",pups=0,race="Triton",redos=0,remorts=1,subclass="Hunter",tier=0,totpups=0},
+    maxstats={maxcon=28,maxdex=18,maxhp=204,maxint=13,maxluck=16,maxmana=180,maxmoves=532,maxstr=18,maxwis=21},
+    stats={con=39,dex=22,dr=30,hr=35,int=15,luck=20,saves=0,str=21,wis=23},
+    status={align=-19,enemy="",hunger=100,level=3,pos="Standing",state=3,thirst=100,tnl=316},
+    vitals={hp=204,mana=180,moves=532},
+    worth={bank=2683920,gold=50000,pracs=15,qp=64,qpearned=64,tp=0,trains=0},
+  },
+  comm={quest={action="status",status="ready"},repop={zone="academy"},tick={ctime=1786807350,time="11:22:30 - Saturday 15 Aug, 2026"}},
+  room={info={coord={cont=0,id=0,x=30,y=20},details="",exits={e=35212,n=35213,s=35382,w=35211},mapterrain="",name="Hallway in the Academy",num=35383,outside=0,racebonus=0,terrain="inside",zone="academy"}},
+  group={},
 }
+aardwolf_map={commands={start_import=function() objects.map_imports=(objects.map_imports or 0)+1 end}}
 
-local real_open = io.open
-io.open = function(path, mode)
-  if path:match("aardwolf%-interface/settings%.lua$") then
-    if mode == "r" then
-      if not persisted_settings then
-        return nil
-      end
-      return {
-        read = function() return "settings" end,
-        close = function() end,
-      }
-    end
-    if mode == "w" then
-      return {
-        write = function(_, contents) assert(contents == "settings") end,
-        close = function() end,
-      }
-    end
-  end
-  return real_open(path, mode)
-end
-
-yajl = {
-  to_string = function(value)
-    persisted_settings = {
-      schema_version = value.schema_version,
-      visible = value.visible,
-      details_visible = value.details_visible,
-      theme = value.theme,
-      border_claim = value.border_claim and {
-        base = value.border_claim.base,
-        width = value.border_claim.width,
-        applied = value.border_claim.applied,
-      } or nil,
-      bottom_border_claim = value.bottom_border_claim and {
-        base = value.bottom_border_claim.base,
-        height = value.bottom_border_claim.height,
-        applied = value.bottom_border_claim.applied,
-      } or nil,
-    }
-    return "settings"
-  end,
-  to_value = function()
-    return persisted_settings
-  end,
+-- Simulate an in-place upgrade where Mudlet retained the pre-1.5 monolithic
+-- script, its Geyser roots, exact border ownership, and named runtime objects.
+right,bottom=448,74
+local legacy_root=object("container",{name="legacy-interface-root"})
+local legacy_bottom=object("container",{name="legacy-interface-bottom"})
+aardwolf_interface={
+  settings={data={schema_version=4,visible=true,theme="obsidian",density="comfortable",text_scale=100,workspace_width=440,active_tab="map"}},
+  ui={root=legacy_root,bottom_root=legacy_bottom,base_right=8,base_bottom=10},
+  lifecycle={},
 }
+events["aardwolf_interface:aardwolf-interface::event::resize"]={event="sysWindowResizeEvent"}
+timers["aardwolf_interface:aardwolf-interface::timer::start"]={delay=0.05}
 
-local function new_object(kind, constraints, parent)
-  local object = {
-    kind = kind,
-    name = constraints.name,
-    constraints = constraints,
-    parent = parent,
-    hidden = false,
-  }
-  function object:move(x, y) self.x, self.y = x, y end
-  function object:resize(width, height) self.width, self.height = width, height end
-  function object:show() self.hidden = false end
-  function object:hide() self.hidden = true end
-  function object:delete() self.deleted = true end
-  function object:echo(text) self.message = text end
-  function object:setFontSize(size) self.font_size = size end
-  function object:setStyleSheet(...) self.styles = {...} end
-  function object:setValue(current, maximum, text)
-    self.current, self.maximum, self.message = current, maximum, text
-  end
-  function object:enableClickthrough() self.clickthrough = true end
-  function object:setClickCallback(callback) self.click_callback = callback end
-  function object:setCursor(cursor) self.cursor = cursor end
-  objects[object.name] = object
-  return object
+local script_dir=root.."/src/scripts/aardwolf_interface/"
+for _,module in ipairs({"state","settings","details","actions","protocol","commands","ui","lifecycle","help"}) do dofile(script_dir.."aardwolf_interface_"..module..".lua") end
+
+-- Mudlet's fifth registerNamedTimer argument is `repeating`. The heartbeat is
+-- periodic, while render coalescing and capture timeouts must be one-shot.
+assert(timers["aardwolf-interface:aardwolf-interface::heartbeat"].repeating==true)
+assert(aardwolf_interface.details.runtime.trigger_id==nil)
+aardwolf_interface.ui.request_render()
+assert(timers["aardwolf_interface:aardwolf-interface::timer::render"].repeating==false)
+timers["aardwolf_interface:aardwolf-interface::timer::render"].callback()
+
+assert(legacy_root.deleted and legacy_bottom.deleted)
+assert(disabled_scripts["aardwolf_interface.main"]==true)
+assert(events["aardwolf_interface:aardwolf-interface::event::resize"]==nil)
+assert(timers["aardwolf_interface:aardwolf-interface::timer::start"]==nil)
+assert(right==448 and bottom==74)
+assert(width-right>=640)
+local embedded_mapper=objects["aardwolf-interface::ui::mapper"]
+assert(embedded_mapper.parent==objects["aardwolf-interface::ui::workspace"])
+assert(embedded_mapper.x>0)
+local mapper_x,mapper_y,mapper_width,mapper_height=embedded_mapper.x,embedded_mapper.y,embedded_mapper.width,embedded_mapper.height
+for _,tab in ipairs({"overview","character","group","inventory"}) do
+  aardwolf_interface.settings.data.active_tab=tab; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden,"mapper hidden on "..tab)
+  assert(embedded_mapper.x==mapper_x and embedded_mapper.y==mapper_y and embedded_mapper.width==mapper_width and embedded_mapper.height==mapper_height,"mapper geometry changed on "..tab)
 end
+aardwolf_interface.settings.data.palette_open=true; aardwolf_interface.ui.render(); assert(embedded_mapper.hidden)
+aardwolf_interface.settings.data.palette_open=false; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden)
+local data_dock=objects["aardwolf-interface::ui::data-dock"]
+assert(data_dock.parent==aardwolf_interface.ui.root and data_dock.x>0 and data_dock.y>embedded_mapper.y)
+assert(embedded_mapper.x>=0 and embedded_mapper.x+embedded_mapper.width<=aardwolf_interface.ui.layout.workspace)
 
-local function geyser_class(kind)
-  return {
-    new = function(_, constraints, parent)
-      if kind == "mapper" then
-        embedded_mapper_ready = true
-      end
-      return new_object(kind, constraints, parent)
-    end,
-  }
-end
+local migrated=aardwolf_interface.settings.validate({schema_version=4,visible=false,active_tab="map",inspector_pinned=true,inspector_tab="inventory",theme="dark",workspace_width=999})
+assert(migrated.schema_version==5 and migrated.theme=="obsidian" and migrated.workspace_width==520)
+assert(migrated.inspector_pinned==true and migrated.active_tab=="inventory" and migrated.inspector_tab==nil)
+local migrated_map=aardwolf_interface.settings.validate({schema_version=4,active_tab="map",inspector_pinned=false,inspector_tab="inventory"})
+assert(migrated_map.active_tab=="overview" and not migrated_map.inspector_pinned)
+local legacy_details=aardwolf_interface.settings.validate({schema_version=3,details_visible=true,active_tab="map"})
+assert(legacy_details.schema_version==5 and legacy_details.inspector_pinned==true and legacy_details.active_tab=="inventory")
+aardwolf_interface.commands.set_tab("map"); assert(aardwolf_interface.settings.data.active_tab=="overview" and not embedded_mapper.hidden)
+aardwolf_interface.commands.toggle_pin("map"); assert(aardwolf_interface.settings.data.inspector_pinned and aardwolf_interface.settings.data.active_tab=="overview")
+aardwolf_interface.commands.toggle_pin("off"); assert(not aardwolf_interface.settings.data.inspector_pinned)
+aardwolf_interface.commands.details_show(); assert(aardwolf_interface.settings.data.active_tab=="inventory" and aardwolf_interface.settings.data.inspector_pinned)
+aardwolf_interface.commands.details_hide(); assert(aardwolf_interface.settings.data.active_tab=="overview" and not aardwolf_interface.settings.data.inspector_pinned and aardwolf_interface.details.runtime.trigger_id==nil)
+for _,theme in ipairs({"obsidian","high-contrast"}) do for _,density in ipairs({"compact","comfortable"}) do for _,scale in ipairs({90,100,115,130}) do aardwolf_interface.settings.data.theme=theme; aardwolf_interface.settings.data.density=density; aardwolf_interface.settings.data.text_scale=scale; aardwolf_interface.ui.reflow() end end end
 
-Geyser = {
-  Container = geyser_class("container"),
-  Label = geyser_class("label"),
-  Gauge = geyser_class("gauge"),
-  Mapper = geyser_class("mapper"),
-  ScrollBox = geyser_class("scrollbox"),
+-- Wide layouts may pin the data dock; narrower ones stack it while preserving
+-- pin intent and the console, then collapse to the restore rail if necessary.
+-- finally collapse to the 44-pixel restore rail.
+width=2000; aardwolf_interface.settings.data.inspector_pinned=true; aardwolf_interface.ui.reflow()
+assert(aardwolf_interface.ui.layout.dock>=360 and data_dock.x>aardwolf_interface.ui.layout.workspace and data_dock.y==0)
+local pinned_mapper_width=embedded_mapper.width
+width=1200; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.dock==0 and aardwolf_interface.settings.data.inspector_pinned==true)
+assert(data_dock.x>0 and data_dock.y>embedded_mapper.y and embedded_mapper.width==pinned_mapper_width)
+height=360; aardwolf_interface.ui.reflow(); assert(embedded_mapper.height>0 and data_dock.height>0 and data_dock.y>embedded_mapper.y)
+assert(created["aardwolf-interface::ui::mapper"]==1 and created["aardwolf-interface::ui::data-dock"]==1 and created["aardwolf-interface::ui::overview-card"]==1)
+height=520; aardwolf_interface.ui.reflow(); assert(data_dock.height>=180)
+height=800
+width=800; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.collapsed and aardwolf_interface.ui.layout.workspace==44); local two_row_height=aardwolf_interface.ui.bottom_root.height
+width=500; height=360; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.suspended and aardwolf_interface.ui.layout.workspace==0 and right==8); assert(aardwolf_interface.ui.bottom_root.height>two_row_height)
+width=1200; aardwolf_interface.settings.data.collapsed_by_user=false; aardwolf_interface.ui.reflow()
+local repaired_right,repaired_bottom=right,bottom
+aardwolf_interface.commands.repair()
+assert(right==repaired_right and bottom==repaired_bottom)
+
+assert(aardwolf_interface.util.display("Denzil")=="Denzil")
+assert(aardwolf_interface.util.display("204 / 204")=="204 / 204")
+assert(aardwolf_interface.util.display(0)=="0" and aardwolf_interface.util.display(-19)=="-19")
+assert(aardwolf_interface.util.display("")=="--")
+aardwolf_interface.protocol.base(); aardwolf_interface.protocol.vitals(); aardwolf_interface.protocol.maxstats(); aardwolf_interface.protocol.status(); aardwolf_interface.protocol.stats(); aardwolf_interface.protocol.worth(); aardwolf_interface.protocol.room(); aardwolf_interface.protocol.group(); aardwolf_interface.protocol.quest(); aardwolf_interface.protocol.tick()
+local expected_sections={
+  base={clan="",class="Ranger",classes=4,level=3,name="Denzil",perlevel=1000,pretitle="",pups=0,race="Triton",redos=0,remorts=1,subclass="Hunter",tier=0,totpups=0},
+  maxstats={maxcon=28,maxdex=18,maxhp=204,maxint=13,maxluck=16,maxmana=180,maxmoves=532,maxstr=18,maxwis=21},
+  stats={con=39,dex=22,dr=30,hr=35,int=15,luck=20,saves=0,str=21,wis=23},
+  status={align=-19,enemy="",hunger=100,level=3,pos="Standing",state=3,thirst=100,tnl=316},
+  vitals={hp=204,mana=180,moves=532},
+  worth={bank=2683920,gold=50000,pracs=15,qp=64,qpearned=64,tp=0,trains=0},
+  quest={action="status",status="ready"},
 }
-
-map = {
-  configs = {map_window = {shown = true}},
-  restored = false,
-  showMap = function(shown)
-    map.configs.map_window.shown = shown
-    map.restored = shown == true
-  end,
-}
-
-gmcp = {char = {}, room = {}, comm = {}, config = {}}
-
-dofile(project_root .. "/src/scripts/aardwolf_interface/aardwolf_interface_main.lua")
-
-local function deliver_output(text)
-  line = text
-  local before = deleted_lines
-  aardwolf_interface.details.on_line()
-  return deleted_lines == before + 1
+for section,fields in pairs(expected_sections) do
+  local normalized=aardwolf_interface.state.value(section)
+  for field,expected in pairs(fields) do assert(normalized[field]==expected,section.."."..field.." was not normalized") end
 end
-
-local migrated = aardwolf_interface.settings.validate({schema_version = 1, visible = false, theme = "high-contrast"})
-assert(migrated.schema_version == 3 and migrated.visible == false and migrated.theme == "high-contrast")
-assert(migrated.details_visible == false, "schema migration must default details to collapsed")
-assert(migrated.bottom_border_claim == nil, "legacy settings must not invent a bottom-border claim")
-local migrated_v2 = aardwolf_interface.settings.validate({
-  schema_version = 2, visible = true, details_visible = true, theme = "dark",
-  border_claim = {base = 10, width = 360, applied = 370},
-})
-assert(migrated_v2.schema_version == 3 and migrated_v2.details_visible == true)
-assert(migrated_v2.border_claim and migrated_v2.border_claim.applied == 370)
-assert(migrated_v2.bottom_border_claim == nil)
-
-local START_TIMER = "aardwolf-interface::timer::start"
-local RENDER_TIMER = "aardwolf-interface::timer::render"
-local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
-
--- First installation is visible, reserves only its own width, and owns mapper display.
-fire_timer(START_TIMER)
-assert(aardwolf_interface.ui.root and not aardwolf_interface.ui.root.hidden)
-assert(right_border == 370, "expected 10px baseline plus 360px dashboard")
-assert(bottom_border == 76, "expected 12px baseline plus 64px bottom HUD")
-assert(aardwolf_interface.ui.bottom_root and not aardwolf_interface.ui.bottom_root.hidden)
-assert(aardwolf_interface.ui.bottom_root.width == 830, "bottom HUD must stop at the sidebar edge")
-assert(aardwolf_interface.ui.bottom_root.y == -76)
-assert(aardwolf_interface.state.mapper_claimed == true)
-assert(aardwolf_interface.state.generic_mapper_was_shown == true)
-assert(show_upper_lower_levels == false, "adjacent floors should be hidden while the sidebar owns the mapper")
-assert(aardwolf_interface.state.upper_lower_levels_claimed == true)
-assert(objects["aardwolf-interface::ui::header"].font_size == 11)
-assert(objects["aardwolf-interface::ui::stats"].font_size == 10)
-assert(objects["aardwolf-interface::ui::details-scroll"].kind == "scrollbox")
-assert(objects["aardwolf-interface::ui::details"].hidden == true, "details must start collapsed")
-assert(objects["aardwolf-interface::ui::hp"].parent == aardwolf_interface.ui.bottom_root)
-assert(objects["aardwolf-interface::ui::enemy"].parent == aardwolf_interface.ui.bottom_root)
-assert(objects["aardwolf-interface::ui::hunger"].y > objects["aardwolf-interface::ui::hp"].y)
-assert(objects["aardwolf-interface::ui::hp"].width == objects["aardwolf-interface::ui::enemy"].width)
-assert(objects["aardwolf-interface::ui::hunger"].width == objects["aardwolf-interface::ui::thirst"].width)
-assert(type(objects["aardwolf-interface::ui::details-toggle"].click_callback) == "function")
-assert(type(objects["aardwolf-interface::ui::details-refresh"].click_callback) == "function")
-assert(persisted_settings.details_visible == false)
-assert(#sent == 0 and #gmcp_sent == 0, "collapsed details sent automatic traffic")
-main_window_width = 800
-assert(aardwolf_interface.ui.details_width() == 360)
-main_window_width = 3000
-assert(aardwolf_interface.ui.details_width() == 460)
-main_window_width = 1200
-aardwolf_interface.ui.reflow()
-
--- Narrow windows retain two bounded rows and never extend under the sidebar.
-main_window_width = 500
-aardwolf_interface.ui.reflow()
-assert(aardwolf_interface.ui.bottom_root.width == 150)
-assert(objects["aardwolf-interface::ui::enemy"].x + objects["aardwolf-interface::ui::enemy"].width <= 144)
-assert(objects["aardwolf-interface::ui::thirst"].x + objects["aardwolf-interface::ui::thirst"].width <= 144)
-main_window_width = 1200
-aardwolf_interface.ui.reflow()
-
--- Valid and malformed GMCP are normalized, escaped, bounded, and coalesced.
-gmcp.char.base = {name = "Tester", perlevel = 1000}
-gmcp.char.vitals = {hp = "75", mana = 60, moves = "bad"}
-gmcp.char.maxstats = {maxhp = 100, maxmana = 80, maxmoves = 90}
-gmcp.char.status = {tnl = 250, level = 10, enemy = "<dragon>", enemypct = 140, hunger = 72, thirst = 48, state = 3, pos = "Standing"}
-gmcp.char.stats = {str = 12, int = 13, wis = 14, dex = 15, con = 16, luck = 17, hr = 8, dr = 9}
-gmcp.char.worth = {qp = 20, tp = 3, gold = 400, trains = 2, pracs = 7}
-gmcp.room.info = {num = "123", name = "A <Room>", area = "Test & Place"}
-gmcp.group = {members = {}}
-for index = 1, 15 do
-  gmcp.group.members[index] = {name = "Member" .. index, info = {lvl = index, hp = index, mhp = 20}}
+assert(aardwolf_interface.state.envelope("room").status=="current")
+assert(aardwolf_interface.state.value("room").exits.n==35213 and aardwolf_interface.state.value("room").x==30)
+assert(aardwolf_interface.state.value("room").outside==0 and aardwolf_interface.state.value("room").racebonus==0)
+assert(aardwolf_interface.state.value("base").classes==4 and aardwolf_interface.state.value("base").tier==0)
+assert(aardwolf_interface.state.value("stats").saves==0 and aardwolf_interface.state.value("status").align==-19)
+assert(aardwolf_interface.state.value("worth").bank==2683920 and aardwolf_interface.state.value("worth").tp==0)
+assert(aardwolf_interface.state.value("quest").status=="ready" and aardwolf_interface.state.value("quest").action=="status")
+assert(aardwolf_interface.state.value("tick").ctime==1786807350 and aardwolf_interface.state.value("tick").time:find("Saturday",1,true))
+aardwolf_interface.ui.render()
+local character_text=objects["aardwolf-interface::ui::character-card"].text
+for _,expected in ipairs({"Denzil","Ranger","Hunter","Triton","21 / 18","39 / 28","204 / 204","Standing","Active","-19","316","2683920","50000","QP earned","ready","status","None"}) do
+  assert(character_text:find(expected,1,true),"missing rendered character value: "..expected)
 end
-aardwolf_interface.protocol.on_char_base()
-aardwolf_interface.protocol.on_char_vitals()
-aardwolf_interface.protocol.on_char_maxstats()
-aardwolf_interface.protocol.on_char_status()
-aardwolf_interface.protocol.on_char_stats()
-aardwolf_interface.protocol.on_char_worth()
-aardwolf_interface.protocol.on_room_info()
-aardwolf_interface.protocol.on_group()
-aardwolf_interface.protocol.on_tick()
-assert(timers[runtime_key("aardwolf_interface", RENDER_TIMER)], "updates were not coalesced")
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::hp"].current == 75)
-assert(objects["aardwolf-interface::ui::moves"].current == 0)
-assert(objects["aardwolf-interface::ui::enemy"].current == 100)
-assert(objects["aardwolf-interface::ui::hunger"].current == 72 and objects["aardwolf-interface::ui::hunger"].maximum == 100)
-assert(objects["aardwolf-interface::ui::hunger"].message == "Hunger  72%")
-assert(objects["aardwolf-interface::ui::thirst"].current == 48 and objects["aardwolf-interface::ui::thirst"].message == "Thirst  48%")
-assert(objects["aardwolf-interface::ui::room"].message:find("&lt;Room&gt;", 1, true))
-assert(objects["aardwolf-interface::ui::room"].message:find("<br>", 1, true), "room metadata is not split into readable rows")
-assert(objects["aardwolf-interface::ui::tick"].kind == "gauge")
-assert(objects["aardwolf-interface::ui::tick"].current == 30)
-assert(objects["aardwolf-interface::ui::tick"].maximum == 30)
-assert(objects["aardwolf-interface::ui::tick"].message == "30")
-assert(timers[runtime_key("aardwolf_interface", TICK_TIMER)], "tick countdown timer was not registered")
-assert(objects["aardwolf-interface::ui::stats"].message:find("<table", 1, true), "stats are not rendered as a grid")
-assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Hitroll</b>", 1, true))
-assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Practices</b>", 1, true))
-assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Position</b> Standing", 1, true))
-assert(objects["aardwolf-interface::ui::stats"].message:find("<b>State</b> Active", 1, true))
-assert(objects["aardwolf-interface::ui::condition"] == nil, "dedicated Condition pane still exists")
-assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true), "group is not rendered as a grid")
-assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
-assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
-assert(aardwolf_interface.state.snapshot().tick.last_seen)
+aardwolf_interface.commands.set_tab("overview"); aardwolf_interface.ui.render()
+local overview_text=objects["aardwolf-interface::ui::overview-card"].text
+assert(objects["aardwolf-interface::ui::dock-header"].text:find("OVERVIEW",1,true) and objects["aardwolf-interface::ui::dock-header"].text:find("Updated",1,true))
+for _,expected in ipairs({"Progression","Denzil","Ranger / Hunter","316 / 1000","Quest","ready","Resources","50000 / 2683920","Conditions","Solo","Equipment and bags are not loaded"}) do
+  assert(overview_text:find(expected,1,true),"missing overview value: "..expected)
+end
+aardwolf_interface.state.record("worth",{qp=64},"partial"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Resources &middot; PARTIAL",1,true))
+aardwolf_interface.protocol.worth()
+aardwolf_interface.state.record("quest",{status="ready"},"stale"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Quest &middot; STALE",1,true))
+aardwolf_interface.protocol.quest()
+aardwolf_interface.state.record("group",{members={}},"unavailable"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Group GMCP unavailable",1,true))
+aardwolf_interface.protocol.group()
+aardwolf_interface.state.record("quest",{status="active",action="status",target="academy rat",timer=17},"current")
+aardwolf_interface.state.record("group",{members={{name="Denzil"},{name="Ally"}}},"current")
+aardwolf_interface.ui.render()
+local active_overview=objects["aardwolf-interface::ui::overview-card"].text
+for _,expected in ipairs({"active","academy rat","17","2 members"}) do assert(active_overview:find(expected,1,true),"missing active overview value: "..expected) end
+aardwolf_interface.protocol.quest(); aardwolf_interface.protocol.group()
 
--- Condition gauges and Character rows refresh from char.status GMCP without queries.
-local sent_before_condition_update = #sent
-local gmcp_sent_before_condition_update = #gmcp_sent
-gmcp.char.status = {tnl = 200, level = 10, hunger = 33, thirst = 22, state = 3, pos = "Resting"}
-aardwolf_interface.protocol.on_char_status()
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::hunger"].current == 33)
-assert(objects["aardwolf-interface::ui::thirst"].current == 22)
-assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Position</b> Resting", 1, true))
-assert(#sent == sent_before_condition_update and #gmcp_sent == gmcp_sent_before_condition_update, "GMCP condition update sent a refresh command")
-gmcp.char.status = {hunger = 133, thirst = "bad", state = 3, pos = "Standing"}
-aardwolf_interface.protocol.on_char_status()
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::hunger"].current == 100, "hunger was not clamped")
-assert(objects["aardwolf-interface::ui::thirst"].current == 0 and objects["aardwolf-interface::ui::thirst"].message == "Thirst  --")
+-- Custom actions are printable, bounded, persisted, and never sent before an
+-- explicit confirmation. Server-derived room text cannot enter send().
+assert(not aardwolf_interface.actions.add("Bad","look\nnorth","Custom"))
+assert(aardwolf_interface.actions.add("Who","who","Social"))
+local custom=aardwolf_interface.actions.custom()[1]
+assert(aardwolf_interface.actions.execute(custom.id))
+assert(#sent==0 and aardwolf_interface.actions.pending().command=="who")
+assert(aardwolf_interface.actions.confirm() and sent[1].command=="who")
+assert(aardwolf_interface.actions.execute("map-import") and objects.map_imports==1 and #sent==1)
+gmcp.room.info.name="north;quit"
+aardwolf_interface.protocol.room(); assert(aardwolf_interface.actions.execute("look")); assert(sent[2].command=="look")
 
--- A map imported after the interface starts must remove the empty-map overlay
--- without requiring another movement/GMCP event.
-rooms[1] = "Imported room"
-local map_ready_handler = assert(events[runtime_key("aardwolf_interface", "aardwolf-interface::event::map-import-finished")])
-assert(map_ready_handler.event == "aardwolf-map::import-finished")
-map_ready_handler.handler()
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::map-status"].hidden == true, "completed map import left the empty-map overlay visible")
-assert(objects["aardwolf-interface::ui::mapper"].hidden == false, "completed map import did not reveal the mapper")
-
-fake_time = 1007
-fire_timer(TICK_TIMER)
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::tick"].current == 23, "tick gauge did not count down")
-assert(objects["aardwolf-interface::ui::tick"].message == "23", "tick gauge is not numeric")
-
--- Expanding owns one initial refresh, grows the border, and confirms temporary
--- transport settings before changing them.
-aardwolf_interface.commands.details_show()
-assert(right_border == 760, "expected dashboard + gap + 384px details column")
-assert(aardwolf_interface.ui.bottom_root.width == 440, "expanded details must reduce HUD width")
-assert(objects["aardwolf-interface::ui::enemy"].x + objects["aardwolf-interface::ui::enemy"].width <= 434)
-assert(persisted_settings.details_visible == true)
-assert(objects["aardwolf-interface::ui::details"].hidden == false)
-assert(#gmcp_sent == 1 and gmcp_sent[1] == "config invmon")
-gmcp.config = {option = "Invmon", value = "unknown"}
-aardwolf_interface.details.on_gmcp_config()
-assert(#gmcp_sent == 1, "unknown prior Invmon state must not be changed")
-gmcp.config = {option = "Invmon", value = "off"}
-aardwolf_interface.details.on_gmcp_config()
-assert(gmcp_sent[#gmcp_sent] == "config invmon on")
-
-local QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
-fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "eqdata")
-assert(aardwolf_interface.details.capture_line("{eqdata}101,,@RHelm,50,5,0,1,-1"))
-assert(aardwolf_interface.details.capture_line("{eqdata}102,,Odd & Ring,50,5,0,88,-1"))
+-- The strict detail transaction ignores unrelated CSV and wrong tags, accepts
+-- only its active grammar, verifies container IDs, and deletes accepted lines.
+aardwolf_interface.details.stop()
+assert(aardwolf_interface.details.runtime.trigger_id==nil)
+aardwolf_interface.details.refresh()
+assert(aardwolf_interface.details.runtime.trigger_id~=nil)
+assert(timers["aardwolf-interface:aardwolf-interface::details-timeout"].repeating==false)
+assert(not aardwolf_interface.details.capture_line("1,2,unrelated,csv"))
+assert(aardwolf_interface.details.capture_line("{eqdata}"))
+assert(aardwolf_interface.details.capture_line("101,,Helm,10,7,0,1,5"))
 assert(aardwolf_interface.details.capture_line("{/eqdata}"))
-fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "invdata")
-assert(aardwolf_interface.details.capture_line("{invdata}201,,Pack <red>,40,11,0,0,-1"))
+assert(aardwolf_interface.details.capture_line("{invdata}"))
+assert(aardwolf_interface.details.capture_line("201,,Bag,40,11,0,-1,-1"))
+assert(aardwolf_interface.details.capture_line("202,K,Potion,3,8,0,-1,-1"))
 assert(aardwolf_interface.details.capture_line("{/invdata}"))
-fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "invdetails 201")
-assert(aardwolf_interface.details.capture_line("{invheader}201|40|11|0|5|0|0|0"))
-assert(deliver_output("{objectflags}KIG"), "unused package-owned invdetails tag was printed")
-assert(aardwolf_interface.details.capture_line("{container}100|50|25|3"))
+assert(aardwolf_interface.details.capture_line("{invdetails}"))
+assert(aardwolf_interface.details.capture_line("{invheader}201|40|Container|0|5|-1|K||||||20"))
+assert(aardwolf_interface.details.capture_line("{container}300|100|5|0"))
 assert(aardwolf_interface.details.capture_line("{/invdetails}"))
-local details = aardwolf_interface.state.snapshot().details
-assert(details.equipment[1].name == "Helm")
-assert(details.equipment[88].name == "Odd & Ring")
-assert(details.bags[1].used_weight == 25 and details.bags[1].max_weight == 100)
-fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::details-equipment"].message:find("Slot 88", 1, true))
-assert(objects["aardwolf-interface::ui::details-equipment"].message:find("Odd &amp; Ring", 1, true))
-assert(objects["aardwolf-interface::ui::details-bags"].message:find("25 / 100", 1, true))
-assert(objects["aardwolf-interface::ui::details-condition"] == nil)
-assert(objects["aardwolf-interface::ui::details-affects"] == nil)
-assert(objects["aardwolf-interface::ui::details-resists"] == nil)
+assert(aardwolf_interface.details.capture_line("{invdata 201}"))
+assert(aardwolf_interface.details.capture_line("203,,Dagger,9,5,0,-1,-1"))
+assert(aardwolf_interface.details.capture_line("{/invdata}"))
+local captured=aardwolf_interface.state.value("details")
+assert(captured.equipment[1].name=="Helm" and #captured.inventory==2 and #captured.bags==1)
+assert(captured.bags[1].id==201 and #captured.bags[1].items==1 and captured.bags[1].max_weight==300)
+aardwolf_interface.commands.set_tab("overview"); aardwolf_interface.ui.render()
+local loaded_overview=objects["aardwolf-interface::ui::overview-card"].text
+for _,expected in ipairs({"Loadout","Equipped slots","Bags","Bag weight","5 / 300"}) do assert(loaded_overview:find(expected,1,true)) end
+aardwolf_interface.details.runtime.capture={kind="bagdata",id=201,rows={},generation=1,invalid=0,opened=false}
+assert(aardwolf_interface.details.capture_line("{invdata 999}"))
+assert(aardwolf_interface.state.envelope("details").status=="partial")
+aardwolf_interface.details.stop()
+assert(not aardwolf_interface.details.capture_line("{eqdata}1,User output,1,armor"))
 
--- Malformed and truncated captures preserve the prior valid snapshot, while
--- oversized captures are bounded and visibly marked.
-aardwolf_interface.details.runtime.capture = {kind = "eqdata", rows = {}, metadata = {}}
-assert(aardwolf_interface.details.capture_line("{eqdata}not,a,valid,row"))
-assert(aardwolf_interface.details.capture_line("{/eqdata}"))
-assert(aardwolf_interface.state.snapshot().details.equipment[1].name == "Helm")
-assert(aardwolf_interface.state.snapshot().details.error:find("Malformed", 1, true))
-aardwolf_interface.details.runtime.capture = {kind = "eqdata", rows = {{wear_location = 1, name = "Replacement"}}, metadata = {}}
-aardwolf_interface.details.capture_timeout()
-assert(aardwolf_interface.state.snapshot().details.equipment[1].name == "Helm")
-assert(aardwolf_interface.state.snapshot().details.error:find("timed out", 1, true))
-aardwolf_interface.details.runtime.capture = {kind = "eqdata", rows = {}, metadata = {}}
-for index = 1, 101 do
-  assert(aardwolf_interface.details.capture_line("{eqdata}" .. index .. ",,Item" .. index .. ",1,5,0," .. index .. ",-1"))
-end
-assert(aardwolf_interface.details.capture_line("{/eqdata}"))
-assert(#aardwolf_interface.state.snapshot().details.equipment == 100)
-assert(aardwolf_interface.state.snapshot().details.overflow == true)
+aardwolf_interface.lifecycle.on_disconnect()
+assert(aardwolf_interface.state.connection=="disconnected")
+assert(not aardwolf_interface.actions.execute("look"))
+aardwolf_interface.lifecycle.on_connect()
+local requested={}; for _,request in ipairs(gmcp_sent) do requested[request]=true end
+assert(requested["request char"] and requested["request quest"])
+aardwolf_interface.lifecycle.shutdown(true)
+assert(right==8 and bottom==10)
 
--- Live inventory tags debounce targeted refreshes without polling. Affect tags
--- are no longer consumed because the pane and its refresh path were removed.
-assert(deliver_output("{invmon}1,101,0,1"), "consumed invmon event was printed")
-assert(deliver_output("{invitem}1,101,0,1"), "consumed invitem event was printed")
-assert(not deliver_output("{affon}10,Bless"), "removed affect event was still consumed")
-fire_timer("aardwolf-interface::timer::details-debounce")
-assert(timers[runtime_key("aardwolf_interface", QUEUE_TIMER)], "targeted refresh was not queued")
-
--- Collapsing cancels captures, restores only confirmed changes, retains stale
--- data, and prevents further automatic sends.
-aardwolf_interface.commands.details_hide()
-assert(right_border == 370)
-assert(aardwolf_interface.ui.bottom_root.width == 830)
-assert(persisted_settings.details_visible == false)
-assert(gmcp_sent[#gmcp_sent] == "config invmon off")
-assert(aardwolf_interface.state.snapshot().details.stale == true)
-local sent_after_collapse = #sent
-aardwolf_interface.details.schedule_targeted("equipment")
-assert(#sent == sent_after_collapse)
-local deleted_after_collapse = deleted_lines
-assert(not deliver_output("A player tells you hello."), "unrelated gameplay output was suppressed")
-assert(not deliver_output("{eqdata}999,,User requested item,1,5,0,1,-1"), "user-issued tagged output was suppressed outside a package capture")
-assert(deleted_lines == deleted_after_collapse)
-gmcp.config = {Invmon = false}
-aardwolf_interface.details.on_gmcp_config()
-assert(aardwolf_interface.details.runtime.invmon_prior == nil, "late config response was accepted after collapse")
-aardwolf_interface.commands.details_status()
-assert(messages[#messages]:find("freshness=stale", 1, true))
-for _, request in ipairs(sent) do
-  assert(request.command ~= "tags" and request.command ~= "tags spellup on" and request.command ~= "tags spellup off")
-  assert(request.command ~= "slist affected" and request.command ~= "resists")
-end
-
--- A server setting already enabled is never toggled or restored by the package.
-local gmcp_count_before_enabled = #gmcp_sent
-aardwolf_interface.commands.details_show()
-assert(gmcp_sent[#gmcp_sent] == "config invmon")
-gmcp.config = {option = "Invmon", value = "on"}
-aardwolf_interface.details.on_gmcp_config()
-assert(#gmcp_sent == gmcp_count_before_enabled + 1)
-aardwolf_interface.commands.details_hide()
-assert(#gmcp_sent == gmcp_count_before_enabled + 1)
-
--- Empty groups collapse in short windows so the mapper remains visible.
-gmcp.group = {members = {}}
-aardwolf_interface.protocol.on_group()
-fire_timer(RENDER_TIMER)
-main_window_height = 515
-aardwolf_interface.ui.reflow()
-assert(objects["aardwolf-interface::ui::group"].height == 44, "empty group did not use compact short-window height")
-assert(objects["aardwolf-interface::ui::mapper"].height > 0, "short window lost the mapper")
-assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 515, "short-window mapper extends outside the dashboard")
-main_window_height = 900
-aardwolf_interface.ui.reflow()
-
--- Explicit hide works for the current session and releases shared UI ownership.
-aardwolf_interface.commands.hide()
-assert(right_border == 10)
-assert(bottom_border == 12)
-assert(aardwolf_interface.ui.bottom_root.hidden == true)
-assert(persisted_settings.visible == false)
-assert(map.restored == true)
-assert(show_upper_lower_levels == true, "the prior adjacent-floor setting was not restored")
-
--- A profile/package load always restores the main interface even if the last
--- session explicitly hid it.
-aardwolf_interface.lifecycle.on_load()
-assert(persisted_settings.visible == true)
-fire_timer(START_TIMER)
-assert(right_border == 370)
-assert(bottom_border == 76)
-assert(aardwolf_interface.ui.root.hidden == false)
-assert(show_upper_lower_levels == false)
-
--- Reinitialization is idempotent and does not grow the border repeatedly.
-aardwolf_interface.commands.hide()
+-- Mudlet 4.14 fallback: rebuilding without ScrollBox creates paging controls
+-- instead of disabling the interface.
+Geyser.ScrollBox=nil
 aardwolf_interface.lifecycle.initialize()
-fire_timer(START_TIMER)
-assert(right_border == 370)
-assert(bottom_border == 76)
-assert(persisted_settings.visible == true)
-assert(show_upper_lower_levels == false)
-
--- A conflicting external border change is preserved and reported rather than overwritten.
-right_border = 999
-bottom_border = 888
-show_upper_lower_levels = true
-aardwolf_interface.commands.hide()
-assert(right_border == 999)
-assert(bottom_border == 888)
-assert(aardwolf_interface.state.border_conflict == true)
-assert(aardwolf_interface.state.bottom_border_conflict == true)
-assert(show_upper_lower_levels == true, "an external mapper preference change should be preserved")
-
--- The mapper adapter is optional; absence of generic_mapper remains safe.
-right_border = 10
-bottom_border = 12
-map = nil
-aardwolf_interface.commands.show()
-aardwolf_interface.commands.hide()
-assert(right_border == 10)
-assert(bottom_border == 12)
-
--- Mudlet versions before the adjacent-level option existed remain supported.
-getConfig = nil
-setConfig = nil
-aardwolf_interface.commands.show()
-aardwolf_interface.commands.hide()
-assert(right_border == 10)
-assert(bottom_border == 12)
-
-aardwolf_interface.lifecycle.shutdown()
-assert(next(events) == nil, "named handlers leaked after shutdown")
-assert(next(timers) == nil, "named timers leaked after shutdown")
-assert(next(triggers) == nil, "temporary triggers leaked after shutdown")
-
-print("aardwolf-interface stub behavior: ok")
+assert(aardwolf_interface.ui.scroll_capable==false and objects["aardwolf-interface::ui::page-next"])
+aardwolf_interface.settings.data.active_tab="character"; aardwolf_interface.ui.page=2; aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::page-status"].text=="Page 2 / 2")
+assert(objects["aardwolf-interface::ui::character-card"].text:find("Standing",1,true))
+aardwolf_interface.settings.data.active_tab="overview"; aardwolf_interface.ui.page=2; aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::page-status"].text=="Page 2 / 2")
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Resources",1,true))
+assert(not objects["aardwolf-interface::ui::mapper"].hidden)
+aardwolf_interface.lifecycle.shutdown(true)
+print("aardwolf-interface stub spec passed")

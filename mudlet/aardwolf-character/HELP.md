@@ -2,4 +2,4 @@
 
 Text-first character, group, and vital-status summaries from GMCP.
 
-Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior.
+Use `aard character status` for the current HP, Mana, Moves, and group-member summary. `groupon` enables update notifications and `groupoff` returns to quiet operation.

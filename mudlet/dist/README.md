@@ -11,12 +11,16 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
-The current suite version is 1.4.0. It includes Mudlet's required `config.lua`
-Package Manager metadata, the responsive right-sidebar dashboard, and a two-row
-bottom HUD that stops at the sidebar edge. The sidebar retains its numeric
-diminishing tick gauge and collapsed-by-default, expanded-only character-details
-column. Diagnostic event logging is disabled until the user
-runs `gmcpdebug on`. If an
+The current suite version is 1.6.0. It includes Mudlet's required `config.lua`
+Package Manager metadata and the Obsidian Jewel adaptive command deck: a
+responsive right workspace with persistent room context, Overview/Character/
+Group/Inventory data views, a persistent map, an adaptive player data dock, a balanced multi-row HUD, accessible
+plain-text summaries, and a contextual action drawer. The map integration adds
+collision-safe environment colors, source/Obsidian/high-contrast palettes,
+resumable import lifecycle, and trustworthy status snapshots. Character and
+group tracking is quiet by default with useful on-demand summaries; `groupon`
+and `groupoff` control update notifications. Diagnostic event logging is
+disabled until the user runs `gmcpdebug on`. If an
 older `Aardwolf Mudlet Suite` entry is already installed, remove it in Mudlet's
 Package Manager before installing this archive.
 
@@ -27,5 +31,6 @@ python3 tools/build_mudlet_release.py
 ```
 
 The builder first validates every component release, merges the source-derived
-native exports in a fixed order, and verifies the combined object order,
-resource list, archive ordering, and XML payload before publishing the suite.
+native exports in a fixed order, and verifies every complete serialized object,
+the suite version, and all archive XML, config, and resource bytes before
+publishing the suite.

@@ -6,6 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-character"
 assert metadata["namespace"] == "aardwolf_character"
+assert metadata["version"] == "1.1.0"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_character" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -17,6 +18,8 @@ assert "send(" not in source
 assert source.count("function aardwolf_character.") >= 5
 assert "function aardwolf_character.lifecycle.initialize" in source
 assert "function aardwolf_character.lifecycle.shutdown" in source
+assert "enabled = false" in source and "settings.enabled == true" in source
+assert "if aardwolf_character.settings.is_enabled() then" in source and "group members" in source
 
 
 

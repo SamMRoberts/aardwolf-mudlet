@@ -125,6 +125,13 @@ class PackageToolsTests(unittest.TestCase):
             write_text(path, "function unsafe_global() end\n")
             self.assertTrue(any("not namespaced" in error for error in validate(project_root)))
 
+    def test_local_namespace_alias_and_table_fields_are_not_globals(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project_root = make_project(Path(temporary) / "project")
+            path = project_root / "src" / "scripts" / "aw_simple_alias" / "aw_simple_alias_ui.lua"
+            write_text(path, "local ui = aw_simple_alias.ui\nlocal theme = {\n  panel = '#000000',\n}\nfunction ui.render() return theme.panel end\n")
+            self.assertEqual(validate(project_root), [])
+
     def test_resource_path_traversal_is_reported(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project_root = make_project(Path(temporary) / "project")

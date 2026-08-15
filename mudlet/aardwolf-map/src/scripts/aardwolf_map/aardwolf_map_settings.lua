@@ -47,3 +47,50 @@ function aardwolf_map.settings.record_source_metadata(data)
     aardwolf_map.settings.set_map_value("source_environments", environments)
   end
 end
+
+function aardwolf_map.settings.get_environment_ids()
+  local value = aardwolf_map.state.decode_value(aardwolf_map.settings.get_map_value("environment_ids"))
+  if type(value) ~= "table" then
+    return {}
+  end
+  local result = {}
+  for source_uid, environment_id in pairs(value) do
+    local numeric = tonumber(environment_id)
+    if numeric and numeric == math.floor(numeric) and numeric > 0 then
+      result[tostring(source_uid)] = numeric
+    end
+  end
+  return result
+end
+
+function aardwolf_map.settings.set_environment_ids(environment_ids)
+  local encoded = aardwolf_map.state.encode_value(environment_ids)
+  if encoded then
+    aardwolf_map.settings.set_map_value("environment_ids", encoded)
+  end
+end
+
+function aardwolf_map.settings.palette()
+  local value = aardwolf_map.settings.get_map_value("palette")
+  if value == "obsidian" or value == "high-contrast" then
+    return value
+  end
+  return "source"
+end
+
+function aardwolf_map.settings.set_palette(palette)
+  aardwolf_map.settings.set_map_value("palette", palette)
+end
+
+function aardwolf_map.settings.mark_import_active(source_hash)
+  aardwolf_map.settings.set_map_value("import_active_source_sha256", tostring(source_hash or ""))
+end
+
+function aardwolf_map.settings.active_import_hash()
+  local value = aardwolf_map.settings.get_map_value("import_active_source_sha256")
+  return type(value) == "string" and value ~= "" and value or nil
+end
+
+function aardwolf_map.settings.clear_import_active()
+  aardwolf_map.settings.set_map_value("import_active_source_sha256", "")
+end

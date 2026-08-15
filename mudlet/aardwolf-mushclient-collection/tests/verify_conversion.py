@@ -4,12 +4,19 @@
 from __future__ import annotations
 
 import json
+import sys
 import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = ROOT.parents[1]
+sys.path.insert(0, str(REPOSITORY_ROOT / "plugin" / "aardwolf-mudlet-dev" / "scripts"))
+
+from build_mudlet_package import package_config_lua  # noqa: E402
+
+
 NAMESPACE = "aardwolf_mushclient_collection"
 FEATURE_PACKAGES = (
     "aardwolf-gmcp-diagnostics",
@@ -23,6 +30,30 @@ FEATURE_PACKAGES = (
     "aardwolf-accessibility",
 )
 ALL_RELEASE_PACKAGES = ("aardwolf-mushclient-collection", *FEATURE_PACKAGES, "aardwolf-map")
+EXPECTED_RELEASE_VERSIONS = {
+    "aardwolf-mushclient-collection": "1.0.0",
+    "aardwolf-gmcp-diagnostics": "1.1.0",
+    "aardwolf-tick": "1.1.0",
+    "aardwolf-console": "1.0.0",
+    "aardwolf-communication": "1.0.0",
+    "aardwolf-character": "1.1.0",
+    "aardwolf-help": "1.0.0",
+    "aardwolf-interface": "1.6.0",
+    "aardwolf-profile-data": "1.0.0",
+    "aardwolf-accessibility": "1.0.0",
+    "aardwolf-map": "1.1.0",
+}
+SUITE_MFILE = {
+    "author": "Aardwolf Mudlet",
+    "description": "All-in-one native Mudlet package with the adaptive command deck, collision-safe map integration, quiet character summaries, accessibility, and audited compatibility tools.",
+    "package": "aardwolf-mudlet-suite",
+    "title": "Aardwolf Mudlet Suite",
+    "version": "1.6.0",
+}
+
+
+def serialized_objects(root: ET.Element, item_tag: str) -> list[bytes]:
+    return [ET.tostring(element, encoding="utf-8", short_empty_elements=False) for element in root.iter(item_tag)]
 
 
 def read(relative: str) -> str:
@@ -65,10 +96,9 @@ def main() -> None:
     assert len(decisions) == len(inventory["items"])
     assert {item["id"] for item in inventory["items"]} == {decision["item_id"] for decision in decisions}
     assert not {decision["status"] for decision in decisions} & {"manual-action-required", "unsupported-blocker"}
-    repository_root = ROOT.parents[1]
     for decision in decisions:
         for target in decision["target_paths"]:
-            target_path = repository_root / target if target.startswith("mudlet/") else ROOT / target
+            target_path = REPOSITORY_ROOT / target if target.startswith("mudlet/") else ROOT / target
             assert target_path.exists(), (decision["item_id"], target)
     retired = [decision for decision in decisions if decision["status"] == "intentionally-retired"]
     assert retired
@@ -79,12 +109,11 @@ def main() -> None:
         assert decision["retirement"]["migration"].strip()
 
     mudlet_root = ROOT.parent
-    for package in FEATURE_PACKAGES:
+    for package in (*FEATURE_PACKAGES, "aardwolf-map"):
         project = mudlet_root / package
         feature_metadata = json.loads((project / "package-metadata.json").read_text(encoding="utf-8"))
         assert feature_metadata["name"] == package
-        expected_version = "1.4.0" if package == "aardwolf-interface" else "1.1.0" if package in {"aardwolf-gmcp-diagnostics", "aardwolf-tick"} else "1.0.3" if package == "aardwolf-map" else "1.0.0"
-        assert feature_metadata["version"] == expected_version
+        assert feature_metadata["version"] == EXPECTED_RELEASE_VERSIONS[package]
         assert (project / "dist" / "README.md").is_file()
 
     suite_xml_path = mudlet_root / "dist" / "aardwolf-mudlet-suite.xml"
@@ -92,22 +121,26 @@ def main() -> None:
     suite_root = ET.parse(suite_xml_path).getroot()
     assert suite_root.tag == "MudletPackage"
     with zipfile.ZipFile(suite_package_path) as archive:
-        assert archive.namelist() == ["aardwolf-mudlet-suite.xml", "config.lua", "resources/aardwolf-map-v11.json"]
+        expected_entries = ["aardwolf-mudlet-suite.xml", "config.lua", "resources/aardwolf-map-v11.json"]
+        assert archive.namelist() == expected_entries
         assert archive.read("aardwolf-mudlet-suite.xml") == suite_xml_path.read_bytes()
-        suite_config = archive.read("config.lua").decode("utf-8")
-        assert "mpackage = [[aardwolf-mudlet-suite]]" in suite_config
-        assert "title = [[Aardwolf Mudlet Suite]]" in suite_config
-        assert "version = [[1.4.0]]" in suite_config
+        assert archive.read("config.lua") == package_config_lua(SUITE_MFILE)
         with zipfile.ZipFile(mudlet_root / "aardwolf-map" / "dist" / "aardwolf-map.mpackage") as map_archive:
             assert archive.read("resources/aardwolf-map-v11.json") == map_archive.read("resources/aardwolf-map-v11.json")
-    for category in ("AliasPackage", "TriggerPackage", "TimerPackage", "ScriptPackage", "KeyPackage"):
-        expected = []
+    for category, item_tag in (
+        ("AliasPackage", "Alias"),
+        ("TriggerPackage", "Trigger"),
+        ("TimerPackage", "Timer"),
+        ("ScriptPackage", "Script"),
+        ("KeyPackage", "Key"),
+    ):
+        expected: list[bytes] = []
         for package in ALL_RELEASE_PACKAGES:
             root = ET.parse(mudlet_root / package / "dist" / f"{package}.xml").getroot()
             source = root.find(category)
-            expected.extend([] if source is None else [element.text for element in source.iter("name")])
+            expected.extend([] if source is None else serialized_objects(source, item_tag))
         actual_package = suite_root.find(category)
-        actual = [] if actual_package is None else [element.text for element in actual_package.iter("name")]
+        actual = [] if actual_package is None else serialized_objects(actual_package, item_tag)
         assert actual == expected
 
 
