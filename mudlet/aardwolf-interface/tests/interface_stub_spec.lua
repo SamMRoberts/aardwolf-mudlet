@@ -216,6 +216,13 @@ gmcp = {char = {}, room = {}, comm = {}, config = {}}
 
 dofile(project_root .. "/src/scripts/aardwolf_interface/aardwolf_interface_main.lua")
 
+local function deliver_output(text)
+  line = text
+  local before = deleted_lines
+  aardwolf_interface.details.on_line()
+  return deleted_lines == before + 1
+end
+
 local migrated = aardwolf_interface.settings.validate({schema_version = 1, visible = false, theme = "high-contrast"})
 assert(migrated.schema_version == 2 and migrated.visible == false and migrated.theme == "high-contrast")
 assert(migrated.details_visible == false, "schema migration must default details to collapsed")
@@ -309,9 +316,16 @@ assert(gmcp_sent[#gmcp_sent] == "config invmon on")
 local QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
 fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "tags")
-assert(aardwolf_interface.details.capture_line("Spellup : OFF"))
-assert(aardwolf_interface.details.capture_line(""))
+assert(not deliver_output("A player tells you 10 reasons to leave."), "unrelated output was suppressed before the tags response")
+assert(deliver_output("Available tag settings:"), "package-owned tags header was printed")
+assert(deliver_output("Spellup : OFF"), "package-owned tag state was printed")
+assert(deliver_output(""), "package-owned tags terminator was printed")
 assert(sent[#sent].command == "tags spellup on")
+local spellup_on_ack = assert(aardwolf_interface.details.runtime.ack_trigger_id)
+local deleted_before_on_ack = deleted_lines
+triggers[spellup_on_ack].callback()
+assert(deleted_lines == deleted_before_on_ack + 1, "spellup enable confirmation was printed")
+assert(aardwolf_interface.details.runtime.ack_trigger_id == nil)
 fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "eqdata")
 assert(aardwolf_interface.details.capture_line("{eqdata}101,,@RHelm,50,5,0,1,-1"))
@@ -327,11 +341,14 @@ assert(aardwolf_interface.details.capture_line("{slist}10,Bless,1,42,100,0,1"))
 assert(aardwolf_interface.details.capture_line("{/slist}"))
 fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "resists")
-assert(aardwolf_interface.details.capture_line("Physical 10 20 30"))
-assert(aardwolf_interface.details.capture_line(""))
+assert(not deliver_output("You recover 10 hit points."), "unrelated output was suppressed before the resists response")
+assert(deliver_output("Current resistances:"), "package-owned resists header was printed")
+assert(deliver_output("Physical 10 20 30"), "package-owned resist row was printed")
+assert(deliver_output(""), "package-owned resists terminator was printed")
 fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "invdetails 201")
 assert(aardwolf_interface.details.capture_line("{invheader}201|40|11|0|5|0|0|0"))
+assert(deliver_output("{objectflags}KIG"), "unused package-owned invdetails tag was printed")
 assert(aardwolf_interface.details.capture_line("{container}100|50|25|3"))
 assert(aardwolf_interface.details.capture_line("{/invdetails}"))
 local details = aardwolf_interface.state.snapshot().details
@@ -366,8 +383,8 @@ assert(aardwolf_interface.state.snapshot().details.equipment[1].name == "Helm")
 assert(aardwolf_interface.state.snapshot().details.error:find("timed out", 1, true))
 
 -- Live tags debounce targeted refreshes without polling.
-assert(aardwolf_interface.details.capture_line("{invmon}1,101,0,1"))
-assert(aardwolf_interface.details.capture_line("{affon}10,Bless"))
+assert(deliver_output("{invmon}1,101,0,1"), "consumed invmon event was printed")
+assert(deliver_output("{affon}10,Bless"), "consumed affect event was printed")
 fire_timer("aardwolf-interface::timer::details-debounce")
 assert(timers[runtime_key("aardwolf_interface", QUEUE_TIMER)], "targeted refresh was not queued")
 
@@ -378,10 +395,18 @@ assert(right_border == 370)
 assert(persisted_settings.details_visible == false)
 assert(gmcp_sent[#gmcp_sent] == "config invmon off")
 assert(sent[#sent].command == "tags spellup off")
+local spellup_off_ack = assert(aardwolf_interface.details.runtime.ack_trigger_id)
+local deleted_before_off_ack = deleted_lines
+triggers[spellup_off_ack].callback()
+assert(deleted_lines == deleted_before_off_ack + 1, "spellup restore confirmation was printed")
 assert(aardwolf_interface.state.snapshot().details.stale == true)
 local sent_after_collapse = #sent
 aardwolf_interface.details.schedule_targeted("equipment")
 assert(#sent == sent_after_collapse)
+local deleted_after_collapse = deleted_lines
+assert(not deliver_output("A player tells you hello."), "unrelated gameplay output was suppressed")
+assert(not deliver_output("{eqdata}999,,User requested item,1,5,0,1,-1"), "user-issued tagged output was suppressed outside a package capture")
+assert(deleted_lines == deleted_after_collapse)
 gmcp.config = {Invmon = false}
 aardwolf_interface.details.on_gmcp_config()
 assert(aardwolf_interface.details.runtime.invmon_prior == nil, "late config response was accepted after collapse")
@@ -459,5 +484,6 @@ assert(right_border == 10)
 aardwolf_interface.lifecycle.shutdown()
 assert(next(events) == nil, "named handlers leaked after shutdown")
 assert(next(timers) == nil, "named timers leaked after shutdown")
+assert(next(triggers) == nil, "temporary triggers leaked after shutdown")
 
 print("aardwolf-interface stub behavior: ok")

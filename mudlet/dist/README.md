@@ -11,7 +11,7 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
-The current suite version is 1.3.1. It includes Mudlet's required `config.lua`
+The current suite version is 1.3.2. It includes Mudlet's required `config.lua`
 Package Manager metadata and the responsive right-sidebar dashboard with its
 numeric diminishing tick gauge and collapsed-by-default, expanded-only
 character-details column. Diagnostic event logging is disabled until the user

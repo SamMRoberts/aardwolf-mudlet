@@ -244,6 +244,7 @@ local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
 local DETAILS_QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
 local DETAILS_CAPTURE_TIMER = "aardwolf-interface::timer::details-capture"
 local DETAILS_DEBOUNCE_TIMER = "aardwolf-interface::timer::details-debounce"
+local DETAILS_ACK_TIMER = "aardwolf-interface::timer::details-spellup-ack"
 local MINIMUM_WIDTH = 340
 local MAXIMUM_WIDTH = 480
 local WIDTH_RATIO = 0.30
@@ -1039,6 +1040,33 @@ local function delete_named_timer(name)
   end
 end
 
+function aardwolf_interface.details.remove_spellup_ack()
+  local runtime = aardwolf_interface.details.runtime
+  if runtime.ack_trigger_id and type(killTrigger) == "function" then
+    pcall(killTrigger, runtime.ack_trigger_id)
+  end
+  runtime.ack_trigger_id = nil
+  delete_named_timer(DETAILS_ACK_TIMER)
+end
+
+function aardwolf_interface.details.on_spellup_ack()
+  if type(deleteLine) == "function" then
+    deleteLine()
+  end
+  aardwolf_interface.details.remove_spellup_ack()
+end
+
+function aardwolf_interface.details.suppress_spellup_ack()
+  aardwolf_interface.details.remove_spellup_ack()
+  local runtime = aardwolf_interface.details.runtime
+  if type(tempRegexTrigger) == "function" then
+    runtime.ack_trigger_id = tempRegexTrigger("(?i)^[^\\n]*spellup[^\\n]*(?:on|off|enabled|disabled)[^\\n]*$", aardwolf_interface.details.on_spellup_ack)
+  end
+  if runtime.ack_trigger_id and type(registerNamedTimer) == "function" then
+    registerNamedTimer(TIMER_USER, DETAILS_ACK_TIMER, 3.0, aardwolf_interface.details.remove_spellup_ack, true)
+  end
+end
+
 function aardwolf_interface.details.cancel_queue()
   local runtime = aardwolf_interface.details.runtime
   runtime.queue = {}
@@ -1131,6 +1159,7 @@ local function commit_capture(capture)
     local runtime = aardwolf_interface.details.runtime
     runtime.spellup_prior = capture.spellup_prior
     if capture.spellup_prior == false and aardwolf_interface.settings.details_are_visible() and type(send) == "function" then
+      aardwolf_interface.details.suppress_spellup_ack()
       send("tags spellup on", false)
       runtime.spellup_changed = true
     end
@@ -1192,18 +1221,18 @@ function aardwolf_interface.details.capture_line(raw_line)
     elseif normalized_action then
       aardwolf_interface.details.schedule_targeted("inventory", finite_number(container_id))
     end
-    return runtime.invmon_changed == true
+    return true
   end
   local invitem = capture_payload(line, "invitem")
   if invitem then
     aardwolf_interface.details.schedule_targeted("inventory")
-    return runtime.invmon_changed == true
+    return true
   end
   local affon = capture_payload(line, "affon")
   local affoff = capture_payload(line, "affoff")
   if affon or affoff then
     aardwolf_interface.details.schedule_targeted("affects")
-    return runtime.spellup_changed == true
+    return true
   end
 
   local capture = runtime.capture
@@ -1283,7 +1312,7 @@ function aardwolf_interface.details.capture_line(raw_line)
       capture.used_weight = finite_number(fields[3])
       return true
     end
-    return line:match("^%{invdetails%}") ~= nil
+    return line:match("^%b{}") ~= nil
   elseif capture.kind == "resists" then
     local payload = capture_payload(line, "resists")
     if line:match("^%{/resists%}") then
@@ -1295,6 +1324,17 @@ function aardwolf_interface.details.capture_line(raw_line)
       end
       return true
     end
+    local lowered = strip_aardwolf_colors(line):lower()
+    if lowered:find("resist", 1, true) then
+      capture.seen_header = true
+      return true
+    end
+    if line:match("^%s*[%-%=|+]+%s*$") then
+      return true
+    end
+    if not capture.seen_header and payload == nil then
+      return false
+    end
     local resist = parse_resist_row(strip_aardwolf_colors(payload and payload ~= "" and payload or line))
     if resist then
       if #capture.rows &lt; DETAIL_LIMIT then capture.rows[#capture.rows + 1] = resist else capture.overflow = true end
@@ -1305,7 +1345,7 @@ function aardwolf_interface.details.capture_line(raw_line)
       finish_capture(true)
       return true
     end
-    return payload ~= nil
+    return payload ~= nil or line:match("^%s*$") ~= nil
   elseif capture.kind == "tags" then
     local lowered = line:lower()
     local value = lowered:find("spellup", 1, true) and
@@ -1319,6 +1359,13 @@ function aardwolf_interface.details.capture_line(raw_line)
       finish_capture(true)
       return true
     end
+    if lowered:find("tag", 1, true) or line:match("^%s*[%-%=|+]+%s*$") then
+      return true
+    end
+    if line:match("^%s*[%w_%- ]+%s*[:=]%s*[%a]+%s*$") then
+      return true
+    end
+    return false
   end
   return false
 end
@@ -1487,11 +1534,13 @@ function aardwolf_interface.details.stop(restore_settings)
   local runtime = aardwolf_interface.details.runtime
   aardwolf_interface.details.cancel_queue()
   aardwolf_interface.details.remove_capture_trigger()
+  aardwolf_interface.details.remove_spellup_ack()
   if restore_settings ~= false then
     if runtime.invmon_changed and runtime.invmon_prior == false and type(sendGMCP) == "function" then
       pcall(sendGMCP, "config invmon off")
     end
     if runtime.spellup_changed and runtime.spellup_prior == false and type(send) == "function" then
+      aardwolf_interface.details.suppress_spellup_ack()
       pcall(send, "tags spellup off", false)
     end
   end
@@ -1838,6 +1887,7 @@ function aardwolf_interface.lifecycle.unregister()
     deleteNamedTimer(TIMER_USER, RENDER_TIMER)
     deleteNamedTimer(TIMER_USER, START_TIMER)
     deleteNamedTimer(TIMER_USER, TICK_TIMER)
+    deleteNamedTimer(TIMER_USER, DETAILS_ACK_TIMER)
   end
 end
 
@@ -1862,6 +1912,7 @@ end
 function aardwolf_interface.lifecycle.shutdown(keep_visibility)
   local visible = aardwolf_interface.settings.data and aardwolf_interface.settings.data.visible
   aardwolf_interface.ui.destroy()
+  aardwolf_interface.details.remove_spellup_ack()
   aardwolf_interface.lifecycle.unregister()
   if keep_visibility and aardwolf_interface.settings.data then
     aardwolf_interface.settings.data.visible = visible
