@@ -1,0 +1,54 @@
+[
+  {
+    "name": "aardwolf_accessibility.status",
+    "regex": "^tts(?: (?:focus|help|running))?$"
+  },
+  {
+    "name": "aardwolf_accessibility.toggle",
+    "regex": "^sapi (on|off)$"
+  },
+  {
+    "name": "aardwolf_accessibility.say",
+    "regex": "^sapi say (.+)$"
+  },
+  {
+    "name": "aardwolf_accessibility.note",
+    "regex": "^tts_note (.+)$"
+  },
+  {
+    "name": "aardwolf_accessibility.clear",
+    "regex": "^sapi (?:clear|skip)$"
+  },
+  {
+    "name": "aardwolf_accessibility.stop",
+    "regex": "^tts_stop$"
+  },
+  {
+    "name": "aardwolf_accessibility.rate",
+    "regex": "^sapi (faster|slower)$"
+  },
+  {
+    "name": "aardwolf_accessibility.rate_value",
+    "regex": "^sapi rate(?: (.+))?$"
+  },
+  {
+    "name": "aardwolf_accessibility.voices",
+    "regex": "^sapi list voices$"
+  },
+  {
+    "name": "aardwolf_accessibility.voice",
+    "regex": "^sapi voice (.+)$"
+  },
+  {
+    "name": "aardwolf_accessibility.status_help",
+    "regex": "^sapi (?:debug|filtering(?: .*)?|help(?: printed)?)$"
+  },
+  {
+    "name": "aardwolf_accessibility.test",
+    "regex": "^sapi test$"
+  },
+  {
+    "name": "aardwolf_accessibility.interrupt",
+    "regex": "^tts_interrupt (.*)$"
+  }
+]

@@ -1,0 +1,1847 @@
+aardwolf_interface = aardwolf_interface or {}
+
+-- State owns only validated, bounded session data and lifecycle flags.
+aardwolf_interface.state = aardwolf_interface.state or {}
+
+local function finite_number(value)
+  local number = tonumber(value)
+  if not number or number ~= number or number == math.huge or number == -math.huge then
+    return nil
+  end
+  return number
+end
+
+local function bounded_number(value, minimum, maximum)
+  local number = finite_number(value)
+  if not number then
+    return nil
+  end
+  return math.max(minimum, math.min(maximum, number))
+end
+
+local function clean_text(value, maximum_length)
+  if type(value) ~= "string" and type(value) ~= "number" then
+    return nil
+  end
+  local text = tostring(value):gsub("[%z\1-\8\11\12\14-\31]", "")
+  if #text > maximum_length then
+    return text:sub(1, maximum_length) .. "..."
+  end
+  return text
+end
+
+function aardwolf_interface.state.reset_session()
+  aardwolf_interface.state.session = {
+    ["base"] = {},
+    ["vitals"] = {},
+    ["maxstats"] = {},
+    ["status"] = {},
+    ["stats"] = {},
+    ["worth"] = {},
+    ["room"] = {},
+    ["group"] = {members = {}},
+    ["tick"] = {},
+    ["details"] = {
+      ["equipment"] = {}, ["bags"] = {},
+      ["stale"] = true, ["refreshing"] = false, ["last_updated"] = nil, ["error"] = nil,
+    },
+  }
+  aardwolf_interface.state.update_count = 0
+end
+
+function aardwolf_interface.state.replace(section, value)
+  if type(section) ~= "string" or type(value) ~= "table" then
+    return false
+  end
+  aardwolf_interface.state.session = aardwolf_interface.state.session or {}
+  aardwolf_interface.state.session[section] = value
+  aardwolf_interface.state.update_count = (aardwolf_interface.state.update_count or 0) + 1
+  return true
+end
+
+function aardwolf_interface.state.snapshot()
+  if type(aardwolf_interface.state.session) ~= "table" then
+    aardwolf_interface.state.reset_session()
+  end
+  return aardwolf_interface.state.session
+end
+
+function aardwolf_interface.state.number(value)
+  return finite_number(value)
+end
+
+function aardwolf_interface.state.percent(value)
+  return bounded_number(value, 0, 100)
+end
+
+function aardwolf_interface.state.tick_remaining(now)
+  local tick = aardwolf_interface.state.snapshot().tick or {}
+  local last_seen = finite_number(tick.last_seen)
+  local duration = finite_number(tick.duration)
+  if not last_seen or not duration or duration <= 0 then
+    return nil
+  end
+  return math.max(0, math.min(duration, math.ceil(duration - ((finite_number(now) or os.time()) - last_seen))))
+end
+
+function aardwolf_interface.state.text(value, maximum_length)
+  return clean_text(value, maximum_length or 160)
+end
+
+-- Settings are JSON data stored below the profile even though the historical
+-- filename ends in .lua. Stored text is never loaded or executed as Lua.
+aardwolf_interface.settings = aardwolf_interface.settings or {}
+
+local SETTINGS_SCHEMA = 3
+local SETTINGS_DEFAULTS = {
+  ["schema_version"] = SETTINGS_SCHEMA,
+  ["visible"] = true,
+  ["details_visible"] = false,
+  ["theme"] = "dark",
+  ["border_claim"] = nil,
+  ["bottom_border_claim"] = nil,
+}
+
+local function copy_defaults()
+  return {
+    ["schema_version"] = SETTINGS_DEFAULTS.schema_version,
+    ["visible"] = SETTINGS_DEFAULTS.visible,
+    ["details_visible"] = SETTINGS_DEFAULTS.details_visible,
+    ["theme"] = SETTINGS_DEFAULTS.theme,
+    ["border_claim"] = nil,
+    ["bottom_border_claim"] = nil,
+  }
+end
+
+local function validated_border_claim(candidate, size_name, maximum_size)
+  if type(candidate) ~= "table" then
+    return nil
+  end
+  local base = bounded_number(candidate.base, 0, 10000)
+  local size = bounded_number(candidate[size_name], 0, maximum_size)
+  local applied = bounded_number(candidate.applied, 0, 12000)
+  if not base or not size or not applied or applied ~= base + size then
+    return nil
+  end
+  return {base = base, [size_name] = size, applied = applied}
+end
+
+function aardwolf_interface.settings.directory()
+  return getMudletHomeDir() .. "/aardwolf-interface"
+end
+
+function aardwolf_interface.settings.path()
+  return aardwolf_interface.settings.directory() .. "/settings.lua"
+end
+
+function aardwolf_interface.settings.validate(candidate)
+  local validated = copy_defaults()
+  if type(candidate) ~= "table" or not ({[1] = true, [2] = true, [SETTINGS_SCHEMA] = true})[candidate.schema_version] then
+    return validated
+  end
+  if type(candidate.visible) == "boolean" then
+    validated.visible = candidate.visible
+  end
+  if candidate.schema_version >= 2 and type(candidate.details_visible) == "boolean" then
+    validated.details_visible = candidate.details_visible
+  end
+  if candidate.theme == "dark" or candidate.theme == "high-contrast" then
+    validated.theme = candidate.theme
+  end
+  validated.border_claim = validated_border_claim(candidate.border_claim, "width", 2000)
+  validated.bottom_border_claim = validated_border_claim(candidate.bottom_border_claim, "height", 1000)
+  return validated
+end
+
+function aardwolf_interface.settings.ensure_directory()
+  if type(lfs) ~= "table" or type(lfs.mkdir) ~= "function" then
+    return false
+  end
+  local directory = aardwolf_interface.settings.directory()
+  if type(lfs.attributes) == "function" and lfs.attributes(directory, "mode") == "directory" then
+    return true
+  end
+  local ok = pcall(lfs.mkdir, directory)
+  return ok and (type(lfs.attributes) ~= "function" or lfs.attributes(directory, "mode") == "directory")
+end
+
+function aardwolf_interface.settings.load()
+  local file = io.open(aardwolf_interface.settings.path(), "r")
+  if file then
+    local contents = file:read("*a")
+    file:close()
+    if type(yajl) == "table" and type(yajl.to_value) == "function" then
+      local ok, value = pcall(yajl.to_value, contents)
+      if ok then
+        aardwolf_interface.settings.data = aardwolf_interface.settings.validate(value)
+        return aardwolf_interface.settings.data
+      end
+    end
+  end
+  aardwolf_interface.settings.data = aardwolf_interface.settings.validate(nil)
+  return aardwolf_interface.settings.data
+end
+
+function aardwolf_interface.settings.save()
+  local data = aardwolf_interface.settings.validate(aardwolf_interface.settings.data)
+  aardwolf_interface.settings.data = data
+  if type(yajl) ~= "table" or type(yajl.to_string) ~= "function" then
+    return false, "Mudlet JSON support is unavailable"
+  end
+  aardwolf_interface.settings.ensure_directory()
+  local file, error_message = io.open(aardwolf_interface.settings.path(), "w")
+  if not file then
+    return false, error_message
+  end
+  local ok, contents = pcall(yajl.to_string, data)
+  if not ok then
+    file:close()
+    return false, contents
+  end
+  file:write(contents)
+  file:close()
+  return true
+end
+
+function aardwolf_interface.settings.is_visible()
+  return not aardwolf_interface.settings.data or aardwolf_interface.settings.data.visible ~= false
+end
+
+function aardwolf_interface.settings.set_visible(visible)
+  aardwolf_interface.settings.data = aardwolf_interface.settings.data or copy_defaults()
+  aardwolf_interface.settings.data.visible = visible and true or false
+  return aardwolf_interface.settings.save()
+end
+
+function aardwolf_interface.settings.details_are_visible()
+  return aardwolf_interface.settings.data and aardwolf_interface.settings.data.details_visible == true
+end
+
+function aardwolf_interface.settings.set_details_visible(visible)
+  aardwolf_interface.settings.data = aardwolf_interface.settings.data or copy_defaults()
+  aardwolf_interface.settings.data.details_visible = visible and true or false
+  return aardwolf_interface.settings.save()
+end
+
+function aardwolf_interface.settings.cycle_theme()
+  aardwolf_interface.settings.data = aardwolf_interface.settings.data or copy_defaults()
+  aardwolf_interface.settings.data.theme = aardwolf_interface.settings.data.theme == "high-contrast" and "dark" or "high-contrast"
+  aardwolf_interface.settings.save()
+  return aardwolf_interface.settings.data.theme
+end
+
+-- UI owns the sidebar, bottom HUD, border claims, and mapper display.
+aardwolf_interface.ui = aardwolf_interface.ui or {}
+
+local UI_PREFIX = "aardwolf-interface::ui::"
+local TIMER_USER = "aardwolf_interface"
+local RENDER_TIMER = "aardwolf-interface::timer::render"
+local START_TIMER = "aardwolf-interface::timer::start"
+local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
+local DETAILS_QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
+local DETAILS_CAPTURE_TIMER = "aardwolf-interface::timer::details-capture"
+local DETAILS_DEBOUNCE_TIMER = "aardwolf-interface::timer::details-debounce"
+local MINIMUM_WIDTH = 340
+local MAXIMUM_WIDTH = 480
+local WIDTH_RATIO = 0.30
+local DETAILS_MINIMUM_WIDTH = 360
+local DETAILS_MAXIMUM_WIDTH = 460
+local DETAILS_WIDTH_RATIO = 0.32
+local COLUMN_GAP = 6
+local GROUP_LIMIT = 10
+local DETAIL_LIMIT = 100
+local TICK_DURATION = 30
+local HUD_HEIGHT = 64
+local HUD_MARGIN = 6
+local HUD_GAP = 4
+local HUD_ROW_HEIGHT = 24
+
+local WEAR_LOCATIONS = {
+  [0] = "Light", [1] = "Head", [2] = "Eyes", [3] = "Left ear", [4] = "Right ear",
+  [5] = "Neck 1", [6] = "Neck 2", [7] = "Back", [8] = "Medal 1", [9] = "Medal 2",
+  [10] = "Medal 3", [11] = "Medal 4", [12] = "Torso", [13] = "Body", [14] = "Waist",
+  [15] = "Arms", [16] = "Left wrist", [17] = "Right wrist", [18] = "Hands",
+  [19] = "Left finger", [20] = "Right finger", [21] = "Legs", [22] = "Feet",
+  [23] = "Shield", [24] = "Wielded", [25] = "Second", [26] = "Hold", [27] = "Float",
+  [28] = "Tattoo 1", [29] = "Tattoo 2", [30] = "Above", [31] = "Portal", [32] = "Sleeping",
+}
+
+local CHARACTER_STATES = {
+  [1] = "Login", [2] = "Login sequence", [3] = "Active", [4] = "AFK", [5] = "Note",
+  [6] = "Editing", [7] = "Pager", [8] = "Combat", [9] = "Sleeping", [11] = "Resting", [12] = "Running",
+}
+
+local THEMES = {
+  ["dark"] = {
+    ["panel"] = "#10141b", ["section"] = "#171d27", ["border"] = "#48566a",
+    ["text"] = "#edf2f7", ["muted"] = "#aeb9c8", ["accent"] = "#55c2ff",
+    ["hp"] = "#28a745", ["mana"] = "#3489eb", ["moves"] = "#d3a72f",
+    ["enemy"] = "#d9534f", ["hunger"] = "#e08a2e", ["thirst"] = "#33b5e5",
+    ["gauge_back"] = "#29313d",
+  },
+  ["high-contrast"] = {
+    ["panel"] = "#000000", ["section"] = "#090909", ["border"] = "#ffffff",
+    ["text"] = "#ffffff", ["muted"] = "#e6e6e6", ["accent"] = "#00ffff",
+    ["hp"] = "#00ff5a", ["mana"] = "#00aaff", ["moves"] = "#ffff00",
+    ["enemy"] = "#ff3b30", ["hunger"] = "#ff9900", ["thirst"] = "#00ffff",
+    ["gauge_back"] = "#333333",
+  },
+}
+
+local function html_escape(value)
+  local text = clean_text(value, 1000) or ""
+  return text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("'", "&#39;")
+end
+
+local function display_number(value)
+  local number = finite_number(value)
+  if not number then
+    return "--"
+  end
+  if number == math.floor(number) then
+    return string.format("%d", number)
+  end
+  return string.format("%.1f", number)
+end
+
+local function current_theme()
+  local name = aardwolf_interface.settings.data and aardwolf_interface.settings.data.theme or "dark"
+  return THEMES[name] or THEMES.dark
+end
+
+local function widget(name)
+  return aardwolf_interface.ui.widgets and aardwolf_interface.ui.widgets[name]
+end
+
+local function safe_call(object, method, ...)
+  if type(object) ~= "table" or type(object[method]) ~= "function" then
+    return false
+  end
+  return pcall(object[method], object, ...)
+end
+
+function aardwolf_interface.ui.message(message)
+  echo("\n[aardwolf-interface] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_interface.ui.available()
+  return type(Geyser) == "table"
+    and type(Geyser.Container) == "table"
+    and type(Geyser.Label) == "table"
+    and type(Geyser.Gauge) == "table"
+    and type(Geyser.Mapper) == "table"
+    and type(Geyser.ScrollBox) == "table"
+    and type(getBorderRight) == "function"
+    and type(setBorderRight) == "function"
+    and type(getBorderBottom) == "function"
+    and type(setBorderBottom) == "function"
+end
+
+function aardwolf_interface.ui.details_width()
+  if type(getMainWindowSize) == "function" then
+    local ok, width = pcall(getMainWindowSize)
+    if ok and finite_number(width) then
+      return math.floor(math.max(DETAILS_MINIMUM_WIDTH, math.min(DETAILS_MAXIMUM_WIDTH, width * DETAILS_WIDTH_RATIO)))
+    end
+  end
+  return math.floor(math.max(DETAILS_MINIMUM_WIDTH, math.min(DETAILS_MAXIMUM_WIDTH, 1200 * DETAILS_WIDTH_RATIO)))
+end
+
+function aardwolf_interface.ui.total_width()
+  local width = aardwolf_interface.ui.panel_width()
+  if aardwolf_interface.settings.details_are_visible() then
+    return width + COLUMN_GAP + aardwolf_interface.ui.details_width()
+  end
+  return width
+end
+
+function aardwolf_interface.ui.panel_width()
+  local window_width = 1200
+  if type(getMainWindowSize) == "function" then
+    local ok, width = pcall(getMainWindowSize)
+    if ok and finite_number(width) then
+      return math.floor(math.max(MINIMUM_WIDTH, math.min(MAXIMUM_WIDTH, width * WIDTH_RATIO)))
+    end
+  end
+  return math.floor(math.max(MINIMUM_WIDTH, math.min(MAXIMUM_WIDTH, window_width * WIDTH_RATIO)))
+end
+
+function aardwolf_interface.ui.panel_height()
+  if type(getMainWindowSize) == "function" then
+    local ok, _, height = pcall(getMainWindowSize)
+    if ok and finite_number(height) then
+      return height
+    end
+  end
+  return 800
+end
+
+function aardwolf_interface.ui.claim_border(width)
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local current = finite_number(getBorderRight()) or 0
+  local stored = settings.border_claim
+  local base = type(stored) == "table" and current == stored.applied and stored.base or current
+  local applied = base + width
+  setBorderRight(applied)
+  settings.border_claim = {base = base, width = width, applied = applied}
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.state.border_conflict = false
+  aardwolf_interface.settings.save()
+  return base, applied
+end
+
+function aardwolf_interface.ui.release_border()
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local claim = settings.border_claim
+  if type(claim) ~= "table" then
+    return true
+  end
+  local current = finite_number(getBorderRight()) or 0
+  if current == claim.applied then
+    setBorderRight(claim.base)
+    aardwolf_interface.state.border_conflict = false
+  else
+    aardwolf_interface.state.border_conflict = true
+  end
+  settings.border_claim = nil
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.settings.save()
+  return not aardwolf_interface.state.border_conflict
+end
+
+function aardwolf_interface.ui.claim_bottom_border(height)
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local current = finite_number(getBorderBottom()) or 0
+  local stored = settings.bottom_border_claim
+  local base = type(stored) == "table" and current == stored.applied and stored.base or current
+  local applied = base + height
+  setBorderBottom(applied)
+  settings.bottom_border_claim = {base = base, height = height, applied = applied}
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.state.bottom_border_conflict = false
+  aardwolf_interface.settings.save()
+  return base, applied
+end
+
+function aardwolf_interface.ui.release_bottom_border()
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local claim = settings.bottom_border_claim
+  if type(claim) ~= "table" then
+    return true
+  end
+  local current = finite_number(getBorderBottom()) or 0
+  if current == claim.applied then
+    setBorderBottom(claim.base)
+    aardwolf_interface.state.bottom_border_conflict = false
+  else
+    aardwolf_interface.state.bottom_border_conflict = true
+  end
+  settings.bottom_border_claim = nil
+  aardwolf_interface.settings.data = settings
+  aardwolf_interface.settings.save()
+  return not aardwolf_interface.state.bottom_border_conflict
+end
+
+function aardwolf_interface.ui.hud_width()
+  local right_border = finite_number(getBorderRight()) or 0
+  if type(getMainWindowSize) == "function" then
+    local ok, width = pcall(getMainWindowSize)
+    if ok and finite_number(width) then
+      return math.max(0, width - right_border)
+    end
+  end
+  return math.max(0, 1200 - right_border)
+end
+
+function aardwolf_interface.ui.capture_mapper_owner()
+  if not aardwolf_interface.state.mapper_claimed then
+    local generic_was_shown = type(map) == "table"
+      and type(map.configs) == "table"
+      and type(map.configs.map_window) == "table"
+      and map.configs.map_window.shown == true
+    aardwolf_interface.state.generic_mapper_was_shown = generic_was_shown
+    aardwolf_interface.state.mapper_claimed = true
+    aardwolf_interface.state.upper_lower_levels_claimed = false
+  end
+
+  -- Mapper configuration writes can fail until the embedded mapper has been
+  -- created and shown. This function is deliberately retryable: build captures
+  -- the prior generic-mapper owner, then reflow calls it again after show().
+  if type(getConfig) == "function" and type(setConfig) == "function" then
+    local read_ok, was_shown = pcall(getConfig, "showUpperLowerLevels")
+    if read_ok and was_shown == true then
+      local write_ok, changed = pcall(setConfig, "showUpperLowerLevels", false)
+      if write_ok and changed then
+        aardwolf_interface.state.upper_lower_levels_claimed = true
+      end
+    end
+  end
+end
+
+function aardwolf_interface.ui.restore_mapper_owner()
+  if not aardwolf_interface.state.mapper_claimed then
+    return
+  end
+  safe_call(widget("mapper"), "hide")
+
+  if aardwolf_interface.state.upper_lower_levels_claimed
+    and type(getConfig) == "function"
+    and type(setConfig) == "function"
+  then
+    local read_ok, currently_shown = pcall(getConfig, "showUpperLowerLevels")
+    if read_ok and currently_shown == false then
+      pcall(setConfig, "showUpperLowerLevels", true)
+    end
+  end
+  aardwolf_interface.state.upper_lower_levels_claimed = false
+
+  if aardwolf_interface.state.generic_mapper_was_shown and type(map) == "table" and type(map.showMap) == "function" then
+    pcall(map.showMap, true)
+  end
+  aardwolf_interface.state.mapper_claimed = false
+  aardwolf_interface.state.generic_mapper_was_shown = false
+end
+
+local function new_label(name, parent)
+  return Geyser.Label:new({name = UI_PREFIX .. name, x = 0, y = 0, width = 10, height = 10}, parent)
+end
+
+local function new_gauge(name, parent)
+  return Geyser.Gauge:new({name = UI_PREFIX .. name, x = 0, y = 0, width = 10, height = 10, strict = true}, parent)
+end
+
+function aardwolf_interface.ui.build()
+  if aardwolf_interface.ui.root then
+    return true
+  end
+  if not aardwolf_interface.ui.available() then
+    return false
+  end
+  local width = aardwolf_interface.ui.total_width()
+  local base = aardwolf_interface.ui.claim_border(width)
+  local bottom_base = aardwolf_interface.ui.claim_bottom_border(HUD_HEIGHT)
+  aardwolf_interface.ui.width = aardwolf_interface.ui.panel_width()
+  aardwolf_interface.ui.base_right = base
+  aardwolf_interface.ui.base_bottom = bottom_base
+  aardwolf_interface.ui.root = Geyser.Container:new({
+    ["name"] = UI_PREFIX .. "root",
+    ["x"] = -(base + width), ["y"] = 0, ["width"] = width, ["height"] = "100%",
+  })
+  local root = aardwolf_interface.ui.root
+  local widgets = {}
+  aardwolf_interface.ui.widgets = widgets
+  aardwolf_interface.ui.bottom_root = Geyser.Container:new({
+    ["name"] = UI_PREFIX .. "bottom-root", ["x"] = 0, ["y"] = -(bottom_base + HUD_HEIGHT),
+    ["width"] = aardwolf_interface.ui.hud_width(), ["height"] = HUD_HEIGHT,
+  })
+  local bottom_root = aardwolf_interface.ui.bottom_root
+  widgets.bottom_background = new_label("bottom-background", bottom_root)
+  for _, name in ipairs({"hp", "mana", "moves", "tnl", "enemy", "hunger", "thirst"}) do
+    widgets[name] = new_gauge(name, bottom_root)
+  end
+  widgets.primary = Geyser.Container:new({name = UI_PREFIX .. "primary", x = 0, y = 0, width = 10, height = "100%"}, root)
+  local primary = widgets.primary
+  widgets.background = new_label("background", primary)
+  widgets.header = new_label("header", primary)
+  widgets.details_toggle = new_label("details-toggle", primary)
+  widgets.room = new_label("room", primary)
+  widgets.tick = new_gauge("tick", primary)
+  widgets.stats = new_label("stats", primary)
+  widgets.group = new_label("group", primary)
+  aardwolf_interface.ui.capture_mapper_owner()
+  widgets.mapper = Geyser.Mapper:new({
+    ["name"] = UI_PREFIX .. "mapper", ["x"] = 0, ["y"] = 0, ["width"] = 10, ["height"] = 10,
+  }, primary)
+  widgets.map_status = new_label("map-status", primary)
+
+  widgets.details = Geyser.Container:new({name = UI_PREFIX .. "details", x = 0, y = 0, width = 10, height = "100%"}, root)
+  widgets.details_background = new_label("details-background", widgets.details)
+  widgets.details_header = new_label("details-header", widgets.details)
+  widgets.details_collapse = new_label("details-collapse", widgets.details)
+  widgets.details_refresh = new_label("details-refresh", widgets.details)
+  widgets.details_scroll = Geyser.ScrollBox:new({
+    ["name"] = UI_PREFIX .. "details-scroll", ["x"] = 0, ["y"] = 0, ["width"] = 10, ["height"] = 10,
+  }, widgets.details)
+  for _, name in ipairs({"equipment", "bags"}) do
+    widgets["details_" .. name] = new_label("details-" .. name, widgets.details_scroll)
+  end
+  safe_call(widgets.header, "setFontSize", 11)
+  for _, name in ipairs({"room", "stats", "group", "map_status", "details_header", "details_equipment", "details_bags"}) do
+    safe_call(widgets[name], "setFontSize", 10)
+  end
+  safe_call(widgets.map_status, "enableClickthrough")
+  safe_call(widgets.details_toggle, "setClickCallback", aardwolf_interface.commands.details_toggle)
+  safe_call(widgets.details_collapse, "setClickCallback", aardwolf_interface.commands.details_hide)
+  safe_call(widgets.details_refresh, "setClickCallback", aardwolf_interface.commands.details_refresh)
+  safe_call(widgets.details_toggle, "setCursor", "PointingHand")
+  safe_call(widgets.details_collapse, "setCursor", "PointingHand")
+  safe_call(widgets.details_refresh, "setCursor", "PointingHand")
+  aardwolf_interface.ui.apply_theme()
+  aardwolf_interface.ui.reflow()
+  return true
+end
+
+function aardwolf_interface.ui.apply_theme()
+  if not aardwolf_interface.ui.widgets then
+    return
+  end
+  local theme = current_theme()
+  local panel_css = string.format("background-color: %s; color: %s; border: 1px solid %s;", theme.panel, theme.text, theme.border)
+  local section_css = string.format("background-color: %s; color: %s; border: 1px solid %s; padding: 5px; font-size: 10pt;", theme.section, theme.text, theme.border)
+  local header_css = string.format("background-color: %s; color: %s; border-bottom: 2px solid %s; padding: 6px; font-size: 11pt; font-weight: bold;", theme.section, theme.accent, theme.border)
+  safe_call(widget("background"), "setStyleSheet", panel_css)
+  safe_call(widget("bottom_background"), "setStyleSheet", panel_css)
+  safe_call(widget("details_background"), "setStyleSheet", panel_css)
+  safe_call(widget("header"), "setStyleSheet", header_css)
+  safe_call(widget("details_header"), "setStyleSheet", header_css)
+  local button_css = string.format("background-color: %s; color: %s; border: 1px solid %s; padding: 4px; font-weight: bold;", theme.section, theme.accent, theme.border)
+  for _, name in ipairs({"details_toggle", "details_collapse", "details_refresh"}) do
+    safe_call(widget(name), "setStyleSheet", button_css)
+  end
+  for _, name in ipairs({"room", "stats", "group", "map_status", "details_equipment", "details_bags"}) do
+    safe_call(widget(name), "setStyleSheet", section_css)
+  end
+  local colors = {
+    ["hp"] = theme.hp, ["mana"] = theme.mana, ["moves"] = theme.moves, ["tnl"] = theme.accent,
+    ["enemy"] = theme.enemy, ["hunger"] = theme.hunger, ["thirst"] = theme.thirst, ["tick"] = theme.accent,
+  }
+  for name, color in pairs(colors) do
+    local gauge = widget(name)
+    safe_call(gauge, "setStyleSheet",
+      string.format("background-color: %s; border: 1px solid %s;", color, theme.border),
+      string.format("background-color: %s; border: 1px solid %s;", theme.gauge_back, theme.border),
+      string.format("color: %s; font-size: 9pt; font-weight: bold;", theme.text))
+  end
+end
+
+function aardwolf_interface.ui.reflow()
+  local root = aardwolf_interface.ui.root
+  if not root then
+    return false
+  end
+  local width = aardwolf_interface.ui.panel_width()
+  local details_visible = aardwolf_interface.settings.details_are_visible()
+  local details_width = aardwolf_interface.ui.details_width()
+  local total_width = width + (details_visible and (COLUMN_GAP + details_width) or 0)
+  local height = aardwolf_interface.ui.panel_height()
+  local settings = aardwolf_interface.settings.data or copy_defaults()
+  local claim = settings.border_claim
+  if type(claim) == "table" and (finite_number(getBorderRight()) or 0) == claim.applied and total_width ~= claim.width then
+    setBorderRight(claim.base + total_width)
+    claim.width = total_width
+    claim.applied = claim.base + total_width
+    aardwolf_interface.settings.save()
+  elseif type(claim) == "table" and (finite_number(getBorderRight()) or 0) ~= claim.applied then
+    aardwolf_interface.state.border_conflict = true
+  end
+  local base = type(claim) == "table" and claim.base or (aardwolf_interface.ui.base_right or 0)
+  aardwolf_interface.ui.width = width
+  aardwolf_interface.ui.details_width_value = details_width
+  aardwolf_interface.ui.base_right = base
+  safe_call(root, "move", -(base + total_width), 0)
+  safe_call(root, "resize", total_width, "100%")
+
+  local bottom_claim = settings.bottom_border_claim
+  local bottom_base = type(bottom_claim) == "table" and bottom_claim.base or (aardwolf_interface.ui.base_bottom or 0)
+  if type(bottom_claim) == "table" and (finite_number(getBorderBottom()) or 0) ~= bottom_claim.applied then
+    aardwolf_interface.state.bottom_border_conflict = true
+  end
+  aardwolf_interface.ui.base_bottom = bottom_base
+  local hud_width = aardwolf_interface.ui.hud_width()
+  safe_call(aardwolf_interface.ui.bottom_root, "move", 0, -(bottom_base + HUD_HEIGHT))
+  safe_call(aardwolf_interface.ui.bottom_root, "resize", hud_width, HUD_HEIGHT)
+  safe_call(widget("bottom_background"), "move", 0, 0)
+  safe_call(widget("bottom_background"), "resize", "100%", "100%")
+
+  local hud_content_width = math.max(0, hud_width - HUD_MARGIN * 2)
+  local first_width = math.max(0, (hud_content_width - HUD_GAP * 4) / 5)
+  local first_y = HUD_MARGIN
+  for index, name in ipairs({"hp", "mana", "moves", "tnl", "enemy"}) do
+    local x = HUD_MARGIN + (index - 1) * (first_width + HUD_GAP)
+    safe_call(widget(name), "move", x, first_y)
+    safe_call(widget(name), "resize", first_width, HUD_ROW_HEIGHT)
+  end
+  local second_width = math.max(0, (hud_content_width - HUD_GAP) / 2)
+  local second_y = first_y + HUD_ROW_HEIGHT + HUD_GAP
+  for index, name in ipairs({"hunger", "thirst"}) do
+    local x = HUD_MARGIN + (index - 1) * (second_width + HUD_GAP)
+    safe_call(widget(name), "move", x, second_y)
+    safe_call(widget(name), "resize", second_width, HUD_ROW_HEIGHT)
+  end
+
+  safe_call(widget("primary"), "move", 0, 0)
+  safe_call(widget("primary"), "resize", width, "100%")
+  safe_call(widget("background"), "move", 0, 0)
+  safe_call(widget("background"), "resize", "100%", "100%")
+
+  safe_call(widget("details"), "move", width + COLUMN_GAP, 0)
+  safe_call(widget("details"), "resize", details_width, "100%")
+  safe_call(widget("details_background"), "move", 0, 0)
+  safe_call(widget("details_background"), "resize", "100%", "100%")
+  if details_visible then
+    safe_call(widget("details"), "show")
+  else
+    safe_call(widget("details"), "hide")
+  end
+
+  local margin = 8
+  local content_width = width - margin * 2
+  local header_y = margin
+  safe_call(widget("header"), "move", margin, header_y)
+  safe_call(widget("header"), "resize", content_width - 92, 34)
+  safe_call(widget("details_toggle"), "move", width - margin - 86, header_y)
+  safe_call(widget("details_toggle"), "resize", 86, 34)
+  local room_y = header_y + 40
+  safe_call(widget("room"), "move", margin, room_y)
+  safe_call(widget("room"), "resize", content_width - 96, 48)
+  safe_call(widget("tick"), "move", width - margin - 90, room_y)
+  safe_call(widget("tick"), "resize", 90, 48)
+  local stats_y = room_y + 56
+  safe_call(widget("stats"), "move", margin, stats_y)
+  safe_call(widget("stats"), "resize", content_width, 126)
+  local group_y = stats_y + 134
+  local remaining = math.max(0, height - group_y - margin)
+  local group_members = aardwolf_interface.state.session
+    and aardwolf_interface.state.session.group
+    and aardwolf_interface.state.session.group.members
+    or {}
+  local displayed_group_rows = math.min(#group_members, GROUP_LIMIT)
+    + (#group_members > GROUP_LIMIT and 1 or 0)
+  local desired_group_height = #group_members == 0
+    and 48
+    or math.min(228, 30 + displayed_group_rows * 18)
+  local group_height = math.max(44, math.min(desired_group_height, math.max(44, remaining - 128)))
+  local map_height = math.max(0, remaining - group_height - 8)
+  aardwolf_interface.ui.group_height = group_height
+  aardwolf_interface.ui.group_member_count = #group_members
+  aardwolf_interface.ui.group_row_capacity = math.max(1, math.floor((group_height - 28) / 18))
+  safe_call(widget("group"), "move", margin, group_y)
+  safe_call(widget("group"), "resize", content_width, group_height)
+  local map_y = group_y + group_height + 8
+  safe_call(widget("mapper"), "move", margin, map_y)
+  safe_call(widget("mapper"), "resize", content_width, map_height)
+  safe_call(widget("map_status"), "move", margin, map_y)
+  safe_call(widget("map_status"), "resize", content_width, map_height)
+  if aardwolf_interface.settings.is_visible() then
+    safe_call(widget("mapper"), "show")
+    aardwolf_interface.ui.capture_mapper_owner()
+  end
+
+  local details_margin = 8
+  safe_call(widget("details_header"), "move", details_margin, details_margin)
+  safe_call(widget("details_header"), "resize", details_width - details_margin * 2 - 126, 34)
+  safe_call(widget("details_refresh"), "move", details_width - details_margin - 84, details_margin)
+  safe_call(widget("details_refresh"), "resize", 52, 34)
+  safe_call(widget("details_collapse"), "move", details_width - details_margin - 28, details_margin)
+  safe_call(widget("details_collapse"), "resize", 28, 34)
+  safe_call(widget("details_scroll"), "move", details_margin, 50)
+  safe_call(widget("details_scroll"), "resize", details_width - details_margin * 2, math.max(0, height - 58))
+  return true
+end
+
+local function gauge_value(name, current, maximum, label)
+  local gauge = widget(name)
+  local value = finite_number(current)
+  local limit = finite_number(maximum)
+  local text = label .. "  " .. display_number(value) .. " / " .. display_number(limit)
+  if value and limit and limit > 0 then
+    safe_call(gauge, "setValue", math.max(0, math.min(value, limit)), limit, text)
+  else
+    safe_call(gauge, "setValue", 0, 100, text)
+  end
+end
+
+local function percentage_gauge(name, value, label)
+  local gauge = widget(name)
+  local percent = aardwolf_interface.state.percent(value)
+  local text = label .. "  " .. (percent and (display_number(percent) .. "%") or "--")
+  safe_call(gauge, "setValue", percent or 0, 100, text)
+end
+
+local function room_count()
+  if type(getRooms) ~= "function" then
+    return 0
+  end
+  local ok, rooms = pcall(getRooms)
+  if not ok or type(rooms) ~= "table" then
+    return 0
+  end
+  for _ in pairs(rooms) do
+    return 1
+  end
+  return 0
+end
+
+local function detail_section(title, rows, columns)
+  local output = {string.format([[<table width="100%%" cellspacing="0" cellpadding="1"><tr><td colspan="%d"><b>%s</b></td></tr>]], columns, html_escape(title))}
+  for _, row in ipairs(rows) do
+    output[#output + 1] = "<tr>"
+    for index = 1, columns do
+      output[#output + 1] = "<td>" .. html_escape(row[index] or "") .. "</td>"
+    end
+    output[#output + 1] = "</tr>"
+  end
+  output[#output + 1] = "</table>"
+  return table.concat(output)
+end
+
+local function detail_height(row_count)
+  return math.max(50, 30 + math.max(1, row_count) * 18)
+end
+
+local function sorted_numeric_keys(values)
+  local keys = {}
+  for key in pairs(values or {}) do
+    local numeric = finite_number(key)
+    if numeric then
+      keys[#keys + 1] = numeric
+    end
+  end
+  table.sort(keys)
+  return keys
+end
+
+function aardwolf_interface.ui.render_details()
+  if not aardwolf_interface.ui.widgets then
+    return
+  end
+  local snapshot = aardwolf_interface.state.snapshot()
+  local details = snapshot.details or {}
+  local freshness = details.refreshing and "refreshing"
+    or details.error and ("error: " .. details.error)
+    or details.overflow and "record limit reached"
+    or details.stale and "stale"
+    or details.last_updated and os.date("%H:%M:%S", details.last_updated)
+    or "unavailable"
+  safe_call(widget("details_header"), "echo", "<b>Character Details</b><br><span style=\"font-size: 8pt;\">" .. html_escape(freshness) .. "</span>")
+  safe_call(widget("details_refresh"), "echo", "<div align=\"center\"><b>Refresh</b></div>")
+  safe_call(widget("details_collapse"), "echo", "<div align=\"center\"><b>&gt;</b></div>")
+  safe_call(widget("details_toggle"), "echo", "<div align=\"center\"><b>Details " .. (aardwolf_interface.settings.details_are_visible() and "&gt;" or "&lt;") .. "</b></div>")
+
+  local equipment_rows = {}
+  for slot = 0, 32 do
+    local item = details.equipment and details.equipment[slot]
+    equipment_rows[#equipment_rows + 1] = {WEAR_LOCATIONS[slot], item and item.name or "--"}
+  end
+  for _, slot in ipairs(sorted_numeric_keys(details.equipment)) do
+    if not WEAR_LOCATIONS[slot] then
+      local item = details.equipment[slot]
+      equipment_rows[#equipment_rows + 1] = {"Slot " .. tostring(slot), item and item.name or "--"}
+    end
+  end
+  safe_call(widget("details_equipment"), "echo", detail_section("Equipment", equipment_rows, 2))
+
+  local bag_rows = {}
+  for _, bag in ipairs(details.bags or {}) do
+    local weight = bag.pending and "pending"
+      or bag.used_weight ~= nil and bag.max_weight ~= nil and (display_number(bag.used_weight) .. " / " .. display_number(bag.max_weight))
+      or ("used " .. (bag.used_weight ~= nil and display_number(bag.used_weight) or "unavailable")
+        .. " / max " .. (bag.max_weight ~= nil and display_number(bag.max_weight) or "unavailable"))
+    bag_rows[#bag_rows + 1] = {bag.name or ("Container " .. display_number(bag.id)), weight}
+  end
+  if #bag_rows == 0 then
+    bag_rows[1] = {details.last_updated and "No carried bags" or "Unavailable", ""}
+  end
+  safe_call(widget("details_bags"), "echo", detail_section("Bags (used / max weight)", bag_rows, 2))
+
+  local y = 0
+  local layouts = {
+    {"details_equipment", detail_height(#equipment_rows)},
+    {"details_bags", detail_height(#bag_rows)},
+  }
+  local content_width = math.max(10, (aardwolf_interface.ui.details_width_value or DETAILS_MINIMUM_WIDTH) - 16)
+  for _, layout in ipairs(layouts) do
+    safe_call(widget(layout[1]), "move", 0, y)
+    safe_call(widget(layout[1]), "resize", content_width, layout[2]); y = y + layout[2] + 8
+  end
+end
+
+function aardwolf_interface.ui.render()
+  aardwolf_interface.state.render_pending = false
+  if not aardwolf_interface.ui.root or not aardwolf_interface.settings.is_visible() then
+    return
+  end
+  local snapshot = aardwolf_interface.state.snapshot()
+  local theme_name = aardwolf_interface.settings.data and aardwolf_interface.settings.data.theme or "dark"
+  safe_call(widget("header"), "echo", "<b>Aardwolf Dashboard</b> &nbsp;|&nbsp; " .. html_escape(theme_name))
+  safe_call(widget("details_toggle"), "echo", "<div align=\"center\"><b>Details " .. (aardwolf_interface.settings.details_are_visible() and "&gt;" or "&lt;") .. "</b></div>")
+  local room_name = html_escape(snapshot.room.name or "Waiting for room.info")
+  local area = html_escape(snapshot.room.area or snapshot.room.zone or "Unknown area")
+  local vnum = display_number(snapshot.room.num)
+  safe_call(widget("room"), "echo", "<b>" .. room_name .. "</b><br>" .. area .. " &nbsp;[" .. vnum .. "]")
+
+  local tick_remaining = aardwolf_interface.state.tick_remaining()
+  safe_call(widget("tick"), "setValue", tick_remaining or 0, snapshot.tick.duration or TICK_DURATION,
+    tick_remaining and display_number(tick_remaining) or "--")
+  gauge_value("hp", snapshot.vitals.hp, snapshot.maxstats.maxhp, "HP")
+  gauge_value("mana", snapshot.vitals.mana, snapshot.maxstats.maxmana, "Mana")
+  gauge_value("moves", snapshot.vitals.moves, snapshot.maxstats.maxmoves, "Moves")
+  gauge_value("tnl", snapshot.status.tnl, snapshot.base.perlevel, "TNL")
+  local enemy_name = snapshot.status.enemy and html_escape(snapshot.status.enemy) or "No enemy"
+  local enemy_percent = aardwolf_interface.state.percent(snapshot.status.enemypct)
+  safe_call(widget("enemy"), "setValue", enemy_percent or 0, 100,
+    "Enemy  " .. enemy_name .. (enemy_percent and ("  " .. display_number(enemy_percent) .. "%") or ""))
+  percentage_gauge("hunger", snapshot.status.hunger, "Hunger")
+  percentage_gauge("thirst", snapshot.status.thirst, "Thirst")
+
+  local stats = snapshot.stats
+  local maximums = snapshot.maxstats
+  local worth = snapshot.worth
+  local status = snapshot.status
+  local state_number = finite_number(status.state)
+  local stats_text = string.format([[
+<table width="100%%" cellspacing="0" cellpadding="1">
+<tr><td colspan="4"><b>Character</b></td></tr>
+<tr><td><b>Str</b> %s/%s</td><td><b>Int</b> %s/%s</td><td><b>Wis</b> %s/%s</td><td></td></tr>
+<tr><td><b>Dex</b> %s/%s</td><td><b>Con</b> %s/%s</td><td><b>Luck</b> %s/%s</td><td></td></tr>
+<tr><td><b>Level</b> %s</td><td><b>Hitroll</b> %s</td><td><b>Damroll</b> %s</td><td><b>Align</b> %s</td></tr>
+<tr><td><b>QP</b> %s</td><td><b>TP</b> %s</td><td colspan="2"><b>Gold</b> %s</td></tr>
+<tr><td colspan="2"><b>Trains</b> %s</td><td colspan="2"><b>Practices</b> %s</td></tr>
+<tr><td colspan="2"><b>Position</b> %s</td><td colspan="2"><b>State</b> %s</td></tr>
+</table>]],
+    display_number(stats.str), display_number(maximums.maxstr),
+    display_number(stats.int), display_number(maximums.maxint),
+    display_number(stats.wis), display_number(maximums.maxwis),
+    display_number(stats.dex), display_number(maximums.maxdex),
+    display_number(stats.con), display_number(maximums.maxcon),
+    display_number(stats.luck), display_number(maximums.maxluck),
+    display_number(status.level), display_number(stats.hr), display_number(stats.dr), display_number(status.align),
+    display_number(worth.qp), display_number(worth.tp), display_number(worth.gold),
+    display_number(worth.trains), display_number(worth.pracs),
+    html_escape(status.pos or "--"), html_escape(CHARACTER_STATES[state_number] or display_number(state_number)))
+  safe_call(widget("stats"), "echo", stats_text)
+
+  local group_rows = {[[<table width="100%" cellspacing="0" cellpadding="1">]], [[<tr><td colspan="3"><b>Group</b></td></tr>]]}
+  local members = snapshot.group.members or {}
+  if aardwolf_interface.ui.group_member_count ~= #members then
+    aardwolf_interface.ui.reflow()
+  end
+  if #members == 0 then
+    group_rows[#group_rows + 1] = [[<tr><td colspan="3">No group data</td></tr>]]
+  else
+    local row_capacity = aardwolf_interface.ui.group_row_capacity or GROUP_LIMIT + 1
+    local member_limit = math.min(#members, GROUP_LIMIT, row_capacity)
+    local displayed_member_limit = #members > member_limit and member_limit == row_capacity
+      and math.max(0, member_limit - 1)
+      or member_limit
+    for index = 1, displayed_member_limit do
+      local member = members[index]
+      local hp = member.info and member.info.hp
+      local maxhp = member.info and member.info.mhp
+      group_rows[#group_rows + 1] = string.format("<tr><td>%s</td><td>Lvl %s</td><td>HP %s/%s</td></tr>",
+        html_escape(member.name or "Unknown"), display_number(member.info and member.info.lvl),
+        display_number(hp), display_number(maxhp))
+    end
+    if #members > displayed_member_limit then
+      group_rows[#group_rows + 1] = "<tr><td colspan=\"3\">+" .. tostring(#members - displayed_member_limit) .. " more</td></tr>"
+    end
+  end
+  group_rows[#group_rows + 1] = "</table>"
+  safe_call(widget("group"), "echo", table.concat(group_rows))
+
+  if room_count() == 0 then
+    safe_call(widget("map_status"), "echo", "<div align=\"center\"><b>Map is empty.</b><br>Run: aard map import</div>")
+    safe_call(widget("map_status"), "show")
+  else
+    safe_call(widget("map_status"), "hide")
+    safe_call(widget("mapper"), "show")
+  end
+  aardwolf_interface.ui.render_details()
+end
+
+function aardwolf_interface.ui.request_render()
+  if aardwolf_interface.state.render_pending then
+    return
+  end
+  aardwolf_interface.state.render_pending = true
+  if type(deleteNamedTimer) == "function" and type(registerNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, RENDER_TIMER)
+    registerNamedTimer(TIMER_USER, RENDER_TIMER, 0.1, aardwolf_interface.ui.render, true)
+  else
+    aardwolf_interface.ui.render()
+  end
+end
+
+function aardwolf_interface.ui.show(persist)
+  if not aardwolf_interface.ui.root and not aardwolf_interface.ui.build() then
+    aardwolf_interface.ui.message("Geyser is unavailable. Use 'aard interface status' for the text fallback.")
+    return false
+  end
+  if not (aardwolf_interface.settings.data and aardwolf_interface.settings.data.border_claim) then
+    local width = aardwolf_interface.ui.total_width()
+    local base = aardwolf_interface.ui.claim_border(width)
+    aardwolf_interface.ui.base_right = base
+  end
+  if not (aardwolf_interface.settings.data and aardwolf_interface.settings.data.bottom_border_claim) then
+    local base = aardwolf_interface.ui.claim_bottom_border(HUD_HEIGHT)
+    aardwolf_interface.ui.base_bottom = base
+  end
+  aardwolf_interface.ui.capture_mapper_owner()
+  if persist ~= false then
+    aardwolf_interface.settings.set_visible(true)
+  else
+    aardwolf_interface.settings.data.visible = true
+  end
+  safe_call(aardwolf_interface.ui.root, "show")
+  safe_call(aardwolf_interface.ui.bottom_root, "show")
+  aardwolf_interface.ui.reflow()
+  aardwolf_interface.ui.render()
+  if aardwolf_interface.settings.details_are_visible() then
+    aardwolf_interface.details.start()
+  end
+  return true
+end
+
+function aardwolf_interface.ui.hide(persist)
+  if persist ~= false then
+    aardwolf_interface.settings.set_visible(false)
+  elseif aardwolf_interface.settings.data then
+    aardwolf_interface.settings.data.visible = false
+  end
+  safe_call(aardwolf_interface.ui.root, "hide")
+  safe_call(aardwolf_interface.ui.bottom_root, "hide")
+  if aardwolf_interface.details and aardwolf_interface.details.stop then
+    aardwolf_interface.details.stop(true)
+  end
+  aardwolf_interface.ui.restore_mapper_owner()
+  aardwolf_interface.ui.release_bottom_border()
+  aardwolf_interface.ui.release_border()
+end
+
+function aardwolf_interface.ui.destroy()
+  aardwolf_interface.ui.hide(false)
+  local root = aardwolf_interface.ui.root
+  if root and type(root.delete) == "function" then
+    pcall(root.delete, root)
+    aardwolf_interface.ui.root = nil
+  end
+  local bottom_root = aardwolf_interface.ui.bottom_root
+  if bottom_root and type(bottom_root.delete) == "function" then
+    pcall(bottom_root.delete, bottom_root)
+    aardwolf_interface.ui.bottom_root = nil
+  end
+  aardwolf_interface.ui.widgets = nil
+end
+
+-- Details owns bounded tagged-output parsing and expanded-only command traffic.
+aardwolf_interface.details = aardwolf_interface.details or {}
+aardwolf_interface.details.runtime = aardwolf_interface.details.runtime or {}
+
+local function strip_aardwolf_colors(value)
+  local text = clean_text(value, 500) or ""
+  return text:gsub("@x%d%d%d", ""):gsub("@.", "")
+end
+
+local function split_plain(value, separator, limit)
+  local output = {}
+  local start = 1
+  while #output < (limit or DETAIL_LIMIT) do
+    local position = value:find(separator, start, true)
+    if not position then
+      output[#output + 1] = value:sub(start)
+      break
+    end
+    output[#output + 1] = value:sub(start, position - 1); start = position + #separator
+  end
+  return output
+end
+
+local function details_state()
+  local snapshot = aardwolf_interface.state.snapshot()
+  snapshot.details = snapshot.details or {equipment = {}, bags = {}, stale = true}
+  return snapshot.details
+end
+
+local function parse_inventory_row(line)
+  local id, flags, name, level, item_type, unique, wear_location, timer = line:match(
+    "^%s*(%d+),([%a]*),(.+),(%d+),(%d+),([01]),(-?%d+),(-?%d+)%s*$")
+  if not id then
+    return nil
+  end
+  return {
+    ["id"] = finite_number(id), ["flags"] = clean_text(flags, 20), ["name"] = strip_aardwolf_colors(name),
+    ["level"] = finite_number(level), ["item_type"] = finite_number(item_type), ["unique"] = unique == "1",
+    ["wear_location"] = finite_number(wear_location), ["timer"] = finite_number(timer),
+  }
+end
+
+local function active_character()
+  return finite_number(aardwolf_interface.state.snapshot().status.state) == 3
+end
+
+local function delete_named_timer(name)
+  if type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, name)
+  end
+end
+
+function aardwolf_interface.details.cancel_queue()
+  local runtime = aardwolf_interface.details.runtime
+  runtime.queue = {}
+  runtime.capture = nil
+  runtime.pending_refresh = {}
+  delete_named_timer(DETAILS_QUEUE_TIMER)
+  delete_named_timer(DETAILS_CAPTURE_TIMER)
+  delete_named_timer(DETAILS_DEBOUNCE_TIMER)
+  local details = details_state()
+  details.refreshing = false
+end
+
+local function schedule_queue(delay)
+  local runtime = aardwolf_interface.details.runtime
+  if not aardwolf_interface.settings.details_are_visible() or runtime.capture or #(runtime.queue or {}) == 0 then
+    return
+  end
+  if type(registerNamedTimer) == "function" and type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, DETAILS_QUEUE_TIMER)
+    registerNamedTimer(TIMER_USER, DETAILS_QUEUE_TIMER, delay or 0.05, aardwolf_interface.details.pump_queue, true)
+  else
+    aardwolf_interface.details.pump_queue()
+  end
+end
+
+local function enqueue(command, kind, metadata)
+  local runtime = aardwolf_interface.details.runtime
+  runtime.queue = runtime.queue or {}
+  for _, queued in ipairs(runtime.queue) do
+    if queued.command == command then
+      return
+    end
+  end
+  runtime.queue[#runtime.queue + 1] = {command = command, kind = kind, metadata = metadata or {}}
+end
+
+local function finish_capture(success, error_message)
+  local runtime = aardwolf_interface.details.runtime
+  local capture = runtime.capture
+  delete_named_timer(DETAILS_CAPTURE_TIMER)
+  runtime.capture = nil
+  local details = details_state()
+  if success then
+    details.stale = false
+    details.last_updated = os.time()
+    details.error = nil
+  elseif error_message then
+    details.error = clean_text(error_message, 160)
+  end
+  details.refreshing = #(runtime.queue or {}) > 0
+  aardwolf_interface.ui.request_render()
+  schedule_queue(capture and capture.kind == "invdetails" and 1.0 or 0.1)
+end
+
+local function commit_capture(capture)
+  local details = details_state()
+  if capture.kind == "eqdata" then
+    local equipment = {}
+    for _, item in ipairs(capture.rows) do
+      if item.wear_location and item.wear_location >= 0 and not equipment[item.wear_location] then
+        equipment[item.wear_location] = item
+      end
+    end
+    details.equipment = equipment
+  elseif capture.kind == "invdata" then
+    local bags = {}
+    for _, item in ipairs(capture.rows) do
+      if item.item_type == 11 and #bags < DETAIL_LIMIT then
+        bags[#bags + 1] = {id = item.id, name = item.name, pending = true}
+      end
+    end
+    details.bags = bags
+    for _, bag in ipairs(bags) do
+      enqueue("invdetails " .. tostring(bag.id), "invdetails", {id = bag.id})
+    end
+  elseif capture.kind == "invdetails" then
+    for _, bag in ipairs(details.bags or {}) do
+      if bag.id == capture.metadata.id then
+        bag.used_weight = capture.used_weight
+        bag.max_weight = capture.max_weight
+        bag.pending = false
+        break
+      end
+    end
+  end
+  if capture.overflow then
+    details.overflow = true
+  end
+end
+
+function aardwolf_interface.details.capture_timeout()
+  local capture = aardwolf_interface.details.runtime.capture
+  if not capture then
+    return
+  end
+  finish_capture(false, capture.kind .. " response timed out; previous valid data retained")
+end
+
+function aardwolf_interface.details.pump_queue()
+  local runtime = aardwolf_interface.details.runtime
+  if not aardwolf_interface.settings.details_are_visible() or runtime.capture or #(runtime.queue or {}) == 0 then
+    return
+  end
+  if not active_character() then
+    local details = details_state()
+    details.refreshing = false
+    details.error = "Waiting for active character state"
+    aardwolf_interface.ui.request_render()
+    return
+  end
+  local request = table.remove(runtime.queue, 1)
+  runtime.capture = {kind = request.kind, rows = {}, metadata = request.metadata or {}}
+  local ok = type(send) == "function" and pcall(send, request.command, false)
+  if not ok then
+    finish_capture(false, "Unable to send " .. request.command)
+    return
+  end
+  if type(registerNamedTimer) == "function" and type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, DETAILS_CAPTURE_TIMER)
+    registerNamedTimer(TIMER_USER, DETAILS_CAPTURE_TIMER, 3.0, aardwolf_interface.details.capture_timeout, true)
+  end
+end
+
+local function capture_payload(line, tag)
+  return line:match("^%{" .. tag .. "%}%s*(.*)$")
+end
+
+function aardwolf_interface.details.capture_line(raw_line)
+  local line = clean_text(raw_line, 2000)
+  if not line or not aardwolf_interface.settings.details_are_visible() then
+    return false
+  end
+  local runtime = aardwolf_interface.details.runtime
+  local invmon = capture_payload(line, "invmon")
+  if invmon then
+    local action, _, container_id = invmon:match("^(%d+),(%d+),(-?%d+),(-?%d+)")
+    local normalized_action = finite_number(action)
+    if normalized_action == 1 or normalized_action == 2 then
+      aardwolf_interface.details.schedule_targeted("equipment")
+    elseif normalized_action then
+      aardwolf_interface.details.schedule_targeted("inventory", finite_number(container_id))
+    end
+    return true
+  end
+  local invitem = capture_payload(line, "invitem")
+  if invitem then
+    aardwolf_interface.details.schedule_targeted("inventory")
+    return true
+  end
+  local capture = runtime.capture
+  if not capture then
+    return false
+  end
+  if capture.kind == "eqdata" then
+    local payload = capture_payload(line, "eqdata")
+    if line:match("^%{/eqdata%}") then
+      if (capture.invalid or 0) > 0 and #capture.rows == 0 then
+        finish_capture(false, "Malformed eqdata response; previous valid data retained")
+      else
+        commit_capture(capture)
+        finish_capture(true)
+      end
+      return true
+    end
+    local item = parse_inventory_row(payload and payload ~= "" and payload or line)
+    if item then
+      if #capture.rows < DETAIL_LIMIT then capture.rows[#capture.rows + 1] = item else capture.overflow = true end
+      return true
+    end
+    if payload and payload ~= "" then capture.invalid = (capture.invalid or 0) + 1 end
+    return payload ~= nil
+  elseif capture.kind == "invdata" then
+    local payload = line:match("^%{invdata[^}]*%}%s*(.*)$")
+    if line:match("^%{/invdata%}") then
+      if (capture.invalid or 0) > 0 and #capture.rows == 0 then
+        finish_capture(false, "Malformed invdata response; previous valid data retained")
+      else
+        commit_capture(capture)
+        finish_capture(true)
+      end
+      return true
+    end
+    local item = parse_inventory_row(payload and payload ~= "" and payload or line)
+    if item then
+      if #capture.rows < DETAIL_LIMIT then capture.rows[#capture.rows + 1] = item else capture.overflow = true end
+      return true
+    end
+    if payload and payload ~= "" then capture.invalid = (capture.invalid or 0) + 1 end
+    return payload ~= nil
+  elseif capture.kind == "invdetails" then
+    if line:match("^%{/invdetails%}") then
+      commit_capture(capture)
+      finish_capture(capture.used_weight ~= nil or capture.max_weight ~= nil)
+      return true
+    end
+    local header = capture_payload(line, "invheader")
+    if header then
+      local fields = split_plain(header, "|", 20)
+      capture.header_weight = finite_number(fields[5])
+      return true
+    end
+    local container = capture_payload(line, "container")
+    if container then
+      local fields = split_plain(container, "|", 12)
+      capture.max_weight = finite_number(fields[1])
+      capture.used_weight = finite_number(fields[3])
+      return true
+    end
+    return line:match("^%b{}") ~= nil
+  end
+  return false
+end
+
+function aardwolf_interface.details.on_line()
+  local handled = aardwolf_interface.details.capture_line(line)
+  if handled and type(deleteLine) == "function" then
+    deleteLine()
+  end
+end
+
+function aardwolf_interface.details.schedule_targeted(kind, container_id)
+  local runtime = aardwolf_interface.details.runtime
+  if not aardwolf_interface.settings.details_are_visible() then
+    return
+  end
+  runtime.pending_refresh = runtime.pending_refresh or {}
+  runtime.pending_refresh[kind] = container_id or true
+  if type(registerNamedTimer) == "function" and type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, DETAILS_DEBOUNCE_TIMER)
+    registerNamedTimer(TIMER_USER, DETAILS_DEBOUNCE_TIMER, 0.35, aardwolf_interface.details.flush_targeted, true)
+  else
+    aardwolf_interface.details.flush_targeted()
+  end
+end
+
+function aardwolf_interface.details.flush_targeted()
+  local runtime = aardwolf_interface.details.runtime
+  local pending = runtime.pending_refresh or {}
+  runtime.pending_refresh = {}
+  if pending.equipment then
+    enqueue("eqdata", "eqdata")
+  end
+  if pending.inventory then
+    enqueue("invdata", "invdata")
+  end
+  schedule_queue(0.05)
+end
+
+local function normalized_switch(value)
+  if type(value) == "boolean" then
+    return value
+  end
+  if type(value) == "number" then
+    return value ~= 0
+  end
+  if type(value) == "string" then
+    local lowered = value:lower()
+    if lowered == "yes" or lowered == "on" or lowered == "1" then
+      return true
+    end
+    if lowered == "no" or lowered == "off" or lowered == "0" then
+      return false
+    end
+  end
+  return nil
+end
+
+local function config_table_value(source)
+  for _, key in ipairs({"value", "status", "enabled", "Invmon", "invmon"}) do
+    if source[key] ~= nil then
+      return source[key]
+    end
+  end
+  return nil
+end
+
+function aardwolf_interface.details.on_gmcp_config()
+  local source = gmcp and gmcp.config
+  local option, value = nil, nil
+  if type(source) == "table" then
+    option, value = clean_text(source.option or source.name, 40), config_table_value(source)
+  elseif type(source) == "string" then
+    option, value = source:match("^%s*([%a]+)%s+([%a%d]+)%s*$")
+  end
+  if option and option:lower() ~= "invmon" then
+    return
+  end
+  local normalized = normalized_switch(value)
+  local runtime = aardwolf_interface.details.runtime
+  if normalized == nil or runtime.invmon_prior ~= nil or not runtime.invmon_query_pending
+    or not runtime.active or not aardwolf_interface.settings.details_are_visible()
+  then
+    return
+  end
+  runtime.invmon_query_pending = false
+  runtime.invmon_prior = normalized
+  if normalized == false and aardwolf_interface.settings.details_are_visible() and type(sendGMCP) == "function" then
+    sendGMCP("config invmon on")
+    runtime.invmon_changed = true
+  end
+end
+
+function aardwolf_interface.details.install_capture_trigger()
+  local runtime = aardwolf_interface.details.runtime
+  if runtime.trigger_id or type(tempRegexTrigger) ~= "function" then
+    return
+  end
+  runtime.trigger_id = tempRegexTrigger("^.*$", aardwolf_interface.details.on_line)
+end
+
+function aardwolf_interface.details.remove_capture_trigger()
+  local runtime = aardwolf_interface.details.runtime
+  if runtime.trigger_id and type(killTrigger) == "function" then
+    pcall(killTrigger, runtime.trigger_id)
+  end
+  runtime.trigger_id = nil
+end
+
+function aardwolf_interface.details.refresh()
+  if not aardwolf_interface.settings.details_are_visible() then
+    return false, "Details are collapsed"
+  end
+  if not active_character() then
+    local details = details_state()
+    details.error = "Waiting for active character state"
+    details.stale = true
+    aardwolf_interface.ui.request_render()
+    return false, details.error
+  end
+  aardwolf_interface.details.cancel_queue()
+  local details = details_state()
+  details.refreshing = true
+  details.error = nil
+  enqueue("eqdata", "eqdata")
+  enqueue("invdata", "invdata")
+  local runtime = aardwolf_interface.details.runtime
+  if runtime.invmon_prior == nil and type(sendGMCP) == "function" then
+    sendGMCP("config invmon")
+    runtime.invmon_query_pending = true
+  end
+  schedule_queue(0.05)
+  aardwolf_interface.ui.request_render()
+  return true
+end
+
+function aardwolf_interface.details.start()
+  if not aardwolf_interface.settings.details_are_visible() then
+    return
+  end
+  local runtime = aardwolf_interface.details.runtime
+  aardwolf_interface.details.install_capture_trigger()
+  runtime.active = true
+  if active_character() then
+    if not runtime.initial_refresh_started then
+      runtime.initial_refresh_started = true
+      aardwolf_interface.details.refresh()
+    end
+  else
+    runtime.waiting_for_character = true
+    local details = details_state()
+    details.error = "Waiting for active character state"
+    details.stale = true
+    aardwolf_interface.ui.request_render()
+  end
+end
+
+function aardwolf_interface.details.stop(restore_settings)
+  local runtime = aardwolf_interface.details.runtime
+  aardwolf_interface.details.cancel_queue()
+  aardwolf_interface.details.remove_capture_trigger()
+  if restore_settings ~= false then
+    if runtime.invmon_changed and runtime.invmon_prior == false and type(sendGMCP) == "function" then
+      pcall(sendGMCP, "config invmon off")
+    end
+  end
+  runtime.invmon_prior = nil
+  runtime.invmon_query_pending = false
+  runtime.invmon_changed = false
+  runtime.active = false
+  runtime.initial_refresh_started = false
+  runtime.waiting_for_character = false
+  local details = details_state()
+  details.stale = true
+  details.refreshing = false
+  aardwolf_interface.ui.request_render()
+end
+
+-- Commands are explicit user-facing behavior. Detail refresh is the only command
+-- path that starts the bounded, tagged Aardwolf queries owned by this package.
+aardwolf_interface.commands = aardwolf_interface.commands or {}
+
+local function status_line(label, current, maximum)
+  return label .. " " .. display_number(current) .. "/" .. display_number(maximum)
+end
+
+function aardwolf_interface.commands.status()
+  local snapshot = aardwolf_interface.state.snapshot()
+  local room = snapshot.room
+  local lines = {
+    "visible=" .. tostring(aardwolf_interface.settings.is_visible()),
+    "details_visible=" .. tostring(aardwolf_interface.settings.details_are_visible()),
+    "theme=" .. tostring(aardwolf_interface.settings.data and aardwolf_interface.settings.data.theme or "dark"),
+    "room=" .. tostring(room.name or "unavailable") .. " area=" .. tostring(room.area or room.zone or "unavailable") .. " vnum=" .. display_number(room.num),
+    status_line("HP", snapshot.vitals.hp, snapshot.maxstats.maxhp),
+    status_line("Mana", snapshot.vitals.mana, snapshot.maxstats.maxmana),
+    status_line("Moves", snapshot.vitals.moves, snapshot.maxstats.maxmoves),
+    "enemy=" .. tostring(snapshot.status.enemy or "none") .. " group_members=" .. tostring(#(snapshot.group.members or {})),
+    "hunger=" .. display_number(snapshot.status.hunger) .. "% thirst=" .. display_number(snapshot.status.thirst) .. "%",
+    "position=" .. tostring(snapshot.status.pos or "unavailable") .. " state=" .. tostring(CHARACTER_STATES[finite_number(snapshot.status.state)] or display_number(snapshot.status.state)),
+    "tick=" .. (aardwolf_interface.state.tick_remaining() and (display_number(aardwolf_interface.state.tick_remaining()) .. " seconds") or "unavailable"),
+    "mapper_owned=" .. tostring(aardwolf_interface.state.mapper_claimed == true),
+    "adjacent_levels_hidden=" .. tostring(aardwolf_interface.state.upper_lower_levels_claimed == true),
+    "border_conflict=" .. tostring(aardwolf_interface.state.border_conflict == true),
+    "bottom_border_conflict=" .. tostring(aardwolf_interface.state.bottom_border_conflict == true),
+  }
+  aardwolf_interface.ui.message("Status:\n" .. table.concat(lines, "\n"))
+end
+
+function aardwolf_interface.commands.details_status()
+  local snapshot = aardwolf_interface.state.snapshot()
+  local details = snapshot.details or {}
+  local lines = {
+    "visible=" .. tostring(aardwolf_interface.settings.details_are_visible()),
+    "freshness=" .. (details.refreshing and "refreshing" or details.stale and "stale" or "current"),
+    "equipment=" .. tostring(#sorted_numeric_keys(details.equipment)),
+    "bags=" .. tostring(#(details.bags or {})),
+    "last_updated=" .. (details.last_updated and os.date("%Y-%m-%d %H:%M:%S", details.last_updated) or "never"),
+    "error=" .. tostring(details.error or "none"),
+  }
+  aardwolf_interface.ui.message("Details status:\n" .. table.concat(lines, "\n"))
+end
+
+function aardwolf_interface.commands.show()
+  if aardwolf_interface.ui.show(true) then
+    aardwolf_interface.ui.message("Interface shown.")
+  end
+end
+
+function aardwolf_interface.commands.hide()
+  aardwolf_interface.ui.hide(true)
+  aardwolf_interface.ui.message("Interface hidden. Run 'aard interface show' to restore it.")
+end
+
+function aardwolf_interface.commands.details_show()
+  aardwolf_interface.settings.set_details_visible(true)
+  if aardwolf_interface.ui.show(true) then
+    aardwolf_interface.ui.reflow()
+    aardwolf_interface.details.start()
+    aardwolf_interface.ui.render()
+    aardwolf_interface.ui.message("Character details shown. Automatic synchronization is active only while expanded.")
+  end
+end
+
+function aardwolf_interface.commands.details_hide()
+  aardwolf_interface.details.stop(true)
+  aardwolf_interface.settings.set_details_visible(false)
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.reflow()
+    aardwolf_interface.ui.render()
+  end
+  aardwolf_interface.ui.message("Character details collapsed; the last snapshot is retained as stale.")
+end
+
+function aardwolf_interface.commands.details_toggle()
+  if aardwolf_interface.settings.details_are_visible() then
+    aardwolf_interface.commands.details_hide()
+  else
+    aardwolf_interface.commands.details_show()
+  end
+end
+
+function aardwolf_interface.commands.details_refresh()
+  local ok, reason = aardwolf_interface.details.refresh()
+  aardwolf_interface.ui.message(ok and "Character-details refresh started." or ("Character-details refresh not started: " .. tostring(reason)))
+end
+
+function aardwolf_interface.commands.toggle_theme()
+  local theme = aardwolf_interface.settings.cycle_theme()
+  aardwolf_interface.ui.apply_theme()
+  aardwolf_interface.ui.render()
+  aardwolf_interface.ui.message("Theme changed to " .. theme .. ".")
+end
+
+-- Protocol translates only known GMCP fields into bounded state.
+aardwolf_interface.protocol = aardwolf_interface.protocol or {}
+
+local function numeric_fields(source, names)
+  local output = {}
+  if type(source) ~= "table" then
+    return output
+  end
+  for _, name in ipairs(names) do
+    output[name] = finite_number(source[name])
+  end
+  return output
+end
+
+local function record_and_render(section, value)
+  aardwolf_interface.state.replace(section, value)
+  aardwolf_interface.ui.request_render()
+end
+
+function aardwolf_interface.protocol.on_char_base()
+  local source = gmcp and gmcp.char and gmcp.char.base
+  local value = numeric_fields(source, {"perlevel"})
+  value.name = type(source) == "table" and clean_text(source.name, 80) or nil
+  local previous_name = aardwolf_interface.state.snapshot().base.name
+  local character_changed = previous_name and value.name and previous_name ~= value.name
+  if character_changed then
+    aardwolf_interface.details.stop(true)
+    aardwolf_interface.state.reset_session()
+  end
+  record_and_render("base", value)
+  if character_changed and aardwolf_interface.settings.details_are_visible() and aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.details.start()
+  end
+end
+
+function aardwolf_interface.protocol.on_char_vitals()
+  record_and_render("vitals", numeric_fields(gmcp and gmcp.char and gmcp.char.vitals, {"hp", "mana", "moves"}))
+end
+
+function aardwolf_interface.protocol.on_char_maxstats()
+  record_and_render("maxstats", numeric_fields(gmcp and gmcp.char and gmcp.char.maxstats,
+    {"maxhp", "maxmana", "maxmoves", "maxstr", "maxint", "maxwis", "maxdex", "maxcon", "maxluck"}))
+end
+
+function aardwolf_interface.protocol.on_char_status()
+  local source = gmcp and gmcp.char and gmcp.char.status
+  local value = numeric_fields(source, {"tnl", "level", "align", "enemypct", "hunger", "thirst", "state"})
+  value.hunger = type(source) == "table" and bounded_number(source.hunger, 0, 100) or nil
+  value.thirst = type(source) == "table" and bounded_number(source.thirst, 0, 100) or nil
+  value.enemy = type(source) == "table" and clean_text(source.enemy, 120) or nil
+  value.pos = type(source) == "table" and clean_text(source.pos or source.position, 40) or nil
+  record_and_render("status", value)
+  local runtime = aardwolf_interface.details.runtime
+  if value.state == 3 and aardwolf_interface.settings.details_are_visible() and runtime.active and not runtime.initial_refresh_started then
+    runtime.waiting_for_character = false
+    runtime.initial_refresh_started = true
+    aardwolf_interface.details.refresh()
+  end
+end
+
+function aardwolf_interface.protocol.on_char_stats()
+  record_and_render("stats", numeric_fields(gmcp and gmcp.char and gmcp.char.stats, {"str", "int", "wis", "dex", "con", "luck", "hr", "dr"}))
+end
+
+function aardwolf_interface.protocol.on_char_worth()
+  record_and_render("worth", numeric_fields(gmcp and gmcp.char and gmcp.char.worth, {"qp", "tp", "gold", "trains", "pracs"}))
+end
+
+function aardwolf_interface.protocol.on_room_info()
+  local source = gmcp and gmcp.room and gmcp.room.info
+  local value = {}
+  if type(source) == "table" then
+    value.num = finite_number(source.num)
+    value.name = clean_text(source.name, 200)
+    value.area = clean_text(source.area or source.area_name, 120)
+    value.zone = clean_text(source.zone, 120)
+  end
+  record_and_render("room", value)
+end
+
+function aardwolf_interface.protocol.on_group()
+  local source = gmcp and gmcp.group
+  local value = {members = {}}
+  if type(source) == "table" then
+    value.groupname = clean_text(source.groupname, 120)
+    value.leader = clean_text(source.leader, 80)
+    value.status = clean_text(source.status, 40)
+    if type(source.members) == "table" then
+      for _, member in ipairs(source.members) do
+        if #value.members >= 50 then
+          break
+        end
+        if type(member) == "table" then
+          local info = type(member.info) == "table" and member.info or member
+          value.members[#value.members + 1] = {
+            ["name"] = clean_text(member.name, 80),
+            ["info"] = numeric_fields(info, {"lvl", "hp", "mhp", "mn", "mmn", "mv", "mmv", "align", "tnl", "qt"}),
+          }
+        end
+      end
+    end
+  end
+  record_and_render("group", value)
+end
+
+function aardwolf_interface.protocol.on_tick()
+  record_and_render("tick", {last_seen = os.time(), duration = TICK_DURATION})
+  aardwolf_interface.lifecycle.start_tick_timer()
+end
+
+-- Lifecycle owns all runtime handlers and timers and is safe to re-run.
+aardwolf_interface.lifecycle = aardwolf_interface.lifecycle or {}
+
+local EVENT_USER = "aardwolf_interface"
+local EVENT_PREFIX = "aardwolf-interface::event::"
+local EVENTS = {
+  {"char-base", "gmcp.char.base", aardwolf_interface.protocol.on_char_base},
+  {"char-vitals", "gmcp.char.vitals", aardwolf_interface.protocol.on_char_vitals},
+  {"char-maxstats", "gmcp.char.maxstats", aardwolf_interface.protocol.on_char_maxstats},
+  {"char-status", "gmcp.char.status", aardwolf_interface.protocol.on_char_status},
+  {"char-stats", "gmcp.char.stats", aardwolf_interface.protocol.on_char_stats},
+  {"char-worth", "gmcp.char.worth", aardwolf_interface.protocol.on_char_worth},
+  {"group", "gmcp.group", aardwolf_interface.protocol.on_group},
+  {"room-info", "gmcp.room.info", aardwolf_interface.protocol.on_room_info},
+  {"tick", "gmcp.comm.tick", aardwolf_interface.protocol.on_tick},
+  {"config", "gmcp.config", aardwolf_interface.details.on_gmcp_config},
+}
+
+local function relevant_package(name)
+  return name == "aardwolf-interface" or name == "aardwolf-mudlet-suite"
+end
+
+function aardwolf_interface.lifecycle.start_ui()
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.show(false)
+  else
+    aardwolf_interface.ui.hide(false)
+  end
+end
+
+function aardwolf_interface.lifecycle.schedule_start()
+  if type(deleteNamedTimer) == "function" and type(registerNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, START_TIMER)
+    registerNamedTimer(TIMER_USER, START_TIMER, 0.05, aardwolf_interface.lifecycle.start_ui, true)
+  else
+    aardwolf_interface.lifecycle.start_ui()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_install(_, name)
+  if relevant_package(name) then
+    aardwolf_interface.lifecycle.schedule_start()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_uninstall(_, name)
+  if relevant_package(name) then
+    aardwolf_interface.lifecycle.shutdown()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_load()
+  aardwolf_interface.settings.set_visible(true)
+  aardwolf_interface.lifecycle.schedule_start()
+end
+
+function aardwolf_interface.lifecycle.on_resize()
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.reflow()
+    aardwolf_interface.ui.request_render()
+  end
+end
+
+function aardwolf_interface.lifecycle.update_tick_countdown()
+  aardwolf_interface.ui.request_render()
+  if aardwolf_interface.state.tick_remaining() == 0 and type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
+  end
+end
+
+function aardwolf_interface.lifecycle.start_tick_timer()
+  if type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
+  end
+  if type(registerNamedTimer) == "function" then
+    registerNamedTimer(TIMER_USER, TICK_TIMER, 1.0, aardwolf_interface.lifecycle.update_tick_countdown, false)
+  end
+end
+
+function aardwolf_interface.lifecycle.on_connect()
+  delete_named_timer(TICK_TIMER)
+  aardwolf_interface.details.stop(false)
+  aardwolf_interface.state.reset_session()
+  aardwolf_interface.ui.request_render()
+  if aardwolf_interface.settings.details_are_visible() and aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.details.start()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_disconnect()
+  delete_named_timer(TICK_TIMER)
+  aardwolf_interface.details.stop(true)
+  aardwolf_interface.state.reset_session()
+  aardwolf_interface.ui.request_render()
+end
+
+function aardwolf_interface.lifecycle.on_mapper_script_loaded(_, package_name)
+  if package_name == "generic_mapper" and aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.state.mapper_claimed = false
+    aardwolf_interface.lifecycle.schedule_start()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_map_import_finished()
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.request_render()
+  end
+end
+
+function aardwolf_interface.lifecycle.on_exit()
+  aardwolf_interface.settings.save()
+  aardwolf_interface.lifecycle.shutdown(true)
+end
+
+function aardwolf_interface.lifecycle.unregister()
+  if type(deleteNamedEventHandler) == "function" then
+    for _, event in ipairs(EVENTS) do
+      deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. event[1])
+    end
+    for _, name in ipairs({"install", "uninstall", "load", "resize", "connect", "disconnect", "mapper-loaded", "map-import-finished", "exit"}) do
+      deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. name)
+    end
+  end
+  if type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, RENDER_TIMER)
+    deleteNamedTimer(TIMER_USER, START_TIMER)
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
+  end
+end
+
+function aardwolf_interface.lifecycle.register()
+  if type(registerNamedEventHandler) ~= "function" then
+    return false
+  end
+  for _, event in ipairs(EVENTS) do
+    registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. event[1], event[2], event[3])
+  end
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "install", "sysInstall", aardwolf_interface.lifecycle.on_install)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "uninstall", "sysUninstallPackage", aardwolf_interface.lifecycle.on_uninstall)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "load", "sysLoadEvent", aardwolf_interface.lifecycle.on_load)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "resize", "sysWindowResizeEvent", aardwolf_interface.lifecycle.on_resize)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "connect", "sysConnectionEvent", aardwolf_interface.lifecycle.on_connect)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "disconnect", "sysDisconnectionEvent", aardwolf_interface.lifecycle.on_disconnect)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "mapper-loaded", "mapperScriptLoaded", aardwolf_interface.lifecycle.on_mapper_script_loaded)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "map-import-finished", "aardwolf-map::import-finished", aardwolf_interface.lifecycle.on_map_import_finished)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "exit", "sysExitEvent", aardwolf_interface.lifecycle.on_exit)
+  return true
+end
+
+function aardwolf_interface.lifecycle.shutdown(keep_visibility)
+  local visible = aardwolf_interface.settings.data and aardwolf_interface.settings.data.visible
+  aardwolf_interface.ui.destroy()
+  aardwolf_interface.lifecycle.unregister()
+  if keep_visibility and aardwolf_interface.settings.data then
+    aardwolf_interface.settings.data.visible = visible
+    aardwolf_interface.settings.save()
+  end
+  aardwolf_interface.state.started = false
+end
+
+function aardwolf_interface.lifecycle.initialize()
+  aardwolf_interface.lifecycle.shutdown(true)
+  aardwolf_interface.settings.load()
+  aardwolf_interface.settings.set_visible(true)
+  aardwolf_interface.state.reset_session()
+  aardwolf_interface.lifecycle.register()
+  aardwolf_interface.state.started = true
+  aardwolf_interface.lifecycle.schedule_start()
+end
+
+aardwolf_interface.help = aardwolf_interface.help or {}
+
+function aardwolf_interface.help.summary()
+  return "Responsive Aardwolf dashboard: aard interface show|hide|status, aard interface details show|hide|toggle|refresh|status, and aard theme change."
+end
+
+aardwolf_interface.lifecycle.initialize()

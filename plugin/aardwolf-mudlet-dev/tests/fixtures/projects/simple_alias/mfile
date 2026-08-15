@@ -1,4 +1,7 @@
 {
+  "author": "Fixture author",
+  "description": "Fixture description",
   "package": "simple-alias",
+  "title": "Fixture title",
   "version": "1.0.0"
 }

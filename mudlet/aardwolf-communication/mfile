@@ -1,0 +1,7 @@
+{
+  "author": "Aardwolf Mudlet",
+  "description": "Namespaced channel and chat visibility controls using native GMCP.",
+  "package": "aardwolf-communication",
+  "title": "Aardwolf Communication",
+  "version": "1.0.0"
+}

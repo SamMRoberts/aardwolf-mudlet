@@ -1,0 +1,14 @@
+[
+  {
+    "name": "aardwolf_character.status",
+    "regex": "^aard character status$"
+  },
+  {
+    "name": "aardwolf_character.group_on",
+    "regex": "^groupon$"
+  },
+  {
+    "name": "aardwolf_character.group_off",
+    "regex": "^groupoff$"
+  }
+]

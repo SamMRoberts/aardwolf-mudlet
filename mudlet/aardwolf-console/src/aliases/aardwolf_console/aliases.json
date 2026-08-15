@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_console.status",
+    "regex": "^aard console status$"
+  },
+  {
+    "name": "aardwolf_console.toggle",
+    "regex": "^showcommandtags(.*)$"
+  }
+]

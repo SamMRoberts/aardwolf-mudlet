@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_communication.status",
+    "regex": "^aard comm status$"
+  },
+  {
+    "name": "aardwolf_communication.toggle",
+    "regex": "^chats? echo( on| off| channels| nonchannels)?$"
+  }
+]

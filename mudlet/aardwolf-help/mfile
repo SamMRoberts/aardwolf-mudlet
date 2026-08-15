@@ -1,0 +1,7 @@
+{
+  "author": "Aardwolf Mudlet",
+  "description": "Accessible in-client help and migration guidance.",
+  "package": "aardwolf-help",
+  "title": "Aardwolf Help",
+  "version": "1.0.0"
+}

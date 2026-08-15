@@ -1,0 +1,135 @@
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.state = aardwolf_accessibility.state or {}
+
+function aardwolf_accessibility.state.record(key, value)
+  aardwolf_accessibility.state.values = aardwolf_accessibility.state.values or {}
+  aardwolf_accessibility.state.values[key] = value
+  aardwolf_accessibility.state.update_count = (aardwolf_accessibility.state.update_count or 0) + 1
+end
+
+function aardwolf_accessibility.state.reset()
+  aardwolf_accessibility.state.values = {}
+  aardwolf_accessibility.state.update_count = 0
+end
+
+function aardwolf_accessibility.state.summary()
+  return "updates=" .. tostring(aardwolf_accessibility.state.update_count or 0)
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.settings = aardwolf_accessibility.settings or {}
+
+function aardwolf_accessibility.settings.is_enabled()
+  return aardwolf_accessibility.settings.enabled ~= false
+end
+
+function aardwolf_accessibility.settings.set_enabled(enabled)
+  aardwolf_accessibility.settings.enabled = enabled and true or false
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.ui = aardwolf_accessibility.ui or {}
+
+function aardwolf_accessibility.ui.message(message)
+  echo("\n[aardwolf-accessibility] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_accessibility.ui.status(summary)
+  aardwolf_accessibility.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.commands = aardwolf_accessibility.commands or {}
+
+function aardwolf_accessibility.commands.status()
+  local voices = type(ttsGetVoices) == "function" and ttsGetVoices() or {}
+  aardwolf_accessibility.ui.status("enabled=" .. tostring(aardwolf_accessibility.settings.is_enabled()) .. "; voices=" .. tostring(#voices))
+end
+
+function aardwolf_accessibility.commands.set_enabled(enabled)
+  aardwolf_accessibility.settings.set_enabled(enabled)
+  aardwolf_accessibility.ui.message(enabled and "Text-to-speech enabled." or "Text-to-speech disabled.")
+end
+
+function aardwolf_accessibility.commands.speak(text)
+  if not aardwolf_accessibility.settings.is_enabled() or type(text) ~= "string" or text == "" then
+    return
+  end
+  if type(ttsQueue) == "function" then
+    ttsQueue(text)
+  else
+    aardwolf_accessibility.ui.message("Text-to-speech is unavailable in this Mudlet profile.")
+  end
+end
+
+function aardwolf_accessibility.commands.clear()
+  if type(ttsClearQueue) == "function" then
+    ttsClearQueue()
+  end
+end
+
+function aardwolf_accessibility.commands.rate(direction)
+  if type(ttsGetRate) ~= "function" or type(ttsSetRate) ~= "function" then
+    aardwolf_accessibility.ui.message("Text-to-speech rate control is unavailable.")
+    return
+  end
+  local current = ttsGetRate() or 0
+  local delta = direction == "faster" and 0.1 or -0.1
+  ttsSetRate(current + delta)
+end
+
+function aardwolf_accessibility.commands.rate_value(value)
+  if value == nil or value == "" then
+    if type(ttsGetRate) == "function" then
+      aardwolf_accessibility.ui.message("Current text-to-speech rate: " .. tostring(ttsGetRate()))
+    end
+    return
+  end
+  local rate = tonumber(value)
+  if rate and type(ttsSetRate) == "function" then
+    ttsSetRate(rate)
+  else
+    aardwolf_accessibility.ui.message("Text-to-speech rate control is unavailable.")
+  end
+end
+
+function aardwolf_accessibility.commands.voices()
+  local voices = type(ttsGetVoices) == "function" and ttsGetVoices() or {}
+  aardwolf_accessibility.ui.message("Available voices: " .. tostring(#voices))
+end
+
+function aardwolf_accessibility.commands.voice(name)
+  if type(ttsSetVoiceByName) == "function" and type(name) == "string" and name ~= "" then
+    ttsSetVoiceByName(name)
+  end
+end
+
+function aardwolf_accessibility.commands.interrupt(text)
+  aardwolf_accessibility.commands.clear()
+  aardwolf_accessibility.commands.speak(text)
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.protocol = aardwolf_accessibility.protocol or {}
+
+function aardwolf_accessibility.protocol.describe()
+  return "Portable Mudlet text-to-speech controls without native libraries."
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.lifecycle = aardwolf_accessibility.lifecycle or {}
+
+function aardwolf_accessibility.lifecycle.initialize()
+end
+
+function aardwolf_accessibility.lifecycle.shutdown()
+end
+
+aardwolf_accessibility.lifecycle.initialize()
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.help = aardwolf_accessibility.help or {}
+
+function aardwolf_accessibility.help.summary()
+  return "Portable Mudlet text-to-speech controls without native libraries."
+end

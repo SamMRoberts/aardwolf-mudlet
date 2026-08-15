@@ -1,0 +1,9 @@
+{
+  "description": "Merge-safe importer for the redistributed Aardwolf.db v11 map snapshot.",
+  "game": "Aardwolf",
+  "minimum_mudlet_version": "4.14",
+  "name": "aardwolf-map",
+  "namespace": "aardwolf_map",
+  "schema_version": 1,
+  "version": "1.0.3"
+}

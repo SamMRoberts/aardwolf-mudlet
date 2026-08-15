@@ -1,0 +1,38 @@
+[
+  {
+    "name": "aardwolf_interface.status",
+    "regex": "^aard interface status$"
+  },
+  {
+    "name": "aardwolf_interface.show",
+    "regex": "^aard interface show$"
+  },
+  {
+    "name": "aardwolf_interface.hide",
+    "regex": "^aard interface hide$"
+  },
+  {
+    "name": "aardwolf_interface.details_show",
+    "regex": "^aard interface details show$"
+  },
+  {
+    "name": "aardwolf_interface.details_hide",
+    "regex": "^aard interface details hide$"
+  },
+  {
+    "name": "aardwolf_interface.details_toggle",
+    "regex": "^aard interface details toggle$"
+  },
+  {
+    "name": "aardwolf_interface.details_refresh",
+    "regex": "^aard interface details refresh$"
+  },
+  {
+    "name": "aardwolf_interface.details_status",
+    "regex": "^aard interface details status$"
+  },
+  {
+    "name": "aardwolf_interface.theme",
+    "regex": "^aard theme change$"
+  }
+]

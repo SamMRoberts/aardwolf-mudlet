@@ -1,0 +1,10 @@
+[
+  {
+    "name": "aardwolf_tick.status",
+    "regex": "^aard tick( help| miniwin| status)?$"
+  },
+  {
+    "name": "aardwolf_tick.reset",
+    "regex": "^aard tick reset$"
+  }
+]

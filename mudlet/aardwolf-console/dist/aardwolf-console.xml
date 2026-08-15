@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001"><AliasPackage><Alias isActive="yes" isFolder="no"><name>aardwolf_console.status</name><script>aardwolf_console.commands.status()
+</script><command></command><packageName></packageName><regex>^aard console status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_console.toggle</name><script>aardwolf_console.commands.toggle()
+</script><command></command><packageName></packageName><regex>^showcommandtags(.*)$</regex></Alias></AliasPackage><TriggerPackage></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aardwolf_console.main</name><script>aardwolf_console = aardwolf_console or {}
+aardwolf_console.state = aardwolf_console.state or {}
+
+function aardwolf_console.state.record(key, value)
+  aardwolf_console.state.values = aardwolf_console.state.values or {}
+  aardwolf_console.state.values[key] = value
+  aardwolf_console.state.update_count = (aardwolf_console.state.update_count or 0) + 1
+end
+
+function aardwolf_console.state.reset()
+  aardwolf_console.state.values = {}
+  aardwolf_console.state.update_count = 0
+end
+
+function aardwolf_console.state.summary()
+  return "updates=" .. tostring(aardwolf_console.state.update_count or 0)
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.settings = aardwolf_console.settings or {}
+
+function aardwolf_console.settings.is_enabled()
+  return aardwolf_console.settings.enabled ~= false
+end
+
+function aardwolf_console.settings.set_enabled(enabled)
+  aardwolf_console.settings.enabled = enabled and true or false
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.ui = aardwolf_console.ui or {}
+
+function aardwolf_console.ui.message(message)
+  echo("\n[aardwolf-console] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_console.ui.status(summary)
+  aardwolf_console.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.commands = aardwolf_console.commands or {}
+
+function aardwolf_console.commands.status()
+  aardwolf_console.ui.status(aardwolf_console.state.summary())
+end
+
+function aardwolf_console.commands.set_enabled(enabled)
+  aardwolf_console.settings.set_enabled(enabled)
+  aardwolf_console.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_console.commands.toggle()
+  aardwolf_console.commands.set_enabled(not aardwolf_console.settings.is_enabled())
+end
+
+function aardwolf_console.commands.reset()
+  aardwolf_console.state.reset()
+  aardwolf_console.ui.message("State reset.")
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.protocol = aardwolf_console.protocol or {}
+
+function aardwolf_console.protocol.describe()
+  return "Safe console controls and migration help for output plugins."
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.lifecycle = aardwolf_console.lifecycle or {}
+
+function aardwolf_console.lifecycle.initialize()
+end
+
+function aardwolf_console.lifecycle.shutdown()
+end
+
+aardwolf_console.lifecycle.initialize()
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.help = aardwolf_console.help or {}
+
+function aardwolf_console.help.summary()
+  return "Safe console controls and migration help for output plugins."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

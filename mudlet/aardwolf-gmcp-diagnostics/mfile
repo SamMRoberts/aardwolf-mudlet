@@ -1,0 +1,7 @@
+{
+  "author": "Aardwolf Mudlet",
+  "description": "Safe native GMCP state diagnostics for Aardwolf.",
+  "package": "aardwolf-gmcp-diagnostics",
+  "title": "Aardwolf Gmcp Diagnostics",
+  "version": "1.1.0"
+}
