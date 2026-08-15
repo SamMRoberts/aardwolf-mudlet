@@ -410,21 +410,28 @@ assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface
 main_window_height = 900
 aardwolf_interface.ui.reflow()
 
--- Hide/show persists, restores generic mapper ownership, and releases the border.
+-- Explicit hide works for the current session and releases shared UI ownership.
 aardwolf_interface.commands.hide()
 assert(right_border == 10)
 assert(persisted_settings.visible == false)
 assert(map.restored == true)
 assert(show_upper_lower_levels == true, "the prior adjacent-floor setting was not restored")
-aardwolf_interface.commands.show()
-assert(right_border == 370)
+
+-- A profile/package load always restores the main interface even if the last
+-- session explicitly hid it.
+aardwolf_interface.lifecycle.on_load()
 assert(persisted_settings.visible == true)
+fire_timer(START_TIMER)
+assert(right_border == 370)
+assert(aardwolf_interface.ui.root.hidden == false)
 assert(show_upper_lower_levels == false)
 
 -- Reinitialization is idempotent and does not grow the border repeatedly.
+aardwolf_interface.commands.hide()
 aardwolf_interface.lifecycle.initialize()
 fire_timer(START_TIMER)
 assert(right_border == 370)
+assert(persisted_settings.visible == true)
 assert(show_upper_lower_levels == false)
 
 -- A conflicting external border change is preserved and reported rather than overwritten.

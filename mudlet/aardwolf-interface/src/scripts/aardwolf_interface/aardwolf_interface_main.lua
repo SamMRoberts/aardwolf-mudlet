@@ -1758,6 +1758,7 @@ function aardwolf_interface.lifecycle.on_uninstall(_, name)
 end
 
 function aardwolf_interface.lifecycle.on_load()
+  aardwolf_interface.settings.set_visible(true)
   aardwolf_interface.lifecycle.schedule_start()
 end
 
@@ -1861,6 +1862,7 @@ end
 function aardwolf_interface.lifecycle.initialize()
   aardwolf_interface.lifecycle.shutdown(true)
   aardwolf_interface.settings.load()
+  aardwolf_interface.settings.set_visible(true)
   aardwolf_interface.state.reset_session()
   aardwolf_interface.lifecycle.register()
   aardwolf_interface.state.started = true

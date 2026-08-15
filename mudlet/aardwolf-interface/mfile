@@ -3,5 +3,5 @@
   "description": "Responsive Aardwolf Geyser dashboard with a mapper, collapsible character details, and text fallbacks.",
   "package": "aardwolf-interface",
   "title": "Aardwolf Interface",
-  "version": "1.3.0"
+  "version": "1.3.1"
 }

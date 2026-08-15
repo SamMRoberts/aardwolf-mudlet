@@ -13,7 +13,7 @@ The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gm
 
 ## Dashboard behavior
 
-The sidebar appears automatically on first install and then remembers explicit show/hide and theme choices. It reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+The sidebar appears automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows the dashboard again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
 
 Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot.
 
@@ -25,6 +25,6 @@ The optional 360–460 pixel details column starts collapsed and remembers expli
 
 Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists`. Bag-detail requests are limited to one per second. Invmon and spellup-tag changes are made only after their prior values are confirmed, and only package-owned changes are restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.0 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.1 so Mudlet does not retain duplicate static objects.
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

@@ -81,7 +81,7 @@ FEATURES = (
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
         ),
-        "interface", "1.3.0",
+        "interface", "1.3.1",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -586,7 +586,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "Run `aard interface show|hide|status` for the dashboard. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Run `aard interface details show|hide|toggle|refresh|status` for the collapsed-by-default character-details column. The details text fallback reports freshness, equipment, affects, bags, resists, hunger, thirst, position, and character state. `aard theme change` cycles dark and high-contrast themes. Visibility, details visibility, and theme are profile-local JSON data in `aardwolf-interface/settings.lua`; the file is never executed as Lua. Automatic tagged-data requests run only while details are expanded and the character is active."
+        "The main dashboard is shown whenever the Mudlet profile loads; `aard interface hide` hides it only for the current loaded session. Run `aard interface show|hide|status` for manual control. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default character-details column. Theme and details visibility are profile-local JSON data in `aardwolf-interface/settings.lua`; the file is never executed as Lua."
         if feature.kind == "interface"
         else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
         if feature.kind == "diagnostics"
@@ -597,7 +597,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
     feature_notes = '''
 ## Dashboard behavior
 
-The sidebar appears automatically on first install and then remembers explicit show/hide and theme choices. It reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+The sidebar appears automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows the dashboard again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
 
 Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot.
 
@@ -609,7 +609,7 @@ The optional 360–460 pixel details column starts collapsed and remembers expli
 
 Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists`. Bag-detail requests are limited to one per second. Invmon and spellup-tag changes are made only after their prior values are confirmed, and only package-owned changes are restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.0 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.1 so Mudlet does not retain duplicate static objects.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -647,6 +647,7 @@ assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig
 assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
+assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source
 assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', 'enqueue("slist affected"', 'enqueue("resists"', '"invdetails "'))
 assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
 assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source
