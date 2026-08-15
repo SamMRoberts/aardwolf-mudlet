@@ -24,7 +24,7 @@ automatic network behavior.
 - `aardwolf-communication` — direct channel GMCP status
 - `aardwolf-character` — direct character and group GMCP summaries
 - `aardwolf-help` — accessible help and migration guidance
-- `aardwolf-interface` — responsive Geyser dashboard, embedded native mapper, and text fallback
+- `aardwolf-interface` — responsive Geyser dashboard, embedded native mapper, and an expanded-only character-details column
 - `aardwolf-profile-data` — explicit local note export/import
 - `aardwolf-accessibility` — Mudlet-native text-to-speech controls
 - `aardwolf-map` — separately maintained safe map importer

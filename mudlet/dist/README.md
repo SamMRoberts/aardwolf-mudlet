@@ -11,8 +11,9 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
-The current suite version is 1.1.3. It includes Mudlet's required `config.lua`
-Package Manager metadata and the responsive right-sidebar dashboard. If an
+The current suite version is 1.2.0. It includes Mudlet's required `config.lua`
+Package Manager metadata and the responsive right-sidebar dashboard with its
+collapsed-by-default, expanded-only character-details column. If an
 older `Aardwolf Mudlet Suite` entry is already installed, remove it in Mudlet's
 Package Manager before installing this archive.
 
