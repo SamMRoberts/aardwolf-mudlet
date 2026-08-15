@@ -62,8 +62,20 @@ local function object(kind,constraints,parent)
   return result
 end
 local function class(kind) return {new=function(_,constraints,parent) return object(kind,constraints,parent) end} end
-Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline")}
-gmcp={char={base={name="Denzil",class="Ranger",subclass="Hunter",race="Triton",level=3},vitals={hp=204,mana=180,moves=532},maxstats={maxhp=204,maxmana=180,maxmoves=532,maxstr=18,maxint=13,maxwis=21,maxdex=18,maxcon=28,maxluck=16},status={state=3,level=3,tnl=316,hunger=100,thirst=100,align=-19,pos="Standing",enemy="",enemypct=0},stats={str=21,int=15,wis=23,dex=22,con=39,luck=20,hr=35,dr=30,saves=0},worth={gold=50000,qp=64,pracs=15,trains=0}},room={info={num=14070,name="Hallway",area="Academy",terrain="academy",exits={n=1,e=2},coord={x=0,y=30,cont=20}}},group={},comm={}}
+Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline"),ScrollBox=class("scrollbox")}
+gmcp={
+  char={
+    base={clan="",class="Ranger",classes="4",level=3,name="Denzil",perlevel=1000,pretitle="",pups=0,race="Triton",redos=0,remorts=1,subclass="Hunter",tier=0,totpups=0},
+    maxstats={maxcon=28,maxdex=18,maxhp=204,maxint=13,maxluck=16,maxmana=180,maxmoves=532,maxstr=18,maxwis=21},
+    stats={con=39,dex=22,dr=30,hr=35,int=15,luck=20,saves=0,str=21,wis=23},
+    status={align=-19,enemy="",hunger=100,level=3,pos="Standing",state=3,thirst=100,tnl=316},
+    vitals={hp=204,mana=180,moves=532},
+    worth={bank=2683920,gold=50000,pracs=15,qp=64,qpearned=64,tp=0,trains=0},
+  },
+  comm={quest={action="status",status="ready"},repop={zone="academy"},tick={ctime=1786807350,time="11:22:30 - Saturday 15 Aug, 2026"}},
+  room={info={coord={cont=0,id=0,x=30,y=20},details="",exits={e=35212,n=35213,s=35382,w=35211},mapterrain="",name="Hallway in the Academy",num=35383,outside=0,racebonus=0,terrain="inside",zone="academy"}},
+  group={},
+}
 aardwolf_map={commands={start_import=function() objects.map_imports=(objects.map_imports or 0)+1 end}}
 
 -- Simulate an in-place upgrade where Mudlet retained the pre-1.5 monolithic
@@ -118,13 +130,37 @@ local repaired_right,repaired_bottom=right,bottom
 aardwolf_interface.commands.repair()
 assert(right==repaired_right and bottom==repaired_bottom)
 
-aardwolf_interface.protocol.base(); aardwolf_interface.protocol.vitals(); aardwolf_interface.protocol.status(); aardwolf_interface.protocol.stats(); aardwolf_interface.protocol.worth(); aardwolf_interface.protocol.room(); aardwolf_interface.protocol.group()
+assert(aardwolf_interface.util.display("Denzil")=="Denzil")
+assert(aardwolf_interface.util.display("204 / 204")=="204 / 204")
+assert(aardwolf_interface.util.display(0)=="0" and aardwolf_interface.util.display(-19)=="-19")
+assert(aardwolf_interface.util.display("")=="--")
+aardwolf_interface.protocol.base(); aardwolf_interface.protocol.vitals(); aardwolf_interface.protocol.maxstats(); aardwolf_interface.protocol.status(); aardwolf_interface.protocol.stats(); aardwolf_interface.protocol.worth(); aardwolf_interface.protocol.room(); aardwolf_interface.protocol.group(); aardwolf_interface.protocol.quest(); aardwolf_interface.protocol.tick()
+local expected_sections={
+  base={clan="",class="Ranger",classes=4,level=3,name="Denzil",perlevel=1000,pretitle="",pups=0,race="Triton",redos=0,remorts=1,subclass="Hunter",tier=0,totpups=0},
+  maxstats={maxcon=28,maxdex=18,maxhp=204,maxint=13,maxluck=16,maxmana=180,maxmoves=532,maxstr=18,maxwis=21},
+  stats={con=39,dex=22,dr=30,hr=35,int=15,luck=20,saves=0,str=21,wis=23},
+  status={align=-19,enemy="",hunger=100,level=3,pos="Standing",state=3,thirst=100,tnl=316},
+  vitals={hp=204,mana=180,moves=532},
+  worth={bank=2683920,gold=50000,pracs=15,qp=64,qpearned=64,tp=0,trains=0},
+  quest={action="status",status="ready"},
+}
+for section,fields in pairs(expected_sections) do
+  local normalized=aardwolf_interface.state.value(section)
+  for field,expected in pairs(fields) do assert(normalized[field]==expected,section.."."..field.." was not normalized") end
+end
 assert(aardwolf_interface.state.envelope("room").status=="current")
-assert(aardwolf_interface.state.value("room").exits.n==1 and aardwolf_interface.state.value("room").x==0)
-assert(aardwolf_interface.state.envelope("quest").status=="unavailable")
+assert(aardwolf_interface.state.value("room").exits.n==35213 and aardwolf_interface.state.value("room").x==30)
+assert(aardwolf_interface.state.value("room").outside==0 and aardwolf_interface.state.value("room").racebonus==0)
+assert(aardwolf_interface.state.value("base").classes==4 and aardwolf_interface.state.value("base").tier==0)
+assert(aardwolf_interface.state.value("stats").saves==0 and aardwolf_interface.state.value("status").align==-19)
+assert(aardwolf_interface.state.value("worth").bank==2683920 and aardwolf_interface.state.value("worth").tp==0)
+assert(aardwolf_interface.state.value("quest").status=="ready" and aardwolf_interface.state.value("quest").action=="status")
+assert(aardwolf_interface.state.value("tick").ctime==1786807350 and aardwolf_interface.state.value("tick").time:find("Saturday",1,true))
 aardwolf_interface.ui.render()
-assert(objects["aardwolf-interface::ui::character-card"].text:find("316",1,true))
-assert(objects["aardwolf-interface::ui::character-card"].text:find("Standing",1,true))
+local character_text=objects["aardwolf-interface::ui::character-card"].text
+for _,expected in ipairs({"Denzil","Ranger","Hunter","Triton","21 / 18","39 / 28","204 / 204","Standing","Active","-19","316","2683920","50000","QP earned","ready","status","None"}) do
+  assert(character_text:find(expected,1,true),"missing rendered character value: "..expected)
+end
 
 -- Custom actions are printable, bounded, persisted, and never sent before an
 -- explicit confirmation. Server-derived room text cannot enter send().
@@ -180,5 +216,8 @@ assert(right==8 and bottom==10)
 Geyser.ScrollBox=nil
 aardwolf_interface.lifecycle.initialize()
 assert(aardwolf_interface.ui.scroll_capable==false and objects["aardwolf-interface::ui::page-next"])
+aardwolf_interface.settings.data.active_tab="character"; aardwolf_interface.ui.page=2; aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::page-status"].text=="Page 2 / 2")
+assert(objects["aardwolf-interface::ui::character-card"].text:find("Standing",1,true))
 aardwolf_interface.lifecycle.shutdown(true)
 print("aardwolf-interface stub spec passed")

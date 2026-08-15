@@ -70,7 +70,7 @@ end
 function aardwolf_interface.protocol.room()
   local payload = source("room.info")
   if not payload then return publish("room", {}, "error", "Malformed gmcp.room.info") end
-  local value = pick(payload, {"num", "name", "area", "zone", "terrain", "details"})
+  local value = pick(payload, {"num", "name", "area", "zone", "terrain", "mapterrain", "details", "outside", "racebonus"})
   value.exits = {}
   local allowed = {n=true,e=true,s=true,w=true,u=true,d=true}
   for direction, destination in pairs(type(payload.exits) == "table" and payload.exits or {}) do
@@ -113,7 +113,11 @@ function aardwolf_interface.protocol.quest()
 end
 
 function aardwolf_interface.protocol.tick()
-  publish("tick", {last_seen = os.time(), duration = 30}, "current")
+  local payload = source("comm.tick")
+  local value = type(payload) == "table" and pick(payload, {"ctime", "time"}, true) or {}
+  value.last_seen = os.time()
+  value.duration = 30
+  publish("tick", value, type(payload) == "table" and "current" or "partial")
 end
 
 function aardwolf_interface.protocol.map_status(_, snapshot)

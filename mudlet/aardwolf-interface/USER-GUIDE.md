@@ -18,7 +18,7 @@ The command deck normally claims 440 pixels on the right. It preserves at least 
 
 - **Persistent context:** character and connection state, room, area, vnum, terrain, tick, exits, four contextual actions, and tabs.
 - **Map:** native Mudlet mapper, centering and zoom controls, coordinates, terrain, and map import status.
-- **Character:** identity, class, race, progression, attributes, combat values, currencies, quest data, and conditions received through GMCP.
+- **Character:** name, pretitle, race, class/subclass, clan, level/class count, tier, remorts/redos/pups, per-level progression, current/max attributes and vitals, hitroll, damroll, saves, alignment, position/state/enemy, TNL, currencies, practices/trains, quest state, hunger, and thirst received through GMCP.
 - **Group:** unavailable, not-grouped, and active-group states with structured member values.
 - **Inventory:** Equipment and Bags views populated only by an explicit detail refresh.
 - **Inspector:** an optional second panel on sufficiently wide windows. Pin intent is remembered but temporarily suppressed when it would crowd the console.
@@ -132,6 +132,8 @@ The viewport is too narrow for both the console minimum and the requested worksp
 ### Data says unavailable, partial, or stale
 
 Confirm the Aardwolf connection and GMCP negotiation. The deck uses documented `char.*`, `room.info`, `group.*`, and `comm.quest` data. It does not scrape `score`, affects, or resistance text. Inventory data requires `aard interface details refresh`.
+
+Run `aard interface summary character` to inspect the same normalized character values without the visual deck. Empty server fields such as clan, pretitle, or enemy are shown as `--` or `None`; valid zero and negative values remain visible. Reconnecting requests a fresh `char.*` snapshot once for the new session.
 
 ### The map is empty or unresolved
 

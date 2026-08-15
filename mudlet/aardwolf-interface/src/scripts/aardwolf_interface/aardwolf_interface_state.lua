@@ -34,9 +34,17 @@ end
 
 function aardwolf_interface.util.display(value)
   local number = aardwolf_interface.util.finite(value)
-  if not number then return "--" end
-  if number == math.floor(number) then return string.format("%d", number) end
-  return string.format("%.1f", number)
+  if number then
+    if number == math.floor(number) then return string.format("%d", number) end
+    return string.format("%.1f", number)
+  end
+  -- UI rows also pass validated protocol strings and composed values such as
+  -- "204 / 204" through this formatter. Treating every non-number as missing
+  -- made populated identity, class, position, and attribute rows render as
+  -- "--". Preserve printable text while keeping empty values explicit.
+  local text = aardwolf_interface.util.text(value, 160)
+  if not text or text == "" then return "--" end
+  return text
 end
 
 function aardwolf_interface.util.safe_call(object, method, ...)
