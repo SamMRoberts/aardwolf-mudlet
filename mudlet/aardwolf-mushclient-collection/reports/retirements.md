@@ -127,7 +127,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:Aardwolf_Tick_Timer/callback:OnPluginTelnetOption` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
 | `source:Aardwolf_Tick_Timer/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
 | `source:Aardwolf_Tick_Timer/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
-| `source:Aardwolf_Tick_Timer/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
 | `source:Aardwolf_Tick_Timer/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-tick's documented native Mudlet commands and lifecycle. |
 | `source:Automatic_Backup/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
 | `source:Automatic_Backup/callback:OnPluginWorldSave` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
@@ -244,7 +243,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:aard_group_monitor_gmcp/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_group_monitor_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_group_monitor_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
-| `source:aard_group_monitor_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_group_monitor_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
@@ -264,7 +262,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:aard_health_bars_gmcp/callback:OnPluginWorldOutputResized` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_health_bars_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_health_bars_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
-| `source:aard_health_bars_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_health_bars_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_help/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
 | `source:aard_help/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-help's documented native Mudlet commands and lifecycle. |
@@ -315,7 +312,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:aard_layout/callback:OnPluginWorldOutputResized` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_layout/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_layout/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
-| `source:aard_layout/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_layout/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_miniwindow_z_order_monitor/callback:OnPluginDisable` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_miniwindow_z_order_monitor/callback:OnPluginInstall` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
@@ -323,7 +319,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:aard_miniwindow_z_order_monitor/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_miniwindow_z_order_monitor/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_miniwindow_z_order_monitor/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
-| `source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_miniwindow_z_order_monitor/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-interface's documented native Mudlet commands and lifecycle. |
 | `source:aard_new_connection/callback:OnPluginListChanged` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
 | `source:aard_new_connection/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-profile-data's documented native Mudlet commands and lifecycle. |
@@ -388,7 +383,6 @@ Every item below was reviewed from the read-only source inventory. These are exp
 | `source:aard_statmon_gmcp/callback:OnPluginSaveState` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_statmon_gmcp/script:1` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_statmon_gmcp/signal:script-1:filesystem` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
-| `source:aard_statmon_gmcp/signal:script-1:miniwindow` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_statmon_gmcp/signal:script-1:plugin-dependency` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-character's documented native Mudlet commands and lifecycle. |
 | `source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |
 | `source:aard_text_substitution/alias:gag-s-.` | The exact MUSHclient object is not ported verbatim. | Use aardwolf-console's documented native Mudlet commands and lifecycle. |

@@ -1502,14 +1502,10 @@
     },
     {
       "item_id": "source:Aardwolf_Tick_Timer/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-tick's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
@@ -3258,22 +3254,19 @@
     },
     {
       "item_id": "source:aard_group_monitor_gmcp/signal:script-1:gmcp",
-      "reason": "The replacement consumes a direct native GMCP event in aardwolf-character.",
+      "reason": "The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard.",
       "status": "converted-with-review",
       "target_paths": [
-        "mudlet/aardwolf-character/src/scripts/aardwolf_character"
+        "mudlet/aardwolf-character/src/scripts/aardwolf_character",
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
       "item_id": "source:aard_group_monitor_gmcp/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-character's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
@@ -3514,22 +3507,19 @@
     },
     {
       "item_id": "source:aard_health_bars_gmcp/signal:script-1:gmcp",
-      "reason": "The replacement consumes a direct native GMCP event in aardwolf-character.",
+      "reason": "The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard.",
       "status": "converted-with-review",
       "target_paths": [
-        "mudlet/aardwolf-character/src/scripts/aardwolf_character"
+        "mudlet/aardwolf-character/src/scripts/aardwolf_character",
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
       "item_id": "source:aard_health_bars_gmcp/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-character's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
@@ -4206,14 +4196,10 @@
     },
     {
       "item_id": "source:aard_layout/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-interface's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
@@ -4310,14 +4296,10 @@
     },
     {
       "item_id": "source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-interface's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
@@ -5178,22 +5160,19 @@
     },
     {
       "item_id": "source:aard_statmon_gmcp/signal:script-1:gmcp",
-      "reason": "The replacement consumes a direct native GMCP event in aardwolf-character.",
+      "reason": "The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard.",
       "status": "converted-with-review",
       "target_paths": [
-        "mudlet/aardwolf-character/src/scripts/aardwolf_character"
+        "mudlet/aardwolf-character/src/scripts/aardwolf_character",
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {
       "item_id": "source:aard_statmon_gmcp/signal:script-1:miniwindow",
-      "reason": "The safe replacement keeps only the documented feature boundary.",
-      "retirement": {
-        "migration": "Use aardwolf-character's documented native Mudlet commands and lifecycle.",
-        "user_impact": "The exact MUSHclient object is not ported verbatim."
-      },
-      "status": "intentionally-retired",
+      "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.",
+      "status": "converted-with-review",
       "target_paths": [
-        "reports/retirements.md"
+        "mudlet/aardwolf-interface/src/scripts/aardwolf_interface"
       ]
     },
     {

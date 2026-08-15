@@ -8,6 +8,10 @@
     "regex": "^aard interface show$"
   },
   {
+    "name": "aardwolf_interface.hide",
+    "regex": "^aard interface hide$"
+  },
+  {
     "name": "aardwolf_interface.theme",
     "regex": "^aard theme change$"
   }

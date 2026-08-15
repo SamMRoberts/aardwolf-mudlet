@@ -10,4 +10,5 @@ This package is a safe native Mudlet replacement for selected behavior from `aar
 
 GMCP events: `gmcp.comm.channel`. The package uses namespaced handlers, sends no game commands, and removes its handlers through `aardwolf_communication.lifecycle.shutdown()`.
 
+
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

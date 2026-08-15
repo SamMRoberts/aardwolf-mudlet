@@ -5,8 +5,8 @@
 - Source: `.resources/worlds/plugins (43 MUSHclient XML plugins and companion root)`
 - Inventoried items: 522
 - converted: 38
-- converted-with-review: 56
-- intentionally-retired: 428
+- converted-with-review: 62
+- intentionally-retired: 422
 
 ## Dispositions
 
@@ -138,7 +138,7 @@
 | `source:Aardwolf_Tick_Timer/metadata:plugin` | metadata | converted | `mudlet/aardwolf-tick/package-metadata.json` | Metadata is represented by the native aardwolf-tick package. |
 | `source:Aardwolf_Tick_Timer/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:Aardwolf_Tick_Timer/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:Aardwolf_Tick_Timer/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:Aardwolf_Tick_Timer/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:Aardwolf_Tick_Timer/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:Aardwolf_Tick_Timer/timer:seconds_since_tick` | timer | converted-with-review | `mudlet/aardwolf-tick/src/scripts/aardwolf_tick` | Tick status is replaced with the direct gmcp.comm.tick event. |
 | `source:Automatic_Backup/callback:OnPluginInstall` | callback | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
@@ -299,8 +299,8 @@
 | `source:aard_group_monitor_gmcp/metadata:plugin` | metadata | converted | `mudlet/aardwolf-character/package-metadata.json` | Metadata is represented by the native aardwolf-character package. |
 | `source:aard_group_monitor_gmcp/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_group_monitor_gmcp/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:aard_group_monitor_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character` | The replacement consumes a direct native GMCP event in aardwolf-character. |
-| `source:aard_group_monitor_gmcp/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:aard_group_monitor_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character`, `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard. |
+| `source:aard_group_monitor_gmcp/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:aard_group_monitor_gmcp/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.` | trigger | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.` | trigger | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
@@ -321,8 +321,8 @@
 | `source:aard_health_bars_gmcp/metadata:plugin` | metadata | converted | `mudlet/aardwolf-character/package-metadata.json` | Metadata is represented by the native aardwolf-character package. |
 | `source:aard_health_bars_gmcp/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_health_bars_gmcp/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:aard_health_bars_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character` | The replacement consumes a direct native GMCP event in aardwolf-character. |
-| `source:aard_health_bars_gmcp/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:aard_health_bars_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character`, `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard. |
+| `source:aard_health_bars_gmcp/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:aard_health_bars_gmcp/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_help/alias:aard-help` | alias | converted-with-review | `mudlet/aardwolf-help/src/aliases/aardwolf_help` | The non-conflicting alias is preserved or moved to a documented aard command when it collides. |
 | `source:aard_help/metadata:plugin` | metadata | converted | `mudlet/aardwolf-help/package-metadata.json` | Metadata is represented by the native aardwolf-help package. |
@@ -382,7 +382,7 @@
 | `source:aard_layout/metadata:plugin` | metadata | converted | `mudlet/aardwolf-interface/package-metadata.json` | Metadata is represented by the native aardwolf-interface package. |
 | `source:aard_layout/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_layout/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:aard_layout/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:aard_layout/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:aard_layout/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_miniwindow_z_order_monitor/callback:OnPluginDisable` | callback | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_miniwindow_z_order_monitor/callback:OnPluginInstall` | callback | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
@@ -391,7 +391,7 @@
 | `source:aard_miniwindow_z_order_monitor/metadata:plugin` | metadata | converted | `mudlet/aardwolf-interface/package-metadata.json` | Metadata is represented by the native aardwolf-interface package. |
 | `source:aard_miniwindow_z_order_monitor/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_miniwindow_z_order_monitor/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:aard_miniwindow_z_order_monitor/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_new_connection/callback:OnPluginListChanged` | callback | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_new_connection/metadata:plugin` | metadata | converted | `mudlet/aardwolf-profile-data/package-metadata.json` | Metadata is represented by the native aardwolf-profile-data package. |
@@ -467,8 +467,8 @@
 | `source:aard_statmon_gmcp/metadata:plugin` | metadata | converted | `mudlet/aardwolf-character/package-metadata.json` | Metadata is represented by the native aardwolf-character package. |
 | `source:aard_statmon_gmcp/script:1` | script | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_statmon_gmcp/signal:script-1:filesystem` | filesystem-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
-| `source:aard_statmon_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character` | The replacement consumes a direct native GMCP event in aardwolf-character. |
-| `source:aard_statmon_gmcp/signal:script-1:miniwindow` | miniwindow-api | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
+| `source:aard_statmon_gmcp/signal:script-1:gmcp` | gmcp-dependency | converted-with-review | `mudlet/aardwolf-character/src/scripts/aardwolf_character`, `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The replacement consumes direct native GMCP in aardwolf-character and the Aardwolf dashboard. |
+| `source:aard_statmon_gmcp/signal:script-1:miniwindow` | miniwindow-api | converted-with-review | `mudlet/aardwolf-interface/src/scripts/aardwolf_interface` | The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts. |
 | `source:aard_statmon_gmcp/signal:script-1:plugin-dependency` | plugin-dependency | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.` | alias | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
 | `source:aard_text_substitution/alias:gag-s-.` | alias | intentionally-retired | `reports/retirements.md` | The safe replacement keeps only the documented feature boundary. |
@@ -660,7 +660,6 @@
 - `source:Aardwolf_Tick_Timer/callback:OnPluginTelnetOption`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-tick's documented native Mudlet commands and lifecycle.
 - `source:Aardwolf_Tick_Timer/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-tick's documented native Mudlet commands and lifecycle.
 - `source:Aardwolf_Tick_Timer/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-tick's documented native Mudlet commands and lifecycle.
-- `source:Aardwolf_Tick_Timer/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-tick's documented native Mudlet commands and lifecycle.
 - `source:Aardwolf_Tick_Timer/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-tick's documented native Mudlet commands and lifecycle.
 - `source:Automatic_Backup/callback:OnPluginInstall`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-profile-data's documented native Mudlet commands and lifecycle.
 - `source:Automatic_Backup/callback:OnPluginWorldSave`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-profile-data's documented native Mudlet commands and lifecycle.
@@ -777,7 +776,6 @@
 - `source:aard_group_monitor_gmcp/callback:OnPluginSaveState`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_group_monitor_gmcp/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_group_monitor_gmcp/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
-- `source:aard_group_monitor_gmcp/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_group_monitor_gmcp/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_group_monitor_gmcp/trigger:w-has-cancelled-your-invitation-to-join-group-.-.`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_group_monitor_gmcp/trigger:w-has-invited-you-to-join-group-.-.`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
@@ -797,7 +795,6 @@
 - `source:aard_health_bars_gmcp/callback:OnPluginWorldOutputResized`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_health_bars_gmcp/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_health_bars_gmcp/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
-- `source:aard_health_bars_gmcp/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_health_bars_gmcp/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_help/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-help's documented native Mudlet commands and lifecycle.
 - `source:aard_help/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-help's documented native Mudlet commands and lifecycle.
@@ -848,7 +845,6 @@
 - `source:aard_layout/callback:OnPluginWorldOutputResized`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_layout/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_layout/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
-- `source:aard_layout/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_layout/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_miniwindow_z_order_monitor/callback:OnPluginDisable`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_miniwindow_z_order_monitor/callback:OnPluginInstall`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
@@ -856,7 +852,6 @@
 - `source:aard_miniwindow_z_order_monitor/callback:OnPluginSaveState`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_miniwindow_z_order_monitor/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_miniwindow_z_order_monitor/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
-- `source:aard_miniwindow_z_order_monitor/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_miniwindow_z_order_monitor/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-interface's documented native Mudlet commands and lifecycle.
 - `source:aard_new_connection/callback:OnPluginListChanged`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-profile-data's documented native Mudlet commands and lifecycle.
 - `source:aard_new_connection/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-profile-data's documented native Mudlet commands and lifecycle.
@@ -921,7 +916,6 @@
 - `source:aard_statmon_gmcp/callback:OnPluginSaveState`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_statmon_gmcp/script:1`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_statmon_gmcp/signal:script-1:filesystem`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
-- `source:aard_statmon_gmcp/signal:script-1:miniwindow`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_statmon_gmcp/signal:script-1:plugin-dependency`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-character's documented native Mudlet commands and lifecycle.
 - `source:aard_text_substitution/alias:gag-.-nocase-alone-regex-.`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-console's documented native Mudlet commands and lifecycle.
 - `source:aard_text_substitution/alias:gag-s-.`: The exact MUSHclient object is not ported verbatim. Migration: Use aardwolf-console's documented native Mudlet commands and lifecycle.

@@ -1,1 +1,1 @@
-aardwolf_interface.commands.toggle()
+aardwolf_interface.commands.toggle_theme()

@@ -52,7 +52,8 @@ def main() -> int:
     require("aardwolf-map::event::room-info" in lifecycle and "gmcp.room.info" in lifecycle, "named GMCP handler is missing")
     require("clearMap" not in lifecycle and "deleteRoom" not in lifecycle, "importer contains destructive mapper actions")
     require("centerview(room_id)" in protocol and "send(" not in protocol, "GMCP handler has side effects beyond centering")
-    require("aardwolf-mudlet-suite/aardwolf-map-v11.json" in state, "map resource does not support the suite package directory")
+    require("aardwolf-map/resources/aardwolf-map-v11.json" in state, "map resource does not support the standalone package directory")
+    require("aardwolf-mudlet-suite/resources/aardwolf-map-v11.json" in state, "map resource does not support the suite package directory")
     return 0
 
 

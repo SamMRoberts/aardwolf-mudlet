@@ -1,13 +1,22 @@
 # aardwolf-interface
 
-Accessible interface state controls with text fallback.
+Responsive Aardwolf Geyser dashboard with an accessible text fallback.
 
 ## Compatibility
 
-This package is a safe native Mudlet replacement for selected behavior from `aard_Theme_Controller`, `aard_layout`, `aard_miniwindow_z_order_monitor`, `aard_splitscreen_scrollback`. Supported aliases: `^aard interface status$`, `^aard interface show$`, `^aard theme change$`. Colliding, raw-protocol, automated-network, and source-specific behaviors are documented in the collection retirement ledger.
+This package is a safe native Mudlet replacement for selected behavior from `aard_Theme_Controller`, `aard_layout`, `aard_miniwindow_z_order_monitor`, `aard_splitscreen_scrollback`. Supported aliases: `^aard interface status$`, `^aard interface show$`, `^aard interface hide$`, `^aard theme change$`. Colliding, raw-protocol, automated-network, and source-specific behaviors are documented in the collection retirement ledger.
 
 ## Runtime boundary
 
-Mudlet lifecycle events: `sysInstall`, `sysLoadEvent`, and `sysWindowResizeEvent`. The package retries Geyser UI creation after install and profile load, sends no game commands, and removes its handlers through `aardwolf_interface.lifecycle.shutdown()`.
+The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, and `gmcp.comm.tick` events. It creates a reserved right sidebar after install/profile load, sends no game commands, and restores its border and shared mapper ownership through `aardwolf_interface.lifecycle.shutdown()`.
+
+
+## Dashboard behavior
+
+The sidebar appears automatically on first install and then remembers explicit show/hide and theme choices. It reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+
+Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot.
+
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.0 so Mudlet does not retain duplicate static objects.
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

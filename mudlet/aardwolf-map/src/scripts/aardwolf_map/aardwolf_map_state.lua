@@ -2,13 +2,13 @@ aardwolf_map = aardwolf_map or {}
 aardwolf_map.state = aardwolf_map.state or {}
 
 function aardwolf_map.state.resource_path()
-  return getMudletHomeDir() .. "/aardwolf-map/aardwolf-map-v11.json"
+  return getMudletHomeDir() .. "/aardwolf-map/resources/aardwolf-map-v11.json"
 end
 
 function aardwolf_map.state.resource_paths()
   return {
     aardwolf_map.state.resource_path(),
-    getMudletHomeDir() .. "/aardwolf-mudlet-suite/aardwolf-map-v11.json",
+    getMudletHomeDir() .. "/aardwolf-mudlet-suite/resources/aardwolf-map-v11.json",
   }
 end
 

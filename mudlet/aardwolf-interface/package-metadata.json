@@ -1,9 +1,9 @@
 {
-  "description": "Accessible interface state controls with text fallback.",
+  "description": "Responsive Aardwolf Geyser dashboard with an accessible text fallback.",
   "game": "Aardwolf",
   "minimum_mudlet_version": "4.14",
   "name": "aardwolf-interface",
   "namespace": "aardwolf_interface",
   "schema_version": 1,
-  "version": "1.0.1"
+  "version": "1.1.0"
 }

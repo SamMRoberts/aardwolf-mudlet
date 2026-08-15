@@ -65,11 +65,16 @@ FEATURES = (
         (("help", "^aard help$", "aardwolf_help.commands.status()"), ("legacy_help", "^mchelps?(?: .*)?$", "aardwolf_help.commands.status()")),
     ),
     Feature(
-        "aardwolf-interface", "aardwolf_interface", "Accessible interface state controls with text fallback.",
+        "aardwolf-interface", "aardwolf_interface", "Responsive Aardwolf Geyser dashboard with an accessible text fallback.",
         ("aard_Theme_Controller", "aard_layout", "aard_miniwindow_z_order_monitor", "aard_splitscreen_scrollback"),
         (("window_resize", "true", "window_resize"),),
-        (("status", "^aard interface status$", "aardwolf_interface.commands.status()"), ("show", "^aard interface show$", "aardwolf_interface.commands.show()"), ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle()")),
-        "interface", "1.0.1",
+        (
+            ("status", "^aard interface status$", "aardwolf_interface.commands.status()"),
+            ("show", "^aard interface show$", "aardwolf_interface.commands.show()"),
+            ("hide", "^aard interface hide$", "aardwolf_interface.commands.hide()"),
+            ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
+        ),
+        "interface", "1.1.0",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -108,6 +113,15 @@ REPLACED_ALIASES = {
     "source:MUSHclient_Help/alias:mchelps-.",
     "source:aard_Theme_Controller/alias:aard-theme-change",
     "source:aard_help/alias:aard-help",
+}
+
+PORTABLE_UI_SOURCES = {
+    "Aardwolf_Tick_Timer",
+    "aard_group_monitor_gmcp",
+    "aard_health_bars_gmcp",
+    "aard_layout",
+    "aard_miniwindow_z_order_monitor",
+    "aard_statmon_gmcp",
 }
 
 
@@ -375,124 +389,11 @@ end
 
 
 def interface_sources(feature: Feature) -> dict[str, str]:
-    sources = module_sources(feature)
-    namespace = feature.namespace
-    sources["ui"] = f'''{namespace} = {namespace} or {{}}
-{namespace}.ui = {namespace}.ui or {{}}
-
-function {namespace}.ui.message(message)
-  echo("\\n[{feature.name}] " .. tostring(message) .. "\\n")
-end
-
-function {namespace}.ui.status(summary)
-  {namespace}.ui.message("Status: " .. tostring(summary))
-end
-
-function {namespace}.ui.create()
-  if {namespace}.ui.label then
-    return true
-  end
-  if type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
-    return false
-  end
-  {namespace}.ui.label = Geyser.Label:new({{
-    ["name"] = "{feature.name}::ui::status",
-    ["x"] = "-38c", ["y"] = "1c", ["width"] = "36c", ["height"] = "3c",
-    ["fgColor"] = "white", ["color"] = "black",
-    ["message"] = "Aardwolf interface",
-  }})
-  {namespace}.ui.label:show()
-  return true
-end
-
-function {namespace}.ui.refresh_layout()
-  if not {namespace}.ui.create() then
-    if not {namespace}.ui.availability_reported then
-      {namespace}.ui.availability_reported = true
-      {namespace}.ui.message("Geyser is not ready; use aard interface show after the profile finishes loading.")
-    end
-    return false
-  end
-  local label = {namespace}.ui.label
-  label:resize("36c", "3c")
-  label:echo("Aardwolf interface\\n" .. {namespace}.state.summary())
-  label:show()
-  return true
-end
-
-function {namespace}.ui.destroy()
-  if {namespace}.ui.label then
-    {namespace}.ui.label:delete()
-    {namespace}.ui.label = nil
-  end
-  {namespace}.ui.availability_reported = nil
-end
-'''
-    sources["commands"] = f'''{namespace} = {namespace} or {{}}
-{namespace}.commands = {namespace}.commands or {{}}
-
-function {namespace}.commands.status()
-  {namespace}.ui.refresh_layout()
-  {namespace}.ui.status({namespace}.state.summary())
-end
-
-function {namespace}.commands.show()
-  if {namespace}.ui.refresh_layout() then
-    {namespace}.ui.message("Interface shown.")
-  end
-end
-
-function {namespace}.commands.set_enabled(enabled)
-  {namespace}.settings.set_enabled(enabled)
-  {namespace}.ui.message(enabled and "Enabled." or "Disabled.")
-end
-
-function {namespace}.commands.toggle()
-  {namespace}.commands.set_enabled(not {namespace}.settings.is_enabled())
-end
-
-function {namespace}.commands.reset()
-  {namespace}.state.reset()
-  {namespace}.ui.refresh_layout()
-  {namespace}.ui.message("State reset.")
-end
-'''
-    sources["protocol"] = f'''{namespace} = {namespace} or {{}}
-{namespace}.protocol = {namespace}.protocol or {{}}
-
-function {namespace}.protocol.on_window_resize()
-  {namespace}.state.record("window", true)
-  {namespace}.ui.refresh_layout()
-end
-'''
-    sources["lifecycle"] = f'''{namespace} = {namespace} or {{}}
-{namespace}.lifecycle = {namespace}.lifecycle or {{}}
-
-function {namespace}.lifecycle.refresh_ui()
-  {namespace}.ui.refresh_layout()
-end
-
-function {namespace}.lifecycle.initialize()
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::install")
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::profile-load")
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::window_resize")
-  registerNamedEventHandler("{namespace}", "{feature.name}::event::install", "sysInstall", {namespace}.lifecycle.refresh_ui)
-  registerNamedEventHandler("{namespace}", "{feature.name}::event::profile-load", "sysLoadEvent", {namespace}.lifecycle.refresh_ui)
-  registerNamedEventHandler("{namespace}", "{feature.name}::event::window_resize", "sysWindowResizeEvent", {namespace}.protocol.on_window_resize)
-  {namespace}.ui.refresh_layout()
-end
-
-function {namespace}.lifecycle.shutdown()
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::install")
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::profile-load")
-  deleteNamedEventHandler("{namespace}", "{feature.name}::event::window_resize")
-  {namespace}.ui.destroy()
-end
-
-{namespace}.lifecycle.initialize()
-'''
-    return sources
-
+    implementation = (ROOT / "tools" / "templates" / "aardwolf_interface_main.lua").read_text(encoding="utf-8")
+    return {
+        module: implementation if module == "state" else ""
+        for module in ("state", "settings", "commands", "protocol", "ui", "lifecycle", "help")
+    }
 
 def write_feature(feature: Feature, destination: Path) -> None:
     sources = accessibility_sources(feature) if feature.kind == "accessibility" else profile_data_sources(feature) if feature.kind == "profile-data" else interface_sources(feature) if feature.kind == "interface" else module_sources(feature)
@@ -522,7 +423,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
     for stale in script_dir.glob(f"{feature.namespace}_*.lua"):
         stale.unlink()
     object_name = f"{feature.namespace}.main"
-    implementation = "\n".join(
+    implementation = sources["state"] if feature.kind == "interface" else "\n".join(
         sources[module]
         for module in ("state", "settings", "ui", "commands", "protocol", "lifecycle", "help")
     )
@@ -533,15 +434,24 @@ def write_feature(feature: Feature, destination: Path) -> None:
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
     runtime_boundary = (
-        "Mudlet lifecycle events: `sysInstall`, `sysLoadEvent`, and `sysWindowResizeEvent`. The package retries Geyser UI creation after install and profile load, sends no game commands, and removes its handlers through `aardwolf_interface.lifecycle.shutdown()`."
+        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, and `gmcp.comm.tick` events. It creates a reserved right sidebar after install/profile load, sends no game commands, and restores its border and shared mapper ownership through `aardwolf_interface.lifecycle.shutdown()`."
         if feature.kind == "interface"
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "Run `aard interface show` to create or refresh the Geyser status label, or `aard interface status` for a text fallback. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
+        "Run `aard interface show` or `aard interface hide` to control the right sidebar. `aard interface status` prints the same essential room, vital, group, tick, and mapper state as a text fallback. `aard theme change` cycles the dark and high-contrast themes. Visibility and theme are stored as JSON data in `aardwolf-interface/settings.lua` below the Mudlet profile; the file is never executed as Lua. While visible, the sidebar owns Mudlet's singleton mapper display and restores a previously visible `generic_mapper` view when hidden or unloaded. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, unattended network behavior, or game-command sending."
         if feature.kind == "interface"
         else "Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
     )
+    feature_notes = '''
+## Dashboard behavior
+
+The sidebar appears automatically on first install and then remembers explicit show/hide and theme choices. It reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+
+Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot.
+
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.1.0 so Mudlet does not retain duplicate static objects.
+''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
 {feature.description}
@@ -554,6 +464,7 @@ This package is a safe native Mudlet replacement for selected behavior from {sou
 
 {runtime_boundary}
 
+{feature_notes}
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.
 ''')
     write(destination / "HELP.md", f'''# {feature.name} help
@@ -568,6 +479,15 @@ Install `{feature.name}.mpackage` in Mudlet. It contains the Mudlet objects and 
 
 Artifacts are regenerated by the native package builder after the source and release validators pass.
 ''')
+    interface_assertions = '''assert "Geyser.Container:new" in source and "Geyser.Gauge:new" in source and "Geyser.Mapper:new" in source
+assert (root / "tests" / "interface_stub_spec.lua").is_file()
+assert "commands.show" in source and "commands.hide" in source and "commands.toggle_theme" in source
+assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
+assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
+assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick"))
+assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
+assert "send(" not in source and "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source
+''' if feature.kind == "interface" else ""
     test = f'''#!/usr/bin/env python3
 import json
 from pathlib import Path
@@ -587,7 +507,7 @@ assert "send(" not in source
 assert source.count("function {feature.namespace}.") >= 5
 assert "function {feature.namespace}.lifecycle.initialize" in source
 assert "function {feature.namespace}.lifecycle.shutdown" in source
-{'assert "Geyser.Label:new" in source and "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "commands.show" in source and ":show()" in source and ":delete()" in source' if feature.kind == 'interface' else ''}
+{interface_assertions}
 {'assert "commands.export" in source and "commands.import" in source and "io.open" in source and "io.popen" not in source' if feature.kind == 'profile-data' else ''}
 {'assert "ttsQueue" in source and "ttsClearQueue" in source and "Text-to-speech is unavailable" in source' if feature.kind == 'accessibility' else ''}
 {'assert "registerNamedEventHandler" in source and "deleteNamedEventHandler" in source' if feature.events else ''}
@@ -632,7 +552,19 @@ def decisions(inventory: dict[str, Any]) -> tuple[dict[str, Any], str]:
             output.append({"item_id": item_id, "status": "converted", "reason": f"Metadata is represented by the native {feature.name} package.", "target_paths": [f"mudlet/{feature.name}/package-metadata.json"]})
             continue
         if plugin and feature and item["kind"] == "gmcp-dependency":
-            output.append({"item_id": item_id, "status": "converted-with-review", "reason": f"The replacement consumes a direct native GMCP event in {feature.name}.", "target_paths": [f"mudlet/{feature.name}/src/scripts/{feature.namespace}"]})
+            targets = [f"mudlet/{feature.name}/src/scripts/{feature.namespace}"]
+            dashboard_target = plugin in PORTABLE_UI_SOURCES
+            if dashboard_target and "mudlet/aardwolf-interface/src/scripts/aardwolf_interface" not in targets:
+                targets.append("mudlet/aardwolf-interface/src/scripts/aardwolf_interface")
+            reason = (
+                f"The replacement consumes direct native GMCP in {feature.name} and the Aardwolf dashboard."
+                if dashboard_target
+                else f"The replacement consumes a direct native GMCP event in {feature.name}."
+            )
+            output.append({"item_id": item_id, "status": "converted-with-review", "reason": reason, "target_paths": targets})
+            continue
+        if plugin in PORTABLE_UI_SOURCES and item["kind"] == "miniwindow-api":
+            output.append({"item_id": item_id, "status": "converted-with-review", "reason": "The portable presentation use case is replaced by the responsive native Geyser dashboard; exact MUSHclient window mechanics remain retired with their owning scripts.", "target_paths": ["mudlet/aardwolf-interface/src/scripts/aardwolf_interface"]})
             continue
         if plugin == "Aardwolf_Tick_Timer" and item["kind"] == "timer":
             output.append({"item_id": item_id, "status": "converted-with-review", "reason": "Tick status is replaced with the direct gmcp.comm.tick event.", "target_paths": ["mudlet/aardwolf-tick/src/scripts/aardwolf_tick"]})

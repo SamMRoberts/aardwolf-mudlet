@@ -1,7 +1,7 @@
 {
   "author": "Aardwolf Mudlet",
-  "description": "Accessible interface state controls with text fallback.",
+  "description": "Responsive Aardwolf Geyser dashboard with an accessible text fallback.",
   "package": "aardwolf-interface",
   "title": "Aardwolf Interface",
-  "version": "1.0.1"
+  "version": "1.1.0"
 }
