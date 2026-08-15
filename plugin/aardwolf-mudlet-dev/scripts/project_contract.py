@@ -79,6 +79,8 @@ def load_project(root: Path) -> Project:
     mfile = load_json(root / "mfile")
     if not isinstance(mfile, dict) or mfile.get("package") != metadata["name"] or mfile.get("version") != metadata["version"]:
         raise ToolError("mfile package and version must match package-metadata.json")
+    for field in ("author", "title", "description"):
+        _require_string(mfile.get(field), f"mfile {field}")
 
     source_root = root / "src"
     if not source_root.is_dir():

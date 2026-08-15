@@ -15,7 +15,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_mudlet_package import build_muddler, build_native, main as package_main
+from build_mudlet_package import build_muddler, build_native, main as package_main, package_config_lua
 from common import ToolError, write_json, write_text
 from project_contract import load_project
 from validate_aardwolf_mudlet_project import validate
@@ -33,7 +33,13 @@ def make_project(root: Path, *, tick_timer: bool = False, compact: bool = False)
         "description": "Fixture project",
         "game": "Aardwolf",
     })
-    write_json(root / "mfile", {"package": name, "version": "1.0.0"})
+    write_json(root / "mfile", {
+        "package": name,
+        "version": "1.0.0",
+        "author": "Fixture author",
+        "title": "Fixture title",
+        "description": "Fixture description",
+    })
     for category in ("scripts", "aliases", "triggers", "timers", "keys", "resources"):
         (root / "src" / category / namespace).mkdir(parents=True, exist_ok=True)
     write_text(root / "README.md", "# Fixture\n")
@@ -93,7 +99,7 @@ class PackageToolsTests(unittest.TestCase):
             with zipfile.ZipFile(first["mpackage"]) as archive:
                 self.assertEqual(archive.namelist(), sorted(archive.namelist()))
                 self.assertIn("aardwolf-tick-timer.xml", archive.namelist())
-                self.assertEqual(json.loads(archive.read("mfile")), json.loads((project_root / "mfile").read_text(encoding="utf-8")))
+                self.assertEqual(archive.read("config.lua"), package_config_lua(load_project(project_root).mfile))
             self.assertEqual(validate(project_root, release=True), [])
 
     def test_compact_main_script_is_a_valid_project_architecture(self) -> None:

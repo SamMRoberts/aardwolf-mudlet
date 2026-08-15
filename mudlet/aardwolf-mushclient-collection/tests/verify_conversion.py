@@ -91,11 +91,11 @@ def main() -> None:
     suite_root = ET.parse(suite_xml_path).getroot()
     assert suite_root.tag == "MudletPackage"
     with zipfile.ZipFile(suite_package_path) as archive:
-        assert archive.namelist() == ["aardwolf-mudlet-suite.xml", "mfile", "resources/aardwolf-map-v11.json"]
+        assert archive.namelist() == ["aardwolf-mudlet-suite.xml", "config.lua", "resources/aardwolf-map-v11.json"]
         assert archive.read("aardwolf-mudlet-suite.xml") == suite_xml_path.read_bytes()
-        suite_mfile = json.loads(archive.read("mfile"))
-        assert suite_mfile["package"] == "aardwolf-mudlet-suite"
-        assert suite_mfile["title"] == "Aardwolf Mudlet Suite"
+        suite_config = archive.read("config.lua").decode("utf-8")
+        assert "mpackage = [[aardwolf-mudlet-suite]]" in suite_config
+        assert "title = [[Aardwolf Mudlet Suite]]" in suite_config
         with zipfile.ZipFile(mudlet_root / "aardwolf-map" / "dist" / "aardwolf-map.mpackage") as map_archive:
             assert archive.read("resources/aardwolf-map-v11.json") == map_archive.read("resources/aardwolf-map-v11.json")
     for category in ("AliasPackage", "TriggerPackage", "TimerPackage", "ScriptPackage", "KeyPackage"):

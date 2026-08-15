@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "plugin" / "aardwolf-mudlet-dev" / "scripts"))
 
-from build_mudlet_package import build_native  # noqa: E402
+from build_mudlet_package import build_native, package_config_lua  # noqa: E402
 from project_contract import CATEGORY_INFO, load_project  # noqa: E402
 from validate_aardwolf_mudlet_project import validate  # noqa: E402
 
@@ -43,7 +43,7 @@ SUITE_MFILE = {
     "description": "All-in-one native Mudlet package for the audited Aardwolf collection, diagnostics, interface, accessibility, profile-data, and map importer.",
     "package": SUITE_NAME,
     "title": "Aardwolf Mudlet Suite",
-    "version": "1.0.1",
+    "version": "1.0.2",
 }
 
 
@@ -124,7 +124,7 @@ def build_suite(mudlet_root: Path) -> dict[str, str]:
     try:
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, strict_timestamps=True) as archive:
             _zip_entry(xml_path.name, xml_payload, archive)
-            _zip_entry("mfile", (json.dumps(SUITE_MFILE, indent=2, sort_keys=True) + "\n").encode("utf-8"), archive)
+            _zip_entry("config.lua", package_config_lua(SUITE_MFILE), archive)
             for name, payload in sorted(resources.items()):
                 _zip_entry(name, payload, archive)
         os.replace(temporary, package_path)
@@ -136,8 +136,8 @@ def build_suite(mudlet_root: Path) -> dict[str, str]:
             raise ValueError("suite archive entries are not sorted")
         if archive.read(xml_path.name) != xml_payload:
             raise ValueError("suite archive XML differs from the generated XML")
-        if json.loads(archive.read("mfile").decode("utf-8")) != SUITE_MFILE:
-            raise ValueError("suite archive mfile differs from suite metadata")
+        if archive.read("config.lua") != package_config_lua(SUITE_MFILE):
+            raise ValueError("suite archive Package Manager metadata differs from suite metadata")
     return {"xml": str(xml_path), "mpackage": str(package_path)}
 
 

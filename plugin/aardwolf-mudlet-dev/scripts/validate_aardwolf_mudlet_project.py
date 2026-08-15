@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 from common import ToolError, load_json, require_relative_path
+from build_mudlet_package import package_config_lua
 from project_contract import CATEGORY_INFO, Project, iter_project_files, load_project
 
 
@@ -212,16 +213,17 @@ def _check_native_output(project: Project, errors: list[str]) -> None:
                     xml_member = archive.read(f"{project.metadata['name']}.xml")
                     if xml_path.exists() and xml_member != xml_path.read_bytes():
                         errors.append("native XML and .mpackage XML entry differ")
-                if "mfile" not in names:
-                    errors.append("native .mpackage is missing its mfile metadata")
+                if "config.lua" not in names:
+                    errors.append("native .mpackage is missing its Mudlet Package Manager metadata")
                 else:
                     try:
-                        mfile = json.loads(archive.read("mfile").decode("utf-8"))
-                    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                        errors.append(f"native .mpackage mfile is invalid: {error}")
+                        config = archive.read("config.lua")
+                        expected_config = package_config_lua(project.mfile)
+                    except (UnicodeDecodeError, ToolError) as error:
+                        errors.append(f"native .mpackage Package Manager metadata is invalid: {error}")
                     else:
-                        if mfile != project.mfile:
-                            errors.append("native .mpackage mfile differs from source project metadata")
+                        if config != expected_config:
+                            errors.append("native .mpackage Package Manager metadata differs from source project metadata")
                 expected_resources = {
                     f"resources/{path.relative_to(project.root / 'src' / 'resources').as_posix()}"
                     for path in (project.root / "src" / "resources").rglob("*")

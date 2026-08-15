@@ -113,6 +113,36 @@ def _zip_write(name: str, payload: bytes, archive: zipfile.ZipFile) -> None:
     archive.writestr(entry, payload)
 
 
+def package_config_lua(metadata: dict[str, Any]) -> bytes:
+    """Render the metadata file read by Mudlet's Package Manager.
+
+    Mudlet unpacks an ``.mpackage`` then evaluates ``config.lua`` in a
+    restricted Lua state.  It reads the resulting string globals to populate
+    the Package Manager; the source-control ``mfile`` is a Muddler input and
+    is not consulted by Mudlet at install time.
+    """
+    package_name = metadata.get("package")
+    if not isinstance(package_name, str) or not package_name:
+        raise ToolError("package metadata requires a non-empty package name")
+    fields = (("author", ""), ("title", ""), ("description", ""), ("version", ""))
+
+    def literal(value: str) -> str:
+        for depth in range(16):
+            marker = "=" * depth
+            closing = f"]{marker}]"
+            if closing not in value:
+                return f"[{marker}[{value}{closing}"
+        raise ToolError("package metadata contains an unsupported Lua long-string delimiter sequence")
+
+    lines = [("mpackage", package_name)]
+    for field, default in fields:
+        value = metadata.get(field, default)
+        if not isinstance(value, str):
+            raise ToolError(f"package metadata {field} must be a string")
+        lines.append((field, value))
+    return ("".join(f"{field} = {literal(value)}\n" for field, value in lines)).encode("utf-8")
+
+
 def build_native(project: Project) -> dict[str, str]:
     output = project.root / "build"
     if output.is_symlink():
@@ -126,8 +156,7 @@ def build_native(project: Project) -> dict[str, str]:
     os.close(descriptor)
     temporary = Path(temporary_name)
     try:
-        mfile_payload = (json.dumps(project.mfile, indent=2, sort_keys=True) + "\n").encode("utf-8")
-        entries = [(xml_path.name, xml_payload), ("mfile", mfile_payload)]
+        entries = [(xml_path.name, xml_payload), ("config.lua", package_config_lua(project.mfile))]
         resource_root = project.root / "src" / "resources"
         resources = sorted(resource_root.rglob("*"))
         for resource in resources:
