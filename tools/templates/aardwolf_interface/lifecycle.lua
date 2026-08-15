@@ -78,7 +78,9 @@ function aardwolf_interface.lifecycle.register()
   registerNamedEventHandler(USER,"aardwolf-interface::disconnect","sysDisconnectionEvent",aardwolf_interface.lifecycle.on_disconnect)
   registerNamedEventHandler(USER,"aardwolf-interface::exit","sysExitEvent",aardwolf_interface.lifecycle.on_exit)
   registerNamedEventHandler(USER,"aardwolf-interface::uninstall","sysUninstallPackage",aardwolf_interface.lifecycle.on_uninstall)
-  registerNamedTimer(USER,HEARTBEAT,1,aardwolf_interface.lifecycle.on_heartbeat,false)
+  -- The heartbeat is the one intentionally repeating named timer. Mudlet's
+  -- fifth argument is `repeating`, not `one_shot`.
+  registerNamedTimer(USER,HEARTBEAT,1,aardwolf_interface.lifecycle.on_heartbeat,true)
 end
 function aardwolf_interface.lifecycle.unregister()
   if deleteNamedEventHandler then

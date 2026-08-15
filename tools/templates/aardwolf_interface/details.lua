@@ -6,7 +6,7 @@ local function finish(success, message)
   local runtime, capture = aardwolf_interface.details.runtime, aardwolf_interface.details.runtime.capture
   if not capture then return end
   runtime.capture=nil
-  if killNamedTimer then pcall(killNamedTimer, "aardwolf-interface", TIMER) end
+  if deleteNamedTimer then pcall(deleteNamedTimer, "aardwolf-interface", TIMER) end
   local value=details(); value.refreshing=false; value.last_updated=os.time(); value.stale=not success
   value.sections[capture.kind == "eqdata" and "equipment" or "bags"]={status=success and "current" or "error",received_at=os.time(),error=message}
   if not success then value.errors[#value.errors+1]=message; value.error=message end
@@ -33,7 +33,7 @@ function aardwolf_interface.details.next()
   local request=table.remove(runtime.queue,1)
   runtime.capture={kind=request.kind,id=request.id,rows={},generation=runtime.generation,invalid=0}
   send(request.command,false)
-  registerNamedTimer("aardwolf-interface",TIMER,3,aardwolf_interface.details.capture_timeout,true)
+  registerNamedTimer("aardwolf-interface",TIMER,3,aardwolf_interface.details.capture_timeout,false)
 end
 
 function aardwolf_interface.details.capture_line(raw)
@@ -81,7 +81,7 @@ function aardwolf_interface.details.start()
   end
 end
 function aardwolf_interface.details.stop(reason)
-  if killNamedTimer then pcall(killNamedTimer,"aardwolf-interface",TIMER) end
+  if deleteNamedTimer then pcall(deleteNamedTimer,"aardwolf-interface",TIMER) end
   if aardwolf_interface.details.runtime.trigger_id and killTrigger then pcall(killTrigger,aardwolf_interface.details.runtime.trigger_id) end
   aardwolf_interface.details.runtime.trigger_id=nil
   aardwolf_interface.details.runtime.capture=nil; aardwolf_interface.details.runtime.queue={}

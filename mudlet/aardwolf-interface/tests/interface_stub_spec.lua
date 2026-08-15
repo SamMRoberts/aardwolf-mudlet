@@ -23,7 +23,7 @@ function tempRegexTrigger(pattern,callback) trigger_id=trigger_id+1; triggers[tr
 function killTrigger(id) triggers[id]=nil end
 function registerNamedEventHandler(user,name,event,callback) events[user..":"..name]={event=event,callback=callback} end
 function deleteNamedEventHandler(user,name) events[user..":"..name]=nil end
-function registerNamedTimer(user,name,delay,callback,one_shot) timers[user..":"..name]={delay=delay,callback=callback,one_shot=one_shot} end
+function registerNamedTimer(user,name,delay,callback,repeating) timers[user..":"..name]={delay=delay,callback=callback,repeating=repeating} end
 function deleteNamedTimer(user,name) timers[user..":"..name]=nil end
 function killNamedTimer(user,name) timers[user..":"..name]=nil end
 local disabled_scripts={}
@@ -82,6 +82,13 @@ timers["aardwolf_interface:aardwolf-interface::timer::start"]={delay=0.05}
 local script_dir=root.."/src/scripts/aardwolf_interface/"
 for _,module in ipairs({"state","settings","details","actions","protocol","commands","ui","lifecycle","help"}) do dofile(script_dir.."aardwolf_interface_"..module..".lua") end
 
+-- Mudlet's fifth registerNamedTimer argument is `repeating`. The heartbeat is
+-- periodic, while render coalescing and capture timeouts must be one-shot.
+assert(timers["aardwolf-interface:aardwolf-interface::heartbeat"].repeating==true)
+aardwolf_interface.ui.request_render()
+assert(timers["aardwolf_interface:aardwolf-interface::timer::render"].repeating==false)
+timers["aardwolf_interface:aardwolf-interface::timer::render"].callback()
+
 assert(legacy_root.deleted and legacy_bottom.deleted)
 assert(disabled_scripts["aardwolf_interface.main"]==true)
 assert(events["aardwolf_interface:aardwolf-interface::event::resize"]==nil)
@@ -126,6 +133,7 @@ aardwolf_interface.protocol.room(); assert(aardwolf_interface.actions.execute("l
 -- The strict detail transaction ignores unrelated CSV and wrong tags, accepts
 -- only its active grammar, verifies container IDs, and deletes accepted lines.
 aardwolf_interface.details.refresh()
+assert(timers["aardwolf-interface:aardwolf-interface::details-timeout"].repeating==false)
 assert(not aardwolf_interface.details.capture_line("1,2,unrelated,csv"))
 assert(aardwolf_interface.details.capture_line("{eqdata}101,,Helm,10,5,0,1,5"))
 assert(aardwolf_interface.details.capture_line("{/eqdata}"))

@@ -1042,7 +1042,7 @@ local function finish(success, message)
   local runtime, capture = aardwolf_interface.details.runtime, aardwolf_interface.details.runtime.capture
   if not capture then return end
   runtime.capture=nil
-  if killNamedTimer then pcall(killNamedTimer, "aardwolf-interface", TIMER) end
+  if deleteNamedTimer then pcall(deleteNamedTimer, "aardwolf-interface", TIMER) end
   local value=details(); value.refreshing=false; value.last_updated=os.time(); value.stale=not success
   value.sections[capture.kind == "eqdata" and "equipment" or "bags"]={status=success and "current" or "error",received_at=os.time(),error=message}
   if not success then value.errors[#value.errors+1]=message; value.error=message end
@@ -1069,7 +1069,7 @@ function aardwolf_interface.details.next()
   local request=table.remove(runtime.queue,1)
   runtime.capture={kind=request.kind,id=request.id,rows={},generation=runtime.generation,invalid=0}
   send(request.command,false)
-  registerNamedTimer("aardwolf-interface",TIMER,3,aardwolf_interface.details.capture_timeout,true)
+  registerNamedTimer("aardwolf-interface",TIMER,3,aardwolf_interface.details.capture_timeout,false)
 end
 
 function aardwolf_interface.details.capture_line(raw)
@@ -1117,7 +1117,7 @@ function aardwolf_interface.details.start()
   end
 end
 function aardwolf_interface.details.stop(reason)
-  if killNamedTimer then pcall(killNamedTimer,"aardwolf-interface",TIMER) end
+  if deleteNamedTimer then pcall(deleteNamedTimer,"aardwolf-interface",TIMER) end
   if aardwolf_interface.details.runtime.trigger_id and killTrigger then pcall(killTrigger,aardwolf_interface.details.runtime.trigger_id) end
   aardwolf_interface.details.runtime.trigger_id=nil
   aardwolf_interface.details.runtime.capture=nil; aardwolf_interface.details.runtime.queue={}
@@ -2270,7 +2270,10 @@ function ui.request_render()
   if ui.render_pending then return end
   ui.render_pending = true
   if type(registerNamedTimer) == "function" and type(deleteNamedTimer) == "function" then
-    deleteNamedTimer(TIMER_USER, RENDER_TIMER); registerNamedTimer(TIMER_USER, RENDER_TIMER, 0.08, ui.render, true)
+    -- Mudlet's fifth registerNamedTimer argument means "repeating".  This is
+    -- a debounce, so it must fire once; registering it as repeating redraws
+    -- the entire command deck roughly every 80 ms forever.
+    deleteNamedTimer(TIMER_USER, RENDER_TIMER); registerNamedTimer(TIMER_USER, RENDER_TIMER, 0.08, ui.render, false)
   else ui.render() end
 end
 
@@ -2419,7 +2422,9 @@ function aardwolf_interface.lifecycle.register()
   registerNamedEventHandler(USER,"aardwolf-interface::disconnect","sysDisconnectionEvent",aardwolf_interface.lifecycle.on_disconnect)
   registerNamedEventHandler(USER,"aardwolf-interface::exit","sysExitEvent",aardwolf_interface.lifecycle.on_exit)
   registerNamedEventHandler(USER,"aardwolf-interface::uninstall","sysUninstallPackage",aardwolf_interface.lifecycle.on_uninstall)
-  registerNamedTimer(USER,HEARTBEAT,1,aardwolf_interface.lifecycle.on_heartbeat,false)
+  -- The heartbeat is the one intentionally repeating named timer. Mudlet's
+  -- fifth argument is `repeating`, not `one_shot`.
+  registerNamedTimer(USER,HEARTBEAT,1,aardwolf_interface.lifecycle.on_heartbeat,true)
 end
 function aardwolf_interface.lifecycle.unregister()
   if deleteNamedEventHandler then

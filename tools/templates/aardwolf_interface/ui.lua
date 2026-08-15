@@ -832,7 +832,10 @@ function ui.request_render()
   if ui.render_pending then return end
   ui.render_pending = true
   if type(registerNamedTimer) == "function" and type(deleteNamedTimer) == "function" then
-    deleteNamedTimer(TIMER_USER, RENDER_TIMER); registerNamedTimer(TIMER_USER, RENDER_TIMER, 0.08, ui.render, true)
+    -- Mudlet's fifth registerNamedTimer argument means "repeating".  This is
+    -- a debounce, so it must fire once; registering it as repeating redraws
+    -- the entire command deck roughly every 80 ms forever.
+    deleteNamedTimer(TIMER_USER, RENDER_TIMER); registerNamedTimer(TIMER_USER, RENDER_TIMER, 0.08, ui.render, false)
   else ui.render() end
 end
 
