@@ -699,11 +699,11 @@ local function render_character()
   local base, vitals, maximum = value("base"), value("vitals"), value("maxstats")
   local stats, worth, status, quest = value("stats"), value("worth"), value("status"), value("quest")
   local badge = status_badge("base")
-  local identity = key_value({{"Name", base.name or base.character}, {"Race", base.race}, {"Class", base.class}, {"Subclass", base.subclass}, {"Clan", base.clan}, {"Level", base.level or stats.level}, {"Tier", base.tier}, {"Remorts", base.remorts or base.remort}})
-  local attributes = key_value({{"Strength", stats.str or stats.strength}, {"Intelligence", stats.int or stats.intelligence}, {"Wisdom", stats.wis or stats.wisdom}, {"Dexterity", stats.dex or stats.dexterity}, {"Constitution", stats.con or stats.constitution}, {"Luck", stats.luck}})
-  local combat = key_value({{"HP", display(vitals.hp) .. " / " .. display(maximum.maxhp or vitals.maxhp)}, {"Mana", display(vitals.mana) .. " / " .. display(maximum.maxmana or vitals.maxmana)}, {"Moves", display(vitals.moves) .. " / " .. display(maximum.maxmoves or vitals.maxmoves)}, {"Hitroll", stats.hitroll or stats.hr}, {"Damroll", stats.damroll or stats.dr}, {"Saves", stats.saves}, {"Alignment", worth.align or stats.align or stats.alignment}})
-  local progression = key_value({{"TNL", vitals.tnl or stats.tnl}, {"QP", worth.qp or worth.questpoints}, {"Gold", worth.gold}, {"Bank", worth.bank}, {"Practices", worth.pracs or stats.practices}, {"Trains", worth.trains or stats.trains}, {"Quest", quest.status or quest.state}, {"Quest timer", quest.timer or quest.time}})
-  safe(widget("character_card"), "echo", "<b>CHARACTER &middot; " .. escape(badge) .. "</b><br><table width='100%'><tr><td valign='top' width='50%'><b>Identity</b>" .. identity .. "<br><b>Attributes</b>" .. attributes .. "</td><td valign='top'><b>Combat</b>" .. combat .. "<br><b>Progression &amp; currencies</b>" .. progression .. "</td></tr></table><br><b>Conditions</b><br>State " .. escape(status.state_name or status.state) .. " &middot; hunger " .. escape(display(vitals.hunger or worth.hunger)) .. " &middot; thirst " .. escape(display(vitals.thirst or worth.thirst)) .. " &middot; enemy " .. escape(display(vitals.enemy)) )
+  local identity = key_value({{"Name", base.name or base.character}, {"Race", base.race}, {"Class", base.class}, {"Subclass", base.subclass}, {"Clan", base.clan}, {"Level", base.level or status.level}, {"Tier", base.tier}, {"Remorts", base.remorts or base.remort}})
+  local attributes = key_value({{"Strength", display(stats.str) .. " / " .. display(maximum.maxstr)}, {"Intelligence", display(stats.int) .. " / " .. display(maximum.maxint)}, {"Wisdom", display(stats.wis) .. " / " .. display(maximum.maxwis)}, {"Dexterity", display(stats.dex) .. " / " .. display(maximum.maxdex)}, {"Constitution", display(stats.con) .. " / " .. display(maximum.maxcon)}, {"Luck", display(stats.luck) .. " / " .. display(maximum.maxluck)}})
+  local combat = key_value({{"HP", display(vitals.hp) .. " / " .. display(maximum.maxhp or vitals.maxhp)}, {"Mana", display(vitals.mana) .. " / " .. display(maximum.maxmana or vitals.maxmana)}, {"Moves", display(vitals.moves) .. " / " .. display(maximum.maxmoves or vitals.maxmoves)}, {"Hitroll", stats.hr or stats.hitroll}, {"Damroll", stats.dr or stats.damroll}, {"Saves", stats.saves}, {"Alignment", status.align}})
+  local progression = key_value({{"TNL", status.tnl}, {"QP", worth.qp or worth.questpoints}, {"Gold", worth.gold}, {"Bank", worth.bank}, {"Practices", worth.pracs or stats.practices}, {"Trains", worth.trains or stats.trains}, {"Quest", quest.status or quest.state}, {"Quest timer", quest.timer or quest.time}})
+  safe(widget("character_card"), "echo", "<b>CHARACTER &middot; " .. escape(badge) .. "</b><br><table width='100%'><tr><td valign='top' width='50%'><b>Identity</b>" .. identity .. "<br><b>Attributes</b>" .. attributes .. "</td><td valign='top'><b>Combat</b>" .. combat .. "<br><b>Progression &amp; currencies</b>" .. progression .. "</td></tr></table><br><b>Conditions</b><br>Position " .. escape(status.pos or status.position or status.state_name or status.state) .. " &middot; hunger " .. escape(display(status.hunger)) .. " &middot; thirst " .. escape(display(status.thirst)) .. " &middot; enemy " .. escape(status.enemy or "--") .. " " .. escape(display(status.enemypct)) .. "%")
 end
 
 local function render_group()
@@ -743,9 +743,13 @@ local function render_inventory()
     for index=first,last do local bag=bags[index]
       local used, maximum = finite(bag.used_weight), finite(bag.max_weight)
       local percent = used and maximum and maximum > 0 and math.floor(used / maximum * 100) or nil
-      rows[#rows + 1] = string.format("<tr><td><b>%s</b></td><td>%s / %s weight%s</td><td>%s</td></tr>", escape(bag.name or "Container"), escape(display(used)), escape(display(maximum)), percent and (" (" .. percent .. "%%)") or "", escape(bag.error or (bag.pending and "pending" or bag.status or "current")))
+      rows[#rows + 1] = string.format("<tr><td><b>%s</b></td><td>%s / %s weight%s &middot; %s items</td><td>%s</td></tr>", escape(bag.name or "Container"), escape(display(used)), escape(display(maximum)), percent and (" (" .. percent .. "%%)") or "", escape(#(bag.items or {})), escape(bag.error or (bag.pending and "pending" or bag.status or "current")))
     end
     if #bags == 0 then rows[#rows + 1] = "<tr><td>No bag data.</td></tr>" end
+    rows[#rows + 1] = "</table><br><b>Carried inventory</b><table width='100%' cellspacing='2'>"
+    local inventory=type(details.inventory)=="table" and details.inventory or {}
+    for index=1,math.min(#inventory,40) do rows[#rows + 1]=item_line(inventory[index],"") end
+    if #inventory==0 then rows[#rows + 1]="<tr><td>No carried inventory data.</td></tr>" end
   else
     local equipment = type(details.equipment) == "table" and details.equipment or {}
     local wear = constants and constants.wear_locations or {}
@@ -826,14 +830,14 @@ function ui.render()
     local pages = active == "inventory" and 2 or 1; ui.page = math.max(1, math.min(ui.page or 1, pages))
     set_button_text(widget("page_prev"), "<"); set_button_text(widget("page_next"), ">"); safe(widget("page_status"), "echo", "Page " .. ui.page .. " / " .. pages)
   end
-  local vitals, maximum, worth, base = value("vitals"), value("maxstats"), value("worth"), value("base")
+  local vitals, maximum, worth, base, status = value("vitals"), value("maxstats"), value("worth"), value("base"), value("status")
   set_gauge("hp", "HP", vitals.hp, maximum.maxhp or vitals.maxhp)
   set_gauge("mana", "Mana", vitals.mana, maximum.maxmana or vitals.maxmana)
   set_gauge("moves", "Moves", vitals.moves, maximum.maxmoves or vitals.maxmoves)
-  set_gauge("tnl", "TNL", vitals.tnl or vitals.to_level, vitals.tnl_max or base.perlevel or 1000)
-  set_gauge("enemy", "Enemy", vitals.enemy or vitals.enemyhp or vitals.enemy_percent, nil, vitals.enemyhp or vitals.enemy_percent)
-  set_gauge("hunger", "Hunger", vitals.hunger or worth.hunger, nil, vitals.hunger or worth.hunger)
-  set_gauge("thirst", "Thirst", vitals.thirst or worth.thirst, nil, vitals.thirst or worth.thirst)
+  set_gauge("tnl", "TNL", status.tnl, base.perlevel or 1000)
+  set_gauge("enemy", "Enemy", status.enemypct, nil, status.enemypct)
+  set_gauge("hunger", "Hunger", status.hunger, nil, status.hunger)
+  set_gauge("thirst", "Thirst", status.thirst, nil, status.thirst)
   ui.apply_theme()
 end
 

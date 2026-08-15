@@ -6,6 +6,7 @@ local curated = {
   scan={id="scan",label="Scan",category="Room",command="scan"}, score={id="score",label="Score",category="Character",command="score"},
   affects={id="affects",label="Affects",category="Character",command="aff"}, attributes={id="attributes",label="Attributes",category="Character",command="attr"},
   resists={id="resists",label="Resists",category="Character",command="resists"},
+  character_refresh={id="character-refresh",label="Refresh Character",category="Refresh",local_action="character"},
   quest_refresh={id="quest-refresh",label="Refresh Quest",category="Refresh",local_action="quest"},
   details_refresh={id="details-refresh",label="Refresh Inventory",category="Refresh",local_action="details"},
   map_import={id="map-import",label="Import Map",category="Map",local_action="import"},
@@ -46,6 +47,7 @@ local function safe_curated(action)
 end
 
 function aardwolf_interface.actions.execute(id)
+  if id=="character-refresh" then return aardwolf_interface.lifecycle.request_character(true) end
   if id=="quest-refresh" then return aardwolf_interface.lifecycle.request_quest(true) end
   if id=="details-refresh" then aardwolf_interface.details.refresh(); return true end
   if id=="map-import" then

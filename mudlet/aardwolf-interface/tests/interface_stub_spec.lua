@@ -63,7 +63,7 @@ local function object(kind,constraints,parent)
 end
 local function class(kind) return {new=function(_,constraints,parent) return object(kind,constraints,parent) end} end
 Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline")}
-gmcp={char={base={name="Denzil",class="Ranger",race="Triton",level=3},vitals={hp=204,maxhp=204,mana=180,maxmana=180,moves=532,maxmoves=532,tnl=316,hunger=100,thirst=100},maxstats={},status={state=3},stats={str=21},worth={gold=50000,qp=64}},room={info={num=14070,name="Hallway",area="Academy",terrain="academy",exits={n=1,e=2},coord={x=0,y=30,cont=20}}},group={},comm={}}
+gmcp={char={base={name="Denzil",class="Ranger",subclass="Hunter",race="Triton",level=3},vitals={hp=204,mana=180,moves=532},maxstats={maxhp=204,maxmana=180,maxmoves=532,maxstr=18,maxint=13,maxwis=21,maxdex=18,maxcon=28,maxluck=16},status={state=3,level=3,tnl=316,hunger=100,thirst=100,align=-19,pos="Standing",enemy="",enemypct=0},stats={str=21,int=15,wis=23,dex=22,con=39,luck=20,hr=35,dr=30,saves=0},worth={gold=50000,qp=64,pracs=15,trains=0}},room={info={num=14070,name="Hallway",area="Academy",terrain="academy",exits={n=1,e=2},coord={x=0,y=30,cont=20}}},group={},comm={}}
 aardwolf_map={commands={start_import=function() objects.map_imports=(objects.map_imports or 0)+1 end}}
 
 -- Simulate an in-place upgrade where Mudlet retained the pre-1.5 monolithic
@@ -122,6 +122,9 @@ aardwolf_interface.protocol.base(); aardwolf_interface.protocol.vitals(); aardwo
 assert(aardwolf_interface.state.envelope("room").status=="current")
 assert(aardwolf_interface.state.value("room").exits.n==1 and aardwolf_interface.state.value("room").x==0)
 assert(aardwolf_interface.state.envelope("quest").status=="unavailable")
+aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::character-card"].text:find("316",1,true))
+assert(objects["aardwolf-interface::ui::character-card"].text:find("Standing",1,true))
 
 -- Custom actions are printable, bounded, persisted, and never sent before an
 -- explicit confirmation. Server-derived room text cannot enter send().
@@ -140,11 +143,25 @@ aardwolf_interface.protocol.room(); assert(aardwolf_interface.actions.execute("l
 aardwolf_interface.details.refresh()
 assert(timers["aardwolf-interface:aardwolf-interface::details-timeout"].repeating==false)
 assert(not aardwolf_interface.details.capture_line("1,2,unrelated,csv"))
-assert(aardwolf_interface.details.capture_line("{eqdata}101,,Helm,10,5,0,1,5"))
+assert(aardwolf_interface.details.capture_line("{eqdata}"))
+assert(aardwolf_interface.details.capture_line("101,,Helm,10,7,0,1,5"))
 assert(aardwolf_interface.details.capture_line("{/eqdata}"))
-assert(aardwolf_interface.details.capture_line("{invdata}201,,Bag,40,11,0,-1,-1"))
+assert(aardwolf_interface.details.capture_line("{invdata}"))
+assert(aardwolf_interface.details.capture_line("201,,Bag,40,11,0,-1,-1"))
+assert(aardwolf_interface.details.capture_line("202,K,Potion,3,8,0,-1,-1"))
 assert(aardwolf_interface.details.capture_line("{/invdata}"))
-assert(aardwolf_interface.details.capture_line("{invheader}999|40|11|0|5|0"))
+assert(aardwolf_interface.details.capture_line("{invdetails}"))
+assert(aardwolf_interface.details.capture_line("{invheader}201|40|Container|0|5|-1|K||||||20"))
+assert(aardwolf_interface.details.capture_line("{container}300|100|5|0"))
+assert(aardwolf_interface.details.capture_line("{/invdetails}"))
+assert(aardwolf_interface.details.capture_line("{invdata 201}"))
+assert(aardwolf_interface.details.capture_line("203,,Dagger,9,5,0,-1,-1"))
+assert(aardwolf_interface.details.capture_line("{/invdata}"))
+local captured=aardwolf_interface.state.value("details")
+assert(captured.equipment[1].name=="Helm" and #captured.inventory==2 and #captured.bags==1)
+assert(captured.bags[1].id==201 and #captured.bags[1].items==1 and captured.bags[1].max_weight==300)
+aardwolf_interface.details.runtime.capture={kind="bagdata",id=201,rows={},generation=1,invalid=0,opened=false}
+assert(aardwolf_interface.details.capture_line("{invdata 999}"))
 assert(aardwolf_interface.state.envelope("details").status=="partial")
 aardwolf_interface.details.stop()
 assert(not aardwolf_interface.details.capture_line("{eqdata}1,User output,1,armor"))
@@ -153,7 +170,8 @@ aardwolf_interface.lifecycle.on_disconnect()
 assert(aardwolf_interface.state.connection=="disconnected")
 assert(not aardwolf_interface.actions.execute("look"))
 aardwolf_interface.lifecycle.on_connect()
-assert(gmcp_sent[#gmcp_sent]=="request quest")
+local requested={}; for _,request in ipairs(gmcp_sent) do requested[request]=true end
+assert(requested["request char"] and requested["request quest"])
 aardwolf_interface.lifecycle.shutdown(true)
 assert(right==8 and bottom==10)
 

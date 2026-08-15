@@ -6,6 +6,7 @@ local legacy_base_bottom = legacy_base_pending and tonumber(aardwolf_interface.u
 aardwolf_interface.lifecycle.handlers = aardwolf_interface.lifecycle.handlers or {}
 aardwolf_interface.lifecycle.initialized = aardwolf_interface.lifecycle.initialized == true
 aardwolf_interface.lifecycle.quest_requested = aardwolf_interface.lifecycle.quest_requested == true
+aardwolf_interface.lifecycle.character_requested = aardwolf_interface.lifecycle.character_requested == true
 local USER="aardwolf-interface"
 local HEARTBEAT="aardwolf-interface::heartbeat"
 local LEGACY_USER="aardwolf_interface"
@@ -50,11 +51,17 @@ function aardwolf_interface.lifecycle.request_quest(force)
   if sendGMCP then sendGMCP("request quest"); return true end
   return false
 end
-function aardwolf_interface.lifecycle.on_connect()
-  aardwolf_interface.state.reset_session("connected"); aardwolf_interface.lifecycle.quest_requested=false
-  tempTimer(0.5,function() aardwolf_interface.lifecycle.request_quest(false) end); aardwolf_interface.ui.request_render()
+function aardwolf_interface.lifecycle.request_character(force)
+  if aardwolf_interface.state.connection~="connected" or (aardwolf_interface.lifecycle.character_requested and not force) then return false end
+  aardwolf_interface.lifecycle.character_requested=true
+  if sendGMCP then sendGMCP("request char"); return true end
+  return false
 end
-function aardwolf_interface.lifecycle.on_disconnect() aardwolf_interface.details.stop("Disconnected"); aardwolf_interface.state.reset_session("disconnected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.ui.request_render() end
+function aardwolf_interface.lifecycle.on_connect()
+  aardwolf_interface.state.reset_session("connected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.lifecycle.character_requested=false
+  tempTimer(0.5,function() aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end); aardwolf_interface.ui.request_render()
+end
+function aardwolf_interface.lifecycle.on_disconnect() aardwolf_interface.details.stop("Disconnected"); aardwolf_interface.state.reset_session("disconnected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.lifecycle.character_requested=false; aardwolf_interface.ui.request_render() end
 function aardwolf_interface.lifecycle.on_resize() aardwolf_interface.ui.reflow() end
 function aardwolf_interface.lifecycle.on_heartbeat()
   local now=os.time()
@@ -129,7 +136,7 @@ function aardwolf_interface.lifecycle.initialize()
   -- clear the stale ownership record before calculating the new layout.
   if aardwolf_interface.ui and aardwolf_interface.ui.release_saved_claims then aardwolf_interface.ui.release_saved_claims() end
   aardwolf_interface.ui.build(); aardwolf_interface.details.start(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
-  aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_quest(false) end
+  aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end
   if aardwolf_interface.settings.is_visible() then aardwolf_interface.ui.show() else aardwolf_interface.ui.hide() end
 end
 function aardwolf_interface.lifecycle.repair()

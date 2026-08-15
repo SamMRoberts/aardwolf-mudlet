@@ -93,7 +93,7 @@ aardwolf_interface.constants.themes = {
 
 local function empty_details()
   return {
-    equipment = {}, bags = {}, generation = 0, refreshing = false, stale = true,
+    equipment = {}, inventory = {}, bags = {}, generation = 0, refreshing = false, stale = true,
     last_updated = nil, error = nil, errors = {}, overflow = false,
     sections = {equipment = {status = "unavailable"}, bags = {status = "unavailable"}},
   }

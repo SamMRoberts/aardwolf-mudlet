@@ -803,7 +803,7 @@ aardwolf_interface.constants.themes = {
 
 local function empty_details()
   return {
-    equipment = {}, bags = {}, generation = 0, refreshing = false, stale = true,
+    equipment = {}, inventory = {}, bags = {}, generation = 0, refreshing = false, stale = true,
     last_updated = nil, error = nil, errors = {}, overflow = false,
     sections = {equipment = {status = "unavailable"}, bags = {status = "unavailable"}},
   }
@@ -1038,17 +1038,22 @@ end
 local LIMIT, TIMER = 100, "aardwolf-interface::details-timeout"
 
 local function details() return aardwolf_interface.state.value("details") end
+local function section_for(kind) return kind == "eqdata" and "equipment" or "bags" end
 local function finish(success, message)
   local runtime, capture = aardwolf_interface.details.runtime, aardwolf_interface.details.runtime.capture
   if not capture then return end
   runtime.capture=nil
   if deleteNamedTimer then pcall(deleteNamedTimer, "aardwolf-interface", TIMER) end
-  local value=details(); value.refreshing=false; value.last_updated=os.time(); value.stale=not success
-  value.sections[capture.kind == "eqdata" and "equipment" or "bags"]={status=success and "current" or "error",received_at=os.time(),error=message}
-  if not success then value.errors[#value.errors+1]=message; value.error=message end
-  aardwolf_interface.state.set_details(value, success and "current" or "partial", message)
+  local value=details()
+  value.refreshing=#runtime.queue&gt;0
+  value.last_updated=os.time()
+  value.stale=not success
+  value.sections[section_for(capture.kind)]={status=success and "current" or "error",received_at=os.time(),error=message}
+  if not success then value.errors[#value.errors+1]=message; value.error=message
+  elseif #runtime.queue==0 then value.error=nil end
+  aardwolf_interface.state.set_details(value, success and (#runtime.queue&gt;0 and "partial" or "current") or "partial", message)
   if aardwolf_interface.ui then aardwolf_interface.ui.request_render() end
-  if #runtime.queue&gt;0 then tempTimer(capture.kind=="invdetails" and 1 or 0.1, aardwolf_interface.details.next) end
+  if #runtime.queue&gt;0 then tempTimer((capture.kind=="invdetails" or capture.kind=="bagdata") and 1 or 0.1, aardwolf_interface.details.next) end
 end
 
 local function fields(csv)
@@ -1057,47 +1062,138 @@ end
 local function pipe_fields(value) local result={}; for field in (value.."|"):gmatch("(.-)|") do result[#result+1]=field end; return result end
 local function item(payload)
   local f=fields(payload)
-  if not tonumber(f[1]) or not f[3] or f[3]=="" or not tonumber(f[4]) or not tonumber(f[5]) or not tonumber(f[7]) or not tonumber(f[8]) then return nil end
+  if #f~=8 or not tonumber(f[1]) or not f[3] or f[3]=="" or not tonumber(f[4]) or not tonumber(f[5])
+      or (f[6]~="0" and f[6]~="1") or not tonumber(f[7]) or not tonumber(f[8]) then return nil end
   return {id=tonumber(f[1]),flags=f[2],name=f[3]:gsub("@x%d%d%d",""):gsub("@.",""),level=tonumber(f[4]),type=tonumber(f[5]),unique=f[6]=="1",slot=tonumber(f[7]),timer=tonumber(f[8])}
 end
-local function tag(line,name) return line:match("^%{"..name.."%}%s*(.-)%s*$") end
+local function tagged_payload(line,name) return line:match("^%{"..name.."%}%s*(.-)%s*$") end
+local function opening_argument(line,name)
+  local argument=line:match("^%{"..name.."%s*([^}]*)%}%s*$")
+  if argument==nil then return nil end
+  return argument:match("^%s*(.-)%s*$")
+end
+local function find_bag(value,id)
+  for _,bag in ipairs(value.bags or {}) do if bag.id==id then return bag end end
+end
+local function append(capture,parsed)
+  if #capture.rows&gt;=LIMIT then finish(false,"Tagged response exceeded record limit"); return false end
+  capture.rows[#capture.rows+1]=parsed
+  return true
+end
 
 function aardwolf_interface.details.capture_timeout() finish(false,"Tagged response timed out; previous valid data retained") end
 function aardwolf_interface.details.next()
   local runtime=aardwolf_interface.details.runtime
   if runtime.capture or #runtime.queue==0 or aardwolf_interface.state.connection~="connected" then return end
   local request=table.remove(runtime.queue,1)
-  runtime.capture={kind=request.kind,id=request.id,rows={},generation=runtime.generation,invalid=0}
+  runtime.capture={kind=request.kind,id=request.id,rows={},generation=runtime.generation,invalid=0,opened=false}
   send(request.command,false)
   registerNamedTimer("aardwolf-interface",TIMER,3,aardwolf_interface.details.capture_timeout,false)
 end
 
+local function capture_item_row(capture,line,predicate)
+  if not capture.opened then return false end
+  local parsed=item(line)
+  if not parsed then
+    if line:match("^%d+,[^,]*,") then capture.invalid=capture.invalid+1 end
+    return false
+  end
+  if predicate and not predicate(parsed) then capture.invalid=capture.invalid+1; return true end
+  append(capture,parsed)
+  return true
+end
+
 function aardwolf_interface.details.capture_line(raw)
-  local line=tostring(raw or ""):gsub("\27%[[0-9;]*m","")
+  local line=tostring(raw or ""):gsub("\27%[[0-9;]*m",""):match("^%s*(.-)%s*$")
   local capture=aardwolf_interface.details.runtime.capture
   if not capture then return false end
-  local owned=false
+
   if capture.kind=="eqdata" then
-    local payload=tag(line,"eqdata")
-    if line:match("^%{/eqdata%}$") then local value=details(); value.equipment={}; for _,item in ipairs(capture.rows) do value.equipment[item.slot]=item end; finish(capture.invalid==0 or #capture.rows&gt;0,capture.invalid&gt;0 and "Malformed equipment records skipped" or nil); return true end
-    if payload then local parsed=item(payload); if parsed and parsed.slot&gt;=0 then capture.rows[#capture.rows+1]=parsed else capture.invalid=capture.invalid+1 end; owned=true end
-  elseif capture.kind=="invdata" then
-    local payload=tag(line,"invdata")
-    if line:match("^%{/invdata%}$") then local value=details(); value.bags=capture.rows; for _,bag in ipairs(capture.rows) do aardwolf_interface.details.runtime.queue[#aardwolf_interface.details.runtime.queue+1]={kind="invdetails",command="invdetails "..bag.id,id=bag.id} end; finish(true); return true end
-    if payload then local parsed=item(payload); if parsed and parsed.type==11 then capture.rows[#capture.rows+1]={id=parsed.id,name=parsed.name,level=parsed.level,type=parsed.type,flags=parsed.flags,unique=parsed.unique,timer=parsed.timer,items={}} elseif not parsed then capture.invalid=capture.invalid+1 end; owned=true end
-  elseif capture.kind=="invdetails" then
-    if line:match("^%{/invdetails%}$") then
-      if not capture.verified_id then finish(false,"Container ID was not verified"); return true end
-      local value=details(); for _,bag in ipairs(value.bags or {}) do if bag.id==capture.id then bag.used_weight=capture.used_weight; bag.max_weight=capture.max_weight; bag.items=capture.rows; bag.status="current" end end
-      finish(true); return true
+    local argument=opening_argument(line,"eqdata")
+    if argument~=nil then
+      if argument~="" then finish(false,"Equipment opening tag was malformed"); return true end
+      capture.opened=true; return true
     end
-    local header=tag(line,"invheader") or tag(line,"container")
-    local item_payload=tag(line,"invitem")
-    if header then local f=pipe_fields(header); if line:match("^%{invheader%}") then local response_id=tonumber(f[1]); if not response_id or response_id~=capture.id then finish(false,"Container ID did not match request"); return true end; capture.verified_id=true; capture.header_weight=tonumber(f[5]) else if not capture.verified_id then finish(false,"Container details arrived before verified header"); return true end; capture.max_weight=tonumber(f[1]); capture.used_weight=tonumber(f[3]) end; owned=true
-    elseif item_payload then local parsed=item(item_payload); if parsed and #capture.rows&lt;LIMIT then capture.rows[#capture.rows+1]=parsed else capture.invalid=capture.invalid+1 end; owned=true end
+    if line=="{/eqdata}" then
+      if not capture.opened then finish(false,"Equipment response ended before its opening tag"); return true end
+      local value=details(); value.equipment={}
+      for _,record in ipairs(capture.rows) do value.equipment[record.slot]=record end
+      finish(capture.invalid==0,capture.invalid&gt;0 and "Malformed equipment records skipped" or nil)
+      return true
+    end
+    return capture_item_row(capture,line,function(record) return record.slot&gt;=0 and record.slot&lt;=32 end)
   end
-  if owned and #capture.rows&gt;LIMIT then finish(false,"Tagged response exceeded record limit") end
-  return owned
+
+  if capture.kind=="invdata" or capture.kind=="bagdata" then
+    local argument=opening_argument(line,"invdata")
+    if argument~=nil then
+      if capture.kind=="bagdata" then
+        local response_id=tonumber(argument)
+        if not response_id or response_id~=capture.id then finish(false,"Container ID did not match invdata request"); return true end
+        capture.verified_id=true
+      elseif argument~="" then finish(false,"Top-level inventory returned an unexpected container ID"); return true end
+      capture.opened=true
+      return true
+    end
+    if line=="{/invdata}" then
+      if not capture.opened or (capture.kind=="bagdata" and not capture.verified_id) then finish(false,"Inventory response was not verified"); return true end
+      local value=details()
+      if capture.kind=="invdata" then
+        value.inventory=capture.rows
+        value.bags={}
+        for _,record in ipairs(capture.rows) do
+          if record.type==11 then
+            value.bags[#value.bags+1]={id=record.id,name=record.name,level=record.level,type=record.type,flags=record.flags,unique=record.unique,timer=record.timer,items={},pending=true,status="partial"}
+          end
+        end
+        for _,bag in ipairs(value.bags) do
+          aardwolf_interface.details.runtime.queue[#aardwolf_interface.details.runtime.queue+1]={kind="invdetails",command="invdetails "..bag.id,id=bag.id}
+          aardwolf_interface.details.runtime.queue[#aardwolf_interface.details.runtime.queue+1]={kind="bagdata",command="invdata "..bag.id,id=bag.id}
+        end
+      else
+        local bag=find_bag(value,capture.id)
+        if bag then bag.items=capture.rows; bag.pending=false; bag.status="current" end
+      end
+      finish(capture.invalid==0,capture.invalid&gt;0 and "Malformed inventory records skipped" or nil)
+      return true
+    end
+    return capture_item_row(capture,line)
+  end
+
+  if capture.kind=="invdetails" then
+    local argument=opening_argument(line,"invdetails")
+    if argument~=nil then
+      if argument~="" then finish(false,"Container detail opening tag was malformed"); return true end
+      capture.opened=true; return true
+    end
+    if line=="{/invdetails}" then
+      if not capture.opened or not capture.verified_id then finish(false,"Container ID was not verified"); return true end
+      local value=details(); local bag=find_bag(value,capture.id)
+      if bag then
+        bag.own_weight=capture.header_weight
+        bag.max_weight=capture.max_weight
+        bag.used_weight=capture.used_weight or capture.header_weight
+        bag.pending=true
+        bag.status="partial"
+      end
+      finish(true)
+      return true
+    end
+    if not capture.opened then return false end
+    local header=tagged_payload(line,"invheader")
+    if header then
+      local f=pipe_fields(header); local response_id=tonumber(f[1])
+      if not response_id or response_id~=capture.id then finish(false,"Container ID did not match request"); return true end
+      capture.verified_id=true; capture.header_weight=tonumber(f[5]); return true
+    end
+    local container=tagged_payload(line,"container")
+    if container then
+      if not capture.verified_id then finish(false,"Container details arrived before verified header"); return true end
+      local f=pipe_fields(container); capture.max_weight=tonumber(f[1]); capture.used_weight=tonumber(f[3]); return true
+    end
+    return false
+  end
+  return false
 end
 
 function aardwolf_interface.details.on_line()
@@ -1107,7 +1203,7 @@ end
 function aardwolf_interface.details.refresh()
   if aardwolf_interface.state.connection~="connected" then return false,"Disconnected" end
   local runtime=aardwolf_interface.details.runtime; runtime.generation=runtime.generation+1; runtime.queue={{kind="eqdata",command="eqdata"},{kind="invdata",command="invdata"}}
-  local value=details(); value.refreshing=true; value.error=nil; value.generation=runtime.generation; aardwolf_interface.state.set_details(value,"partial")
+  local value=details(); value.refreshing=true; value.error=nil; value.errors={}; value.generation=runtime.generation; aardwolf_interface.state.set_details(value,"partial")
   aardwolf_interface.details.next()
   return true
 end
@@ -1131,6 +1227,7 @@ local curated = {
   scan={id="scan",label="Scan",category="Room",command="scan"}, score={id="score",label="Score",category="Character",command="score"},
   affects={id="affects",label="Affects",category="Character",command="aff"}, attributes={id="attributes",label="Attributes",category="Character",command="attr"},
   resists={id="resists",label="Resists",category="Character",command="resists"},
+  character_refresh={id="character-refresh",label="Refresh Character",category="Refresh",local_action="character"},
   quest_refresh={id="quest-refresh",label="Refresh Quest",category="Refresh",local_action="quest"},
   details_refresh={id="details-refresh",label="Refresh Inventory",category="Refresh",local_action="details"},
   map_import={id="map-import",label="Import Map",category="Map",local_action="import"},
@@ -1171,6 +1268,7 @@ local function safe_curated(action)
 end
 
 function aardwolf_interface.actions.execute(id)
+  if id=="character-refresh" then return aardwolf_interface.lifecycle.request_character(true) end
   if id=="quest-refresh" then return aardwolf_interface.lifecycle.request_quest(true) end
   if id=="details-refresh" then aardwolf_interface.details.refresh(); return true end
   if id=="map-import" then
@@ -1288,11 +1386,11 @@ function aardwolf_interface.protocol.base()
 end
 
 local definitions = {
-  vitals = {"hp", "maxhp", "mana", "maxmana", "moves", "maxmoves", "tnl", "enemy", "enemyhp"},
+  vitals = {"hp", "mana", "moves"},
   maxstats = {"maxhp", "maxmana", "maxmoves", "maxstr", "maxint", "maxwis", "maxdex", "maxcon", "maxluck"},
-  status = {"state", "level", "position", "enemy", "enemyhp"},
-  stats = {"str", "int", "wis", "dex", "con", "luck", "hitroll", "damroll", "saves", "trains", "practices"},
-  worth = {"gold", "bank", "qp", "qpearned", "tp", "trivia", "align", "hunger", "thirst"},
+  status = {"state", "level", "tnl", "hunger", "thirst", "align", "pos", "enemy", "enemypct"},
+  stats = {"str", "int", "wis", "dex", "con", "luck", "hr", "dr", "saves"},
+  worth = {"gold", "bank", "qp", "qpearned", "tp", "trains", "pracs"},
 }
 
 for section, fields in pairs(definitions) do
@@ -1316,7 +1414,7 @@ function aardwolf_interface.protocol.room()
   local coordinates = type(payload.coord) == "table" and payload.coord or type(payload.coords) == "table" and payload.coords or {}
   value.coordinates = pick(coordinates, {"id", "x", "y", "cont"})
   value.x, value.y, value.z, value.cont = value.coordinates.x, value.coordinates.y, number(coordinates.z), value.coordinates.cont
-  publish("room", value, value.num or value.name and "current" or "partial")
+  publish("room", value, (value.num or value.name) and "current" or "partial")
 end
 
 function aardwolf_interface.protocol.group()
@@ -1329,7 +1427,9 @@ function aardwolf_interface.protocol.group()
     for key, member in pairs(members) do
       if #value.members &gt;= 40 then break end
       if type(member) == "table" then
-        local normalized=pick(member, {"name", "lvl", "level", "hp", "mhp", "mn", "mmn", "mv", "mmv", "align", "tnl", "qt"}, true)
+        local info=type(member.info)=="table" and member.info or member
+        local normalized=pick(info, {"lvl", "level", "hp", "mhp", "mn", "mmn", "mv", "mmv", "align", "tnl", "qt", "qs", "here"}, true)
+        normalized.name=text(member.name or info.name)
         if not normalized.name and type(key)=="string" then normalized.name=text(key) end
         value.members[#value.members + 1] = normalized
       end
@@ -2137,11 +2237,11 @@ local function render_character()
   local base, vitals, maximum = value("base"), value("vitals"), value("maxstats")
   local stats, worth, status, quest = value("stats"), value("worth"), value("status"), value("quest")
   local badge = status_badge("base")
-  local identity = key_value({{"Name", base.name or base.character}, {"Race", base.race}, {"Class", base.class}, {"Subclass", base.subclass}, {"Clan", base.clan}, {"Level", base.level or stats.level}, {"Tier", base.tier}, {"Remorts", base.remorts or base.remort}})
-  local attributes = key_value({{"Strength", stats.str or stats.strength}, {"Intelligence", stats.int or stats.intelligence}, {"Wisdom", stats.wis or stats.wisdom}, {"Dexterity", stats.dex or stats.dexterity}, {"Constitution", stats.con or stats.constitution}, {"Luck", stats.luck}})
-  local combat = key_value({{"HP", display(vitals.hp) .. " / " .. display(maximum.maxhp or vitals.maxhp)}, {"Mana", display(vitals.mana) .. " / " .. display(maximum.maxmana or vitals.maxmana)}, {"Moves", display(vitals.moves) .. " / " .. display(maximum.maxmoves or vitals.maxmoves)}, {"Hitroll", stats.hitroll or stats.hr}, {"Damroll", stats.damroll or stats.dr}, {"Saves", stats.saves}, {"Alignment", worth.align or stats.align or stats.alignment}})
-  local progression = key_value({{"TNL", vitals.tnl or stats.tnl}, {"QP", worth.qp or worth.questpoints}, {"Gold", worth.gold}, {"Bank", worth.bank}, {"Practices", worth.pracs or stats.practices}, {"Trains", worth.trains or stats.trains}, {"Quest", quest.status or quest.state}, {"Quest timer", quest.timer or quest.time}})
-  safe(widget("character_card"), "echo", "&lt;b&gt;CHARACTER &amp;middot; " .. escape(badge) .. "&lt;/b&gt;&lt;br&gt;&lt;table width='100%'&gt;&lt;tr&gt;&lt;td valign='top' width='50%'&gt;&lt;b&gt;Identity&lt;/b&gt;" .. identity .. "&lt;br&gt;&lt;b&gt;Attributes&lt;/b&gt;" .. attributes .. "&lt;/td&gt;&lt;td valign='top'&gt;&lt;b&gt;Combat&lt;/b&gt;" .. combat .. "&lt;br&gt;&lt;b&gt;Progression &amp;amp; currencies&lt;/b&gt;" .. progression .. "&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;br&gt;&lt;b&gt;Conditions&lt;/b&gt;&lt;br&gt;State " .. escape(status.state_name or status.state) .. " &amp;middot; hunger " .. escape(display(vitals.hunger or worth.hunger)) .. " &amp;middot; thirst " .. escape(display(vitals.thirst or worth.thirst)) .. " &amp;middot; enemy " .. escape(display(vitals.enemy)) )
+  local identity = key_value({{"Name", base.name or base.character}, {"Race", base.race}, {"Class", base.class}, {"Subclass", base.subclass}, {"Clan", base.clan}, {"Level", base.level or status.level}, {"Tier", base.tier}, {"Remorts", base.remorts or base.remort}})
+  local attributes = key_value({{"Strength", display(stats.str) .. " / " .. display(maximum.maxstr)}, {"Intelligence", display(stats.int) .. " / " .. display(maximum.maxint)}, {"Wisdom", display(stats.wis) .. " / " .. display(maximum.maxwis)}, {"Dexterity", display(stats.dex) .. " / " .. display(maximum.maxdex)}, {"Constitution", display(stats.con) .. " / " .. display(maximum.maxcon)}, {"Luck", display(stats.luck) .. " / " .. display(maximum.maxluck)}})
+  local combat = key_value({{"HP", display(vitals.hp) .. " / " .. display(maximum.maxhp or vitals.maxhp)}, {"Mana", display(vitals.mana) .. " / " .. display(maximum.maxmana or vitals.maxmana)}, {"Moves", display(vitals.moves) .. " / " .. display(maximum.maxmoves or vitals.maxmoves)}, {"Hitroll", stats.hr or stats.hitroll}, {"Damroll", stats.dr or stats.damroll}, {"Saves", stats.saves}, {"Alignment", status.align}})
+  local progression = key_value({{"TNL", status.tnl}, {"QP", worth.qp or worth.questpoints}, {"Gold", worth.gold}, {"Bank", worth.bank}, {"Practices", worth.pracs or stats.practices}, {"Trains", worth.trains or stats.trains}, {"Quest", quest.status or quest.state}, {"Quest timer", quest.timer or quest.time}})
+  safe(widget("character_card"), "echo", "&lt;b&gt;CHARACTER &amp;middot; " .. escape(badge) .. "&lt;/b&gt;&lt;br&gt;&lt;table width='100%'&gt;&lt;tr&gt;&lt;td valign='top' width='50%'&gt;&lt;b&gt;Identity&lt;/b&gt;" .. identity .. "&lt;br&gt;&lt;b&gt;Attributes&lt;/b&gt;" .. attributes .. "&lt;/td&gt;&lt;td valign='top'&gt;&lt;b&gt;Combat&lt;/b&gt;" .. combat .. "&lt;br&gt;&lt;b&gt;Progression &amp;amp; currencies&lt;/b&gt;" .. progression .. "&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;br&gt;&lt;b&gt;Conditions&lt;/b&gt;&lt;br&gt;Position " .. escape(status.pos or status.position or status.state_name or status.state) .. " &amp;middot; hunger " .. escape(display(status.hunger)) .. " &amp;middot; thirst " .. escape(display(status.thirst)) .. " &amp;middot; enemy " .. escape(status.enemy or "--") .. " " .. escape(display(status.enemypct)) .. "%")
 end
 
 local function render_group()
@@ -2181,9 +2281,13 @@ local function render_inventory()
     for index=first,last do local bag=bags[index]
       local used, maximum = finite(bag.used_weight), finite(bag.max_weight)
       local percent = used and maximum and maximum &gt; 0 and math.floor(used / maximum * 100) or nil
-      rows[#rows + 1] = string.format("&lt;tr&gt;&lt;td&gt;&lt;b&gt;%s&lt;/b&gt;&lt;/td&gt;&lt;td&gt;%s / %s weight%s&lt;/td&gt;&lt;td&gt;%s&lt;/td&gt;&lt;/tr&gt;", escape(bag.name or "Container"), escape(display(used)), escape(display(maximum)), percent and (" (" .. percent .. "%%)") or "", escape(bag.error or (bag.pending and "pending" or bag.status or "current")))
+      rows[#rows + 1] = string.format("&lt;tr&gt;&lt;td&gt;&lt;b&gt;%s&lt;/b&gt;&lt;/td&gt;&lt;td&gt;%s / %s weight%s &amp;middot; %s items&lt;/td&gt;&lt;td&gt;%s&lt;/td&gt;&lt;/tr&gt;", escape(bag.name or "Container"), escape(display(used)), escape(display(maximum)), percent and (" (" .. percent .. "%%)") or "", escape(#(bag.items or {})), escape(bag.error or (bag.pending and "pending" or bag.status or "current")))
     end
     if #bags == 0 then rows[#rows + 1] = "&lt;tr&gt;&lt;td&gt;No bag data.&lt;/td&gt;&lt;/tr&gt;" end
+    rows[#rows + 1] = "&lt;/table&gt;&lt;br&gt;&lt;b&gt;Carried inventory&lt;/b&gt;&lt;table width='100%' cellspacing='2'&gt;"
+    local inventory=type(details.inventory)=="table" and details.inventory or {}
+    for index=1,math.min(#inventory,40) do rows[#rows + 1]=item_line(inventory[index],"") end
+    if #inventory==0 then rows[#rows + 1]="&lt;tr&gt;&lt;td&gt;No carried inventory data.&lt;/td&gt;&lt;/tr&gt;" end
   else
     local equipment = type(details.equipment) == "table" and details.equipment or {}
     local wear = constants and constants.wear_locations or {}
@@ -2264,14 +2368,14 @@ function ui.render()
     local pages = active == "inventory" and 2 or 1; ui.page = math.max(1, math.min(ui.page or 1, pages))
     set_button_text(widget("page_prev"), "&lt;"); set_button_text(widget("page_next"), "&gt;"); safe(widget("page_status"), "echo", "Page " .. ui.page .. " / " .. pages)
   end
-  local vitals, maximum, worth, base = value("vitals"), value("maxstats"), value("worth"), value("base")
+  local vitals, maximum, worth, base, status = value("vitals"), value("maxstats"), value("worth"), value("base"), value("status")
   set_gauge("hp", "HP", vitals.hp, maximum.maxhp or vitals.maxhp)
   set_gauge("mana", "Mana", vitals.mana, maximum.maxmana or vitals.maxmana)
   set_gauge("moves", "Moves", vitals.moves, maximum.maxmoves or vitals.maxmoves)
-  set_gauge("tnl", "TNL", vitals.tnl or vitals.to_level, vitals.tnl_max or base.perlevel or 1000)
-  set_gauge("enemy", "Enemy", vitals.enemy or vitals.enemyhp or vitals.enemy_percent, nil, vitals.enemyhp or vitals.enemy_percent)
-  set_gauge("hunger", "Hunger", vitals.hunger or worth.hunger, nil, vitals.hunger or worth.hunger)
-  set_gauge("thirst", "Thirst", vitals.thirst or worth.thirst, nil, vitals.thirst or worth.thirst)
+  set_gauge("tnl", "TNL", status.tnl, base.perlevel or 1000)
+  set_gauge("enemy", "Enemy", status.enemypct, nil, status.enemypct)
+  set_gauge("hunger", "Hunger", status.hunger, nil, status.hunger)
+  set_gauge("thirst", "Thirst", status.thirst, nil, status.thirst)
   ui.apply_theme()
 end
 
@@ -2359,6 +2463,7 @@ local legacy_base_bottom = legacy_base_pending and tonumber(aardwolf_interface.u
 aardwolf_interface.lifecycle.handlers = aardwolf_interface.lifecycle.handlers or {}
 aardwolf_interface.lifecycle.initialized = aardwolf_interface.lifecycle.initialized == true
 aardwolf_interface.lifecycle.quest_requested = aardwolf_interface.lifecycle.quest_requested == true
+aardwolf_interface.lifecycle.character_requested = aardwolf_interface.lifecycle.character_requested == true
 local USER="aardwolf-interface"
 local HEARTBEAT="aardwolf-interface::heartbeat"
 local LEGACY_USER="aardwolf_interface"
@@ -2403,11 +2508,17 @@ function aardwolf_interface.lifecycle.request_quest(force)
   if sendGMCP then sendGMCP("request quest"); return true end
   return false
 end
-function aardwolf_interface.lifecycle.on_connect()
-  aardwolf_interface.state.reset_session("connected"); aardwolf_interface.lifecycle.quest_requested=false
-  tempTimer(0.5,function() aardwolf_interface.lifecycle.request_quest(false) end); aardwolf_interface.ui.request_render()
+function aardwolf_interface.lifecycle.request_character(force)
+  if aardwolf_interface.state.connection~="connected" or (aardwolf_interface.lifecycle.character_requested and not force) then return false end
+  aardwolf_interface.lifecycle.character_requested=true
+  if sendGMCP then sendGMCP("request char"); return true end
+  return false
 end
-function aardwolf_interface.lifecycle.on_disconnect() aardwolf_interface.details.stop("Disconnected"); aardwolf_interface.state.reset_session("disconnected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.ui.request_render() end
+function aardwolf_interface.lifecycle.on_connect()
+  aardwolf_interface.state.reset_session("connected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.lifecycle.character_requested=false
+  tempTimer(0.5,function() aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end); aardwolf_interface.ui.request_render()
+end
+function aardwolf_interface.lifecycle.on_disconnect() aardwolf_interface.details.stop("Disconnected"); aardwolf_interface.state.reset_session("disconnected"); aardwolf_interface.lifecycle.quest_requested=false; aardwolf_interface.lifecycle.character_requested=false; aardwolf_interface.ui.request_render() end
 function aardwolf_interface.lifecycle.on_resize() aardwolf_interface.ui.reflow() end
 function aardwolf_interface.lifecycle.on_heartbeat()
   local now=os.time()
@@ -2482,7 +2593,7 @@ function aardwolf_interface.lifecycle.initialize()
   -- clear the stale ownership record before calculating the new layout.
   if aardwolf_interface.ui and aardwolf_interface.ui.release_saved_claims then aardwolf_interface.ui.release_saved_claims() end
   aardwolf_interface.ui.build(); aardwolf_interface.details.start(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
-  aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_quest(false) end
+  aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end
   if aardwolf_interface.settings.is_visible() then aardwolf_interface.ui.show() else aardwolf_interface.ui.hide() end
 end
 function aardwolf_interface.lifecycle.repair()

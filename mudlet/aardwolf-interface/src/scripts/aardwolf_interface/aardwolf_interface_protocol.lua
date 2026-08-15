@@ -51,11 +51,11 @@ function aardwolf_interface.protocol.base()
 end
 
 local definitions = {
-  vitals = {"hp", "maxhp", "mana", "maxmana", "moves", "maxmoves", "tnl", "enemy", "enemyhp"},
+  vitals = {"hp", "mana", "moves"},
   maxstats = {"maxhp", "maxmana", "maxmoves", "maxstr", "maxint", "maxwis", "maxdex", "maxcon", "maxluck"},
-  status = {"state", "level", "position", "enemy", "enemyhp"},
-  stats = {"str", "int", "wis", "dex", "con", "luck", "hitroll", "damroll", "saves", "trains", "practices"},
-  worth = {"gold", "bank", "qp", "qpearned", "tp", "trivia", "align", "hunger", "thirst"},
+  status = {"state", "level", "tnl", "hunger", "thirst", "align", "pos", "enemy", "enemypct"},
+  stats = {"str", "int", "wis", "dex", "con", "luck", "hr", "dr", "saves"},
+  worth = {"gold", "bank", "qp", "qpearned", "tp", "trains", "pracs"},
 }
 
 for section, fields in pairs(definitions) do
@@ -79,7 +79,7 @@ function aardwolf_interface.protocol.room()
   local coordinates = type(payload.coord) == "table" and payload.coord or type(payload.coords) == "table" and payload.coords or {}
   value.coordinates = pick(coordinates, {"id", "x", "y", "cont"})
   value.x, value.y, value.z, value.cont = value.coordinates.x, value.coordinates.y, number(coordinates.z), value.coordinates.cont
-  publish("room", value, value.num or value.name and "current" or "partial")
+  publish("room", value, (value.num or value.name) and "current" or "partial")
 end
 
 function aardwolf_interface.protocol.group()
@@ -92,7 +92,9 @@ function aardwolf_interface.protocol.group()
     for key, member in pairs(members) do
       if #value.members >= 40 then break end
       if type(member) == "table" then
-        local normalized=pick(member, {"name", "lvl", "level", "hp", "mhp", "mn", "mmn", "mv", "mmv", "align", "tnl", "qt"}, true)
+        local info=type(member.info)=="table" and member.info or member
+        local normalized=pick(info, {"lvl", "level", "hp", "mhp", "mn", "mmn", "mv", "mmv", "align", "tnl", "qt", "qs", "here"}, true)
+        normalized.name=text(member.name or info.name)
         if not normalized.name and type(key)=="string" then normalized.name=text(key) end
         value.members[#value.members + 1] = normalized
       end
