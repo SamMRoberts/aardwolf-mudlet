@@ -83,7 +83,7 @@ def main() -> None:
         project = mudlet_root / package
         feature_metadata = json.loads((project / "package-metadata.json").read_text(encoding="utf-8"))
         assert feature_metadata["name"] == package
-        assert feature_metadata["version"] == "1.0.0"
+        assert feature_metadata["version"] == ("1.0.1" if package == "aardwolf-interface" else "1.0.0")
         assert (project / "dist" / "README.md").is_file()
 
     suite_xml_path = mudlet_root / "dist" / "aardwolf-mudlet-suite.xml"

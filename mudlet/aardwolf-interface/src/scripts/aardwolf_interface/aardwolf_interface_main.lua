@@ -39,25 +39,35 @@ function aardwolf_interface.ui.status(summary)
 end
 
 function aardwolf_interface.ui.create()
-  if aardwolf_interface.ui.label or type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
-    return
+  if aardwolf_interface.ui.label then
+    return true
+  end
+  if type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
+    return false
   end
   aardwolf_interface.ui.label = Geyser.Label:new({
     ["name"] = "aardwolf-interface::ui::status",
-    ["x"] = "-34c", ["y"] = "1c", ["width"] = "32c", ["height"] = "2c",
+    ["x"] = "-38c", ["y"] = "1c", ["width"] = "36c", ["height"] = "3c",
     ["fgColor"] = "white", ["color"] = "black",
+    ["message"] = "Aardwolf interface",
   })
-  aardwolf_interface.ui.refresh_layout()
+  aardwolf_interface.ui.label:show()
+  return true
 end
 
 function aardwolf_interface.ui.refresh_layout()
-  local label = aardwolf_interface.ui.label
-  if label then
-    label:resize("32c", "2c")
-    label:echo("Aardwolf interface\n" .. aardwolf_interface.state.summary())
-  else
-    aardwolf_interface.ui.message("No graphical label is available; use aard interface status.")
+  if not aardwolf_interface.ui.create() then
+    if not aardwolf_interface.ui.availability_reported then
+      aardwolf_interface.ui.availability_reported = true
+      aardwolf_interface.ui.message("Geyser is not ready; use aard interface show after the profile finishes loading.")
+    end
+    return false
   end
+  local label = aardwolf_interface.ui.label
+  label:resize("36c", "3c")
+  label:echo("Aardwolf interface\n" .. aardwolf_interface.state.summary())
+  label:show()
+  return true
 end
 
 function aardwolf_interface.ui.destroy()
@@ -65,13 +75,21 @@ function aardwolf_interface.ui.destroy()
     aardwolf_interface.ui.label:delete()
     aardwolf_interface.ui.label = nil
   end
+  aardwolf_interface.ui.availability_reported = nil
 end
 
 aardwolf_interface = aardwolf_interface or {}
 aardwolf_interface.commands = aardwolf_interface.commands or {}
 
 function aardwolf_interface.commands.status()
+  aardwolf_interface.ui.refresh_layout()
   aardwolf_interface.ui.status(aardwolf_interface.state.summary())
+end
+
+function aardwolf_interface.commands.show()
+  if aardwolf_interface.ui.refresh_layout() then
+    aardwolf_interface.ui.message("Interface shown.")
+  end
 end
 
 function aardwolf_interface.commands.set_enabled(enabled)
@@ -85,6 +103,7 @@ end
 
 function aardwolf_interface.commands.reset()
   aardwolf_interface.state.reset()
+  aardwolf_interface.ui.refresh_layout()
   aardwolf_interface.ui.message("State reset.")
 end
 
@@ -99,14 +118,23 @@ end
 aardwolf_interface = aardwolf_interface or {}
 aardwolf_interface.lifecycle = aardwolf_interface.lifecycle or {}
 
+function aardwolf_interface.lifecycle.refresh_ui()
+  aardwolf_interface.ui.refresh_layout()
+end
+
 function aardwolf_interface.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::install")
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::profile-load")
   deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize")
+  registerNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::install", "sysInstall", aardwolf_interface.lifecycle.refresh_ui)
+  registerNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::profile-load", "sysLoadEvent", aardwolf_interface.lifecycle.refresh_ui)
   registerNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize", "sysWindowResizeEvent", aardwolf_interface.protocol.on_window_resize)
-  aardwolf_interface.ui.create()
   aardwolf_interface.ui.refresh_layout()
 end
 
 function aardwolf_interface.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::install")
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::profile-load")
   deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize")
   aardwolf_interface.ui.destroy()
 end

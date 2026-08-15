@@ -4,6 +4,10 @@
     "regex": "^aard interface status$"
   },
   {
+    "name": "aardwolf_interface.show",
+    "regex": "^aard interface show$"
+  },
+  {
     "name": "aardwolf_interface.theme",
     "regex": "^aard theme change$"
   }

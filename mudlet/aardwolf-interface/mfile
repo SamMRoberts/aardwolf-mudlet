@@ -3,5 +3,5 @@
   "description": "Accessible interface state controls with text fallback.",
   "package": "aardwolf-interface",
   "title": "Aardwolf Interface",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

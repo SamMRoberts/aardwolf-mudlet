@@ -17,7 +17,7 @@ assert "send(" not in source
 assert source.count("function aardwolf_interface.") >= 5
 assert "function aardwolf_interface.lifecycle.initialize" in source
 assert "function aardwolf_interface.lifecycle.shutdown" in source
-assert "Geyser.Label:new" in source and "sysWindowResizeEvent" in source and ":delete()" in source
+assert "Geyser.Label:new" in source and "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "commands.show" in source and ":show()" in source and ":delete()" in source
 
 
 assert "registerNamedEventHandler" in source and "deleteNamedEventHandler" in source

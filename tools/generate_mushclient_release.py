@@ -24,6 +24,7 @@ class Feature:
     events: tuple[tuple[str, str, str], ...]
     aliases: tuple[tuple[str, str, str], ...]
     kind: str = "standard"
+    version: str = "1.0.0"
 
 
 FEATURES = (
@@ -67,8 +68,8 @@ FEATURES = (
         "aardwolf-interface", "aardwolf_interface", "Accessible interface state controls with text fallback.",
         ("aard_Theme_Controller", "aard_layout", "aard_miniwindow_z_order_monitor", "aard_splitscreen_scrollback"),
         (("window_resize", "true", "window_resize"),),
-        (("status", "^aard interface status$", "aardwolf_interface.commands.status()"), ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle()")),
-        "interface",
+        (("status", "^aard interface status$", "aardwolf_interface.commands.status()"), ("show", "^aard interface show$", "aardwolf_interface.commands.show()"), ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle()")),
+        "interface", "1.0.1",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -388,25 +389,35 @@ function {namespace}.ui.status(summary)
 end
 
 function {namespace}.ui.create()
-  if {namespace}.ui.label or type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
-    return
+  if {namespace}.ui.label then
+    return true
+  end
+  if type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
+    return false
   end
   {namespace}.ui.label = Geyser.Label:new({{
     ["name"] = "{feature.name}::ui::status",
-    ["x"] = "-34c", ["y"] = "1c", ["width"] = "32c", ["height"] = "2c",
+    ["x"] = "-38c", ["y"] = "1c", ["width"] = "36c", ["height"] = "3c",
     ["fgColor"] = "white", ["color"] = "black",
+    ["message"] = "Aardwolf interface",
   }})
-  {namespace}.ui.refresh_layout()
+  {namespace}.ui.label:show()
+  return true
 end
 
 function {namespace}.ui.refresh_layout()
-  local label = {namespace}.ui.label
-  if label then
-    label:resize("32c", "2c")
-    label:echo("Aardwolf interface\\n" .. {namespace}.state.summary())
-  else
-    {namespace}.ui.message("No graphical label is available; use aard interface status.")
+  if not {namespace}.ui.create() then
+    if not {namespace}.ui.availability_reported then
+      {namespace}.ui.availability_reported = true
+      {namespace}.ui.message("Geyser is not ready; use aard interface show after the profile finishes loading.")
+    end
+    return false
   end
+  local label = {namespace}.ui.label
+  label:resize("36c", "3c")
+  label:echo("Aardwolf interface\\n" .. {namespace}.state.summary())
+  label:show()
+  return true
 end
 
 function {namespace}.ui.destroy()
@@ -414,6 +425,36 @@ function {namespace}.ui.destroy()
     {namespace}.ui.label:delete()
     {namespace}.ui.label = nil
   end
+  {namespace}.ui.availability_reported = nil
+end
+'''
+    sources["commands"] = f'''{namespace} = {namespace} or {{}}
+{namespace}.commands = {namespace}.commands or {{}}
+
+function {namespace}.commands.status()
+  {namespace}.ui.refresh_layout()
+  {namespace}.ui.status({namespace}.state.summary())
+end
+
+function {namespace}.commands.show()
+  if {namespace}.ui.refresh_layout() then
+    {namespace}.ui.message("Interface shown.")
+  end
+end
+
+function {namespace}.commands.set_enabled(enabled)
+  {namespace}.settings.set_enabled(enabled)
+  {namespace}.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function {namespace}.commands.toggle()
+  {namespace}.commands.set_enabled(not {namespace}.settings.is_enabled())
+end
+
+function {namespace}.commands.reset()
+  {namespace}.state.reset()
+  {namespace}.ui.refresh_layout()
+  {namespace}.ui.message("State reset.")
 end
 '''
     sources["protocol"] = f'''{namespace} = {namespace} or {{}}
@@ -427,14 +468,23 @@ end
     sources["lifecycle"] = f'''{namespace} = {namespace} or {{}}
 {namespace}.lifecycle = {namespace}.lifecycle or {{}}
 
+function {namespace}.lifecycle.refresh_ui()
+  {namespace}.ui.refresh_layout()
+end
+
 function {namespace}.lifecycle.initialize()
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::install")
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::profile-load")
   deleteNamedEventHandler("{namespace}", "{feature.name}::event::window_resize")
+  registerNamedEventHandler("{namespace}", "{feature.name}::event::install", "sysInstall", {namespace}.lifecycle.refresh_ui)
+  registerNamedEventHandler("{namespace}", "{feature.name}::event::profile-load", "sysLoadEvent", {namespace}.lifecycle.refresh_ui)
   registerNamedEventHandler("{namespace}", "{feature.name}::event::window_resize", "sysWindowResizeEvent", {namespace}.protocol.on_window_resize)
-  {namespace}.ui.create()
   {namespace}.ui.refresh_layout()
 end
 
 function {namespace}.lifecycle.shutdown()
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::install")
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::profile-load")
   deleteNamedEventHandler("{namespace}", "{feature.name}::event::window_resize")
   {namespace}.ui.destroy()
 end
@@ -447,13 +497,13 @@ end
 def write_feature(feature: Feature, destination: Path) -> None:
     sources = accessibility_sources(feature) if feature.kind == "accessibility" else profile_data_sources(feature) if feature.kind == "profile-data" else interface_sources(feature) if feature.kind == "interface" else module_sources(feature)
     write(destination / ".gitignore", "/build/\n")
-    write(destination / "package-metadata.json", json.dumps({"schema_version": 1, "name": feature.name, "version": "1.0.0", "namespace": feature.namespace, "minimum_mudlet_version": "4.14", "description": feature.description, "game": "Aardwolf"}, indent=2, sort_keys=True) + "\n")
+    write(destination / "package-metadata.json", json.dumps({"schema_version": 1, "name": feature.name, "version": feature.version, "namespace": feature.namespace, "minimum_mudlet_version": "4.14", "description": feature.description, "game": "Aardwolf"}, indent=2, sort_keys=True) + "\n")
     write(destination / "mfile", json.dumps({
         "author": "Aardwolf Mudlet",
         "description": feature.description,
         "package": feature.name,
         "title": feature.name.replace("aardwolf-", "Aardwolf ").replace("-", " ").title(),
-        "version": "1.0.0",
+        "version": feature.version,
     }, indent=2, sort_keys=True) + "\n")
     aliases = []
     alias_dir = destination / "src" / "aliases" / feature.namespace
@@ -482,6 +532,16 @@ def write_feature(feature: Feature, destination: Path) -> None:
     source_list = ", ".join(f"`{source}`" for source in feature.source_plugins)
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
+    runtime_boundary = (
+        "Mudlet lifecycle events: `sysInstall`, `sysLoadEvent`, and `sysWindowResizeEvent`. The package retries Geyser UI creation after install and profile load, sends no game commands, and removes its handlers through `aardwolf_interface.lifecycle.shutdown()`."
+        if feature.kind == "interface"
+        else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
+    )
+    help_text = (
+        "Run `aard interface show` to create or refresh the Geyser status label, or `aard interface status` for a text fallback. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
+        if feature.kind == "interface"
+        else "Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
+    )
     write(destination / "README.md", f'''# {feature.name}
 
 {feature.description}
@@ -492,7 +552,7 @@ This package is a safe native Mudlet replacement for selected behavior from {sou
 
 ## Runtime boundary
 
-GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`.
+{runtime_boundary}
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.
 ''')
@@ -500,7 +560,7 @@ Use the generated `.mpackage` in `dist/` for installation. The raw XML only cont
 
 {feature.description}
 
-Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior.
+{help_text}
 ''')
     write(destination / "dist" / "README.md", f'''# {feature.name} release artifacts
 
@@ -527,7 +587,7 @@ assert "send(" not in source
 assert source.count("function {feature.namespace}.") >= 5
 assert "function {feature.namespace}.lifecycle.initialize" in source
 assert "function {feature.namespace}.lifecycle.shutdown" in source
-{'assert "Geyser.Label:new" in source and "sysWindowResizeEvent" in source and ":delete()" in source' if feature.kind == 'interface' else ''}
+{'assert "Geyser.Label:new" in source and "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "commands.show" in source and ":show()" in source and ":delete()" in source' if feature.kind == 'interface' else ''}
 {'assert "commands.export" in source and "commands.import" in source and "io.open" in source and "io.popen" not in source' if feature.kind == 'profile-data' else ''}
 {'assert "ttsQueue" in source and "ttsClearQueue" in source and "Text-to-speech is unavailable" in source' if feature.kind == 'accessibility' else ''}
 {'assert "registerNamedEventHandler" in source and "deleteNamedEventHandler" in source' if feature.events else ''}
