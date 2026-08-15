@@ -19,6 +19,9 @@ local gmcp_sent = {}
 local triggers = {}
 local next_trigger = 1
 local deleted_lines = 0
+local fake_time = 1000
+
+os.time = function() return fake_time end
 
 local function runtime_key(user, name)
   return user .. "::" .. name
@@ -219,6 +222,7 @@ assert(migrated.details_visible == false, "schema migration must default details
 
 local START_TIMER = "aardwolf-interface::timer::start"
 local RENDER_TIMER = "aardwolf-interface::timer::render"
+local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
 
 -- First installation is visible, reserves only its own width, and owns mapper display.
 fire_timer(START_TIMER)
@@ -270,7 +274,11 @@ assert(objects["aardwolf-interface::ui::moves"].current == 0)
 assert(objects["aardwolf-interface::ui::enemy"].current == 100)
 assert(objects["aardwolf-interface::ui::room"].message:find("&lt;Room&gt;", 1, true))
 assert(objects["aardwolf-interface::ui::room"].message:find("<br>", 1, true), "room metadata is not split into readable rows")
-assert(objects["aardwolf-interface::ui::tick"].message:find("<br>", 1, true), "tick status is not split into readable rows")
+assert(objects["aardwolf-interface::ui::tick"].kind == "gauge")
+assert(objects["aardwolf-interface::ui::tick"].current == 30)
+assert(objects["aardwolf-interface::ui::tick"].maximum == 30)
+assert(objects["aardwolf-interface::ui::tick"].message == "30")
+assert(timers[runtime_key("aardwolf_interface", TICK_TIMER)], "tick countdown timer was not registered")
 assert(objects["aardwolf-interface::ui::stats"].message:find("<table", 1, true), "stats are not rendered as a grid")
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Hitroll</b>", 1, true))
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Practices</b>", 1, true))
@@ -278,6 +286,11 @@ assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true),
 assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
 assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
 assert(aardwolf_interface.state.snapshot().tick.last_seen)
+fake_time = 1007
+fire_timer(TICK_TIMER)
+fire_timer(RENDER_TIMER)
+assert(objects["aardwolf-interface::ui::tick"].current == 23, "tick gauge did not count down")
+assert(objects["aardwolf-interface::ui::tick"].message == "23", "tick gauge is not numeric")
 
 -- Expanding owns one initial refresh, grows the border, and confirms temporary
 -- transport settings before changing them.

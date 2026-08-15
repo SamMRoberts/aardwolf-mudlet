@@ -18,13 +18,13 @@ Install only the independent feature packages you want. Their aliases, help,
 lifecycle, and GMCP handlers are namespaced and they share no relay or
 automatic network behavior.
 
-- `aardwolf-gmcp-diagnostics` — safe, direct GMCP inspection
-- `aardwolf-tick` — direct `gmcp.comm.tick` status
+- `aardwolf-gmcp-diagnostics` — safe, direct GMCP inspection with console logging disabled until explicitly enabled
+- `aardwolf-tick` — 30-second prediction from direct `gmcp.comm.tick` signals
 - `aardwolf-console` — text-first safe console controls
 - `aardwolf-communication` — direct channel GMCP status
 - `aardwolf-character` — direct character and group GMCP summaries
 - `aardwolf-help` — accessible help and migration guidance
-- `aardwolf-interface` — responsive Geyser dashboard, embedded native mapper, and an expanded-only character-details column
+- `aardwolf-interface` — responsive Geyser dashboard with a numeric diminishing tick gauge, embedded native mapper, and an expanded-only character-details column
 - `aardwolf-profile-data` — explicit local note export/import
 - `aardwolf-accessibility` — Mudlet-native text-to-speech controls
 - `aardwolf-map` — separately maintained safe map importer

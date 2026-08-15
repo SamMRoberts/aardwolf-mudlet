@@ -8,7 +8,7 @@ This package is a safe native Mudlet replacement for selected behavior from `aar
 
 ## Runtime boundary
 
-The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Its optional details column issues only bounded Aardwolf tagged-data queries while expanded, never polls, and restores confirmed temporary Invmon/spellup settings through `aardwolf_interface.lifecycle.shutdown()`.
+The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional details column issues only bounded Aardwolf tagged-data queries while expanded, never polls, and restores confirmed temporary Invmon/spellup settings through `aardwolf_interface.lifecycle.shutdown()`.
 
 
 ## Dashboard behavior
@@ -19,12 +19,12 @@ Mudlet has one native mapper display per profile. While this dashboard is visibl
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-The room, tick, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Empty group state stays compact to preserve mapper space in shorter profile windows.
+The room, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. The tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
 
 The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment, Current Affects, Bags, Resists, and Condition sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended.
 
 Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists`. Bag-detail requests are limited to one per second. Invmon and spellup-tag changes are made only after their prior values are confirmed, and only package-owned changes are restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.2.0 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.0 so Mudlet does not retain duplicate static objects.
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

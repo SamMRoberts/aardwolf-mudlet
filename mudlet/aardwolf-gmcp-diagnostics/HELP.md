@@ -2,4 +2,4 @@
 
 Safe native GMCP state diagnostics for Aardwolf.
 
-Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior.
+Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count.

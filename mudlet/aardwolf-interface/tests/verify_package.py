@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
-assert metadata["version"] == "1.2.0"
+assert metadata["version"] == "1.3.0"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -29,6 +29,7 @@ assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', 'enqueue("slist affected"', 'enqueue("resists"', '"invdetails "'))
 assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
+assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source
 assert "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source
 
 

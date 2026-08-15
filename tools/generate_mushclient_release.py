@@ -33,12 +33,14 @@ FEATURES = (
         ("aard_GMCP_handler",),
         (("gmcp.room.info", "gmcp and gmcp.room and gmcp.room.info", "room_info"), ("gmcp.char.vitals", "gmcp and gmcp.char and gmcp.char.vitals", "vitals"), ("gmcp.comm.tick", "gmcp and gmcp.comm and gmcp.comm.tick", "tick")),
         (("status", "^aard gmcp status$", "aardwolf_gmcp_diagnostics.commands.status()"), ("toggle", "^gmcpdebug (on|off)$", "aardwolf_gmcp_diagnostics.commands.set_enabled(matches[2] == 'on')")),
+        "diagnostics", "1.1.0",
     ),
     Feature(
         "aardwolf-tick", "aardwolf_tick", "Direct GMCP tick status with a text-first accessible fallback.",
         ("Aardwolf_Tick_Timer",),
         (("gmcp.comm.tick", "gmcp and gmcp.comm and gmcp.comm.tick", "tick"),),
         (("status", "^aard tick( help| miniwin| status)?$", "aardwolf_tick.commands.status()"), ("reset", "^aard tick reset$", "aardwolf_tick.commands.reset()")),
+        "tick", "1.1.0",
     ),
     Feature(
         "aardwolf-console", "aardwolf_console", "Safe console controls and migration help for output plugins.",
@@ -79,7 +81,7 @@ FEATURES = (
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
         ),
-        "interface", "1.2.0",
+        "interface", "1.3.0",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -258,6 +260,135 @@ end
     }
 
 
+def diagnostics_sources(feature: Feature) -> dict[str, str]:
+    sources = module_sources(feature)
+    namespace = feature.namespace
+    sources["settings"] = f'''{namespace} = {namespace} or {{}}
+{namespace}.settings = {namespace}.settings or {{}}
+
+function {namespace}.settings.is_enabled()
+  return {namespace}.settings.enabled == true
+end
+
+function {namespace}.settings.set_enabled(enabled)
+  {namespace}.settings.enabled = enabled and true or false
+end
+'''
+    sources["commands"] = f'''{namespace} = {namespace} or {{}}
+{namespace}.commands = {namespace}.commands or {{}}
+
+function {namespace}.commands.status()
+  {namespace}.ui.status("logging=" .. tostring({namespace}.settings.is_enabled()) .. "; " .. {namespace}.state.summary())
+end
+
+function {namespace}.commands.set_enabled(enabled)
+  {namespace}.settings.set_enabled(enabled)
+  {namespace}.ui.message(enabled and "Diagnostic console logging enabled." or "Diagnostic console logging disabled.")
+end
+
+function {namespace}.commands.toggle()
+  {namespace}.commands.set_enabled(not {namespace}.settings.is_enabled())
+end
+
+function {namespace}.commands.reset()
+  {namespace}.state.reset()
+  {namespace}.ui.message("Diagnostic state reset.")
+end
+'''
+    return sources
+
+
+def tick_sources(feature: Feature) -> dict[str, str]:
+    namespace = feature.namespace
+    return {
+        "state": f'''{namespace} = {namespace} or {{}}
+{namespace}.state = {namespace}.state or {{}}
+
+local TICK_DURATION = 30
+
+function {namespace}.state.witness(now)
+  {namespace}.state.last_tick = tonumber(now) or os.time()
+  {namespace}.state.update_count = ({namespace}.state.update_count or 0) + 1
+end
+
+function {namespace}.state.remaining(now)
+  if not {namespace}.state.last_tick then
+    return nil
+  end
+  return math.max(0, math.min(TICK_DURATION, math.ceil(TICK_DURATION - ((tonumber(now) or os.time()) - {namespace}.state.last_tick))))
+end
+
+function {namespace}.state.reset()
+  {namespace}.state.last_tick = nil
+  {namespace}.state.update_count = 0
+end
+
+function {namespace}.state.summary()
+  local remaining = {namespace}.state.remaining()
+  return remaining and (tostring(remaining) .. " seconds until next tick") or "next tick unavailable"
+end
+''',
+        "settings": f'''{namespace} = {namespace} or {{}}
+{namespace}.settings = {namespace}.settings or {{}}
+
+function {namespace}.settings.is_enabled()
+  return true
+end
+''',
+        "ui": f'''{namespace} = {namespace} or {{}}
+{namespace}.ui = {namespace}.ui or {{}}
+
+function {namespace}.ui.message(message)
+  echo("\\n[{feature.name}] " .. tostring(message) .. "\\n")
+end
+
+function {namespace}.ui.status(summary)
+  {namespace}.ui.message(tostring(summary))
+end
+''',
+        "commands": f'''{namespace} = {namespace} or {{}}
+{namespace}.commands = {namespace}.commands or {{}}
+
+function {namespace}.commands.status()
+  {namespace}.ui.status({namespace}.state.summary())
+end
+
+function {namespace}.commands.reset()
+  {namespace}.state.reset()
+  {namespace}.ui.message("Tick prediction reset.")
+end
+''',
+        "protocol": f'''{namespace} = {namespace} or {{}}
+{namespace}.protocol = {namespace}.protocol or {{}}
+
+function {namespace}.protocol.on_tick()
+  {namespace}.state.witness(os.time())
+end
+''',
+        "lifecycle": f'''{namespace} = {namespace} or {{}}
+{namespace}.lifecycle = {namespace}.lifecycle or {{}}
+
+function {namespace}.lifecycle.initialize()
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::tick")
+  registerNamedEventHandler("{namespace}", "{feature.name}::event::tick", "gmcp.comm.tick", {namespace}.protocol.on_tick)
+end
+
+function {namespace}.lifecycle.shutdown()
+  deleteNamedEventHandler("{namespace}", "{feature.name}::event::tick")
+end
+
+{namespace}.lifecycle.initialize()
+''',
+        "help": f'''{namespace} = {namespace} or {{}}
+{namespace}.help = {namespace}.help or {{}}
+
+function {namespace}.help.summary()
+  return "Aardwolf's 30-second tick countdown; the dashboard renders the numeric diminishing gauge."
+end
+''',
+    }
+
+
 def accessibility_sources(feature: Feature) -> dict[str, str]:
     sources = module_sources(feature)
     namespace = feature.namespace
@@ -401,7 +532,14 @@ def interface_sources(feature: Feature) -> dict[str, str]:
     }
 
 def write_feature(feature: Feature, destination: Path) -> None:
-    sources = accessibility_sources(feature) if feature.kind == "accessibility" else profile_data_sources(feature) if feature.kind == "profile-data" else interface_sources(feature) if feature.kind == "interface" else module_sources(feature)
+    sources = (
+        accessibility_sources(feature) if feature.kind == "accessibility"
+        else profile_data_sources(feature) if feature.kind == "profile-data"
+        else interface_sources(feature) if feature.kind == "interface"
+        else diagnostics_sources(feature) if feature.kind == "diagnostics"
+        else tick_sources(feature) if feature.kind == "tick"
+        else module_sources(feature)
+    )
     write(destination / ".gitignore", "/build/\n")
     write(destination / "package-metadata.json", json.dumps({"schema_version": 1, "name": feature.name, "version": feature.version, "namespace": feature.namespace, "minimum_mudlet_version": "4.14", "description": feature.description, "game": "Aardwolf"}, indent=2, sort_keys=True) + "\n")
     write(destination / "mfile", json.dumps({
@@ -439,13 +577,21 @@ def write_feature(feature: Feature, destination: Path) -> None:
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
     runtime_boundary = (
-        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Its optional details column issues only bounded Aardwolf tagged-data queries while expanded, never polls, and restores confirmed temporary Invmon/spellup settings through `aardwolf_interface.lifecycle.shutdown()`."
+        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional details column issues only bounded Aardwolf tagged-data queries while expanded, never polls, and restores confirmed temporary Invmon/spellup settings through `aardwolf_interface.lifecycle.shutdown()`."
         if feature.kind == "interface"
+        else "GMCP diagnostics remain in bounded state, but console logging defaults off and is emitted only after explicit `gmcpdebug on`. Namespaced handlers are removed through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`."
+        if feature.kind == "diagnostics"
+        else "The package treats `gmcp.comm.tick` as a payload-optional signal and predicts the next tick from Aardwolf's 30-second interval. It sends no game commands or automatic console messages."
+        if feature.kind == "tick"
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "Run `aard interface show|hide|status` for the dashboard. Run `aard interface details show|hide|toggle|refresh|status` for the collapsed-by-default character-details column. The details text fallback reports freshness, equipment, affects, bags, resists, hunger, thirst, position, and character state. `aard theme change` cycles dark and high-contrast themes. Visibility, details visibility, and theme are profile-local JSON data in `aardwolf-interface/settings.lua`; the file is never executed as Lua. Automatic tagged-data requests run only while details are expanded and the character is active. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, unattended network behavior, combat automation, or item management."
+        "Run `aard interface show|hide|status` for the dashboard. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Run `aard interface details show|hide|toggle|refresh|status` for the collapsed-by-default character-details column. The details text fallback reports freshness, equipment, affects, bags, resists, hunger, thirst, position, and character state. `aard theme change` cycles dark and high-contrast themes. Visibility, details visibility, and theme are profile-local JSON data in `aardwolf-interface/settings.lua`; the file is never executed as Lua. Automatic tagged-data requests run only while details are expanded and the character is active."
         if feature.kind == "interface"
+        else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
+        if feature.kind == "diagnostics"
+        else "Use `aard tick` to print the numeric seconds remaining after a tick has been witnessed. The main dashboard renders the same prediction as a diminishing gauge."
+        if feature.kind == "tick"
         else "Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
     )
     feature_notes = '''
@@ -457,13 +603,13 @@ Mudlet has one native mapper display per profile. While this dashboard is visibl
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-The room, tick, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Empty group state stays compact to preserve mapper space in shorter profile windows.
+The room, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. The tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
 
 The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment, Current Affects, Bags, Resists, and Condition sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended.
 
 Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists`. Bag-detail requests are limited to one per second. Invmon and spellup-tag changes are made only after their prior values are confirmed, and only package-owned changes are restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.2.0 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.0 so Mudlet does not retain duplicate static objects.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -503,13 +649,25 @@ assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', 'enqueue("slist affected"', 'enqueue("resists"', '"invdetails "'))
 assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
+assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source
 assert "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source
 ''' if feature.kind == "interface" else ""
     version_assertion = (
         f'\nassert metadata["version"] == "{feature.version}"'
-        if feature.kind == "interface"
+        if feature.kind in {"interface", "diagnostics", "tick"}
         else ""
     )
+    diagnostics_assertions = '''assert "settings.enabled == true" in source
+assert "settings.enabled ~= false" not in source
+assert "Diagnostic console logging enabled." in source
+assert (root / "tests" / "diagnostics_stub_spec.lua").is_file()
+''' if feature.kind == "diagnostics" else ""
+    tick_assertions = '''assert "TICK_DURATION = 30" in source and "state.remaining" in source
+assert "Updated from gmcp.comm.tick" not in source
+assert "payload == nil" not in source
+assert (root / "tests" / "tick_stub_spec.lua").is_file()
+''' if feature.kind == "tick" else ""
+    feature_assertions = interface_assertions + diagnostics_assertions + tick_assertions
     test = f'''#!/usr/bin/env python3
 import json
 from pathlib import Path
@@ -529,7 +687,7 @@ assert "{feature.namespace}" in source
 assert source.count("function {feature.namespace}.") >= 5
 assert "function {feature.namespace}.lifecycle.initialize" in source
 assert "function {feature.namespace}.lifecycle.shutdown" in source
-{interface_assertions}
+{feature_assertions}
 {'assert "commands.export" in source and "commands.import" in source and "io.open" in source and "io.popen" not in source' if feature.kind == 'profile-data' else ''}
 {'assert "ttsQueue" in source and "ttsClearQueue" in source and "Text-to-speech is unavailable" in source' if feature.kind == 'accessibility' else ''}
 {'assert "registerNamedEventHandler" in source and "deleteNamedEventHandler" in source' if feature.events else ''}

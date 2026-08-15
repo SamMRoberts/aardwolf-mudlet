@@ -43,7 +43,7 @@ SUITE_MFILE = {
     "description": "All-in-one native Mudlet package for the audited Aardwolf collection, diagnostics, interface, accessibility, profile-data, and map importer.",
     "package": SUITE_NAME,
     "title": "Aardwolf Mudlet Suite",
-    "version": "1.2.0",
+    "version": "1.3.0",
 }
 
 

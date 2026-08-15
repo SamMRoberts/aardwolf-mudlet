@@ -2,4 +2,4 @@
 
 Direct GMCP tick status with a text-first accessible fallback.
 
-Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior.
+Use `aard tick` to print the numeric seconds remaining after a tick has been witnessed. The main dashboard renders the same prediction as a diminishing gauge.

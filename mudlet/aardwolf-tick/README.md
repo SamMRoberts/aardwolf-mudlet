@@ -8,7 +8,7 @@ This package is a safe native Mudlet replacement for selected behavior from `Aar
 
 ## Runtime boundary
 
-GMCP events: `gmcp.comm.tick`. The package uses namespaced handlers, sends no game commands, and removes its handlers through `aardwolf_tick.lifecycle.shutdown()`.
+The package treats `gmcp.comm.tick` as a payload-optional signal and predicts the next tick from Aardwolf's 30-second interval. It sends no game commands or automatic console messages.
 
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

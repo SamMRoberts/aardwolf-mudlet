@@ -8,7 +8,7 @@ This package is a safe native Mudlet replacement for selected behavior from `aar
 
 ## Runtime boundary
 
-GMCP events: `gmcp.room.info`, `gmcp.char.vitals`, `gmcp.comm.tick`. The package uses namespaced handlers, sends no game commands, and removes its handlers through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`.
+GMCP diagnostics remain in bounded state, but console logging defaults off and is emitted only after explicit `gmcpdebug on`. Namespaced handlers are removed through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`.
 
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

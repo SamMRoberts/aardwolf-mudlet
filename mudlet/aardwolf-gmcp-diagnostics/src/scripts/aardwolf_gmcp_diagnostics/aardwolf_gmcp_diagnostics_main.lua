@@ -20,7 +20,7 @@ aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
 aardwolf_gmcp_diagnostics.settings = aardwolf_gmcp_diagnostics.settings or {}
 
 function aardwolf_gmcp_diagnostics.settings.is_enabled()
-  return aardwolf_gmcp_diagnostics.settings.enabled ~= false
+  return aardwolf_gmcp_diagnostics.settings.enabled == true
 end
 
 function aardwolf_gmcp_diagnostics.settings.set_enabled(enabled)
@@ -42,12 +42,12 @@ aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
 aardwolf_gmcp_diagnostics.commands = aardwolf_gmcp_diagnostics.commands or {}
 
 function aardwolf_gmcp_diagnostics.commands.status()
-  aardwolf_gmcp_diagnostics.ui.status(aardwolf_gmcp_diagnostics.state.summary())
+  aardwolf_gmcp_diagnostics.ui.status("logging=" .. tostring(aardwolf_gmcp_diagnostics.settings.is_enabled()) .. "; " .. aardwolf_gmcp_diagnostics.state.summary())
 end
 
 function aardwolf_gmcp_diagnostics.commands.set_enabled(enabled)
   aardwolf_gmcp_diagnostics.settings.set_enabled(enabled)
-  aardwolf_gmcp_diagnostics.ui.message(enabled and "Enabled." or "Disabled.")
+  aardwolf_gmcp_diagnostics.ui.message(enabled and "Diagnostic console logging enabled." or "Diagnostic console logging disabled.")
 end
 
 function aardwolf_gmcp_diagnostics.commands.toggle()
@@ -56,7 +56,7 @@ end
 
 function aardwolf_gmcp_diagnostics.commands.reset()
   aardwolf_gmcp_diagnostics.state.reset()
-  aardwolf_gmcp_diagnostics.ui.message("State reset.")
+  aardwolf_gmcp_diagnostics.ui.message("Diagnostic state reset.")
 end
 
 aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}

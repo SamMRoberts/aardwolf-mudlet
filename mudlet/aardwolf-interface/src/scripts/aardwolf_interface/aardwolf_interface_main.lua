@@ -74,6 +74,16 @@ function aardwolf_interface.state.percent(value)
   return bounded_number(value, 0, 100)
 end
 
+function aardwolf_interface.state.tick_remaining(now)
+  local tick = aardwolf_interface.state.snapshot().tick or {}
+  local last_seen = finite_number(tick.last_seen)
+  local duration = finite_number(tick.duration)
+  if not last_seen or not duration or duration <= 0 then
+    return nil
+  end
+  return math.max(0, math.min(duration, math.ceil(duration - ((finite_number(now) or os.time()) - last_seen))))
+end
+
 function aardwolf_interface.state.text(value, maximum_length)
   return clean_text(value, maximum_length or 160)
 end
@@ -219,6 +229,7 @@ local UI_PREFIX = "aardwolf-interface::ui::"
 local TIMER_USER = "aardwolf_interface"
 local RENDER_TIMER = "aardwolf-interface::timer::render"
 local START_TIMER = "aardwolf-interface::timer::start"
+local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
 local DETAILS_QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
 local DETAILS_CAPTURE_TIMER = "aardwolf-interface::timer::details-capture"
 local DETAILS_DEBOUNCE_TIMER = "aardwolf-interface::timer::details-debounce"
@@ -231,6 +242,7 @@ local DETAILS_WIDTH_RATIO = 0.32
 local COLUMN_GAP = 6
 local GROUP_LIMIT = 10
 local DETAIL_LIMIT = 100
+local TICK_DURATION = 30
 
 local WEAR_LOCATIONS = {
   [0] = "Light", [1] = "Head", [2] = "Eyes", [3] = "Left ear", [4] = "Right ear",
@@ -464,7 +476,7 @@ function aardwolf_interface.ui.build()
   widgets.header = new_label("header", primary)
   widgets.details_toggle = new_label("details-toggle", primary)
   widgets.room = new_label("room", primary)
-  widgets.tick = new_label("tick", primary)
+  widgets.tick = new_gauge("tick", primary)
   widgets.hp = new_gauge("hp", primary)
   widgets.mana = new_gauge("mana", primary)
   widgets.moves = new_gauge("moves", primary)
@@ -493,7 +505,6 @@ function aardwolf_interface.ui.build()
   for _, name in ipairs({"room", "stats", "group", "map_status", "details_header", "details_condition", "details_equipment", "details_affects", "details_bags", "details_resists"}) do
     safe_call(widgets[name], "setFontSize", 10)
   end
-  safe_call(widgets.tick, "setFontSize", 9)
   safe_call(widgets.map_status, "enableClickthrough")
   safe_call(widgets.details_toggle, "setClickCallback", aardwolf_interface.commands.details_toggle)
   safe_call(widgets.details_collapse, "setClickCallback", aardwolf_interface.commands.details_hide)
@@ -522,10 +533,10 @@ function aardwolf_interface.ui.apply_theme()
   for _, name in ipairs({"details_toggle", "details_collapse", "details_refresh"}) do
     safe_call(widget(name), "setStyleSheet", button_css)
   end
-  for _, name in ipairs({"room", "tick", "stats", "group", "map_status", "details_condition", "details_equipment", "details_affects", "details_bags", "details_resists"}) do
+  for _, name in ipairs({"room", "stats", "group", "map_status", "details_condition", "details_equipment", "details_affects", "details_bags", "details_resists"}) do
     safe_call(widget(name), "setStyleSheet", section_css)
   end
-  local colors = {hp = theme.hp, mana = theme.mana, moves = theme.moves, tnl = theme.accent, enemy = theme.enemy}
+  local colors = {hp = theme.hp, mana = theme.mana, moves = theme.moves, tnl = theme.accent, enemy = theme.enemy, tick = theme.accent}
   for name, color in pairs(colors) do
     local gauge = widget(name)
     safe_call(gauge, "setStyleSheet",
@@ -797,11 +808,9 @@ function aardwolf_interface.ui.render()
   local vnum = display_number(snapshot.room.num)
   safe_call(widget("room"), "echo", "<b>" .. room_name .. "</b><br>" .. area .. " &nbsp;[" .. vnum .. "]")
 
-  local tick_value = snapshot.tick.remaining and (display_number(snapshot.tick.remaining) .. "s")
-    or snapshot.tick.last_seen and os.date("%H:%M:%S", snapshot.tick.last_seen)
-    or "--"
-  local tick_text = "<b>Tick</b><br>" .. tick_value
-  safe_call(widget("tick"), "echo", tick_text)
+  local tick_remaining = aardwolf_interface.state.tick_remaining()
+  safe_call(widget("tick"), "setValue", tick_remaining or 0, snapshot.tick.duration or TICK_DURATION,
+    tick_remaining and display_number(tick_remaining) or "--")
   gauge_value("hp", snapshot.vitals.hp, snapshot.maxstats.maxhp, "HP")
   gauge_value("mana", snapshot.vitals.mana, snapshot.maxstats.maxmana, "Mana")
   gauge_value("moves", snapshot.vitals.moves, snapshot.maxstats.maxmoves, "Moves")
@@ -1509,7 +1518,7 @@ function aardwolf_interface.commands.status()
     status_line("Mana", snapshot.vitals.mana, snapshot.maxstats.maxmana),
     status_line("Moves", snapshot.vitals.moves, snapshot.maxstats.maxmoves),
     "enemy=" .. tostring(snapshot.status.enemy or "none") .. " group_members=" .. tostring(#(snapshot.group.members or {})),
-    "tick=" .. (snapshot.tick.last_seen and os.date("%H:%M:%S", snapshot.tick.last_seen) or "unavailable"),
+    "tick=" .. (aardwolf_interface.state.tick_remaining() and (display_number(aardwolf_interface.state.tick_remaining()) .. " seconds") or "unavailable"),
     "mapper_owned=" .. tostring(aardwolf_interface.state.mapper_claimed == true),
     "adjacent_levels_hidden=" .. tostring(aardwolf_interface.state.upper_lower_levels_claimed == true),
     "border_conflict=" .. tostring(aardwolf_interface.state.border_conflict == true),
@@ -1693,12 +1702,8 @@ function aardwolf_interface.protocol.on_group()
 end
 
 function aardwolf_interface.protocol.on_tick()
-  local source = gmcp and gmcp.comm and gmcp.comm.tick
-  local remaining = type(source) == "table"
-    and bounded_number(source.remaining or source.seconds or source.time, 0, 3600)
-    or source ~= nil and bounded_number(source, 0, 3600)
-    or nil
-  record_and_render("tick", {last_seen = os.time(), remaining = remaining})
+  record_and_render("tick", {last_seen = os.time(), duration = TICK_DURATION})
+  aardwolf_interface.lifecycle.start_tick_timer()
 end
 
 -- Lifecycle owns all runtime handlers and timers and is safe to re-run.
@@ -1763,7 +1768,24 @@ function aardwolf_interface.lifecycle.on_resize()
   end
 end
 
+function aardwolf_interface.lifecycle.update_tick_countdown()
+  aardwolf_interface.ui.request_render()
+  if aardwolf_interface.state.tick_remaining() == 0 and type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
+  end
+end
+
+function aardwolf_interface.lifecycle.start_tick_timer()
+  if type(deleteNamedTimer) == "function" then
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
+  end
+  if type(registerNamedTimer) == "function" then
+    registerNamedTimer(TIMER_USER, TICK_TIMER, 1.0, aardwolf_interface.lifecycle.update_tick_countdown, false)
+  end
+end
+
 function aardwolf_interface.lifecycle.on_connect()
+  delete_named_timer(TICK_TIMER)
   aardwolf_interface.details.stop(false)
   aardwolf_interface.state.reset_session()
   aardwolf_interface.ui.request_render()
@@ -1773,6 +1795,7 @@ function aardwolf_interface.lifecycle.on_connect()
 end
 
 function aardwolf_interface.lifecycle.on_disconnect()
+  delete_named_timer(TICK_TIMER)
   aardwolf_interface.details.stop(true)
   aardwolf_interface.state.reset_session()
   aardwolf_interface.ui.request_render()
@@ -1802,6 +1825,7 @@ function aardwolf_interface.lifecycle.unregister()
   if type(deleteNamedTimer) == "function" then
     deleteNamedTimer(TIMER_USER, RENDER_TIMER)
     deleteNamedTimer(TIMER_USER, START_TIMER)
+    deleteNamedTimer(TIMER_USER, TICK_TIMER)
   end
 end
 
