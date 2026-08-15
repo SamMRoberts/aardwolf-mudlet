@@ -95,6 +95,11 @@ assert(events["aardwolf_interface:aardwolf-interface::event::resize"]==nil)
 assert(timers["aardwolf_interface:aardwolf-interface::timer::start"]==nil)
 assert(right==448 and bottom==74)
 assert(width-right>=640)
+local embedded_mapper=objects["aardwolf-interface::ui::mapper"]
+assert(embedded_mapper.parent==objects["aardwolf-interface::ui::workspace"])
+assert(embedded_mapper.x>0)
+aardwolf_interface.settings.data.active_tab="character"; aardwolf_interface.ui.render(); assert(embedded_mapper.hidden)
+aardwolf_interface.settings.data.active_tab="map"; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden)
 
 local migrated=aardwolf_interface.settings.validate({schema_version=3,visible=false,details_visible=true,theme="dark",workspace_width=999})
 assert(migrated.schema_version==4 and migrated.theme=="obsidian" and migrated.workspace_width==520)

@@ -1862,7 +1862,11 @@ function ui.build()
   w.map_zoom_in = new_button("map-zoom-in", w.map_toolbar, execute_action("map-zoom-in"), "Zoom map in")
   w.map_zoom_out = new_button("map-zoom-out", w.map_toolbar, execute_action("map-zoom-out"), "Zoom map out")
   w.map_status = new_label("map-status", map)
-  w.mapper = Geyser.Mapper:new({name = PREFIX .. "mapper", x = 0, y = 0, width = 10, height = 10}, map)
+  -- Geyser.Mapper ultimately positions Mudlet's native mapper relative to its
+  -- window. A mapper nested beneath ScrollBox loses the outer workspace
+  -- offset on Mudlet 4.22 and is drawn over the game console. Keep it as a
+  -- direct workspace child and place it over the Map tab's reserved region.
+  w.mapper = Geyser.Mapper:new({name = PREFIX .. "mapper", x = 0, y = 0, width = 10, height = 10, embedded = true}, w.workspace)
   w.map_legend = new_label("map-legend", map)
   w.character_card = new_label("character-card", w.character_content)
   w.group_card = new_label("group-card", w.group_content)
@@ -2006,7 +2010,10 @@ function ui.reflow()
     safe(widget("map_zoom_in"), "move", 168, 0); safe(widget("map_zoom_in"), "resize", 38, 30)
     safe(widget("map_zoom_out"), "move", 212, 0); safe(widget("map_zoom_out"), "resize", 38, 30)
     safe(widget("map_status"), "move", 0, 36); safe(widget("map_status"), "resize", content_width, 58)
-    safe(widget("mapper"), "move", 0, 100); safe(widget("mapper"), "resize", content_width, math.max(120, content_height - 190))
+    -- The mapper is a direct child of the workspace (see build()) so these
+    -- coordinates include the content origin instead of depending on nested
+    -- ScrollBox coordinate propagation.
+    safe(widget("mapper"), "move", CONTENT_MARGIN, content_y + 100); safe(widget("mapper"), "resize", content_width, math.max(120, content_height - 190))
     safe(widget("map_legend"), "move", 0, math.max(226, content_height - 84)); safe(widget("map_legend"), "resize", content_width, 80)
     for _, name in ipairs({"character_card", "group_card"}) do safe(widget(name), "move", 0, 0); safe(widget(name), "resize", content_width, content_height) end
     safe(widget("inventory_toolbar"), "move", 0, 0); safe(widget("inventory_toolbar"), "resize", content_width, 32)
@@ -2251,6 +2258,8 @@ function ui.render()
   render_header(); render_context(); render_map(); render_character(); render_group(); render_inventory(); render_inspector(); render_drawer(); render_overlays()
   local active = data().active_tab or "map"
   for _, tab in ipairs(TABS) do if tab == active then safe(widget(tab .. "_content"), "show") else safe(widget(tab .. "_content"), "hide") end; set_button_text(widget("tab_" .. tab), tab:sub(1, 1):upper() .. tab:sub(2)) end
+  local mapper_visible = active == "map" and not data().palette_open and not ui.editor_open and type(pending_action()) ~= "table"
+  if mapper_visible then safe(widget("mapper"), "show") else safe(widget("mapper"), "hide") end
   if widget("pager") then
     local pages = active == "inventory" and 2 or 1; ui.page = math.max(1, math.min(ui.page or 1, pages))
     set_button_text(widget("page_prev"), "&lt;"); set_button_text(widget("page_next"), "&gt;"); safe(widget("page_status"), "echo", "Page " .. ui.page .. " / " .. pages)

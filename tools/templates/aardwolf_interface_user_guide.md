@@ -137,6 +137,12 @@ Confirm the Aardwolf connection and GMCP negotiation. The deck uses documented `
 
 Run `aard map status`, then `aard map import` if no packaged map is ready. A Mudlet room from another map is not treated as an imported Aardwolf room.
 
+### The map covers the game console
+
+The command deck and Mudlet's `generic_mapper` package both control the same embedded native mapper, so they cannot safely display separate mapper widgets in the same profile. Open Package Manager and remove `generic_mapper`; this does not delete Mudlet's map database. Keep `aardwolf-map` and either the suite or standalone interface installed, then reopen the profile or run `aard interface repair`.
+
+Do not run the generic mapper's `map show` command while the command deck is active. If it moves the mapper after startup, `aard interface repair` returns the mapper to the Map tab.
+
 ## Settings and removal
 
 Settings are profile-local in `getMudletHomeDir()/aardwolf-interface/settings.lua`. Visibility, tab, theme, density, text scale, inspector intent, and custom actions persist. Avoid editing this file while Mudlet is running.
