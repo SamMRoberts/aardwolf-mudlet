@@ -75,6 +75,7 @@ FEATURES = (
             ("status", "^aard interface status$", "aardwolf_interface.commands.status()"),
             ("show", "^aard interface show$", "aardwolf_interface.commands.show()"),
             ("hide", "^aard interface hide$", "aardwolf_interface.commands.hide()"),
+            ("repair", "^aard interface repair$", "aardwolf_interface.commands.repair()"),
             ("details_show", "^aard interface details show$", "aardwolf_interface.commands.details_show()"),
             ("details_hide", "^aard interface details hide$", "aardwolf_interface.commands.details_hide()"),
             ("details_toggle", "^aard interface details toggle$", "aardwolf_interface.commands.details_toggle()"),
@@ -658,9 +659,9 @@ An explicit Inventory refresh performs one paced transaction using `eqdata`, `in
 
 While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon` and `invitem` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.5.0 so Mudlet does not retain duplicate static objects. Schema 3 settings migrate to schema 4, including `dark` to `obsidian` and legacy details intent to the responsive inspector.
+Version 1.5 disables the exact retained `aardwolf_interface.main` legacy script when Mudlet exposes it, then tears down pre-1.5 handlers, timers, Geyser roots, and exact package-owned border claims before rebuilding. For the cleanest upgrade, install either the standalone interface or the suite, not both. If a prior installation left the viewport constrained, run `aard interface repair`. Schema 3 settings migrate to schema 4, including `dark` to `obsidian` and legacy details intent to the responsive inspector.
 ''' if feature.kind == "interface" else ""
-    write(destination / "README.md", f'''# {feature.name}
+    readme = f'''# {feature.name}
 
 {feature.description}
 
@@ -674,7 +675,12 @@ This package is a safe native Mudlet replacement for selected behavior from {sou
 
 {feature_notes}
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.
-''')
+'''
+    if feature.kind == "interface":
+        readme += "\nSee [USER-GUIDE.md](USER-GUIDE.md) for installation, operation, accessibility, and troubleshooting guidance.\n"
+    write(destination / "README.md", readme)
+    if feature.kind == "interface":
+        write(destination / "USER-GUIDE.md", (ROOT / "tools" / "templates" / "aardwolf_interface_user_guide.md").read_text(encoding="utf-8"))
     write(destination / "HELP.md", f'''# {feature.name} help
 
 {feature.description}
@@ -694,6 +700,10 @@ assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 4' in s
 assert "setBorderRight" in source and "setBorderBottom" in source and "Geyser.CommandLine:new" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.comm.quest"))
 assert "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
+assert "commands.repair" in source and "release_saved_claims" in source and "LEGACY_EVENT_PREFIX" in source
+assert 'disableScript,"aardwolf_interface.main"' in source
+assert "legacy_base_pending" in source and "legacy_base_right" in source
+assert "if not aardwolf_interface.lifecycle.initialized then return end" not in source
 assert all(command in source for command in ('command="eqdata"', 'command="invdata"', '"invdetails "'))
 assert all(removed not in source for removed in ('slist affected', 'enqueue("resists"', 'tags spellup', 'details_affects', 'details_resists'))
 assert "LIMIT, TIMER = 100" in source and "capture_timeout" in source and "Container ID did not match request" in source

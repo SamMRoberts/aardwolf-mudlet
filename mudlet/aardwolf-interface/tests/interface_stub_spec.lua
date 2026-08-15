@@ -26,6 +26,9 @@ function deleteNamedEventHandler(user,name) events[user..":"..name]=nil end
 function registerNamedTimer(user,name,delay,callback,one_shot) timers[user..":"..name]={delay=delay,callback=callback,one_shot=one_shot} end
 function deleteNamedTimer(user,name) timers[user..":"..name]=nil end
 function killNamedTimer(user,name) timers[user..":"..name]=nil end
+local disabled_scripts={}
+function exists(name,kind) return name=="aardwolf_interface.main" and kind=="script" and 1 or 0 end
+function disableScript(name) disabled_scripts[name]=true end
 
 lfs={attributes=function() return "directory" end,mkdir=function() return true end}
 local saved
@@ -62,8 +65,28 @@ local function class(kind) return {new=function(_,constraints,parent) return obj
 Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline")}
 gmcp={char={base={name="Denzil",class="Ranger",race="Triton",level=3},vitals={hp=204,maxhp=204,mana=180,maxmana=180,moves=532,maxmoves=532,tnl=316,hunger=100,thirst=100},maxstats={},status={state=3},stats={str=21},worth={gold=50000,qp=64}},room={info={num=14070,name="Hallway",area="Academy",terrain="academy",exits={n=1,e=2},coord={x=0,y=30,cont=20}}},group={},comm={}}
 
+-- Simulate an in-place upgrade where Mudlet retained the pre-1.5 monolithic
+-- script, its Geyser roots, exact border ownership, and named runtime objects.
+right,bottom=448,74
+local legacy_root=object("container",{name="legacy-interface-root"})
+local legacy_bottom=object("container",{name="legacy-interface-bottom"})
+aardwolf_interface={
+  settings={data={schema_version=4,visible=true,theme="obsidian",density="comfortable",text_scale=100,workspace_width=440,active_tab="map"}},
+  ui={root=legacy_root,bottom_root=legacy_bottom,base_right=8,base_bottom=10},
+  lifecycle={},
+}
+events["aardwolf_interface:aardwolf-interface::event::resize"]={event="sysWindowResizeEvent"}
+timers["aardwolf_interface:aardwolf-interface::timer::start"]={delay=0.05}
+
 local script_dir=root.."/src/scripts/aardwolf_interface/"
 for _,module in ipairs({"state","settings","details","actions","protocol","commands","ui","lifecycle","help"}) do dofile(script_dir.."aardwolf_interface_"..module..".lua") end
+
+assert(legacy_root.deleted and legacy_bottom.deleted)
+assert(disabled_scripts["aardwolf_interface.main"]==true)
+assert(events["aardwolf_interface:aardwolf-interface::event::resize"]==nil)
+assert(timers["aardwolf_interface:aardwolf-interface::timer::start"]==nil)
+assert(right==448 and bottom==74)
+assert(width-right>=640)
 
 local migrated=aardwolf_interface.settings.validate({schema_version=3,visible=false,details_visible=true,theme="dark",workspace_width=999})
 assert(migrated.schema_version==4 and migrated.theme=="obsidian" and migrated.workspace_width==520)
@@ -76,8 +99,11 @@ width=2000; aardwolf_interface.settings.data.inspector_pinned=true; aardwolf_int
 assert(aardwolf_interface.ui.layout.inspector>=360)
 width=1200; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.inspector==0)
 width=800; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.collapsed and aardwolf_interface.ui.layout.workspace==44); local two_row_height=aardwolf_interface.ui.bottom_root.height
-width=500; height=360; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.collapsed and aardwolf_interface.ui.bottom_root.height>two_row_height)
+width=500; height=360; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.suspended and aardwolf_interface.ui.layout.workspace==0 and right==8); assert(aardwolf_interface.ui.bottom_root.height>two_row_height)
 width=1200; aardwolf_interface.settings.data.collapsed_by_user=false; aardwolf_interface.ui.reflow()
+local repaired_right,repaired_bottom=right,bottom
+aardwolf_interface.commands.repair()
+assert(right==repaired_right and bottom==repaired_bottom)
 
 aardwolf_interface.protocol.base(); aardwolf_interface.protocol.vitals(); aardwolf_interface.protocol.status(); aardwolf_interface.protocol.stats(); aardwolf_interface.protocol.worth(); aardwolf_interface.protocol.room(); aardwolf_interface.protocol.group()
 assert(aardwolf_interface.state.envelope("room").status=="current")

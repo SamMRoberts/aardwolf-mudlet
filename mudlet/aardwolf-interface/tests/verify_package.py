@@ -26,6 +26,10 @@ assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 4' in s
 assert "setBorderRight" in source and "setBorderBottom" in source and "Geyser.CommandLine:new" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.comm.quest"))
 assert "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
+assert "commands.repair" in source and "release_saved_claims" in source and "LEGACY_EVENT_PREFIX" in source
+assert 'disableScript,"aardwolf_interface.main"' in source
+assert "legacy_base_pending" in source and "legacy_base_right" in source
+assert "if not aardwolf_interface.lifecycle.initialized then return end" not in source
 assert all(command in source for command in ('command="eqdata"', 'command="invdata"', '"invdetails "'))
 assert all(removed not in source for removed in ('slist affected', 'enqueue("resists"', 'tags spellup', 'details_affects', 'details_resists'))
 assert "LIMIT, TIMER = 100" in source and "capture_timeout" in source and "Container ID did not match request" in source

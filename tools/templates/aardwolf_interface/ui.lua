@@ -178,8 +178,9 @@ local function layout()
   local usable = math.max(0, window_width - base)
   local minimum_console = math.max(640, usable * 0.50)
   local desired = math.floor(bounded(data().workspace_width, WORKSPACE_MIN, WORKSPACE_MAX, WORKSPACE_DEFAULT))
-  local collapsed = data().collapsed_by_user == true or usable - desired < minimum_console
-  local workspace = collapsed and COLLAPSED_WIDTH or desired
+  local suspended = usable < minimum_console + COLLAPSED_WIDTH
+  local collapsed = suspended or data().collapsed_by_user == true or usable - desired < minimum_console
+  local workspace = suspended and 0 or (collapsed and COLLAPSED_WIDTH or desired)
   local inspector = 0
   if not collapsed and data().inspector_pinned == true then
     inspector = math.floor(bounded(usable * 0.22, INSPECTOR_MIN, INSPECTOR_MAX, INSPECTOR_MIN))
@@ -187,7 +188,7 @@ local function layout()
   end
   return {
     window_width = window_width, height = window_height, base = base, usable = usable,
-    console_min = minimum_console, collapsed = collapsed, workspace = workspace,
+    console_min = minimum_console, collapsed = collapsed, suspended = suspended, workspace = workspace,
     inspector = inspector, total = workspace + (inspector > 0 and GAP + inspector or 0),
   }
 end
@@ -198,6 +199,11 @@ local function apply_right_claim(size)
   local claim = d.border_claim
   local base = type(claim) == "table" and current == claim.applied and claim.base or current
   if type(claim) == "table" and current ~= claim.applied then ui.border_conflict = true end
+  if size <= 0 then
+    d.border_claim = nil
+    persist()
+    return base
+  end
   setBorderRight(base + size)
   d.border_claim = {base = base, width = size, applied = base + size}
   ui.border_conflict = false
@@ -243,6 +249,14 @@ local function release_bottom_claim()
   if (finite(getBorderBottom()) or 0) == claim.applied then setBorderBottom(claim.base) else ui.bottom_border_conflict = true end
   data().bottom_border_claim = nil
   persist()
+end
+
+function ui.release_saved_claims()
+  -- Claim records are proof of ownership only when the live border still
+  -- equals the exact applied value. The release helpers deliberately leave a
+  -- conflicting border untouched, but discard stale ownership either way.
+  release_bottom_claim()
+  release_right_claim()
 end
 
 local function make_gauge(name, parent)
@@ -493,6 +507,11 @@ function ui.apply_theme()
 end
 
 local function resize_claim(l)
+  if l.total <= 0 then
+    release_right_claim()
+    ui.base_right = l.base
+    return
+  end
   local claim = data().border_claim
   if type(claim) ~= "table" then ui.base_right = apply_right_claim(l.total); return end
   local current = finite(getBorderRight()) or 0
@@ -509,10 +528,14 @@ function ui.reflow()
   ui.layout = l
   safe(ui.root, "move", -(ui.base_right + l.total), 0); safe(ui.root, "resize", l.total, "100%")
   safe(widget("background"), "move", 0, 0); safe(widget("background"), "resize", "100%", "100%")
-  if l.collapsed then
+  if l.suspended then
+    safe(ui.root, "hide")
+  elseif l.collapsed then
+    safe(ui.root, "show")
     safe(widget("rail"), "move", 0, 0); safe(widget("rail"), "resize", COLLAPSED_WIDTH, "100%"); safe(widget("rail"), "show")
     safe(widget("workspace"), "hide"); safe(widget("inspector"), "hide")
   else
+    safe(ui.root, "show")
     safe(widget("rail"), "hide"); safe(widget("workspace"), "show")
     safe(widget("workspace"), "move", 0, 0); safe(widget("workspace"), "resize", l.workspace, "100%")
     safe(widget("header"), "move", CONTENT_MARGIN, CONTENT_MARGIN); safe(widget("header"), "resize", l.workspace - 112, density(92, 112))

@@ -12,6 +12,10 @@
     "regex": "^aard interface hide$"
   },
   {
+    "name": "aardwolf_interface.repair",
+    "regex": "^aard interface repair$"
+  },
+  {
     "name": "aardwolf_interface.details_show",
     "regex": "^aard interface details show$"
   },

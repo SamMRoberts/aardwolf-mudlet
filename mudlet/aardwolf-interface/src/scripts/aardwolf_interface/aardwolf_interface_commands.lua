@@ -5,7 +5,12 @@ function aardwolf_interface.commands.show() aardwolf_interface.settings.update("
 function aardwolf_interface.commands.hide() aardwolf_interface.settings.update("visible",false); aardwolf_interface.ui.hide() end
 function aardwolf_interface.commands.status()
   local data=aardwolf_interface.settings.data
-  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% inspector=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),aardwolf_interface.state.connection))
+  local layout=aardwolf_interface.ui and aardwolf_interface.ui.layout or {}
+  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% inspector=%s suspended=%s console=%s legacy-disabled=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),tostring(layout.suspended==true),tostring(layout.window_width and math.max(0,layout.window_width-layout.base-layout.total) or "--"),tostring(aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.legacy_script_disabled==true),aardwolf_interface.state.connection))
+end
+function aardwolf_interface.commands.repair()
+  local ok=aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.repair and aardwolf_interface.lifecycle.repair()
+  message(ok and "Interface viewport repaired and rebuilt." or "Interface repair could not build Geyser; use 'aard interface summary all' for text output.")
 end
 function aardwolf_interface.commands.set_tab(tab) if ({map=true,character=true,group=true,inventory=true})[tab] then aardwolf_interface.settings.update("active_tab",tab); aardwolf_interface.ui.set_tab(tab) end end
 aardwolf_interface.commands.select_tab=aardwolf_interface.commands.set_tab
