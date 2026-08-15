@@ -212,6 +212,16 @@ def _check_native_output(project: Project, errors: list[str]) -> None:
                     xml_member = archive.read(f"{project.metadata['name']}.xml")
                     if xml_path.exists() and xml_member != xml_path.read_bytes():
                         errors.append("native XML and .mpackage XML entry differ")
+                if "mfile" not in names:
+                    errors.append("native .mpackage is missing its mfile metadata")
+                else:
+                    try:
+                        mfile = json.loads(archive.read("mfile").decode("utf-8"))
+                    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                        errors.append(f"native .mpackage mfile is invalid: {error}")
+                    else:
+                        if mfile != project.mfile:
+                            errors.append("native .mpackage mfile differs from source project metadata")
                 expected_resources = {
                     f"resources/{path.relative_to(project.root / 'src' / 'resources').as_posix()}"
                     for path in (project.root / "src" / "resources").rglob("*")

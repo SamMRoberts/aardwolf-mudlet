@@ -448,7 +448,13 @@ def write_feature(feature: Feature, destination: Path) -> None:
     sources = accessibility_sources(feature) if feature.kind == "accessibility" else profile_data_sources(feature) if feature.kind == "profile-data" else interface_sources(feature) if feature.kind == "interface" else module_sources(feature)
     write(destination / ".gitignore", "/build/\n")
     write(destination / "package-metadata.json", json.dumps({"schema_version": 1, "name": feature.name, "version": "1.0.0", "namespace": feature.namespace, "minimum_mudlet_version": "4.14", "description": feature.description, "game": "Aardwolf"}, indent=2, sort_keys=True) + "\n")
-    write(destination / "mfile", json.dumps({"package": feature.name, "version": "1.0.0"}, indent=2, sort_keys=True) + "\n")
+    write(destination / "mfile", json.dumps({
+        "author": "Aardwolf Mudlet",
+        "description": feature.description,
+        "package": feature.name,
+        "title": feature.name.replace("aardwolf-", "Aardwolf ").replace("-", " ").title(),
+        "version": "1.0.0",
+    }, indent=2, sort_keys=True) + "\n")
     aliases = []
     alias_dir = destination / "src" / "aliases" / feature.namespace
     for name, regex, action in feature.aliases:

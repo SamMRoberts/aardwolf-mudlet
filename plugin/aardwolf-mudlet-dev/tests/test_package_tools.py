@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shutil
 import stat
@@ -92,6 +93,7 @@ class PackageToolsTests(unittest.TestCase):
             with zipfile.ZipFile(first["mpackage"]) as archive:
                 self.assertEqual(archive.namelist(), sorted(archive.namelist()))
                 self.assertIn("aardwolf-tick-timer.xml", archive.namelist())
+                self.assertEqual(json.loads(archive.read("mfile")), json.loads((project_root / "mfile").read_text(encoding="utf-8")))
             self.assertEqual(validate(project_root, release=True), [])
 
     def test_compact_main_script_is_a_valid_project_architecture(self) -> None:

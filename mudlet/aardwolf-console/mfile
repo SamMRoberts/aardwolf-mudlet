@@ -1,4 +1,7 @@
 {
+  "author": "Aardwolf Mudlet",
+  "description": "Safe console controls and migration help for output plugins.",
   "package": "aardwolf-console",
+  "title": "Aardwolf Console",
   "version": "1.0.0"
 }

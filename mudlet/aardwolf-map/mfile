@@ -1,4 +1,7 @@
 {
+  "author": "Aardwolf Mudlet",
+  "description": "Merge-safe importer for the redistributed Aardwolf.db v11 map snapshot.",
   "package": "aardwolf-map",
+  "title": "Aardwolf Map",
   "version": "1.0.0"
 }

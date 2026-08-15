@@ -126,7 +126,8 @@ def build_native(project: Project) -> dict[str, str]:
     os.close(descriptor)
     temporary = Path(temporary_name)
     try:
-        entries = [(xml_path.name, xml_payload)]
+        mfile_payload = (json.dumps(project.mfile, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        entries = [(xml_path.name, xml_payload), ("mfile", mfile_payload)]
         resource_root = project.root / "src" / "resources"
         resources = sorted(resource_root.rglob("*"))
         for resource in resources:

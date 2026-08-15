@@ -1,4 +1,7 @@
 {
+  "author": "Aardwolf Mudlet",
+  "description": "Direct GMCP tick status with a text-first accessible fallback.",
   "package": "aardwolf-tick",
+  "title": "Aardwolf Tick",
   "version": "1.0.0"
 }

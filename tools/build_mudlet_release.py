@@ -38,6 +38,13 @@ PACKAGES = (
     "aardwolf-map",
 )
 SUITE_NAME = "aardwolf-mudlet-suite"
+SUITE_MFILE = {
+    "author": "Aardwolf Mudlet",
+    "description": "All-in-one native Mudlet package for the audited Aardwolf collection, diagnostics, interface, accessibility, profile-data, and map importer.",
+    "package": SUITE_NAME,
+    "title": "Aardwolf Mudlet Suite",
+    "version": "1.0.1",
+}
 
 
 def digest(path: Path) -> str:
@@ -117,6 +124,7 @@ def build_suite(mudlet_root: Path) -> dict[str, str]:
     try:
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, strict_timestamps=True) as archive:
             _zip_entry(xml_path.name, xml_payload, archive)
+            _zip_entry("mfile", (json.dumps(SUITE_MFILE, indent=2, sort_keys=True) + "\n").encode("utf-8"), archive)
             for name, payload in sorted(resources.items()):
                 _zip_entry(name, payload, archive)
         os.replace(temporary, package_path)
@@ -128,6 +136,8 @@ def build_suite(mudlet_root: Path) -> dict[str, str]:
             raise ValueError("suite archive entries are not sorted")
         if archive.read(xml_path.name) != xml_payload:
             raise ValueError("suite archive XML differs from the generated XML")
+        if json.loads(archive.read("mfile").decode("utf-8")) != SUITE_MFILE:
+            raise ValueError("suite archive mfile differs from suite metadata")
     return {"xml": str(xml_path), "mpackage": str(package_path)}
 
 

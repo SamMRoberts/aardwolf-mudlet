@@ -11,6 +11,10 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
+The current suite version is 1.0.1. If a prior blank `Aardwolf Mudlet Suite`
+entry is already installed, remove it in Mudlet's Package Manager before
+installing this archive.
+
 Regenerate the XML and `.mpackage` with:
 
 ```sh
