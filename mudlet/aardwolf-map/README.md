@@ -2,6 +2,8 @@
 
 This standalone Mudlet 4.14+ package imports the bundled, generated snapshot of `Aardwolf.db` v11 into Mudlet's native mapper. It is separate from `aardwolf-mushclient-collection` and deliberately covers only map import plus live location centering.
 
+After an import completes, the package re-resolves the current `gmcp.room.info` room, centers Mudlet's mapper, and notifies the optional Aardwolf interface to reveal its embedded mapper immediately. Reloading the package while already connected also centers from Mudlet's current GMCP state rather than waiting for the player to move.
+
 ## Commands
 
 - `aard map import` starts or safely resumes a bounded-batch import.

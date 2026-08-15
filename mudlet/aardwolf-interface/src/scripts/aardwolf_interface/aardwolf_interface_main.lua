@@ -1858,6 +1858,12 @@ function aardwolf_interface.lifecycle.on_mapper_script_loaded(_, package_name)
   end
 end
 
+function aardwolf_interface.lifecycle.on_map_import_finished()
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.request_render()
+  end
+end
+
 function aardwolf_interface.lifecycle.on_exit()
   aardwolf_interface.settings.save()
   aardwolf_interface.lifecycle.shutdown(true)
@@ -1868,7 +1874,7 @@ function aardwolf_interface.lifecycle.unregister()
     for _, event in ipairs(EVENTS) do
       deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. event[1])
     end
-    for _, name in ipairs({"install", "uninstall", "load", "resize", "connect", "disconnect", "mapper-loaded", "exit"}) do
+    for _, name in ipairs({"install", "uninstall", "load", "resize", "connect", "disconnect", "mapper-loaded", "map-import-finished", "exit"}) do
       deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. name)
     end
   end
@@ -1894,6 +1900,7 @@ function aardwolf_interface.lifecycle.register()
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "connect", "sysConnectionEvent", aardwolf_interface.lifecycle.on_connect)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "disconnect", "sysDisconnectionEvent", aardwolf_interface.lifecycle.on_disconnect)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "mapper-loaded", "mapperScriptLoaded", aardwolf_interface.lifecycle.on_mapper_script_loaded)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "map-import-finished", "aardwolf-map::import-finished", aardwolf_interface.lifecycle.on_map_import_finished)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "exit", "sysExitEvent", aardwolf_interface.lifecycle.on_exit)
   return true
 end

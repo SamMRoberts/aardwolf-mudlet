@@ -6,6 +6,7 @@ local batch_size = 100
 local timer_namespace = "aardwolf_map"
 local timer_name = "aardwolf-map::timer::import"
 local event_handler_name = "aardwolf-map::event::room-info"
+local import_finished_event = "aardwolf-map::import-finished"
 local environment_id_base = 1000
 
 -- Exact RGB equivalents of the MUSHclient ColourNameToRGB names used by the
@@ -206,6 +207,12 @@ local function finish_import()
   if type(updateMap) == "function" then
     pcall(updateMap)
   end
+  -- The current GMCP room may have arrived before any imported room existed.
+  -- Resolve it again now so the singleton native mapper has a valid center.
+  aardwolf_map.protocol.on_room_info()
+  if type(raiseEvent) == "function" then
+    pcall(raiseEvent, import_finished_event)
+  end
   aardwolf_map.ui.import_finished(current)
 end
 
@@ -313,6 +320,9 @@ end
 function aardwolf_map.lifecycle.initialize()
   set_idle("idle")
   registerNamedEventHandler(timer_namespace, event_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
+  -- Packages can be installed or reloaded after Mudlet has already populated
+  -- gmcp.room.info, so do not wait for the player to move before centering.
+  aardwolf_map.protocol.on_room_info()
 end
 
 function aardwolf_map.lifecycle.shutdown()

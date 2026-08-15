@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
-assert metadata["version"] == "1.3.2"
+assert metadata["version"] == "1.3.3"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:

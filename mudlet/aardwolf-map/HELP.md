@@ -2,6 +2,8 @@
 
 Use `aard map import` to merge the bundled map into the current Mudlet profile. The map is imported in small timer batches so the client stays responsive. `aard map import cancel` preserves work already completed; run the import command again to resume. `aard map status` shows current progress.
 
+When import finishes, the package centers the mapper using the current validated `gmcp.room.info.num` value and signals the Aardwolf interface to reveal the embedded map. This also occurs on package reload when GMCP room data is already available.
+
 The importer is intentionally merge-safe: it never clears a map and will skip a source hash owned by another package or user data. Original Aardwolf vnums are stored as room user data while Mudlet assigns compact room IDs.
 
 Each import registers the terrain palette stored in `Aardwolf.db` as namespaced Mudlet custom environments, then applies those environments to new and existing package-owned rooms. Running `aard map import` again repairs missing terrain colors without rewriting exits after the source snapshot has completed.

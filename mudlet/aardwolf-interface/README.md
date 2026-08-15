@@ -15,7 +15,7 @@ The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gm
 
 The sidebar appears automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows the dashboard again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
 
-Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot.
+Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. A completed package-owned import raises a namespaced event so the dashboard reveals the map immediately without waiting for another movement update.
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
@@ -27,6 +27,6 @@ Expanding details waits for active `gmcp.char.status`, then performs one paced r
 
 While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon`, `invitem`, `affon`, and `affoff` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.2 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.3 so Mudlet does not retain duplicate static objects.
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

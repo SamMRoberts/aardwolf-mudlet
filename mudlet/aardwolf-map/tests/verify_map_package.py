@@ -41,7 +41,7 @@ def main() -> int:
         require("config.lua" in archive.namelist(), "distribution package is missing Mudlet Package Manager metadata")
         require("mpackage = [[aardwolf-map]]" in archive.read("config.lua").decode("utf-8"), "distribution package identity is missing")
         require("title = [[Aardwolf Map]]" in archive.read("config.lua").decode("utf-8"), "distribution package title is missing")
-        require("version = [[1.0.1]]" in archive.read("config.lua").decode("utf-8"), "distribution package version is stale")
+        require("version = [[1.0.2]]" in archive.read("config.lua").decode("utf-8"), "distribution package version is stale")
         require("resources/aardwolf-map-v11.json" in archive.namelist(), "distribution package is missing map resource")
 
     aliases = json.loads((PACKAGE / "src" / "aliases" / "aardwolf_map" / "aliases.json").read_text(encoding="utf-8"))

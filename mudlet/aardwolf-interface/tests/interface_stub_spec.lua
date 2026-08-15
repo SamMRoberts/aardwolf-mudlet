@@ -293,6 +293,17 @@ assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true),
 assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
 assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
 assert(aardwolf_interface.state.snapshot().tick.last_seen)
+
+-- A map imported after the interface starts must remove the empty-map overlay
+-- without requiring another movement/GMCP event.
+rooms[1] = "Imported room"
+local map_ready_handler = assert(events[runtime_key("aardwolf_interface", "aardwolf-interface::event::map-import-finished")])
+assert(map_ready_handler.event == "aardwolf-map::import-finished")
+map_ready_handler.handler()
+fire_timer(RENDER_TIMER)
+assert(objects["aardwolf-interface::ui::map-status"].hidden == true, "completed map import left the empty-map overlay visible")
+assert(objects["aardwolf-interface::ui::mapper"].hidden == false, "completed map import did not reveal the mapper")
+
 fake_time = 1007
 fire_timer(TICK_TIMER)
 fire_timer(RENDER_TIMER)

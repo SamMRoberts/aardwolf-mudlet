@@ -7,11 +7,13 @@
 local mapper = {}
 local yajl_registry = {}
 local yajl_sequence = 0
+gmcp = { room = { info = {} } }
 
 local function reset_mapper()
-  mapper = { area_names = {}, areas = {}, environment_colors = {}, exits = {}, handlers = {}, hashes = {}, map_data = {}, next_area = 1, next_room = 1, rooms = {}, timers = {} }
+  mapper = { area_names = {}, areas = {}, environment_colors = {}, events = {}, exits = {}, handlers = {}, hashes = {}, map_data = {}, next_area = 1, next_room = 1, rooms = {}, timers = {} }
   yajl_registry = {}
   yajl_sequence = 0
+  gmcp = { room = { info = {} } }
 end
 
 local function assert_equal(expected, actual, message)
@@ -84,6 +86,10 @@ end
 function registerNamedTimer(user_name, timer_name, _, callback)
   mapper.timers[user_name .. ":" .. timer_name] = callback
   return true
+end
+
+function raiseEvent(event_name)
+  mapper.events[#mapper.events + 1] = event_name
 end
 
 function setAreaUserData(area_id, key, value)
@@ -190,6 +196,7 @@ local initial = fixture("stub-source-a", 2)
 aardwolf_map.state.read_resource = function()
   return initial, nil
 end
+gmcp.room.info = { num = 10 }
 aardwolf_map.lifecycle.begin_import()
 run_import()
 assert_equal("complete", aardwolf_map.lifecycle.runtime.phase, "initial import completes")
@@ -201,8 +208,19 @@ assert_equal(0, mapper.environment_colors[1001][3], "terrain blue channel is reg
 assert_equal(255, mapper.environment_colors[1001][4], "terrain color is opaque")
 assert_equal(1001, mapper.rooms[1].environment, "room uses the namespaced terrain environment")
 assert_equal(1, mapper.map_updates, "completed import refreshes the mapper")
+assert_equal(1, mapper.centered_room, "completed import centers the current GMCP room")
+assert_equal("aardwolf-map::import-finished", mapper.events[1], "completed import notifies mapper consumers")
 assert_equal("Aardwolf.db/v11", getRoomUserData(1, "aardwolf_map.owner"), "room ownership is recorded")
 assert_equal(1, getRoomIDbyHash("aardwolf-map:vnum:10"), "source hash resolves to compact room ID")
+
+-- Reloading while connected must use the already-populated GMCP room instead
+-- of waiting for another movement event.
+mapper.centered_room = nil
+load_package()
+assert_equal(1, mapper.centered_room, "reload centers from existing GMCP state")
+aardwolf_map.state.read_resource = function()
+  return initial, nil
+end
 
 mapper.rooms[1].environment = 999
 aardwolf_map.lifecycle.begin_import()

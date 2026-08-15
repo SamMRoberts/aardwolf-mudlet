@@ -2577,6 +2577,12 @@ function aardwolf_interface.lifecycle.on_mapper_script_loaded(_, package_name)
   end
 end
 
+function aardwolf_interface.lifecycle.on_map_import_finished()
+  if aardwolf_interface.settings.is_visible() then
+    aardwolf_interface.ui.request_render()
+  end
+end
+
 function aardwolf_interface.lifecycle.on_exit()
   aardwolf_interface.settings.save()
   aardwolf_interface.lifecycle.shutdown(true)
@@ -2587,7 +2593,7 @@ function aardwolf_interface.lifecycle.unregister()
     for _, event in ipairs(EVENTS) do
       deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. event[1])
     end
-    for _, name in ipairs({"install", "uninstall", "load", "resize", "connect", "disconnect", "mapper-loaded", "exit"}) do
+    for _, name in ipairs({"install", "uninstall", "load", "resize", "connect", "disconnect", "mapper-loaded", "map-import-finished", "exit"}) do
       deleteNamedEventHandler(EVENT_USER, EVENT_PREFIX .. name)
     end
   end
@@ -2613,6 +2619,7 @@ function aardwolf_interface.lifecycle.register()
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "connect", "sysConnectionEvent", aardwolf_interface.lifecycle.on_connect)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "disconnect", "sysDisconnectionEvent", aardwolf_interface.lifecycle.on_disconnect)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "mapper-loaded", "mapperScriptLoaded", aardwolf_interface.lifecycle.on_mapper_script_loaded)
+  registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "map-import-finished", "aardwolf-map::import-finished", aardwolf_interface.lifecycle.on_map_import_finished)
   registerNamedEventHandler(EVENT_USER, EVENT_PREFIX .. "exit", "sysExitEvent", aardwolf_interface.lifecycle.on_exit)
   return true
 end
@@ -3087,6 +3094,7 @@ local batch_size = 100
 local timer_namespace = "aardwolf_map"
 local timer_name = "aardwolf-map::timer::import"
 local event_handler_name = "aardwolf-map::event::room-info"
+local import_finished_event = "aardwolf-map::import-finished"
 local environment_id_base = 1000
 
 -- Exact RGB equivalents of the MUSHclient ColourNameToRGB names used by the
@@ -3287,6 +3295,12 @@ local function finish_import()
   if type(updateMap) == "function" then
     pcall(updateMap)
   end
+  -- The current GMCP room may have arrived before any imported room existed.
+  -- Resolve it again now so the singleton native mapper has a valid center.
+  aardwolf_map.protocol.on_room_info()
+  if type(raiseEvent) == "function" then
+    pcall(raiseEvent, import_finished_event)
+  end
   aardwolf_map.ui.import_finished(current)
 end
 
@@ -3394,6 +3408,9 @@ end
 function aardwolf_map.lifecycle.initialize()
   set_idle("idle")
   registerNamedEventHandler(timer_namespace, event_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
+  -- Packages can be installed or reloaded after Mudlet has already populated
+  -- gmcp.room.info, so do not wait for the player to move before centering.
+  aardwolf_map.protocol.on_room_info()
 end
 
 function aardwolf_map.lifecycle.shutdown()
