@@ -83,7 +83,7 @@ def main() -> None:
         project = mudlet_root / package
         feature_metadata = json.loads((project / "package-metadata.json").read_text(encoding="utf-8"))
         assert feature_metadata["name"] == package
-        assert feature_metadata["version"] == ("1.1.0" if package == "aardwolf-interface" else "1.0.0")
+        assert feature_metadata["version"] == ("1.1.1" if package == "aardwolf-interface" else "1.0.0")
         assert (project / "dist" / "README.md").is_file()
 
     suite_xml_path = mudlet_root / "dist" / "aardwolf-mudlet-suite.xml"
@@ -96,7 +96,7 @@ def main() -> None:
         suite_config = archive.read("config.lua").decode("utf-8")
         assert "mpackage = [[aardwolf-mudlet-suite]]" in suite_config
         assert "title = [[Aardwolf Mudlet Suite]]" in suite_config
-        assert "version = [[1.1.0]]" in suite_config
+        assert "version = [[1.1.1]]" in suite_config
         with zipfile.ZipFile(mudlet_root / "aardwolf-map" / "dist" / "aardwolf-map.mpackage") as map_archive:
             assert archive.read("resources/aardwolf-map-v11.json") == map_archive.read("resources/aardwolf-map-v11.json")
     for category in ("AliasPackage", "TriggerPackage", "TimerPackage", "ScriptPackage", "KeyPackage"):

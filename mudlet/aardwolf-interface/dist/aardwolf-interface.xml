@@ -336,6 +336,21 @@ function aardwolf_interface.ui.capture_mapper_owner()
     and map.configs.map_window.shown == true
   aardwolf_interface.state.generic_mapper_was_shown = generic_was_shown
   aardwolf_interface.state.mapper_claimed = true
+
+  -- Mudlet 4.20+ can draw adjacent Z levels in muted colors. That is useful in
+  -- the full mapper, but makes the narrow dashboard look like every floor is
+  -- stacked. Temporarily suppress it while this package owns the singleton
+  -- mapper, and restore the user's setting when ownership is released.
+  aardwolf_interface.state.upper_lower_levels_claimed = false
+  if type(getConfig) == "function" and type(setConfig) == "function" then
+    local read_ok, was_shown = pcall(getConfig, "showUpperLowerLevels")
+    if read_ok and was_shown == true then
+      local write_ok, changed = pcall(setConfig, "showUpperLowerLevels", false)
+      if write_ok and changed then
+        aardwolf_interface.state.upper_lower_levels_claimed = true
+      end
+    end
+  end
 end
 
 function aardwolf_interface.ui.restore_mapper_owner()
@@ -343,6 +358,18 @@ function aardwolf_interface.ui.restore_mapper_owner()
     return
   end
   safe_call(widget("mapper"), "hide")
+
+  if aardwolf_interface.state.upper_lower_levels_claimed
+    and type(getConfig) == "function"
+    and type(setConfig) == "function"
+  then
+    local read_ok, currently_shown = pcall(getConfig, "showUpperLowerLevels")
+    if read_ok and currently_shown == false then
+      pcall(setConfig, "showUpperLowerLevels", true)
+    end
+  end
+  aardwolf_interface.state.upper_lower_levels_claimed = false
+
   if aardwolf_interface.state.generic_mapper_was_shown and type(map) == "table" and type(map.showMap) == "function" then
     pcall(map.showMap, true)
   end
@@ -655,6 +682,7 @@ function aardwolf_interface.commands.status()
     "enemy=" .. tostring(snapshot.status.enemy or "none") .. " group_members=" .. tostring(#(snapshot.group.members or {})),
     "tick=" .. (snapshot.tick.last_seen and os.date("%H:%M:%S", snapshot.tick.last_seen) or "unavailable"),
     "mapper_owned=" .. tostring(aardwolf_interface.state.mapper_claimed == true),
+    "adjacent_levels_hidden=" .. tostring(aardwolf_interface.state.upper_lower_levels_claimed == true),
     "border_conflict=" .. tostring(aardwolf_interface.state.border_conflict == true),
   }
   aardwolf_interface.ui.message("Status:\n" .. table.concat(lines, "\n"))

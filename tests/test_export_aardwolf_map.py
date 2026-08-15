@@ -40,11 +40,19 @@ def create_fixture(path: Path) -> None:
             ("3", "North", "alpha", None, "grass", None, None, None, None, None, 0, 0, 0),
             ("4", "East", "alpha", None, "grass", None, None, None, None, None, 0, 0, 0),
             ("5", "Other area", "beta", None, "grass", None, None, None, None, None, 0, 0, 0),
+            ("6", "Upper floor", "alpha", None, "grass", None, None, None, None, None, 0, 0, 0),
         ],
     )
     connection.executemany(
         "INSERT INTO exits VALUES (?, ?, ?, ?)",
-        [("n", "1", "3", "0"), ("e", "3", "4", "0"), ("e", "4", "1", "0"), ("d", "1", "5", "0")],
+        [
+            ("n", "1", "3", "0"),
+            ("e", "3", "4", "0"),
+            ("e", "4", "1", "0"),
+            ("u", "4", "6", "0"),
+            ("d", "6", "4", "0"),
+            ("d", "1", "5", "0"),
+        ],
     )
     connection.commit()
     connection.close()
@@ -60,7 +68,7 @@ class AardwolfMapExporterTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(first_report, second_report)
-        self.assertEqual(4, len(first["exits"]))
+        self.assertEqual(6, len(first["exits"]))
         self.assertEqual(1, first["layout"]["cross_area_edges_retained"])
         self.assertEqual(1, first["layout"]["source_coordinate_collisions"])
         self.assertGreaterEqual(first["layout"]["direction_constraint_conflicts"], 1)
@@ -69,7 +77,9 @@ class AardwolfMapExporterTests(unittest.TestCase):
             for room in first["rooms"]
             if room["area_uid"] == "alpha"
         }
-        self.assertEqual(4, len(alpha_coordinates))
+        self.assertEqual(5, len(alpha_coordinates))
+        rooms = {room["vnum"]: room for room in first["rooms"]}
+        self.assertEqual(rooms[4]["layout"][2] + 1, rooms[6]["layout"][2])
 
     def test_direction_validation_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

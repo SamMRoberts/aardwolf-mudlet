@@ -6,6 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
+assert metadata["version"] == "1.1.1"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -22,6 +23,8 @@ assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert "commands.show" in source and "commands.hide" in source and "commands.toggle_theme" in source
 assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
 assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
+assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
+assert "upper_lower_levels_claimed" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "send(" not in source and "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source

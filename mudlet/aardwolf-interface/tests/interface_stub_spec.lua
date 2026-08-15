@@ -11,6 +11,7 @@ local timers = {}
 local objects = {}
 local persisted_settings = nil
 local rooms = {}
+local show_upper_lower_levels = true
 
 local function runtime_key(user, name)
   return user .. "::" .. name
@@ -38,6 +39,17 @@ end
 
 function getRooms()
   return rooms
+end
+
+function getConfig(name)
+  assert(name == "showUpperLowerLevels")
+  return show_upper_lower_levels
+end
+
+function setConfig(name, value)
+  assert(name == "showUpperLowerLevels")
+  show_upper_lower_levels = value
+  return true
 end
 
 function registerNamedEventHandler(user, name, event, handler)
@@ -175,6 +187,8 @@ assert(aardwolf_interface.ui.root and not aardwolf_interface.ui.root.hidden)
 assert(right_border == 370, "expected 10px baseline plus 360px dashboard")
 assert(aardwolf_interface.state.mapper_claimed == true)
 assert(aardwolf_interface.state.generic_mapper_was_shown == true)
+assert(show_upper_lower_levels == false, "adjacent floors should be hidden while the sidebar owns the mapper")
+assert(aardwolf_interface.state.upper_lower_levels_claimed == true)
 
 -- Valid and malformed GMCP are normalized, escaped, bounded, and coalesced.
 gmcp.char.base = {name = "Tester", perlevel = 1000}
@@ -211,24 +225,36 @@ aardwolf_interface.commands.hide()
 assert(right_border == 10)
 assert(persisted_settings.visible == false)
 assert(map.restored == true)
+assert(show_upper_lower_levels == true, "the prior adjacent-floor setting was not restored")
 aardwolf_interface.commands.show()
 assert(right_border == 370)
 assert(persisted_settings.visible == true)
+assert(show_upper_lower_levels == false)
 
 -- Reinitialization is idempotent and does not grow the border repeatedly.
 aardwolf_interface.lifecycle.initialize()
 fire_timer(START_TIMER)
 assert(right_border == 370)
+assert(show_upper_lower_levels == false)
 
 -- A conflicting external border change is preserved and reported rather than overwritten.
 right_border = 999
+show_upper_lower_levels = true
 aardwolf_interface.commands.hide()
 assert(right_border == 999)
 assert(aardwolf_interface.state.border_conflict == true)
+assert(show_upper_lower_levels == true, "an external mapper preference change should be preserved")
 
 -- The mapper adapter is optional; absence of generic_mapper remains safe.
 right_border = 10
 map = nil
+aardwolf_interface.commands.show()
+aardwolf_interface.commands.hide()
+assert(right_border == 10)
+
+-- Mudlet versions before the adjacent-level option existed remain supported.
+getConfig = nil
+setConfig = nil
 aardwolf_interface.commands.show()
 aardwolf_interface.commands.hide()
 assert(right_border == 10)
