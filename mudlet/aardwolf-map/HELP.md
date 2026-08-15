@@ -6,7 +6,7 @@ When import finishes, the package centers the mapper using the current validated
 
 The importer is intentionally merge-safe: it never clears a map and will skip a source hash owned by another package or user data. Original Aardwolf vnums are stored as room user data while Mudlet assigns compact room IDs.
 
-Each import registers the terrain palette stored in `Aardwolf.db` as namespaced Mudlet custom environments, then applies those environments to new and existing package-owned rooms. Running `aard map import` again repairs missing terrain colors without rewriting exits after the source snapshot has completed.
+The terrain palette stored in `Aardwolf.db` is registered as namespaced Mudlet custom environments whenever the package/profile loads and again before an import. Running `aard map import` again repairs stale environment assignments on package-owned rooms without rewriting exits after the source snapshot has completed.
 
 Locations are centered only after an imported room receives a valid `gmcp.room.info.num` event. The package never sends commands or changes map data from GMCP.
 

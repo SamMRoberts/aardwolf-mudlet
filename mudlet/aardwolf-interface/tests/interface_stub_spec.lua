@@ -12,6 +12,7 @@ local objects = {}
 local persisted_settings = nil
 local rooms = {}
 local show_upper_lower_levels = true
+local embedded_mapper_ready = false
 local main_window_height = 900
 local main_window_width = 1200
 local sent = {}
@@ -58,6 +59,9 @@ end
 
 function setConfig(name, value)
   assert(name == "showUpperLowerLevels")
+  if not embedded_mapper_ready then
+    return nil, "mapper is not open"
+  end
   show_upper_lower_levels = value
   return true
 end
@@ -190,6 +194,9 @@ end
 local function geyser_class(kind)
   return {
     new = function(_, constraints, parent)
+      if kind == "mapper" then
+        embedded_mapper_ready = true
+      end
       return new_object(kind, constraints, parent)
     end,
   }

@@ -41,7 +41,7 @@ def main() -> int:
         require("config.lua" in archive.namelist(), "distribution package is missing Mudlet Package Manager metadata")
         require("mpackage = [[aardwolf-map]]" in archive.read("config.lua").decode("utf-8"), "distribution package identity is missing")
         require("title = [[Aardwolf Map]]" in archive.read("config.lua").decode("utf-8"), "distribution package title is missing")
-        require("version = [[1.0.2]]" in archive.read("config.lua").decode("utf-8"), "distribution package version is stale")
+        require("version = [[1.0.3]]" in archive.read("config.lua").decode("utf-8"), "distribution package version is stale")
         require("resources/aardwolf-map-v11.json" in archive.namelist(), "distribution package is missing map resource")
 
     aliases = json.loads((PACKAGE / "src" / "aliases" / "aardwolf_map" / "aliases.json").read_text(encoding="utf-8"))
@@ -51,6 +51,7 @@ def main() -> int:
     state = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_state.lua").read_text(encoding="utf-8")
     require("createRoomID()" in lifecycle and "setRoomIDbyHash" in lifecycle, "importer does not use compact owned IDs")
     require("setCustomEnvColor" in lifecycle and "source_ansi_rgb" in lifecycle, "source terrain colors are not registered with Mudlet")
+    require("function aardwolf_map.lifecycle.refresh_environment_colors()" in lifecycle, "profile load does not restore the terrain palette")
     require("setRoomEnv(room_id, environment_id)" in lifecycle and "custom_environment_id(room.terrain_uid)" in lifecycle, "owned rooms do not receive source terrain environments")
     require("registerNamedTimer" in lifecycle and "deleteNamedTimer" in lifecycle, "import batching cannot be cancelled")
     require("aardwolf-map::event::room-info" in lifecycle and "gmcp.room.info" in lifecycle, "named GMCP handler is missing")

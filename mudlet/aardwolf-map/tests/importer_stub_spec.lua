@@ -159,9 +159,14 @@ function yajl.to_value(key)
   return yajl_registry[key]
 end
 
-local function load_package()
+local function load_package(resource)
   aardwolf_map = nil
   dofile("src/scripts/aardwolf_map/aardwolf_map_state.lua")
+  if resource then
+    aardwolf_map.state.read_resource = function()
+      return resource, nil
+    end
+  end
   dofile("src/scripts/aardwolf_map/aardwolf_map_settings.lua")
   dofile("src/scripts/aardwolf_map/aardwolf_map_commands.lua")
   dofile("src/scripts/aardwolf_map/aardwolf_map_protocol.lua")
@@ -191,11 +196,12 @@ local function run_import()
 end
 
 reset_mapper()
-load_package()
 local initial = fixture("stub-source-a", 2)
-aardwolf_map.state.read_resource = function()
-  return initial, nil
-end
+load_package(initial)
+assert_equal(0, mapper.environment_colors[1001][1], "profile load registers terrain red channel")
+assert_equal(128, mapper.environment_colors[1001][2], "profile load registers terrain green channel")
+assert_equal(0, mapper.environment_colors[1001][3], "profile load registers terrain blue channel")
+assert_equal(1, mapper.map_updates, "profile load refreshes the mapper after palette registration")
 gmcp.room.info = { num = 10 }
 aardwolf_map.lifecycle.begin_import()
 run_import()
@@ -207,7 +213,7 @@ assert_equal(128, mapper.environment_colors[1001][2], "terrain green channel is 
 assert_equal(0, mapper.environment_colors[1001][3], "terrain blue channel is registered")
 assert_equal(255, mapper.environment_colors[1001][4], "terrain color is opaque")
 assert_equal(1001, mapper.rooms[1].environment, "room uses the namespaced terrain environment")
-assert_equal(1, mapper.map_updates, "completed import refreshes the mapper")
+assert_equal(2, mapper.map_updates, "completed import refreshes the mapper")
 assert_equal(1, mapper.centered_room, "completed import centers the current GMCP room")
 assert_equal("aardwolf-map::import-finished", mapper.events[1], "completed import notifies mapper consumers")
 assert_equal("Aardwolf.db/v11", getRoomUserData(1, "aardwolf_map.owner"), "room ownership is recorded")
@@ -216,11 +222,10 @@ assert_equal(1, getRoomIDbyHash("aardwolf-map:vnum:10"), "source hash resolves t
 -- Reloading while connected must use the already-populated GMCP room instead
 -- of waiting for another movement event.
 mapper.centered_room = nil
-load_package()
+mapper.environment_colors = {}
+load_package(initial)
 assert_equal(1, mapper.centered_room, "reload centers from existing GMCP state")
-aardwolf_map.state.read_resource = function()
-  return initial, nil
-end
+assert_equal(128, mapper.environment_colors[1001][2], "reload restores the terrain palette")
 
 mapper.rooms[1].environment = 999
 aardwolf_map.lifecycle.begin_import()
@@ -230,11 +235,8 @@ assert_equal(2, aardwolf_map.lifecycle.runtime.reused_rooms, "completed import r
 assert_equal(1001, mapper.rooms[1].environment, "repeat import repairs package-owned terrain assignment")
 
 reset_mapper()
-load_package()
 local resumable = fixture("stub-source-resume", 3)
-aardwolf_map.state.read_resource = function()
-  return resumable, nil
-end
+load_package(resumable)
 aardwolf_map.lifecycle.begin_import()
 mapper.timers["aardwolf_map:aardwolf-map::timer::import"]()
 aardwolf_map.lifecycle.cancel_import()
@@ -246,13 +248,10 @@ assert_equal("complete", aardwolf_map.lifecycle.runtime.phase, "cancelled import
 assert_equal(2, mapper.set_exit_calls, "resumed import retains and completes exits")
 
 reset_mapper()
-load_package()
 local collision = fixture("stub-source-collision", 2)
+load_package(collision)
 mapper.rooms[99] = { name = "Unrelated", user_data = {} }
 mapper.hashes["aardwolf-map:vnum:10"] = 99
-aardwolf_map.state.read_resource = function()
-  return collision, nil
-end
 aardwolf_map.lifecycle.begin_import()
 run_import()
 assert_equal("Unrelated", mapper.rooms[99].name, "unowned collision is not overwritten")

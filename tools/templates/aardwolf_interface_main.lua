@@ -394,21 +394,19 @@ function aardwolf_interface.ui.release_border()
 end
 
 function aardwolf_interface.ui.capture_mapper_owner()
-  if aardwolf_interface.state.mapper_claimed then
-    return
+  if not aardwolf_interface.state.mapper_claimed then
+    local generic_was_shown = type(map) == "table"
+      and type(map.configs) == "table"
+      and type(map.configs.map_window) == "table"
+      and map.configs.map_window.shown == true
+    aardwolf_interface.state.generic_mapper_was_shown = generic_was_shown
+    aardwolf_interface.state.mapper_claimed = true
+    aardwolf_interface.state.upper_lower_levels_claimed = false
   end
-  local generic_was_shown = type(map) == "table"
-    and type(map.configs) == "table"
-    and type(map.configs.map_window) == "table"
-    and map.configs.map_window.shown == true
-  aardwolf_interface.state.generic_mapper_was_shown = generic_was_shown
-  aardwolf_interface.state.mapper_claimed = true
 
-  -- Mudlet 4.20+ can draw adjacent Z levels in muted colors. That is useful in
-  -- the full mapper, but makes the narrow dashboard look like every floor is
-  -- stacked. Temporarily suppress it while this package owns the singleton
-  -- mapper, and restore the user's setting when ownership is released.
-  aardwolf_interface.state.upper_lower_levels_claimed = false
+  -- Mapper configuration writes can fail until the embedded mapper has been
+  -- created and shown. This function is deliberately retryable: build captures
+  -- the prior generic-mapper owner, then reflow calls it again after show().
   if type(getConfig) == "function" and type(setConfig) == "function" then
     local read_ok, was_shown = pcall(getConfig, "showUpperLowerLevels")
     if read_ok and was_shown == true then
@@ -637,6 +635,7 @@ function aardwolf_interface.ui.reflow()
   safe_call(widget("map_status"), "resize", content_width, map_height)
   if aardwolf_interface.settings.is_visible() then
     safe_call(widget("mapper"), "show")
+    aardwolf_interface.ui.capture_mapper_owner()
   end
 
   local details_margin = 8

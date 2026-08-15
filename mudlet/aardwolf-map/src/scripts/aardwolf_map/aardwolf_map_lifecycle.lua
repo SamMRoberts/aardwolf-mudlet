@@ -81,6 +81,24 @@ local function ensure_environments(data)
   return result.registered, nil
 end
 
+function aardwolf_map.lifecycle.refresh_environment_colors()
+  local data, resource_error = aardwolf_map.state.read_resource()
+  if not data then
+    status().palette_error = resource_error
+    return nil, resource_error
+  end
+  local registered, environment_error = ensure_environments(data)
+  if not registered then
+    status().palette_error = environment_error
+    return nil, environment_error
+  end
+  status().palette_error = nil
+  if type(updateMap) == "function" then
+    pcall(updateMap)
+  end
+  return registered, nil
+end
+
 local function ensure_areas(data)
   local area_ids = aardwolf_map.settings.get_area_ids()
   local source_records = {}
@@ -320,6 +338,10 @@ end
 function aardwolf_map.lifecycle.initialize()
   set_idle("idle")
   registerNamedEventHandler(timer_namespace, event_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
+  -- Custom environment definitions are display state and may not be available
+  -- yet when a profile or replacement package loads. Re-register the bundled
+  -- palette without creating rooms or sending game commands.
+  aardwolf_map.lifecycle.refresh_environment_colors()
   -- Packages can be installed or reloaded after Mudlet has already populated
   -- gmcp.room.info, so do not wait for the player to move before centering.
   aardwolf_map.protocol.on_room_info()
