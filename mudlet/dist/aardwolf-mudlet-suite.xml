@@ -761,7 +761,7 @@ function aardwolf_interface.state.reset_session()
     ["group"] = {members = {}},
     ["tick"] = {},
     ["details"] = {
-      ["equipment"] = {}, ["affects"] = {}, ["bags"] = {}, ["resists"] = {},
+      ["equipment"] = {}, ["bags"] = {},
       ["stale"] = true, ["refreshing"] = false, ["last_updated"] = nil, ["error"] = nil,
     },
   }
@@ -952,7 +952,6 @@ local TICK_TIMER = "aardwolf-interface::timer::tick-countdown"
 local DETAILS_QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
 local DETAILS_CAPTURE_TIMER = "aardwolf-interface::timer::details-capture"
 local DETAILS_DEBOUNCE_TIMER = "aardwolf-interface::timer::details-debounce"
-local DETAILS_ACK_TIMER = "aardwolf-interface::timer::details-spellup-ack"
 local MINIMUM_WIDTH = 340
 local MAXIMUM_WIDTH = 480
 local WIDTH_RATIO = 0.30
@@ -1203,6 +1202,7 @@ function aardwolf_interface.ui.build()
   widgets.tnl = new_gauge("tnl", primary)
   widgets.enemy = new_gauge("enemy", primary)
   widgets.stats = new_label("stats", primary)
+  widgets.condition = new_label("condition", primary)
   widgets.group = new_label("group", primary)
   aardwolf_interface.ui.capture_mapper_owner()
   widgets.mapper = Geyser.Mapper:new({
@@ -1218,11 +1218,11 @@ function aardwolf_interface.ui.build()
   widgets.details_scroll = Geyser.ScrollBox:new({
     ["name"] = UI_PREFIX .. "details-scroll", ["x"] = 0, ["y"] = 0, ["width"] = 10, ["height"] = 10,
   }, widgets.details)
-  for _, name in ipairs({"condition", "equipment", "affects", "bags", "resists"}) do
+  for _, name in ipairs({"equipment", "bags"}) do
     widgets["details_" .. name] = new_label("details-" .. name, widgets.details_scroll)
   end
   safe_call(widgets.header, "setFontSize", 11)
-  for _, name in ipairs({"room", "stats", "group", "map_status", "details_header", "details_condition", "details_equipment", "details_affects", "details_bags", "details_resists"}) do
+  for _, name in ipairs({"room", "stats", "condition", "group", "map_status", "details_header", "details_equipment", "details_bags"}) do
     safe_call(widgets[name], "setFontSize", 10)
   end
   safe_call(widgets.map_status, "enableClickthrough")
@@ -1253,7 +1253,7 @@ function aardwolf_interface.ui.apply_theme()
   for _, name in ipairs({"details_toggle", "details_collapse", "details_refresh"}) do
     safe_call(widget(name), "setStyleSheet", button_css)
   end
-  for _, name in ipairs({"room", "stats", "group", "map_status", "details_condition", "details_equipment", "details_affects", "details_bags", "details_resists"}) do
+  for _, name in ipairs({"room", "stats", "condition", "group", "map_status", "details_equipment", "details_bags"}) do
     safe_call(widget(name), "setStyleSheet", section_css)
   end
   local colors = {hp = theme.hp, mana = theme.mana, moves = theme.moves, tnl = theme.accent, enemy = theme.enemy, tick = theme.accent}
@@ -1328,7 +1328,10 @@ function aardwolf_interface.ui.reflow()
   local stats_y = gauge_y + 5 * 28
   safe_call(widget("stats"), "move", margin, stats_y)
   safe_call(widget("stats"), "resize", content_width, 108)
-  local group_y = stats_y + 116
+  local condition_y = stats_y + 116
+  safe_call(widget("condition"), "move", margin, condition_y)
+  safe_call(widget("condition"), "resize", content_width, 70)
+  local group_y = condition_y + 78
   local remaining = math.max(0, height - group_y - margin)
   local group_members = aardwolf_interface.state.session
     and aardwolf_interface.state.session.group
@@ -1428,9 +1431,9 @@ function aardwolf_interface.ui.render_details()
   end
   local snapshot = aardwolf_interface.state.snapshot()
   local details = snapshot.details or {}
-  local status = snapshot.status or {}
-  local state_number = finite_number(status.state)
   local freshness = details.refreshing and "refreshing"
+    or details.error and ("error: " .. details.error)
+    or details.overflow and "record limit reached"
     or details.stale and "stale"
     or details.last_updated and os.date("%H:%M:%S", details.last_updated)
     or "unavailable"
@@ -1438,18 +1441,6 @@ function aardwolf_interface.ui.render_details()
   safe_call(widget("details_refresh"), "echo", "&lt;div align=\"center\"&gt;&lt;b&gt;Refresh&lt;/b&gt;&lt;/div&gt;")
   safe_call(widget("details_collapse"), "echo", "&lt;div align=\"center\"&gt;&lt;b&gt;&amp;gt;&lt;/b&gt;&lt;/div&gt;")
   safe_call(widget("details_toggle"), "echo", "&lt;div align=\"center\"&gt;&lt;b&gt;Details " .. (aardwolf_interface.settings.details_are_visible() and "&amp;gt;" or "&amp;lt;") .. "&lt;/b&gt;&lt;/div&gt;")
-
-  local condition_rows = {
-    {"Hunger", display_number(status.hunger) .. "%", "Thirst", display_number(status.thirst) .. "%"},
-    {"Position", status.pos or "--", "State", CHARACTER_STATES[state_number] or display_number(state_number)},
-  }
-  if details.error then
-    condition_rows[#condition_rows + 1] = {"Detail error", details.error, "", ""}
-  end
-  if details.overflow then
-    condition_rows[#condition_rows + 1] = {"Limit", "One or more sections exceeded 100 records", "", ""}
-  end
-  safe_call(widget("details_condition"), "echo", detail_section("Condition", condition_rows, 4))
 
   local equipment_rows = {}
   for slot = 0, 32 do
@@ -1464,15 +1455,6 @@ function aardwolf_interface.ui.render_details()
   end
   safe_call(widget("details_equipment"), "echo", detail_section("Equipment", equipment_rows, 2))
 
-  local affect_rows = {}
-  for _, affect in ipairs(details.affects or {}) do
-    affect_rows[#affect_rows + 1] = {affect.name or ("Spell " .. display_number(affect.id)), affect.duration and (display_number(affect.duration) .. "s") or "--"}
-  end
-  if #affect_rows == 0 then
-    affect_rows[1] = {details.last_updated and "No active affects" or "Unavailable", ""}
-  end
-  safe_call(widget("details_affects"), "echo", detail_section("Current Affects", affect_rows, 2))
-
   local bag_rows = {}
   for _, bag in ipairs(details.bags or {}) do
     local weight = bag.pending and "pending"
@@ -1486,26 +1468,10 @@ function aardwolf_interface.ui.render_details()
   end
   safe_call(widget("details_bags"), "echo", detail_section("Bags (used / max weight)", bag_rows, 2))
 
-  local resist_rows = {}
-  for _, resist in ipairs(details.resists or {}) do
-    local components = {}
-    for _, value in ipairs(resist.values or {}) do
-      components[#components + 1] = display_number(value)
-    end
-    resist_rows[#resist_rows + 1] = {resist.name or "Unknown", table.concat(components, " / ")}
-  end
-  if #resist_rows == 0 then
-    resist_rows[1] = {details.last_updated and "No resistance data" or "Unavailable", ""}
-  end
-  safe_call(widget("details_resists"), "echo", detail_section("Resists", resist_rows, 2))
-
   local y = 0
   local layouts = {
-    {"details_condition", detail_height(#condition_rows)},
     {"details_equipment", detail_height(#equipment_rows)},
-    {"details_affects", detail_height(#affect_rows)},
     {"details_bags", detail_height(#bag_rows)},
-    {"details_resists", detail_height(#resist_rows)},
   }
   local content_width = math.max(10, (aardwolf_interface.ui.details_width_value or DETAILS_MINIMUM_WIDTH) - 16)
   for _, layout in ipairs(layouts) do
@@ -1563,6 +1529,16 @@ function aardwolf_interface.ui.render()
     display_number(worth.qp), display_number(worth.tp), display_number(worth.gold),
     display_number(worth.trains), display_number(worth.pracs))
   safe_call(widget("stats"), "echo", stats_text)
+
+  local state_number = finite_number(status.state)
+  local condition_text = string.format([[
+&lt;table width="100%%" cellspacing="0" cellpadding="1"&gt;
+&lt;tr&gt;&lt;td colspan="4"&gt;&lt;b&gt;Condition&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;b&gt;Hunger&lt;/b&gt; %s%%&lt;/td&gt;&lt;td&gt;&lt;b&gt;Thirst&lt;/b&gt; %s%%&lt;/td&gt;&lt;td&gt;&lt;b&gt;Position&lt;/b&gt; %s&lt;/td&gt;&lt;td&gt;&lt;b&gt;State&lt;/b&gt; %s&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;]],
+    display_number(status.hunger), display_number(status.thirst),
+    html_escape(status.pos or "--"), html_escape(CHARACTER_STATES[state_number] or display_number(state_number)))
+  safe_call(widget("condition"), "echo", condition_text)
 
   local group_rows = {[[&lt;table width="100%" cellspacing="0" cellpadding="1"&gt;]], [[&lt;tr&gt;&lt;td colspan="3"&gt;&lt;b&gt;Group&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;]]}
   local members = snapshot.group.members or {}
@@ -1689,7 +1665,7 @@ end
 
 local function details_state()
   local snapshot = aardwolf_interface.state.snapshot()
-  snapshot.details = snapshot.details or {equipment = {}, affects = {}, bags = {}, resists = {}, stale = true}
+  snapshot.details = snapshot.details or {equipment = {}, bags = {}, stale = true}
   return snapshot.details
 end
 
@@ -1706,38 +1682,6 @@ local function parse_inventory_row(line)
   }
 end
 
-local function parse_slist_row(line)
-  local id, name, target, duration, percent, recovery, ability_type = line:match(
-    "^%s*(%d+),([^,]+),(-?%d+),(-?%d+),(-?%d+),(-?%d+),(-?%d+)%s*$")
-  if not id then
-    return nil
-  end
-  local remaining = finite_number(duration)
-  if not remaining or remaining &lt;= 0 then
-    return nil
-  end
-  return {["id"] = finite_number(id), ["name"] = strip_aardwolf_colors(name), ["duration"] = remaining,
-    ["target"] = finite_number(target), ["percent"] = finite_number(percent), ["recovery"] = finite_number(recovery), ["ability_type"] = finite_number(ability_type)}
-end
-
-local function parse_resist_row(line)
-  local name, values = line:match("^%s*([%a][%a%s/%-]+)%s+(.+)%s*$")
-  if not name or not values then
-    return nil
-  end
-  local parsed = {}
-  for token in values:gmatch("[%+%-]?%d+") do
-    parsed[#parsed + 1] = finite_number(token)
-    if #parsed &gt;= 8 then
-      break
-    end
-  end
-  if #parsed &lt; 1 then
-    return nil
-  end
-  return {name = clean_text(name:gsub("%s+$", ""), 80), values = parsed}
-end
-
 local function active_character()
   return finite_number(aardwolf_interface.state.snapshot().status.state) == 3
 end
@@ -1745,33 +1689,6 @@ end
 local function delete_named_timer(name)
   if type(deleteNamedTimer) == "function" then
     deleteNamedTimer(TIMER_USER, name)
-  end
-end
-
-function aardwolf_interface.details.remove_spellup_ack()
-  local runtime = aardwolf_interface.details.runtime
-  if runtime.ack_trigger_id and type(killTrigger) == "function" then
-    pcall(killTrigger, runtime.ack_trigger_id)
-  end
-  runtime.ack_trigger_id = nil
-  delete_named_timer(DETAILS_ACK_TIMER)
-end
-
-function aardwolf_interface.details.on_spellup_ack()
-  if type(deleteLine) == "function" then
-    deleteLine()
-  end
-  aardwolf_interface.details.remove_spellup_ack()
-end
-
-function aardwolf_interface.details.suppress_spellup_ack()
-  aardwolf_interface.details.remove_spellup_ack()
-  local runtime = aardwolf_interface.details.runtime
-  if type(tempRegexTrigger) == "function" then
-    runtime.ack_trigger_id = tempRegexTrigger("(?i)^[^\\n]*spellup[^\\n]*(?:on|off|enabled|disabled)[^\\n]*$", aardwolf_interface.details.on_spellup_ack)
-  end
-  if runtime.ack_trigger_id and type(registerNamedTimer) == "function" then
-    registerNamedTimer(TIMER_USER, DETAILS_ACK_TIMER, 3.0, aardwolf_interface.details.remove_spellup_ack, true)
   end
 end
 
@@ -1850,10 +1767,6 @@ local function commit_capture(capture)
     for _, bag in ipairs(bags) do
       enqueue("invdetails " .. tostring(bag.id), "invdetails", {id = bag.id})
     end
-  elseif capture.kind == "slist" then
-    details.affects = capture.rows
-  elseif capture.kind == "resists" then
-    details.resists = capture.rows
   elseif capture.kind == "invdetails" then
     for _, bag in ipairs(details.bags or {}) do
       if bag.id == capture.metadata.id then
@@ -1862,14 +1775,6 @@ local function commit_capture(capture)
         bag.pending = false
         break
       end
-    end
-  elseif capture.kind == "tags" and capture.spellup_prior ~= nil then
-    local runtime = aardwolf_interface.details.runtime
-    runtime.spellup_prior = capture.spellup_prior
-    if capture.spellup_prior == false and aardwolf_interface.settings.details_are_visible() and type(send) == "function" then
-      aardwolf_interface.details.suppress_spellup_ack()
-      send("tags spellup on", false)
-      runtime.spellup_changed = true
     end
   end
   if capture.overflow then
@@ -1936,13 +1841,6 @@ function aardwolf_interface.details.capture_line(raw_line)
     aardwolf_interface.details.schedule_targeted("inventory")
     return true
   end
-  local affon = capture_payload(line, "affon")
-  local affoff = capture_payload(line, "affoff")
-  if affon or affoff then
-    aardwolf_interface.details.schedule_targeted("affects")
-    return true
-  end
-
   local capture = runtime.capture
   if not capture then
     return false
@@ -1983,24 +1881,6 @@ function aardwolf_interface.details.capture_line(raw_line)
     end
     if payload and payload ~= "" then capture.invalid = (capture.invalid or 0) + 1 end
     return payload ~= nil
-  elseif capture.kind == "slist" then
-    local payload = capture_payload(line, "slist")
-    if line:match("^%{/slist%}") then
-      if (capture.invalid or 0) &gt; 0 and #capture.rows == 0 then
-        finish_capture(false, "Malformed slist response; previous valid data retained")
-      else
-        commit_capture(capture)
-        finish_capture(true)
-      end
-      return true
-    end
-    local affect = parse_slist_row(payload and payload ~= "" and payload or line)
-    if affect then
-      if #capture.rows &lt; DETAIL_LIMIT then capture.rows[#capture.rows + 1] = affect else capture.overflow = true end
-      return true
-    end
-    if payload and payload ~= "" then capture.invalid = (capture.invalid or 0) + 1 end
-    return payload ~= nil
   elseif capture.kind == "invdetails" then
     if line:match("^%{/invdetails%}") then
       commit_capture(capture)
@@ -2021,59 +1901,6 @@ function aardwolf_interface.details.capture_line(raw_line)
       return true
     end
     return line:match("^%b{}") ~= nil
-  elseif capture.kind == "resists" then
-    local payload = capture_payload(line, "resists")
-    if line:match("^%{/resists%}") then
-      if #capture.rows &gt; 0 then
-        commit_capture(capture)
-        finish_capture(true)
-      else
-        finish_capture(false, "Malformed resists response; previous valid data retained")
-      end
-      return true
-    end
-    local lowered = strip_aardwolf_colors(line):lower()
-    if lowered:find("resist", 1, true) then
-      capture.seen_header = true
-      return true
-    end
-    if line:match("^%s*[%-%=|+]+%s*$") then
-      return true
-    end
-    if not capture.seen_header and payload == nil then
-      return false
-    end
-    local resist = parse_resist_row(strip_aardwolf_colors(payload and payload ~= "" and payload or line))
-    if resist then
-      if #capture.rows &lt; DETAIL_LIMIT then capture.rows[#capture.rows + 1] = resist else capture.overflow = true end
-      return true
-    end
-    if #capture.rows &gt; 0 and line:match("^%s*$") then
-      commit_capture(capture)
-      finish_capture(true)
-      return true
-    end
-    return payload ~= nil or line:match("^%s*$") ~= nil
-  elseif capture.kind == "tags" then
-    local lowered = line:lower()
-    local value = lowered:find("spellup", 1, true) and
-      (lowered:match("%f[%a](on)%f[%A]") or lowered:match("%f[%a](off)%f[%A]"))
-    if value then
-      capture.spellup_prior = value == "on"
-      return true
-    end
-    if capture.spellup_prior ~= nil and line:match("^%s*$") then
-      commit_capture(capture)
-      finish_capture(true)
-      return true
-    end
-    if lowered:find("tag", 1, true) or line:match("^%s*[%-%=|+]+%s*$") then
-      return true
-    end
-    if line:match("^%s*[%w_%- ]+%s*[:=]%s*[%a]+%s*$") then
-      return true
-    end
-    return false
   end
   return false
 end
@@ -2109,10 +1936,6 @@ function aardwolf_interface.details.flush_targeted()
   end
   if pending.inventory then
     enqueue("invdata", "invdata")
-  end
-  if pending.affects then
-    enqueue("slist affected", "slist")
-    enqueue("resists", "resists")
   end
   schedule_queue(0.05)
 end
@@ -2202,11 +2025,8 @@ function aardwolf_interface.details.refresh()
   local details = details_state()
   details.refreshing = true
   details.error = nil
-  enqueue("tags", "tags")
   enqueue("eqdata", "eqdata")
   enqueue("invdata", "invdata")
-  enqueue("slist affected", "slist")
-  enqueue("resists", "resists")
   local runtime = aardwolf_interface.details.runtime
   if runtime.invmon_prior == nil and type(sendGMCP) == "function" then
     sendGMCP("config invmon")
@@ -2242,21 +2062,14 @@ function aardwolf_interface.details.stop(restore_settings)
   local runtime = aardwolf_interface.details.runtime
   aardwolf_interface.details.cancel_queue()
   aardwolf_interface.details.remove_capture_trigger()
-  aardwolf_interface.details.remove_spellup_ack()
   if restore_settings ~= false then
     if runtime.invmon_changed and runtime.invmon_prior == false and type(sendGMCP) == "function" then
       pcall(sendGMCP, "config invmon off")
-    end
-    if runtime.spellup_changed and runtime.spellup_prior == false and type(send) == "function" then
-      aardwolf_interface.details.suppress_spellup_ack()
-      pcall(send, "tags spellup off", false)
     end
   end
   runtime.invmon_prior = nil
   runtime.invmon_query_pending = false
   runtime.invmon_changed = false
-  runtime.spellup_prior = nil
-  runtime.spellup_changed = false
   runtime.active = false
   runtime.initial_refresh_started = false
   runtime.waiting_for_character = false
@@ -2286,6 +2099,8 @@ function aardwolf_interface.commands.status()
     status_line("Mana", snapshot.vitals.mana, snapshot.maxstats.maxmana),
     status_line("Moves", snapshot.vitals.moves, snapshot.maxstats.maxmoves),
     "enemy=" .. tostring(snapshot.status.enemy or "none") .. " group_members=" .. tostring(#(snapshot.group.members or {})),
+    "hunger=" .. display_number(snapshot.status.hunger) .. "% thirst=" .. display_number(snapshot.status.thirst) .. "%",
+    "position=" .. tostring(snapshot.status.pos or "unavailable") .. " state=" .. tostring(CHARACTER_STATES[finite_number(snapshot.status.state)] or display_number(snapshot.status.state)),
     "tick=" .. (aardwolf_interface.state.tick_remaining() and (display_number(aardwolf_interface.state.tick_remaining()) .. " seconds") or "unavailable"),
     "mapper_owned=" .. tostring(aardwolf_interface.state.mapper_claimed == true),
     "adjacent_levels_hidden=" .. tostring(aardwolf_interface.state.upper_lower_levels_claimed == true),
@@ -2297,16 +2112,11 @@ end
 function aardwolf_interface.commands.details_status()
   local snapshot = aardwolf_interface.state.snapshot()
   local details = snapshot.details or {}
-  local status = snapshot.status or {}
   local lines = {
     "visible=" .. tostring(aardwolf_interface.settings.details_are_visible()),
     "freshness=" .. (details.refreshing and "refreshing" or details.stale and "stale" or "current"),
     "equipment=" .. tostring(#sorted_numeric_keys(details.equipment)),
-    "affects=" .. tostring(#(details.affects or {})),
     "bags=" .. tostring(#(details.bags or {})),
-    "resists=" .. tostring(#(details.resists or {})),
-    "hunger=" .. display_number(status.hunger) .. "% thirst=" .. display_number(status.thirst) .. "%",
-    "position=" .. tostring(status.pos or "unavailable") .. " state=" .. tostring(CHARACTER_STATES[finite_number(status.state)] or display_number(status.state)),
     "last_updated=" .. (details.last_updated and os.date("%Y-%m-%d %H:%M:%S", details.last_updated) or "never"),
     "error=" .. tostring(details.error or "none"),
   }
@@ -2601,7 +2411,6 @@ function aardwolf_interface.lifecycle.unregister()
     deleteNamedTimer(TIMER_USER, RENDER_TIMER)
     deleteNamedTimer(TIMER_USER, START_TIMER)
     deleteNamedTimer(TIMER_USER, TICK_TIMER)
-    deleteNamedTimer(TIMER_USER, DETAILS_ACK_TIMER)
   end
 end
 
@@ -2627,7 +2436,6 @@ end
 function aardwolf_interface.lifecycle.shutdown(keep_visibility)
   local visible = aardwolf_interface.settings.data and aardwolf_interface.settings.data.visible
   aardwolf_interface.ui.destroy()
-  aardwolf_interface.details.remove_spellup_ack()
   aardwolf_interface.lifecycle.unregister()
   if keep_visibility and aardwolf_interface.settings.data then
     aardwolf_interface.settings.data.visible = visible

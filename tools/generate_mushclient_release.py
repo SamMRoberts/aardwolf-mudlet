@@ -81,7 +81,7 @@ FEATURES = (
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
         ),
-        "interface", "1.3.3",
+        "interface", "1.3.4",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -577,7 +577,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
     runtime_boundary = (
-        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional details column issues only bounded Aardwolf tagged-data queries while expanded, suppresses their package-owned response lines, never polls, and restores confirmed temporary Invmon/spellup settings through `aardwolf_interface.lifecycle.shutdown()`."
+        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. Character condition is rendered below Character directly from validated `gmcp.char.status` updates. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional Equipment and Bags details column issues only bounded Aardwolf tagged-data queries while expanded, suppresses their package-owned response lines, never polls, and restores a confirmed temporary Invmon setting through `aardwolf_interface.lifecycle.shutdown()`."
         if feature.kind == "interface"
         else "GMCP diagnostics remain in bounded state, but console logging defaults off and is emitted only after explicit `gmcpdebug on`. Namespaced handlers are removed through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`."
         if feature.kind == "diagnostics"
@@ -586,7 +586,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "The main dashboard is shown whenever the Mudlet profile loads; `aard interface hide` hides it only for the current loaded session. Run `aard interface show|hide|status` for manual control. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default character-details column. Package-owned `tags`, `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists` refresh output is consumed instead of printed; unrelated gameplay and user-issued output remains visible."
+        "The main dashboard is shown whenever the Mudlet profile loads; `aard interface hide` hides it only for the current loaded session. Run `aard interface show|hide|status` for manual control. Its tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Character condition updates from `gmcp.char.status` without game commands. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default Equipment and Bags column. Package-owned `eqdata`, `invdata`, and `invdetails` refresh output is consumed instead of printed; unrelated gameplay and user-issued output remains visible."
         if feature.kind == "interface"
         else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
         if feature.kind == "diagnostics"
@@ -603,15 +603,15 @@ Mudlet has one native mapper display per profile. While this dashboard is visibl
 
 In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay while its narrow embedded mapper is visible. This prevents adjacent floors from appearing stacked behind the active floor. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
 
-The room, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. The tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
+The room, character, condition, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Condition appears directly below Character and renders hunger, thirst, position, and decoded state solely from validated `gmcp.char.status` updates; it sends no refresh commands. The tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
 
-The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment, Current Affects, Bags, Resists, and Condition sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended.
+The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment and Bags sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
 
-Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, `invdetails`, `slist affected`, and `resists`. Bag-detail requests are limited to one per second. Invmon and spellup-tag changes are made only after their prior values are confirmed, and only package-owned changes are restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
+Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, and `invdetails`. Bag-detail requests are limited to one per second. Invmon changes are made only after the prior value is confirmed, and only a package-owned change is restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
-While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon`, `invitem`, `affon`, and `affoff` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
+While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon` and `invitem` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.3 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.3.4 so Mudlet does not retain duplicate static objects.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -647,10 +647,12 @@ assert "settings.lua" in source and "yajl.to_value" in source and "table.load" n
 assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
 assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
 assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
+assert 'widgets.condition = new_label("condition", primary)' in source and 'safe_call(widget("condition"), "echo", condition_text)' in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source
-assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', 'enqueue("slist affected"', 'enqueue("resists"', '"invdetails "'))
+assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', '"invdetails "'))
+assert all(removed not in source for removed in ('slist affected', 'enqueue("resists"', 'tags spellup', 'details_affects', 'details_resists'))
 assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
 assert "deleteLine" in source and 'return line:match("^%b{}") ~= nil' in source
 assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source

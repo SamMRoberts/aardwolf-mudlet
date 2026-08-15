@@ -289,10 +289,23 @@ assert(timers[runtime_key("aardwolf_interface", TICK_TIMER)], "tick countdown ti
 assert(objects["aardwolf-interface::ui::stats"].message:find("<table", 1, true), "stats are not rendered as a grid")
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Hitroll</b>", 1, true))
 assert(objects["aardwolf-interface::ui::stats"].message:find("<b>Practices</b>", 1, true))
+assert(objects["aardwolf-interface::ui::condition"].message:find("Standing", 1, true))
+assert(objects["aardwolf-interface::ui::condition"].message:find("<b>Hunger</b> 72%", 1, true))
+assert(objects["aardwolf-interface::ui::condition"].y > objects["aardwolf-interface::ui::stats"].y, "condition is not below Character")
 assert(objects["aardwolf-interface::ui::group"].message:find("<table", 1, true), "group is not rendered as a grid")
 assert(objects["aardwolf-interface::ui::group"].message:find("+5 more", 1, true))
 assert(objects["aardwolf-interface::ui::mapper"].y + objects["aardwolf-interface::ui::mapper"].height <= 900, "mapper extends beyond the dashboard")
 assert(aardwolf_interface.state.snapshot().tick.last_seen)
+
+-- Condition is refreshed from char.status GMCP without issuing detail queries.
+local sent_before_condition_update = #sent
+local gmcp_sent_before_condition_update = #gmcp_sent
+gmcp.char.status = {tnl = 200, level = 10, hunger = 33, thirst = 22, state = 3, pos = "Resting"}
+aardwolf_interface.protocol.on_char_status()
+fire_timer(RENDER_TIMER)
+assert(objects["aardwolf-interface::ui::condition"].message:find("<b>Hunger</b> 33%", 1, true))
+assert(objects["aardwolf-interface::ui::condition"].message:find("Resting", 1, true))
+assert(#sent == sent_before_condition_update and #gmcp_sent == gmcp_sent_before_condition_update, "GMCP condition update sent a refresh command")
 
 -- A map imported after the interface starts must remove the empty-map overlay
 -- without requiring another movement/GMCP event.
@@ -326,18 +339,6 @@ assert(gmcp_sent[#gmcp_sent] == "config invmon on")
 
 local QUEUE_TIMER = "aardwolf-interface::timer::details-queue"
 fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "tags")
-assert(not deliver_output("A player tells you 10 reasons to leave."), "unrelated output was suppressed before the tags response")
-assert(deliver_output("Available tag settings:"), "package-owned tags header was printed")
-assert(deliver_output("Spellup : OFF"), "package-owned tag state was printed")
-assert(deliver_output(""), "package-owned tags terminator was printed")
-assert(sent[#sent].command == "tags spellup on")
-local spellup_on_ack = assert(aardwolf_interface.details.runtime.ack_trigger_id)
-local deleted_before_on_ack = deleted_lines
-triggers[spellup_on_ack].callback()
-assert(deleted_lines == deleted_before_on_ack + 1, "spellup enable confirmation was printed")
-assert(aardwolf_interface.details.runtime.ack_trigger_id == nil)
-fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "eqdata")
 assert(aardwolf_interface.details.capture_line("{eqdata}101,,@RHelm,50,5,0,1,-1"))
 assert(aardwolf_interface.details.capture_line("{eqdata}102,,Odd & Ring,50,5,0,88,-1"))
@@ -347,16 +348,6 @@ assert(sent[#sent].command == "invdata")
 assert(aardwolf_interface.details.capture_line("{invdata}201,,Pack <red>,40,11,0,0,-1"))
 assert(aardwolf_interface.details.capture_line("{/invdata}"))
 fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "slist affected")
-assert(aardwolf_interface.details.capture_line("{slist}10,Bless,1,42,100,0,1"))
-assert(aardwolf_interface.details.capture_line("{/slist}"))
-fire_timer(QUEUE_TIMER)
-assert(sent[#sent].command == "resists")
-assert(not deliver_output("You recover 10 hit points."), "unrelated output was suppressed before the resists response")
-assert(deliver_output("Current resistances:"), "package-owned resists header was printed")
-assert(deliver_output("Physical 10 20 30"), "package-owned resist row was printed")
-assert(deliver_output(""), "package-owned resists terminator was printed")
-fire_timer(QUEUE_TIMER)
 assert(sent[#sent].command == "invdetails 201")
 assert(aardwolf_interface.details.capture_line("{invheader}201|40|11|0|5|0|0|0"))
 assert(deliver_output("{objectflags}KIG"), "unused package-owned invdetails tag was printed")
@@ -365,14 +356,14 @@ assert(aardwolf_interface.details.capture_line("{/invdetails}"))
 local details = aardwolf_interface.state.snapshot().details
 assert(details.equipment[1].name == "Helm")
 assert(details.equipment[88].name == "Odd & Ring")
-assert(details.affects[1].name == "Bless" and details.affects[1].duration == 42)
 assert(details.bags[1].used_weight == 25 and details.bags[1].max_weight == 100)
-assert(details.resists[1].name == "Physical")
 fire_timer(RENDER_TIMER)
-assert(objects["aardwolf-interface::ui::details-condition"].message:find("Standing", 1, true))
 assert(objects["aardwolf-interface::ui::details-equipment"].message:find("Slot 88", 1, true))
 assert(objects["aardwolf-interface::ui::details-equipment"].message:find("Odd &amp; Ring", 1, true))
 assert(objects["aardwolf-interface::ui::details-bags"].message:find("25 / 100", 1, true))
+assert(objects["aardwolf-interface::ui::details-condition"] == nil)
+assert(objects["aardwolf-interface::ui::details-affects"] == nil)
+assert(objects["aardwolf-interface::ui::details-resists"] == nil)
 
 -- Malformed and truncated captures preserve the prior valid snapshot, while
 -- oversized captures are bounded and visibly marked.
@@ -381,21 +372,23 @@ assert(aardwolf_interface.details.capture_line("{eqdata}not,a,valid,row"))
 assert(aardwolf_interface.details.capture_line("{/eqdata}"))
 assert(aardwolf_interface.state.snapshot().details.equipment[1].name == "Helm")
 assert(aardwolf_interface.state.snapshot().details.error:find("Malformed", 1, true))
-aardwolf_interface.details.runtime.capture = {kind = "slist", rows = {}, metadata = {}}
-for index = 1, 101 do
-  assert(aardwolf_interface.details.capture_line("{slist}" .. index .. ",Affect" .. index .. ",1,30,100,0,1"))
-end
-assert(aardwolf_interface.details.capture_line("{/slist}"))
-assert(#aardwolf_interface.state.snapshot().details.affects == 100)
-assert(aardwolf_interface.state.snapshot().details.overflow == true)
 aardwolf_interface.details.runtime.capture = {kind = "eqdata", rows = {{wear_location = 1, name = "Replacement"}}, metadata = {}}
 aardwolf_interface.details.capture_timeout()
 assert(aardwolf_interface.state.snapshot().details.equipment[1].name == "Helm")
 assert(aardwolf_interface.state.snapshot().details.error:find("timed out", 1, true))
+aardwolf_interface.details.runtime.capture = {kind = "eqdata", rows = {}, metadata = {}}
+for index = 1, 101 do
+  assert(aardwolf_interface.details.capture_line("{eqdata}" .. index .. ",,Item" .. index .. ",1,5,0," .. index .. ",-1"))
+end
+assert(aardwolf_interface.details.capture_line("{/eqdata}"))
+assert(#aardwolf_interface.state.snapshot().details.equipment == 100)
+assert(aardwolf_interface.state.snapshot().details.overflow == true)
 
--- Live tags debounce targeted refreshes without polling.
+-- Live inventory tags debounce targeted refreshes without polling. Affect tags
+-- are no longer consumed because the pane and its refresh path were removed.
 assert(deliver_output("{invmon}1,101,0,1"), "consumed invmon event was printed")
-assert(deliver_output("{affon}10,Bless"), "consumed affect event was printed")
+assert(deliver_output("{invitem}1,101,0,1"), "consumed invitem event was printed")
+assert(not deliver_output("{affon}10,Bless"), "removed affect event was still consumed")
 fire_timer("aardwolf-interface::timer::details-debounce")
 assert(timers[runtime_key("aardwolf_interface", QUEUE_TIMER)], "targeted refresh was not queued")
 
@@ -405,11 +398,6 @@ aardwolf_interface.commands.details_hide()
 assert(right_border == 370)
 assert(persisted_settings.details_visible == false)
 assert(gmcp_sent[#gmcp_sent] == "config invmon off")
-assert(sent[#sent].command == "tags spellup off")
-local spellup_off_ack = assert(aardwolf_interface.details.runtime.ack_trigger_id)
-local deleted_before_off_ack = deleted_lines
-triggers[spellup_off_ack].callback()
-assert(deleted_lines == deleted_before_off_ack + 1, "spellup restore confirmation was printed")
 assert(aardwolf_interface.state.snapshot().details.stale == true)
 local sent_after_collapse = #sent
 aardwolf_interface.details.schedule_targeted("equipment")
@@ -423,6 +411,10 @@ aardwolf_interface.details.on_gmcp_config()
 assert(aardwolf_interface.details.runtime.invmon_prior == nil, "late config response was accepted after collapse")
 aardwolf_interface.commands.details_status()
 assert(messages[#messages]:find("freshness=stale", 1, true))
+for _, request in ipairs(sent) do
+  assert(request.command ~= "tags" and request.command ~= "tags spellup on" and request.command ~= "tags spellup off")
+  assert(request.command ~= "slist affected" and request.command ~= "resists")
+end
 
 -- A server setting already enabled is never toggled or restored by the package.
 local gmcp_count_before_enabled = #gmcp_sent

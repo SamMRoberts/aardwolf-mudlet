@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
-assert metadata["version"] == "1.3.3"
+assert metadata["version"] == "1.3.4"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -25,10 +25,12 @@ assert "settings.lua" in source and "yajl.to_value" in source and "table.load" n
 assert "setBorderRight" in source and "getBorderRight" in source and "map.showMap" in source
 assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
 assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
+assert 'widgets.condition = new_label("condition", primary)' in source and 'safe_call(widget("condition"), "echo", condition_text)' in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
 assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
 assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source
-assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', 'enqueue("slist affected"', 'enqueue("resists"', '"invdetails "'))
+assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', '"invdetails "'))
+assert all(removed not in source for removed in ('slist affected', 'enqueue("resists"', 'tags spellup', 'details_affects', 'details_resists'))
 assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
 assert "deleteLine" in source and 'return line:match("^%b{}") ~= nil' in source
 assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source
