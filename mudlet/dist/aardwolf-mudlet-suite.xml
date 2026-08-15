@@ -2376,9 +2376,9 @@ local function render_overview()
   end
   local group_card = "&lt;b&gt;Group &amp;middot; " .. escape((envelope("group").status or "unavailable"):upper()) .. "&lt;/b&gt;&lt;br&gt;" .. escape(group_text)
 
-  set_button_text(widget("overview_character_refresh"), "Character")
-  set_button_text(widget("overview_quest_refresh"), "Quest")
-  set_button_text(widget("overview_inventory_refresh"), "Inventory")
+  set_button_text(widget("overview_character_refresh"), "↻ Character")
+  set_button_text(widget("overview_quest_refresh"), "↻ Quest")
+  set_button_text(widget("overview_inventory_refresh"), "↻ Inventory")
   local body
   if not ui.scroll_capable and (ui.page or 1) == 1 then body = player .. "&lt;br&gt;&lt;br&gt;" .. quest_card
   elseif not ui.scroll_capable then body = resources .. "&lt;br&gt;&lt;br&gt;" .. conditions .. "&lt;br&gt;&lt;br&gt;" .. loadout .. "&lt;br&gt;&lt;br&gt;" .. group_card
