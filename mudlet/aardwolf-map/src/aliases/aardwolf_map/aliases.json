@@ -10,5 +10,9 @@
   {
     "name": "aardwolf_map.status",
     "regex": "^aard map status$"
+  },
+  {
+    "name": "aardwolf_map.palette",
+    "regex": "^aard map palette (source|obsidian|high-contrast)$"
   }
 ]

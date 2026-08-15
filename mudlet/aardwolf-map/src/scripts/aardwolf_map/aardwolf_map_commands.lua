@@ -12,3 +12,7 @@ end
 function aardwolf_map.commands.show_status()
   aardwolf_map.lifecycle.show_status()
 end
+
+function aardwolf_map.commands.set_palette(palette)
+  aardwolf_map.lifecycle.set_palette(palette)
+end

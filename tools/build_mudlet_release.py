@@ -40,10 +40,10 @@ PACKAGES = (
 SUITE_NAME = "aardwolf-mudlet-suite"
 SUITE_MFILE = {
     "author": "Aardwolf Mudlet",
-    "description": "All-in-one native Mudlet package for the audited Aardwolf collection, diagnostics, interface, accessibility, profile-data, and map importer.",
+    "description": "All-in-one native Mudlet package with the adaptive command deck, collision-safe map integration, quiet character summaries, accessibility, and audited compatibility tools.",
     "package": SUITE_NAME,
     "title": "Aardwolf Mudlet Suite",
-    "version": "1.4.0",
+    "version": "1.5.0",
 }
 
 
@@ -92,18 +92,24 @@ def _zip_entry(name: str, payload: bytes, archive: zipfile.ZipFile) -> None:
     archive.writestr(entry, payload)
 
 
+def _serialized_objects(root: ET.Element, item_tag: str) -> list[bytes]:
+    """Return complete objects in document order, including nested group objects."""
+    return [ET.tostring(element, encoding="utf-8", short_empty_elements=False) for element in root.iter(item_tag)]
+
+
 def verify_suite(mudlet_root: Path, xml_payload: bytes, resources: dict[str, bytes]) -> None:
     root = ET.fromstring(xml_payload)
     if root.tag != "MudletPackage":
         raise ValueError("suite XML root must be MudletPackage")
     for category, info in CATEGORY_INFO.items():
-        expected: list[str] = []
+        expected: list[bytes] = []
         for name in PACKAGES:
-            expected.extend(record.spec["name"] for record in load_project(mudlet_root / name).objects if record.category == category)
+            component = ET.parse(mudlet_root / name / "build" / f"{name}.xml").getroot()
+            expected.extend(_serialized_objects(component, info["item"]))
         package = root.find(info["package"])
-        actual = [] if package is None else [element.text for element in package.iter("name")]
+        actual = [] if package is None else _serialized_objects(package, info["item"])
         if actual != expected:
-            raise ValueError(f"suite XML {category} objects do not match component order")
+            raise ValueError(f"suite XML {category} objects do not match complete component objects and order")
     expected_resources = suite_resources(mudlet_root)
     if resources != expected_resources:
         raise ValueError("suite resources do not match declared component resources")
@@ -132,12 +138,16 @@ def build_suite(mudlet_root: Path) -> dict[str, str]:
         temporary.unlink(missing_ok=True)
         raise
     with zipfile.ZipFile(package_path) as archive:
-        if archive.namelist() != sorted(archive.namelist()):
-            raise ValueError("suite archive entries are not sorted")
+        expected_entries = sorted([xml_path.name, "config.lua", *resources])
+        if archive.namelist() != expected_entries:
+            raise ValueError("suite archive entries do not match the sorted generated payload list")
         if archive.read(xml_path.name) != xml_payload:
             raise ValueError("suite archive XML differs from the generated XML")
         if archive.read("config.lua") != package_config_lua(SUITE_MFILE):
             raise ValueError("suite archive Package Manager metadata differs from suite metadata")
+        for name, payload in resources.items():
+            if archive.read(name) != payload:
+                raise ValueError(f"suite archive resource differs from component resource: {name}")
     return {"xml": str(xml_path), "mpackage": str(package_path)}
 
 

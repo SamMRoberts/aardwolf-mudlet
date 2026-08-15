@@ -15,8 +15,9 @@ from build_mudlet_package import package_config_lua
 from project_contract import CATEGORY_INFO, Project, iter_project_files, load_project
 
 
-GLOBAL_ASSIGNMENT_RE = re.compile(r"(?m)^\s*(?!local\b)([A-Za-z_][A-Za-z0-9_]*)\s*=")
+GLOBAL_ASSIGNMENT_RE = re.compile(r"(?m)^(?!local\b)([A-Za-z_][A-Za-z0-9_]*)\s*=")
 GLOBAL_FUNCTION_RE = re.compile(r"(?m)^\s*function\s+([A-Za-z_][A-Za-z0-9_]*(?:[.:][A-Za-z_][A-Za-z0-9_]*)*)\s*\(")
+LOCAL_NAMESPACE_ALIAS_RE = re.compile(r"(?m)^\s*local\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\.")
 FORBIDDEN_RUNTIME_RE = re.compile(r"\b(?:os\.execute|io\.popen|package\.loadlib|loadfile|dofile)\b")
 REQUIRED_MODULES = ("state", "settings", "commands", "protocol", "ui", "lifecycle", "help")
 REPORT_STATUSES = {
@@ -38,13 +39,19 @@ def _check_namespace(project: Project, errors: list[str]) -> None:
         if record.source is None:
             continue
         source_label = record.source.relative_to(project.root)
+        namespace_aliases = {
+            match.group(1)
+            for match in LOCAL_NAMESPACE_ALIAS_RE.finditer(record.source_text)
+            if match.group(2) == namespace
+        }
         for match in GLOBAL_ASSIGNMENT_RE.finditer(record.source_text):
             global_name = match.group(1)
             if global_name != namespace:
                 errors.append(f"{source_label}: global assignment {global_name!r} is not namespaced")
         for match in GLOBAL_FUNCTION_RE.finditer(record.source_text):
             function_name = match.group(1)
-            if not function_name.startswith((namespace + ".", namespace + ":")):
+            root_name = re.split(r"[.:]", function_name, maxsplit=1)[0]
+            if root_name not in namespace_aliases and not function_name.startswith((namespace + ".", namespace + ":")):
                 errors.append(f"{source_label}: global function {function_name!r} is not namespaced")
         if FORBIDDEN_RUNTIME_RE.search(record.source_text):
             errors.append(f"{source_label}: unsafe file, shell, or native-library API requires manual review")

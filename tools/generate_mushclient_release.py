@@ -59,6 +59,7 @@ FEATURES = (
         ("aard_group_monitor_gmcp", "aard_health_bars_gmcp", "aard_statmon_gmcp"),
         (("gmcp.char.vitals", "gmcp and gmcp.char and gmcp.char.vitals", "vitals"), ("gmcp.group", "gmcp and gmcp.group", "group")),
         (("status", "^aard character status$", "aardwolf_character.commands.status()"), ("group_on", "^groupon$", "aardwolf_character.commands.set_enabled(true)"), ("group_off", "^groupoff$", "aardwolf_character.commands.set_enabled(false)")),
+        "character", "1.1.0",
     ),
     Feature(
         "aardwolf-help", "aardwolf_help", "Accessible in-client help and migration guidance.",
@@ -67,7 +68,7 @@ FEATURES = (
         (("help", "^aard help$", "aardwolf_help.commands.status()"), ("legacy_help", "^mchelps?(?: .*)?$", "aardwolf_help.commands.status()")),
     ),
     Feature(
-        "aardwolf-interface", "aardwolf_interface", "Responsive Aardwolf Geyser dashboard with a bottom gauge HUD, mapper, collapsible character details, and text fallbacks.",
+        "aardwolf-interface", "aardwolf_interface", "Adaptive Obsidian Jewel Aardwolf command deck with responsive workspace, structured GMCP views, safe actions, and text fallbacks.",
         ("aard_Theme_Controller", "aard_layout", "aard_miniwindow_z_order_monitor", "aard_splitscreen_scrollback"),
         (("window_resize", "true", "window_resize"),),
         (
@@ -80,8 +81,20 @@ FEATURES = (
             ("details_refresh", "^aard interface details refresh$", "aardwolf_interface.commands.details_refresh()"),
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
+            ("tab", "^aard interface tab (map|character|group|inventory)$", "aardwolf_interface.commands.set_tab(matches[2])"),
+            ("pin", "^aard interface pin(?: (map|character|group|inventory|off))?$", "aardwolf_interface.commands.toggle_pin(matches[2])"),
+            ("palette", "^aard interface palette(?: (show|hide|toggle))?$", "aardwolf_interface.commands.toggle_palette(matches[2])"),
+            ("summary", "^aard interface summary (room|character|quest|group|equipment|bags|actions|all)$", "aardwolf_interface.commands.summary(matches[2])"),
+            ("theme_set", "^aard interface theme (obsidian|high-contrast)$", "aardwolf_interface.commands.set_theme(matches[2])"),
+            ("density", "^aard interface density (compact|comfortable)$", "aardwolf_interface.commands.set_density(matches[2])"),
+            ("scale", "^aard interface scale (90|100|115|130)$", "aardwolf_interface.commands.set_scale(matches[2])"),
+            ("action_add", "^aard interface action add ([^|]{1,32})[|]([^|]{1,24})[|]([^\\r\\n]{1,200})$", "aardwolf_interface.commands.action_add(matches[2], matches[4], matches[3])"),
+            ("action_edit", "^aard interface action edit (custom%-[0-9]+)[|]([^|]{1,32})[|]([^|]{1,24})[|]([^\\r\\n]{1,200})$", "aardwolf_interface.commands.action_edit(matches[2], matches[3], matches[5], matches[4])"),
+            ("action_remove", "^aard interface action remove (custom%-[0-9]+)$", "aardwolf_interface.commands.action_remove(matches[2])"),
+            ("action_move", "^aard interface action move (custom%-[0-9]+) ([0-9]{1,2})$", "aardwolf_interface.commands.action_move(matches[2], matches[3])"),
+            ("action_list", "^aard interface action list$", "aardwolf_interface.commands.action_list()"),
         ),
-        "interface", "1.4.0",
+        "interface", "1.5.0",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -294,6 +307,39 @@ function {namespace}.commands.reset()
   {namespace}.state.reset()
   {namespace}.ui.message("Diagnostic state reset.")
 end
+'''
+    return sources
+
+
+def character_sources(feature: Feature) -> dict[str, str]:
+    sources = module_sources(feature)
+    namespace = feature.namespace
+    sources["settings"] = f'''{namespace}.settings = {namespace}.settings or {{enabled = false}}
+function {namespace}.settings.is_enabled() return {namespace}.settings.enabled == true end
+function {namespace}.settings.set_enabled(enabled) {namespace}.settings.enabled = enabled and true or false end
+'''
+    sources["state"] = f'''{namespace} = {namespace} or {{}}
+{namespace}.state = {namespace}.state or {{}}
+local function bounded(value, depth)
+  if type(value) ~= "table" then return value end
+  if depth <= 0 then return {{}} end
+  local output, count = {{}}, 0
+  for key, item in pairs(value) do count=count+1; if count>100 then break end; output[key]=bounded(item,depth-1) end
+  return output
+end
+function {namespace}.state.record(key,value) {namespace}.state.values={namespace}.state.values or {{}}; {namespace}.state.values[key]={{value=bounded(value,3),received_at=os.time()}} end
+function {namespace}.state.reset() {namespace}.state.values={{}} end
+function {namespace}.state.summary()
+  local values={namespace}.state.values or {{}}; local vitals=values.vitals and values.vitals.value or {{}}; local group=values.group and values.group.value or {{}}
+  local members=type(group.members)=="table" and #group.members or type(group.chars)=="table" and #group.chars or 0
+  return string.format("HP %s/%s, Mana %s/%s, Moves %s/%s, group members %d",tostring(vitals.hp or "--"),tostring(vitals.maxhp or "--"),tostring(vitals.mana or "--"),tostring(vitals.maxmana or "--"),tostring(vitals.moves or "--"),tostring(vitals.maxmoves or "--"),members)
+end
+'''
+    sources["commands"] = f'''{namespace}.commands = {namespace}.commands or {{}}
+function {namespace}.commands.status() {namespace}.ui.status({namespace}.state.summary()) end
+function {namespace}.commands.set_enabled(enabled) {namespace}.settings.set_enabled(enabled); {namespace}.ui.message(enabled and "Group notifications enabled." or "Group notifications disabled.") end
+function {namespace}.commands.toggle() {namespace}.commands.set_enabled(not {namespace}.settings.is_enabled()) end
+function {namespace}.commands.reset() {namespace}.state.reset(); {namespace}.ui.message("Character snapshot reset.") end
 '''
     return sources
 
@@ -525,11 +571,9 @@ end
 
 
 def interface_sources(feature: Feature) -> dict[str, str]:
-    implementation = (ROOT / "tools" / "templates" / "aardwolf_interface_main.lua").read_text(encoding="utf-8")
-    return {
-        module: implementation if module == "state" else ""
-        for module in ("state", "settings", "commands", "protocol", "ui", "lifecycle", "help")
-    }
+    template_root = ROOT / "tools" / "templates" / "aardwolf_interface"
+    modules = ("state", "settings", "details", "actions", "protocol", "commands", "ui", "lifecycle", "help")
+    return {module: (template_root / f"{module}.lua").read_text(encoding="utf-8") for module in modules}
 
 def write_feature(feature: Feature, destination: Path) -> None:
     sources = (
@@ -538,6 +582,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else interface_sources(feature) if feature.kind == "interface"
         else diagnostics_sources(feature) if feature.kind == "diagnostics"
         else tick_sources(feature) if feature.kind == "tick"
+        else character_sources(feature) if feature.kind == "character"
         else module_sources(feature)
     )
     write(destination / ".gitignore", "/build/\n")
@@ -559,59 +604,61 @@ def write_feature(feature: Feature, destination: Path) -> None:
     for category in ("triggers", "timers", "keys", "resources"):
         write(destination / "src" / category / "EMPTY-CATEGORY.md", f"# No {category}\n\nThis package has no declarative {category}.\n")
     script_dir = destination / "src" / "scripts" / feature.namespace
-    # These generated projects intentionally keep their runtime in one cohesive
-    # Mudlet script. Alias action files are declarative object glue; splitting
-    # the implementation into one-file-per-function makes the package harder
-    # to inspect, maintain, and uninstall safely.
     for stale in script_dir.glob(f"{feature.namespace}_*.lua"):
         stale.unlink()
-    object_name = f"{feature.namespace}.main"
-    implementation = sources["state"] if feature.kind == "interface" else "\n".join(
-        sources[module]
-        for module in ("state", "settings", "ui", "commands", "protocol", "lifecycle", "help")
-    )
-    write(script_dir / f"{slug(object_name)}.lua", implementation)
-    script_specs = [{"name": object_name}]
+    module_order = ("state", "settings", "details", "actions", "protocol", "commands", "ui", "lifecycle", "help") if feature.kind == "interface" else ("state", "settings", "ui", "commands", "protocol", "lifecycle", "help")
+    script_specs = []
+    if feature.kind == "interface":
+        for module in module_order:
+            object_name = f"{feature.namespace}.{module}"
+            write(script_dir / f"{slug(object_name)}.lua", sources[module])
+            script_specs.append({"name": object_name})
+    else:
+        object_name = f"{feature.namespace}.main"
+        write(script_dir / f"{slug(object_name)}.lua", "\n".join(sources[module] for module in module_order))
+        script_specs.append({"name": object_name})
     write(script_dir / "scripts.json", json.dumps(script_specs, indent=2) + "\n")
     source_list = ", ".join(f"`{source}`" for source in feature.source_plugins)
     command_list = ", ".join(f"`{regex}`" for _, regex, _ in feature.aliases)
     event_list = ", ".join(f"`{event}`" for event, _, _ in feature.events) or "none"
     runtime_boundary = (
-        "The dashboard consumes direct `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.tick`, and `gmcp.config` events. HP, Mana, Moves, TNL, Enemy, Hunger, and Thirst render in a package-owned two-row bottom HUD; Position and State render in Character. Each `gmcp.comm.tick` signal resets a local 30-second numeric countdown gauge whose bar diminishes once per second. Its optional Equipment and Bags details column issues only bounded Aardwolf tagged-data queries while expanded, suppresses their package-owned response lines, never polls, and restores a confirmed temporary Invmon setting through `aardwolf_interface.lifecycle.shutdown()`."
+        "The command deck consumes documented `gmcp.char.*`, `gmcp.group`, `gmcp.room.info`, `gmcp.comm.quest`, and `gmcp.comm.tick` events into session-scoped freshness envelopes. Its strict, explicit Equipment and Bags refresh accepts only the active tagged grammar, bounds records, verifies container IDs, and deletes only proven package-owned response lines. Built-in commands are fixed; profile-local custom commands are printable single lines and require confirmation every time."
         if feature.kind == "interface"
         else "GMCP diagnostics remain in bounded state, but console logging defaults off and is emitted only after explicit `gmcpdebug on`. Namespaced handlers are removed through `aardwolf_gmcp_diagnostics.lifecycle.shutdown()`."
         if feature.kind == "diagnostics"
         else "The package treats `gmcp.comm.tick` as a payload-optional signal and predicts the next tick from Aardwolf's 30-second interval. It sends no game commands or automatic console messages."
         if feature.kind == "tick"
+        else "The package stores bounded character vital and group snapshots. It is quiet by default; `groupon` and `groupoff` change notification behavior only, and no data collection or dashboard dependency is introduced."
+        if feature.kind == "character"
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "The main dashboard and two-row bottom HUD are shown whenever the Mudlet profile loads; `aard interface hide` hides both only for the current loaded session. Run `aard interface show|hide|status` for manual control. The bottom HUD shows HP, Mana, Moves, TNL, Enemy, Hunger, and Thirst without extending beneath the sidebar. The sidebar tick gauge displays whole seconds until the predicted next tick and shrinks from 30 to 0. Position and State update in Character from `gmcp.char.status` without game commands. Run `aard interface details show|hide|toggle|refresh|status` for the independently persisted, collapsed-by-default Equipment and Bags column. Package-owned `eqdata`, `invdata`, and `invdetails` refresh output is consumed instead of printed; unrelated gameplay and user-issued output remains visible."
+        "The workspace opens on Map and preserves at least half the usable width or 640 pixels for the game console, collapsing to a restore rail when needed. Use `aard interface tab`, `pin`, `palette`, `summary`, `theme`, `density`, `scale`, and `action` commands for alias-equivalent access to every visual action. Legacy details commands select or pin Inventory. Custom actions always require Send/Cancel confirmation."
         if feature.kind == "interface"
         else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
         if feature.kind == "diagnostics"
         else "Use `aard tick` to print the numeric seconds remaining after a tick has been witnessed. The main dashboard renders the same prediction as a diminishing gauge."
         if feature.kind == "tick"
+        else "Use `aard character status` for the current HP, Mana, Moves, and group-member summary. `groupon` enables update notifications and `groupoff` returns to quiet operation."
+        if feature.kind == "character"
         else "Run a supported status alias to inspect the current state. The package never recreates raw telnet, DLL, Windows API, cross-plugin broadcast, or unattended network behavior."
     )
     feature_notes = '''
 ## Dashboard behavior
 
-The sidebar and bottom HUD appear automatically on first install and every subsequent Mudlet profile load. An explicit `aard interface hide` lasts for the current loaded session; the next profile load shows both again. Theme and details-column choices remain persisted. The sidebar reserves 340–480 pixels at the right edge without overwriting an existing right border. The HUD preserves an existing bottom border and stops at the effective sidebar edge. Missing or partial GMCP remains visibly unavailable instead of being shown as zero.
+The package claims one responsive right border. Workspace width defaults to 440 pixels and is clamped to 360–520. It preserves at least `max(640px, 50% of usable width)` for the console and collapses to a 44-pixel restore rail when that cannot be satisfied. A 360–440 pixel inspector is pinned only when the console minimum still fits. Map is the default tab; room context, exits, connection state, four contextual actions, and tabs remain persistent.
 
-Mudlet has one native mapper display per profile. While this dashboard is visible it owns that display; hiding or unloading the package restores a `generic_mapper` view that was visible before the dashboard claimed it. The dashboard never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. A completed package-owned import raises a namespaced event so the dashboard reveals the map immediately without waiting for another movement update.
+The Map tab embeds Mudlet's native mapper but never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. Map controls are capability-checked, and integration status distinguishes a resolved package-owned Aardwolf room from unrelated Mudlet map content.
 
-In Mudlet 4.20 and newer, the dashboard temporarily disables the global `showUpperLowerLevels` overlay after its embedded mapper is created and shown. This prevents adjacent floors from appearing stacked behind the active floor even when Mudlet rejects mapper configuration writes made before mapper creation. The prior value is restored on hide, reload, or unload, and older Mudlet versions use capability-checked fallback behavior.
+The Map, Character, Group, and Inventory tabs render escaped structured data with unavailable, partial, stale, and error states. The bottom HUD places HP/Mana/Moves on row one and TNL/Enemy/Hunger/Thirst on row two, wrapping to three rows under 640 pixels. Text stays on a stable dark surface above a separate thin semantic progress track. Package-local Obsidian Jewel and High Contrast themes, two densities, and four text scales need no external resources.
 
-The room, character, and group sections use escaped rich-text rows so Qt does not collapse intended line breaks into a single dense line. Position and decoded State appear in Character. HP, Mana, Moves, TNL, and Enemy share the first bottom-HUD row; Hunger and Thirst are clamped percentage gauges on the second row. These values update solely from validated GMCP and send no refresh commands. The sidebar tick section is a numeric gauge that resets to 30 on `gmcp.comm.tick`, counts down once per second, and diminishes toward zero. Empty group state stays compact to preserve mapper space in shorter profile windows.
+The optional 360–440 pixel inspector starts unpinned and remembers explicit pin intent while temporarily unpinning when width is insufficient. Inventory's Equipment and Bags subtabs retain a visibly stale last snapshot when hidden. Every standard Aardwolf wear slot can be shown, empty slots are optional, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
 
-The optional 360–460 pixel details column starts collapsed and remembers explicit show/hide choices. Its scrollable Equipment and Bags sections retain a visibly stale last snapshot when collapsed. Every standard Aardwolf wear slot remains visible, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
-
-Expanding details waits for active `gmcp.char.status`, then performs one paced refresh using `eqdata`, `invdata`, and `invdetails`. Bag-detail requests are limited to one per second. Invmon changes are made only after the prior value is confirmed, and only a package-owned change is restored. There is no periodic polling. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
+An explicit Inventory refresh performs one paced transaction using `eqdata`, `invdata`, and verified-container `invdetails`. Bag-detail requests are limited to one per second. There is no periodic polling or Invmon mutation. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
 While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon` and `invitem` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.4.0 so Mudlet does not retain duplicate static objects.
+For upgrades, remove an older `aardwolf-interface` or `aardwolf-mudlet-suite` package before installing 1.5.0 so Mudlet does not retain duplicate static objects. Schema 3 settings migrate to schema 4, including `dark` to `obsidian` and legacy details intent to the responsive inspector.
 ''' if feature.kind == "interface" else ""
     write(destination / "README.md", f'''# {feature.name}
 
@@ -640,30 +687,24 @@ Install `{feature.name}.mpackage` in Mudlet. It contains the Mudlet objects and 
 
 Artifacts are regenerated by the native package builder after the source and release validators pass.
 ''')
-    interface_assertions = '''assert "Geyser.Container:new" in source and "Geyser.Gauge:new" in source and "Geyser.Mapper:new" in source and "Geyser.ScrollBox:new" in source
+    interface_assertions = '''assert "Geyser.Container" in source and "Geyser.Label" in source and "Geyser.Mapper" in source
 assert (root / "tests" / "interface_stub_spec.lua").is_file()
-assert all(command in source for command in ("commands.show", "commands.hide", "commands.toggle_theme", "commands.details_show", "commands.details_hide", "commands.details_toggle", "commands.details_refresh", "commands.details_status"))
-assert "settings.lua" in source and "yajl.to_value" in source and "table.load" not in source
-assert "setBorderRight" in source and "getBorderRight" in source and "setBorderBottom" in source and "getBorderBottom" in source and "map.showMap" in source
-assert "showUpperLowerLevels" in source and "getConfig" in source and "setConfig" in source
-assert '<table width="100%%"' in source and "<b>Hitroll</b>" in source and "group_row_capacity" in source
-assert 'UI_PREFIX .. "bottom-root"' in source and 'bottom_border_claim' in source
-assert 'percentage_gauge("hunger"' in source and 'percentage_gauge("thirst"' in source
-assert '<b>Position</b> %s' in source and '<b>State</b> %s' in source
-assert 'widgets.condition' not in source and 'widget("condition")' not in source
-assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.config"))
-assert "sysInstall" in source and "sysLoadEvent" in source and "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
-assert "function aardwolf_interface.lifecycle.on_load()" in source and "settings.set_visible(true)" in source
-assert all(command in source for command in ('enqueue("eqdata"', 'enqueue("invdata"', '"invdetails "'))
+assert all(command in source for command in ("commands.set_tab", "commands.toggle_pin", "commands.toggle_palette", "commands.summary", "commands.action_add"))
+assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 4' in source and 'candidate.theme == "dark"' in source
+assert "setBorderRight" in source and "setBorderBottom" in source and "Geyser.CommandLine:new" in source
+assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.comm.quest"))
+assert "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source
+assert all(command in source for command in ('command="eqdata"', 'command="invdata"', '"invdetails "'))
 assert all(removed not in source for removed in ('slist affected', 'enqueue("resists"', 'tags spellup', 'details_affects', 'details_resists'))
-assert "DETAIL_LIMIT = 100" in source and "capture_timeout" in source and "schedule_targeted" in source
-assert "deleteLine" in source and 'return line:match("^%b{}") ~= nil' in source
-assert 'widgets.tick = new_gauge("tick", primary)' in source and "TICK_DURATION = 30" in source and "tick-countdown" in source
+assert "LIMIT, TIMER = 100" in source and "capture_timeout" in source and "Container ID did not match request" in source
+assert "deleteLine" in source and "aardwolf_interface.actions.confirm" in source
+assert 'payload and payload ~= "" and payload or line' not in source and 'command:find("[%c]")' in source
+assert "send(pending.command, false)" in source and "room.name" not in source[source.find("function aardwolf_interface.actions.execute"):source.find("local function valid")]
 assert "downloadFile" not in source and "io.popen" not in source and "loadstring" not in source
 ''' if feature.kind == "interface" else ""
     version_assertion = (
         f'\nassert metadata["version"] == "{feature.version}"'
-        if feature.kind in {"interface", "diagnostics", "tick"}
+        if feature.kind in {"interface", "diagnostics", "tick", "character"}
         else ""
     )
     diagnostics_assertions = '''assert "settings.enabled == true" in source
@@ -676,7 +717,16 @@ assert "Updated from gmcp.comm.tick" not in source
 assert "payload == nil" not in source
 assert (root / "tests" / "tick_stub_spec.lua").is_file()
 ''' if feature.kind == "tick" else ""
-    feature_assertions = interface_assertions + diagnostics_assertions + tick_assertions
+    character_assertions = '''assert "enabled = false" in source and "settings.enabled == true" in source
+assert "if aardwolf_character.settings.is_enabled() then" in source and "group members" in source
+''' if feature.kind == "character" else ""
+    feature_assertions = interface_assertions + diagnostics_assertions + tick_assertions + character_assertions
+    source_loader = (
+        f'''script_dir = root / "src" / "scripts" / "{feature.namespace}"
+source = "\\n".join((script_dir / (spec["name"].replace(".", "_") + ".lua")).read_text() for spec in json.loads((script_dir / "scripts.json").read_text()))'''
+        if feature.kind == "interface"
+        else f'''source = (root / "src" / "scripts" / "{feature.namespace}" / "{feature.namespace}_main.lua").read_text()'''
+    )
     test = f'''#!/usr/bin/env python3
 import json
 from pathlib import Path
@@ -690,7 +740,7 @@ assert aliases
 for alias in aliases:
     action = (root / "src" / "aliases" / "{feature.namespace}" / (alias["name"].replace(".", "_") + ".lua")).read_text()
     assert "{feature.namespace}.commands." in action
-source = (root / "src" / "scripts" / "{feature.namespace}" / "{feature.namespace}_main.lua").read_text()
+{source_loader}
 assert "{feature.namespace}" in source
 {'assert "send(" not in source' if feature.kind != 'interface' else 'assert "sendRaw" not in source and "sendSocket" not in source'}
 assert source.count("function {feature.namespace}.") >= 5

@@ -58,6 +58,41 @@ function aardwolf_map.state.is_owned_room(room_id)
   return getRoomUserData(room_id, aardwolf_map.state.owner_key()) == aardwolf_map.state.owner_value()
 end
 
+function aardwolf_map.state.room_ids()
+  if type(getRooms) ~= "function" then
+    return {}
+  end
+  local succeeded, rooms = pcall(getRooms)
+  if not succeeded or type(rooms) ~= "table" then
+    return {}
+  end
+  local result = {}
+  local seen = {}
+  for key, value in pairs(rooms) do
+    local room_id = tonumber(key)
+    if not room_id or room_id ~= math.floor(room_id) then
+      local value_room_id = tonumber(value)
+      if value_room_id then room_id = value_room_id end
+    end
+    if room_id and room_id == math.floor(room_id) and room_id >= 0 and not seen[room_id] then
+      seen[room_id] = true
+      result[#result + 1] = room_id
+    end
+  end
+  table.sort(result)
+  return result
+end
+
+function aardwolf_map.state.owned_room_count()
+  local count = 0
+  for _, room_id in ipairs(aardwolf_map.state.room_ids()) do
+    if aardwolf_map.state.is_owned_room(room_id) then
+      if count >= 0 then count = count + 1 end
+    end
+  end
+  return count
+end
+
 function aardwolf_map.state.write_room_data(room_id, key, value)
   if value ~= nil and value ~= "" then
     setRoomUserData(room_id, "aardwolf_map." .. key, tostring(value))

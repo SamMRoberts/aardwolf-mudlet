@@ -8,7 +8,7 @@ This package is a safe native Mudlet replacement for selected behavior from `aar
 
 ## Runtime boundary
 
-GMCP events: `gmcp.char.vitals`, `gmcp.group`. The package uses namespaced handlers, sends no game commands, and removes its handlers through `aardwolf_character.lifecycle.shutdown()`.
+The package stores bounded character vital and group snapshots. It is quiet by default; `groupon` and `groupoff` change notification behavior only, and no data collection or dashboard dependency is introduced.
 
 
 Use the generated `.mpackage` in `dist/` for installation. The raw XML only contains Mudlet objects.

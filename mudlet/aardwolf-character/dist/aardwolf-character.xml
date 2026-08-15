@@ -5,32 +5,24 @@
 </script><command></command><packageName></packageName><regex>^groupon$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_character.group_off</name><script>aardwolf_character.commands.set_enabled(false)
 </script><command></command><packageName></packageName><regex>^groupoff$</regex></Alias></AliasPackage><TriggerPackage></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aardwolf_character.main</name><script>aardwolf_character = aardwolf_character or {}
 aardwolf_character.state = aardwolf_character.state or {}
-
-function aardwolf_character.state.record(key, value)
-  aardwolf_character.state.values = aardwolf_character.state.values or {}
-  aardwolf_character.state.values[key] = value
-  aardwolf_character.state.update_count = (aardwolf_character.state.update_count or 0) + 1
+local function bounded(value, depth)
+  if type(value) ~= "table" then return value end
+  if depth &lt;= 0 then return {} end
+  local output, count = {}, 0
+  for key, item in pairs(value) do count=count+1; if count&gt;100 then break end; output[key]=bounded(item,depth-1) end
+  return output
 end
-
-function aardwolf_character.state.reset()
-  aardwolf_character.state.values = {}
-  aardwolf_character.state.update_count = 0
-end
-
+function aardwolf_character.state.record(key,value) aardwolf_character.state.values=aardwolf_character.state.values or {}; aardwolf_character.state.values[key]={value=bounded(value,3),received_at=os.time()} end
+function aardwolf_character.state.reset() aardwolf_character.state.values={} end
 function aardwolf_character.state.summary()
-  return "updates=" .. tostring(aardwolf_character.state.update_count or 0)
+  local values=aardwolf_character.state.values or {}; local vitals=values.vitals and values.vitals.value or {}; local group=values.group and values.group.value or {}
+  local members=type(group.members)=="table" and #group.members or type(group.chars)=="table" and #group.chars or 0
+  return string.format("HP %s/%s, Mana %s/%s, Moves %s/%s, group members %d",tostring(vitals.hp or "--"),tostring(vitals.maxhp or "--"),tostring(vitals.mana or "--"),tostring(vitals.maxmana or "--"),tostring(vitals.moves or "--"),tostring(vitals.maxmoves or "--"),members)
 end
 
-aardwolf_character = aardwolf_character or {}
-aardwolf_character.settings = aardwolf_character.settings or {}
-
-function aardwolf_character.settings.is_enabled()
-  return aardwolf_character.settings.enabled ~= false
-end
-
-function aardwolf_character.settings.set_enabled(enabled)
-  aardwolf_character.settings.enabled = enabled and true or false
-end
+aardwolf_character.settings = aardwolf_character.settings or {enabled = false}
+function aardwolf_character.settings.is_enabled() return aardwolf_character.settings.enabled == true end
+function aardwolf_character.settings.set_enabled(enabled) aardwolf_character.settings.enabled = enabled and true or false end
 
 aardwolf_character = aardwolf_character or {}
 aardwolf_character.ui = aardwolf_character.ui or {}
@@ -43,26 +35,11 @@ function aardwolf_character.ui.status(summary)
   aardwolf_character.ui.message("Status: " .. tostring(summary))
 end
 
-aardwolf_character = aardwolf_character or {}
 aardwolf_character.commands = aardwolf_character.commands or {}
-
-function aardwolf_character.commands.status()
-  aardwolf_character.ui.status(aardwolf_character.state.summary())
-end
-
-function aardwolf_character.commands.set_enabled(enabled)
-  aardwolf_character.settings.set_enabled(enabled)
-  aardwolf_character.ui.message(enabled and "Enabled." or "Disabled.")
-end
-
-function aardwolf_character.commands.toggle()
-  aardwolf_character.commands.set_enabled(not aardwolf_character.settings.is_enabled())
-end
-
-function aardwolf_character.commands.reset()
-  aardwolf_character.state.reset()
-  aardwolf_character.ui.message("State reset.")
-end
+function aardwolf_character.commands.status() aardwolf_character.ui.status(aardwolf_character.state.summary()) end
+function aardwolf_character.commands.set_enabled(enabled) aardwolf_character.settings.set_enabled(enabled); aardwolf_character.ui.message(enabled and "Group notifications enabled." or "Group notifications disabled.") end
+function aardwolf_character.commands.toggle() aardwolf_character.commands.set_enabled(not aardwolf_character.settings.is_enabled()) end
+function aardwolf_character.commands.reset() aardwolf_character.state.reset(); aardwolf_character.ui.message("Character snapshot reset.") end
 
 aardwolf_character = aardwolf_character or {}
 aardwolf_character.protocol = aardwolf_character.protocol or {}
