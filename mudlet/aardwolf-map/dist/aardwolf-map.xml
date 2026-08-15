@@ -277,7 +277,11 @@ end
 function aardwolf_map.ui.status(status)
   local phase = status.phase or "idle"
   local error_text = status.error_message and ("; error " .. tostring(status.error_message)) or ""
-  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. ".")
+  local guidance = ""
+  if (status.owned_count or 0) == 0 and phase ~= "rooms" and phase ~= "exits" then
+    guidance = " No Aardwolf rooms have been merged yet. Run 'aard map import'; do not use Mudlet's 'map load' or Mapper &gt; Load Map for the packaged database, JSON, XML, or .mpackage files."
+  end
+  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. "." .. guidance)
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.lifecycle</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.lifecycle = aardwolf_map.lifecycle or {}
@@ -768,6 +772,6 @@ aardwolf_map.lifecycle.initialize()
 aardwolf_map.help = aardwolf_map.help or {}
 
 function aardwolf_map.help.summary()
-  return "Commands: aard map import, aard map import cancel, aard map status, and aard map palette (source|obsidian|high-contrast)."
+  return "Commands: aard map import, aard map import cancel, aard map status, and aard map palette (source|obsidian|high-contrast). Install the .mpackage with Package Manager, then use aard map import; the Mapper loadMap path cannot read Aardwolf.db or the packaged JSON."
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

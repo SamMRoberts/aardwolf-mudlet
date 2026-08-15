@@ -50,6 +50,7 @@ def main() -> int:
     lifecycle = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_lifecycle.lua").read_text(encoding="utf-8")
     protocol = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_protocol.lua").read_text(encoding="utf-8")
     state = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_state.lua").read_text(encoding="utf-8")
+    ui = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_ui.lua").read_text(encoding="utf-8")
     require("createRoomID()" in lifecycle and "setRoomIDbyHash" in lifecycle, "importer does not use compact owned IDs")
     require("setCustomEnvColor" in lifecycle and "source_ansi_rgb" in lifecycle and "obsidian_rgb" in lifecycle and "high_contrast_rgb" in lifecycle, "terrain palettes are incomplete")
     require("function aardwolf_map.lifecycle.refresh_environment_colors()" in lifecycle, "profile load does not restore the terrain palette")
@@ -62,6 +63,9 @@ def main() -> int:
     require("centerview(room_id)" in protocol and "send(" not in protocol, "GMCP handler has side effects beyond centering")
     require("aardwolf-map/resources/aardwolf-map-v11.json" in state, "map resource does not support the standalone package directory")
     require("aardwolf-mudlet-suite/resources/aardwolf-map-v11.json" in state, "map resource does not support the suite package directory")
+    require("do not use Mudlet's 'map load'" in ui and "aard map import" in ui, "map status does not distinguish the package importer from Mudlet's native map loader")
+    readme = (PACKAGE / "README.md").read_text(encoding="utf-8")
+    require("no format version detected" in readme and "Package Manager" in readme, "installation guidance does not explain the native map-loader mismatch")
     return 0
 
 

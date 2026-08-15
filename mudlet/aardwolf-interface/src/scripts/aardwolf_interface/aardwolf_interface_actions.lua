@@ -8,6 +8,7 @@ local curated = {
   resists={id="resists",label="Resists",category="Character",command="resists"},
   quest_refresh={id="quest-refresh",label="Refresh Quest",category="Refresh",local_action="quest"},
   details_refresh={id="details-refresh",label="Refresh Inventory",category="Refresh",local_action="details"},
+  map_import={id="map-import",label="Import Map",category="Map",local_action="import"},
   map_center={id="map-center",label="Center Map",category="Map",local_action="center"},
   map_zoom_in={id="map-zoom-in",label="Zoom In",category="Map",local_action="zoom-in"},
   map_zoom_out={id="map-zoom-out",label="Zoom Out",category="Map",local_action="zoom-out"},
@@ -47,6 +48,10 @@ end
 function aardwolf_interface.actions.execute(id)
   if id=="quest-refresh" then return aardwolf_interface.lifecycle.request_quest(true) end
   if id=="details-refresh" then aardwolf_interface.details.refresh(); return true end
+  if id=="map-import" then
+    if aardwolf_map and aardwolf_map.commands and aardwolf_map.commands.start_import then aardwolf_map.commands.start_import(); return true end
+    return false, "The aardwolf-map package is unavailable"
+  end
   if id=="map-center" then aardwolf_interface.lifecycle.center_map(); return true end
   if id=="map-zoom-in" or id=="map-zoom-out" then
     local mapper=aardwolf_interface.ui and aardwolf_interface.ui.mapper

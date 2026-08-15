@@ -1133,6 +1133,7 @@ local curated = {
   resists={id="resists",label="Resists",category="Character",command="resists"},
   quest_refresh={id="quest-refresh",label="Refresh Quest",category="Refresh",local_action="quest"},
   details_refresh={id="details-refresh",label="Refresh Inventory",category="Refresh",local_action="details"},
+  map_import={id="map-import",label="Import Map",category="Map",local_action="import"},
   map_center={id="map-center",label="Center Map",category="Map",local_action="center"},
   map_zoom_in={id="map-zoom-in",label="Zoom In",category="Map",local_action="zoom-in"},
   map_zoom_out={id="map-zoom-out",label="Zoom Out",category="Map",local_action="zoom-out"},
@@ -1172,6 +1173,10 @@ end
 function aardwolf_interface.actions.execute(id)
   if id=="quest-refresh" then return aardwolf_interface.lifecycle.request_quest(true) end
   if id=="details-refresh" then aardwolf_interface.details.refresh(); return true end
+  if id=="map-import" then
+    if aardwolf_map and aardwolf_map.commands and aardwolf_map.commands.start_import then aardwolf_map.commands.start_import(); return true end
+    return false, "The aardwolf-map package is unavailable"
+  end
   if id=="map-center" then aardwolf_interface.lifecycle.center_map(); return true end
   if id=="map-zoom-in" or id=="map-zoom-out" then
     local mapper=aardwolf_interface.ui and aardwolf_interface.ui.mapper
@@ -1852,6 +1857,7 @@ function ui.build()
 
   local map = w.map_content
   w.map_toolbar = new_container("map-toolbar", map)
+  w.map_import = new_button("map-import", w.map_toolbar, execute_action("map-import"), "Merge the packaged Aardwolf snapshot; do not use Mudlet's native map loader")
   w.map_center = new_button("map-center", w.map_toolbar, function() if aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.center_map then aardwolf_interface.lifecycle.center_map() end end, "Center the map on the current room")
   w.map_zoom_in = new_button("map-zoom-in", w.map_toolbar, execute_action("map-zoom-in"), "Zoom map in")
   w.map_zoom_out = new_button("map-zoom-out", w.map_toolbar, execute_action("map-zoom-out"), "Zoom map out")
@@ -1923,7 +1929,7 @@ function ui.apply_theme()
   for _, name in ipairs({"background", "bottom_background", "inspector_background", "drawer_background", "editor_background", "confirm_background"}) do safe(widget(name), "setStyleSheet", panel) end
   for _, name in ipairs({"header", "inspector_header", "drawer_header", "editor_title"}) do safe(widget(name), "setStyleSheet", header) end
   for _, name in ipairs({"map_status", "map_legend", "character_card", "group_card", "inventory_card", "inspector_body", "drawer_actions", "editor_help", "confirm_text"}) do safe(widget(name), "setStyleSheet", section) end
-  for _, name in ipairs({"rail", "palette_toggle", "pin_toggle", "map_center", "map_zoom_in", "map_zoom_out", "inventory_equipment", "inventory_bags", "inventory_empty", "inventory_refresh", "drawer_close", "drawer_add", "drawer_prev", "drawer_next", "editor_save", "editor_cancel", "confirm_send", "confirm_cancel", "page_prev", "page_next"}) do safe(widget(name), "setStyleSheet", button) end
+  for _, name in ipairs({"rail", "palette_toggle", "pin_toggle", "map_import", "map_center", "map_zoom_in", "map_zoom_out", "inventory_equipment", "inventory_bags", "inventory_empty", "inventory_refresh", "drawer_close", "drawer_add", "drawer_prev", "drawer_next", "editor_save", "editor_cancel", "confirm_send", "confirm_cancel", "page_prev", "page_next"}) do safe(widget(name), "setStyleSheet", button) end
   for index = 1, 4 do safe(widget("context_" .. index), "setStyleSheet", button) end
   for index = 1, 12 do safe(widget("drawer_action_" .. index), "setStyleSheet", button) end
   for _, tab in ipairs(TABS) do safe(widget("tab_" .. tab), "setStyleSheet", data().active_tab == tab and selected or button) end
@@ -1995,9 +2001,10 @@ function ui.reflow()
     local page_reserved = widget("pager") and 32 or 0
     for _, tab in ipairs(TABS) do safe(widget(tab .. "_content"), "move", 0, 0); safe(widget(tab .. "_content"), "resize", content_width, content_height - page_reserved) end
     safe(widget("map_toolbar"), "move", 0, 0); safe(widget("map_toolbar"), "resize", content_width, 32)
-    safe(widget("map_center"), "move", 0, 0); safe(widget("map_center"), "resize", 82, 30)
-    safe(widget("map_zoom_in"), "move", 88, 0); safe(widget("map_zoom_in"), "resize", 38, 30)
-    safe(widget("map_zoom_out"), "move", 132, 0); safe(widget("map_zoom_out"), "resize", 38, 30)
+    safe(widget("map_import"), "move", 0, 0); safe(widget("map_import"), "resize", 78, 30)
+    safe(widget("map_center"), "move", 84, 0); safe(widget("map_center"), "resize", 78, 30)
+    safe(widget("map_zoom_in"), "move", 168, 0); safe(widget("map_zoom_in"), "resize", 38, 30)
+    safe(widget("map_zoom_out"), "move", 212, 0); safe(widget("map_zoom_out"), "resize", 38, 30)
     safe(widget("map_status"), "move", 0, 36); safe(widget("map_status"), "resize", content_width, 58)
     safe(widget("mapper"), "move", 0, 100); safe(widget("mapper"), "resize", content_width, math.max(120, content_height - 190))
     safe(widget("map_legend"), "move", 0, math.max(226, content_height - 84)); safe(widget("map_legend"), "resize", content_width, 80)
@@ -2103,11 +2110,15 @@ end
 local function render_map()
   local room, map = value("room"), value("map")
   local badge = status_badge("map")
+  set_button_text(widget("map_import"), "Import")
   set_button_text(widget("map_center"), "Center")
   set_button_text(widget("map_zoom_in"), "+")
   set_button_text(widget("map_zoom_out"), "-")
-  safe(widget("map_status"), "echo", string.format("&lt;b&gt;Map %s&lt;/b&gt; &amp;middot; %s&lt;br&gt;Room %s &amp;rarr; %s &amp;middot; owned %s &amp;middot; source %s&lt;br&gt;Coordinates: %s, %s, %s",
-    escape(badge), escape(map.phase or map.import_phase or "idle"), escape(room.num or room.vnum), escape(map.room_id or map.resolved_room_id), escape(display(map.owned_room_count or map.owned_count)), escape(map.source_hash or "--"), escape(display(room.x)), escape(display(room.y)), escape(display(room.z))))
+  local phase = map.phase or map.import_phase or "idle"
+  local owned = finite(map.owned_room_count or map.owned_count) or 0
+  local guidance = owned == 0 and phase ~= "rooms" and phase ~= "exits" and "&lt;br&gt;&lt;font color='" .. theme().warning .. "'&gt;Use Import here or 'aard map import'—not Mudlet's Map Load.&lt;/font&gt;" or ""
+  safe(widget("map_status"), "echo", string.format("&lt;b&gt;Map %s&lt;/b&gt; &amp;middot; %s&lt;br&gt;Room %s &amp;rarr; %s &amp;middot; owned %s &amp;middot; source %s&lt;br&gt;Coordinates: %s, %s, %s%s",
+    escape(badge), escape(phase), escape(room.num or room.vnum), escape(map.room_id or map.resolved_room_id), escape(display(owned)), escape(map.source_hash or "--"), escape(display(room.x)), escape(display(room.y)), escape(display(room.z)), guidance))
   local legend = map.legend or room.legend
   if type(legend) == "table" then
     local entries = {}; for name, color in pairs(legend) do entries[#entries + 1] = "&lt;font color='" .. escape(color) .. "'&gt;&amp;#9670;&lt;/font&gt; " .. escape(name) end; table.sort(entries)
@@ -3009,7 +3020,11 @@ end
 function aardwolf_map.ui.status(status)
   local phase = status.phase or "idle"
   local error_text = status.error_message and ("; error " .. tostring(status.error_message)) or ""
-  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. ".")
+  local guidance = ""
+  if (status.owned_count or 0) == 0 and phase ~= "rooms" and phase ~= "exits" then
+    guidance = " No Aardwolf rooms have been merged yet. Run 'aard map import'; do not use Mudlet's 'map load' or Mapper &gt; Load Map for the packaged database, JSON, XML, or .mpackage files."
+  end
+  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. "; palette " .. tostring(status.palette or "source") .. error_text .. "." .. guidance)
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.lifecycle</name><script>aardwolf_map = aardwolf_map or {}
 aardwolf_map.lifecycle = aardwolf_map.lifecycle or {}
@@ -3500,6 +3515,6 @@ aardwolf_map.lifecycle.initialize()
 aardwolf_map.help = aardwolf_map.help or {}
 
 function aardwolf_map.help.summary()
-  return "Commands: aard map import, aard map import cancel, aard map status, and aard map palette (source|obsidian|high-contrast)."
+  return "Commands: aard map import, aard map import cancel, aard map status, and aard map palette (source|obsidian|high-contrast). Install the .mpackage with Package Manager, then use aard map import; the Mapper loadMap path cannot read Aardwolf.db or the packaged JSON."
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

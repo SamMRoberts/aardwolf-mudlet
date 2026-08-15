@@ -33,7 +33,11 @@ This package does not reproduce the MUSHclient mapper's editing workflow, portal
 
 ## Installation and distributable artifacts
 
-Import [the native XML export](dist/aardwolf-map.xml) in Mudlet when you only need the package objects. The map JSON resource is not embedded in a raw Mudlet XML export, so a functional installation should import [the native package](dist/aardwolf-map.mpackage), which includes the declared JSON asset.
+Install [the native package](dist/aardwolf-map.mpackage) with Mudlet's **Package Manager** (`Alt+O`), then enter `aard map import` in the game command line. The package contains a merge-safe conversion resource; it is not itself a Mudlet map backup.
+
+Do not select `Aardwolf.db`, `aardwolf-map-v11.json`, `aardwolf-map.xml`, or an `.mpackage` from **Preferences > Mapper > Load another map**, and do not pass them to the generic mapper's `map load` command. Mudlet's native map loader accepts Mudlet map backups or MMP XML and requires an embedded map format version. Using that loader for one of this package's inputs produces `no format version detected`; it does not mean the packaged snapshot is corrupt. Use `aard map status` followed by `aard map import` instead.
+
+The raw [native XML export](dist/aardwolf-map.xml) contains only package objects and is intended for controlled inspection/import through Package Manager tooling. It omits the required JSON resource and cannot provide a functional map installation by itself.
 
 The all-in-one `mudlet/dist/aardwolf-mudlet-suite.mpackage` also includes this
 asset. The importer checks its standalone package directory first, then the

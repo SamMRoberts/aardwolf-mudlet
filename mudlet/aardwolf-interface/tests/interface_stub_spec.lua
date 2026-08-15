@@ -64,6 +64,7 @@ end
 local function class(kind) return {new=function(_,constraints,parent) return object(kind,constraints,parent) end} end
 Geyser={Container=class("container"),Label=class("label"),Button=class("button"),Mapper=class("mapper"),CommandLine=class("commandline")}
 gmcp={char={base={name="Denzil",class="Ranger",race="Triton",level=3},vitals={hp=204,maxhp=204,mana=180,maxmana=180,moves=532,maxmoves=532,tnl=316,hunger=100,thirst=100},maxstats={},status={state=3},stats={str=21},worth={gold=50000,qp=64}},room={info={num=14070,name="Hallway",area="Academy",terrain="academy",exits={n=1,e=2},coord={x=0,y=30,cont=20}}},group={},comm={}}
+aardwolf_map={commands={start_import=function() objects.map_imports=(objects.map_imports or 0)+1 end}}
 
 -- Simulate an in-place upgrade where Mudlet retained the pre-1.5 monolithic
 -- script, its Geyser roots, exact border ownership, and named runtime objects.
@@ -118,6 +119,7 @@ local custom=aardwolf_interface.actions.custom()[1]
 assert(aardwolf_interface.actions.execute(custom.id))
 assert(#sent==0 and aardwolf_interface.actions.pending().command=="who")
 assert(aardwolf_interface.actions.confirm() and sent[1].command=="who")
+assert(aardwolf_interface.actions.execute("map-import") and objects.map_imports==1 and #sent==1)
 gmcp.room.info.name="north;quit"
 aardwolf_interface.protocol.room(); assert(aardwolf_interface.actions.execute("look")); assert(sent[2].command=="look")
 

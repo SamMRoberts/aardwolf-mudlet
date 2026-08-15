@@ -109,7 +109,9 @@ The interface does not make unsolicited speech announcements. Text-to-speech rem
 
 ## Map integration
 
-The interface embeds Mudlet's mapper but does not manufacture map readiness from unrelated rooms. Install `aardwolf-map` or the suite and run `aard map import` to import its packaged Aardwolf snapshot. Map status distinguishes import state, a resolved current Aardwolf room, stale data, and errors.
+The interface embeds Mudlet's mapper but does not manufacture map readiness from unrelated rooms. Install `aardwolf-map` or the suite with Mudlet's Package Manager, then use the Map tab's **Import** button or run `aard map import` to merge its packaged Aardwolf snapshot. Map status distinguishes import state, a resolved current Aardwolf room, stale data, and errors.
+
+Do not use Mudlet's Mapper **Load another map**, the generic mapper's `map load`, or `loadMap()` with `Aardwolf.db`, the packaged JSON, package XML, or `.mpackage`. Those are not native Mudlet map backups and will produce `no format version detected`.
 
 ## Troubleshooting
 
