@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -21,6 +22,7 @@ FEATURE_PACKAGES = (
     "aardwolf-profile-data",
     "aardwolf-accessibility",
 )
+ALL_RELEASE_PACKAGES = ("aardwolf-mushclient-collection", *FEATURE_PACKAGES, "aardwolf-map")
 
 
 def read(relative: str) -> str:
@@ -83,6 +85,25 @@ def main() -> None:
         assert feature_metadata["name"] == package
         assert feature_metadata["version"] == "1.0.0"
         assert (project / "dist" / "README.md").is_file()
+
+    suite_xml_path = mudlet_root / "dist" / "aardwolf-mudlet-suite.xml"
+    suite_package_path = mudlet_root / "dist" / "aardwolf-mudlet-suite.mpackage"
+    suite_root = ET.parse(suite_xml_path).getroot()
+    assert suite_root.tag == "MudletPackage"
+    with zipfile.ZipFile(suite_package_path) as archive:
+        assert archive.namelist() == ["aardwolf-mudlet-suite.xml", "resources/aardwolf-map-v11.json"]
+        assert archive.read("aardwolf-mudlet-suite.xml") == suite_xml_path.read_bytes()
+        with zipfile.ZipFile(mudlet_root / "aardwolf-map" / "dist" / "aardwolf-map.mpackage") as map_archive:
+            assert archive.read("resources/aardwolf-map-v11.json") == map_archive.read("resources/aardwolf-map-v11.json")
+    for category in ("AliasPackage", "TriggerPackage", "TimerPackage", "ScriptPackage", "KeyPackage"):
+        expected = []
+        for package in ALL_RELEASE_PACKAGES:
+            root = ET.parse(mudlet_root / package / "dist" / f"{package}.xml").getroot()
+            source = root.find(category)
+            expected.extend([] if source is None else [element.text for element in source.iter("name")])
+        actual_package = suite_root.find(category)
+        actual = [] if actual_package is None else [element.text for element in actual_package.iter("name")]
+        assert actual == expected
 
 
 if __name__ == "__main__":

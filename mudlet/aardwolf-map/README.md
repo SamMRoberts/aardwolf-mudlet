@@ -24,6 +24,10 @@ This package does not reproduce the MUSHclient mapper's editing workflow, portal
 
 Import [the native XML export](dist/aardwolf-map.xml) in Mudlet when you only need the package objects. The map JSON resource is not embedded in a raw Mudlet XML export, so a functional installation should import [the native package](dist/aardwolf-map.mpackage), which includes the declared JSON asset.
 
+The all-in-one `mudlet/dist/aardwolf-mudlet-suite.mpackage` also includes this
+asset. The importer checks its standalone package directory first, then the
+suite package directory. Do not install both archives into the same profile.
+
 Both files are generated, never hand-edited. Regenerate them with:
 
 ```sh

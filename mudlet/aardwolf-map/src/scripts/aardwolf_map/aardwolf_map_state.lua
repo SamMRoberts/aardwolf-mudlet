@@ -5,6 +5,13 @@ function aardwolf_map.state.resource_path()
   return getMudletHomeDir() .. "/aardwolf-map/aardwolf-map-v11.json"
 end
 
+function aardwolf_map.state.resource_paths()
+  return {
+    aardwolf_map.state.resource_path(),
+    getMudletHomeDir() .. "/aardwolf-mudlet-suite/aardwolf-map-v11.json",
+  }
+end
+
 function aardwolf_map.state.owner_value()
   return "Aardwolf.db/v11"
 end
@@ -18,23 +25,25 @@ function aardwolf_map.state.hash_for_vnum(vnum)
 end
 
 function aardwolf_map.state.read_resource()
-  local file, open_error = io.open(aardwolf_map.state.resource_path(), "rb")
-  if not file then
-    return nil, "The packaged map resource could not be opened: " .. tostring(open_error)
+  for _, path in ipairs(aardwolf_map.state.resource_paths()) do
+    local file = io.open(path, "rb")
+    if file then
+      local contents = file:read("*a")
+      file:close()
+      local succeeded, value = pcall(yajl.to_value, contents)
+      if not succeeded or type(value) ~= "table" then
+        return nil, "The packaged map resource is not valid JSON."
+      end
+      if value.schema_version ~= 1 or type(value.source) ~= "table" or type(value.source.sha256) ~= "string" then
+        return nil, "The packaged map resource has an unsupported schema."
+      end
+      if type(value.rooms) ~= "table" or type(value.exits) ~= "table" or type(value.areas) ~= "table" then
+        return nil, "The packaged map resource is missing map records."
+      end
+      return value, nil
+    end
   end
-  local contents = file:read("*a")
-  file:close()
-  local succeeded, value = pcall(yajl.to_value, contents)
-  if not succeeded or type(value) ~= "table" then
-    return nil, "The packaged map resource is not valid JSON."
-  end
-  if value.schema_version ~= 1 or type(value.source) ~= "table" or type(value.source.sha256) ~= "string" then
-    return nil, "The packaged map resource has an unsupported schema."
-  end
-  if type(value.rooms) ~= "table" or type(value.exits) ~= "table" or type(value.areas) ~= "table" then
-    return nil, "The packaged map resource is missing map records."
-  end
-  return value, nil
+  return nil, "The packaged map resource could not be opened from its standalone or suite package directory."
 end
 
 function aardwolf_map.state.room_id_for_vnum(vnum)

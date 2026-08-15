@@ -1,0 +1,1536 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001"><AliasPackage><Alias isActive="yes" isFolder="no"><name>aardwolf_gmcp_diagnostics.status</name><script>aardwolf_gmcp_diagnostics.commands.status()
+</script><command></command><packageName></packageName><regex>^aard gmcp status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_gmcp_diagnostics.toggle</name><script>aardwolf_gmcp_diagnostics.commands.set_enabled(matches[2] == 'on')
+</script><command></command><packageName></packageName><regex>^gmcpdebug (on|off)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_tick.status</name><script>aardwolf_tick.commands.status()
+</script><command></command><packageName></packageName><regex>^aard tick( help| miniwin| status)?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_tick.reset</name><script>aardwolf_tick.commands.reset()
+</script><command></command><packageName></packageName><regex>^aard tick reset$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_console.status</name><script>aardwolf_console.commands.status()
+</script><command></command><packageName></packageName><regex>^aard console status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_console.toggle</name><script>aardwolf_console.commands.toggle()
+</script><command></command><packageName></packageName><regex>^showcommandtags(.*)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_communication.status</name><script>aardwolf_communication.commands.status()
+</script><command></command><packageName></packageName><regex>^aard comm status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_communication.toggle</name><script>aardwolf_communication.commands.set_enabled(matches[2] ~= ' off')
+</script><command></command><packageName></packageName><regex>^chats? echo( on| off| channels| nonchannels)?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_character.status</name><script>aardwolf_character.commands.status()
+</script><command></command><packageName></packageName><regex>^aard character status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_character.group_on</name><script>aardwolf_character.commands.set_enabled(true)
+</script><command></command><packageName></packageName><regex>^groupon$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_character.group_off</name><script>aardwolf_character.commands.set_enabled(false)
+</script><command></command><packageName></packageName><regex>^groupoff$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_help.help</name><script>aardwolf_help.commands.status()
+</script><command></command><packageName></packageName><regex>^aard help$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_help.legacy_help</name><script>aardwolf_help.commands.status()
+</script><command></command><packageName></packageName><regex>^mchelps?(?: .*)?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.status</name><script>aardwolf_interface.commands.status()
+</script><command></command><packageName></packageName><regex>^aard interface status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.theme</name><script>aardwolf_interface.commands.toggle()
+</script><command></command><packageName></packageName><regex>^aard theme change$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_profile_data.status</name><script>aardwolf_profile_data.commands.status()
+</script><command></command><packageName></packageName><regex>^aard data status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_profile_data.note</name><script>aardwolf_profile_data.commands.note(matches[2])
+</script><command></command><packageName></packageName><regex>^aard data note (.+)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_profile_data.export</name><script>aardwolf_profile_data.commands.export()
+</script><command></command><packageName></packageName><regex>^aard data export$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_profile_data.import</name><script>aardwolf_profile_data.commands.import()
+</script><command></command><packageName></packageName><regex>^aard data import$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.status</name><script>aardwolf_accessibility.commands.status()
+</script><command></command><packageName></packageName><regex>^tts(?: (?:focus|help|running))?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.toggle</name><script>aardwolf_accessibility.commands.set_enabled(matches[2] == 'on')
+</script><command></command><packageName></packageName><regex>^sapi (on|off)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.say</name><script>aardwolf_accessibility.commands.speak(matches[2])
+</script><command></command><packageName></packageName><regex>^sapi say (.+)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.note</name><script>aardwolf_accessibility.commands.speak(matches[2])
+</script><command></command><packageName></packageName><regex>^tts_note (.+)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.clear</name><script>aardwolf_accessibility.commands.clear()
+</script><command></command><packageName></packageName><regex>^sapi (?:clear|skip)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.stop</name><script>aardwolf_accessibility.commands.clear()
+</script><command></command><packageName></packageName><regex>^tts_stop$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.rate</name><script>aardwolf_accessibility.commands.rate(matches[2])
+</script><command></command><packageName></packageName><regex>^sapi (faster|slower)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.rate_value</name><script>aardwolf_accessibility.commands.rate_value(matches[2])
+</script><command></command><packageName></packageName><regex>^sapi rate(?: (.+))?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.voices</name><script>aardwolf_accessibility.commands.voices()
+</script><command></command><packageName></packageName><regex>^sapi list voices$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.voice</name><script>aardwolf_accessibility.commands.voice(matches[2])
+</script><command></command><packageName></packageName><regex>^sapi voice (.+)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.status_help</name><script>aardwolf_accessibility.commands.status()
+</script><command></command><packageName></packageName><regex>^sapi (?:debug|filtering(?: .*)?|help(?: printed)?)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.test</name><script>aardwolf_accessibility.commands.speak('Text-to-speech test.')
+</script><command></command><packageName></packageName><regex>^sapi test$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_accessibility.interrupt</name><script>aardwolf_accessibility.commands.interrupt(matches[2])
+</script><command></command><packageName></packageName><regex>^tts_interrupt (.*)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.import</name><script>aardwolf_map.commands.start_import()
+</script><command></command><packageName></packageName><regex>^aard map import$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.import_cancel</name><script>aardwolf_map.commands.cancel_import()
+</script><command></command><packageName></packageName><regex>^aard map import cancel$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_map.status</name><script>aardwolf_map.commands.show_status()
+</script><command></command><packageName></packageName><regex>^aard map status$</regex></Alias></AliasPackage><TriggerPackage><Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no"><name>aardwolf_mushclient_collection.omit_blank_lines</name><script>aardwolf_mushclient_collection.commands.omit_blank_line()
+</script><triggerType>0</triggerType><conditonLineDelta>0</conditonLineDelta><mStayOpen>0</mStayOpen><mCommand></mCommand><packageName></packageName><path></path><mFgColor>#ff0000</mFgColor><mBgColor>#ffff00</mBgColor><mSoundFile></mSoundFile><colorTriggerFgColor>#000000</colorTriggerFgColor><colorTriggerBgColor>#000000</colorTriggerBgColor><regexCodeList><string>^$</string></regexCodeList><regexCodePropertyList><integer>1</integer></regexCodePropertyList></Trigger></TriggerPackage><TimerPackage></TimerPackage><ScriptPackage><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.state</name><script>aardwolf_mushclient_collection = aardwolf_mushclient_collection or {}
+aardwolf_mushclient_collection.state = aardwolf_mushclient_collection.state or {}
+
+function aardwolf_mushclient_collection.state.initialize()
+  if aardwolf_mushclient_collection.state.started == nil then
+    aardwolf_mushclient_collection.state.started = false
+  end
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.settings</name><script>aardwolf_mushclient_collection.settings = aardwolf_mushclient_collection.settings or {}
+
+function aardwolf_mushclient_collection.settings.initialize()
+  return { time_label_x = 0, time_label_y = 0 }
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.commands</name><script>aardwolf_mushclient_collection.commands = aardwolf_mushclient_collection.commands or {}
+
+function aardwolf_mushclient_collection.commands.omit_blank_line()
+  deleteLine()
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.protocol</name><script>aardwolf_mushclient_collection.protocol = aardwolf_mushclient_collection.protocol or {}
+
+function aardwolf_mushclient_collection.protocol.start()
+  return true
+end
+
+function aardwolf_mushclient_collection.protocol.stop()
+  return true
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.ui</name><script>aardwolf_mushclient_collection.ui = aardwolf_mushclient_collection.ui or {}
+
+function aardwolf_mushclient_collection.ui.create(settings)
+  if aardwolf_mushclient_collection.state.time_label then
+    return
+  end
+
+  aardwolf_mushclient_collection.state.time_label = Geyser.Label:new({ name = "aardwolf-mushclient-collection::ui::time-label", x = settings.time_label_x, y = settings.time_label_y, width = "22c", height = "1c", fgColor = "white", color = "black" })
+  aardwolf_mushclient_collection.ui.refresh_time()
+end
+
+function aardwolf_mushclient_collection.ui.refresh_time()
+  local label = aardwolf_mushclient_collection.state.time_label
+  if label then
+    label:echo(os.date("[%d %b %H:%M:%S]"))
+  end
+end
+
+function aardwolf_mushclient_collection.ui.destroy()
+  local label = aardwolf_mushclient_collection.state.time_label
+  if label then
+    label:delete()
+    aardwolf_mushclient_collection.state.time_label = nil
+  end
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.lifecycle</name><script>aardwolf_mushclient_collection.lifecycle = aardwolf_mushclient_collection.lifecycle or {}
+
+function aardwolf_mushclient_collection.lifecycle.start()
+  if aardwolf_mushclient_collection.state.started then
+    return
+  end
+
+  local settings = aardwolf_mushclient_collection.settings.initialize()
+  aardwolf_mushclient_collection.ui.create(settings)
+  registerNamedTimer(
+    "aardwolf_mushclient_collection",
+    "aardwolf-mushclient-collection::timer::time-display",
+    1,
+    aardwolf_mushclient_collection.ui.refresh_time,
+    true
+  )
+  aardwolf_mushclient_collection.protocol.start()
+  aardwolf_mushclient_collection.state.started = true
+end
+
+function aardwolf_mushclient_collection.lifecycle.shutdown()
+  if not aardwolf_mushclient_collection.state.started then
+    return
+  end
+
+  deleteNamedTimer(
+    "aardwolf_mushclient_collection",
+    "aardwolf-mushclient-collection::timer::time-display"
+  )
+  aardwolf_mushclient_collection.protocol.stop()
+  aardwolf_mushclient_collection.ui.destroy()
+  aardwolf_mushclient_collection.state.started = false
+end
+
+aardwolf_mushclient_collection.state.initialize()
+aardwolf_mushclient_collection.lifecycle.start()
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_mushclient_collection.help</name><script>aardwolf_mushclient_collection.help = aardwolf_mushclient_collection.help or {}
+
+function aardwolf_mushclient_collection.help.show()
+  cecho("&lt;green&gt;Aardwolf MUSHclient Collection&lt;/green&gt;: the Time display and blank-line omission are active.\n")
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_gmcp_diagnostics.main</name><script>aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.state = aardwolf_gmcp_diagnostics.state or {}
+
+function aardwolf_gmcp_diagnostics.state.record(key, value)
+  aardwolf_gmcp_diagnostics.state.values = aardwolf_gmcp_diagnostics.state.values or {}
+  aardwolf_gmcp_diagnostics.state.values[key] = value
+  aardwolf_gmcp_diagnostics.state.update_count = (aardwolf_gmcp_diagnostics.state.update_count or 0) + 1
+end
+
+function aardwolf_gmcp_diagnostics.state.reset()
+  aardwolf_gmcp_diagnostics.state.values = {}
+  aardwolf_gmcp_diagnostics.state.update_count = 0
+end
+
+function aardwolf_gmcp_diagnostics.state.summary()
+  return "updates=" .. tostring(aardwolf_gmcp_diagnostics.state.update_count or 0)
+end
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.settings = aardwolf_gmcp_diagnostics.settings or {}
+
+function aardwolf_gmcp_diagnostics.settings.is_enabled()
+  return aardwolf_gmcp_diagnostics.settings.enabled ~= false
+end
+
+function aardwolf_gmcp_diagnostics.settings.set_enabled(enabled)
+  aardwolf_gmcp_diagnostics.settings.enabled = enabled and true or false
+end
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.ui = aardwolf_gmcp_diagnostics.ui or {}
+
+function aardwolf_gmcp_diagnostics.ui.message(message)
+  echo("\n[aardwolf-gmcp-diagnostics] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_gmcp_diagnostics.ui.status(summary)
+  aardwolf_gmcp_diagnostics.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.commands = aardwolf_gmcp_diagnostics.commands or {}
+
+function aardwolf_gmcp_diagnostics.commands.status()
+  aardwolf_gmcp_diagnostics.ui.status(aardwolf_gmcp_diagnostics.state.summary())
+end
+
+function aardwolf_gmcp_diagnostics.commands.set_enabled(enabled)
+  aardwolf_gmcp_diagnostics.settings.set_enabled(enabled)
+  aardwolf_gmcp_diagnostics.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_gmcp_diagnostics.commands.toggle()
+  aardwolf_gmcp_diagnostics.commands.set_enabled(not aardwolf_gmcp_diagnostics.settings.is_enabled())
+end
+
+function aardwolf_gmcp_diagnostics.commands.reset()
+  aardwolf_gmcp_diagnostics.state.reset()
+  aardwolf_gmcp_diagnostics.ui.message("State reset.")
+end
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.protocol = aardwolf_gmcp_diagnostics.protocol or {}
+
+function aardwolf_gmcp_diagnostics.protocol.on_room_info()
+  local payload = gmcp and gmcp.room and gmcp.room.info
+  if payload == nil then
+    return
+  end
+  aardwolf_gmcp_diagnostics.state.record("room_info", payload)
+  if aardwolf_gmcp_diagnostics.settings.is_enabled() then
+    aardwolf_gmcp_diagnostics.ui.message("Updated from gmcp.room.info.")
+  end
+end
+
+function aardwolf_gmcp_diagnostics.protocol.on_vitals()
+  local payload = gmcp and gmcp.char and gmcp.char.vitals
+  if payload == nil then
+    return
+  end
+  aardwolf_gmcp_diagnostics.state.record("vitals", payload)
+  if aardwolf_gmcp_diagnostics.settings.is_enabled() then
+    aardwolf_gmcp_diagnostics.ui.message("Updated from gmcp.char.vitals.")
+  end
+end
+
+function aardwolf_gmcp_diagnostics.protocol.on_tick()
+  local payload = gmcp and gmcp.comm and gmcp.comm.tick
+  if payload == nil then
+    return
+  end
+  aardwolf_gmcp_diagnostics.state.record("tick", payload)
+  if aardwolf_gmcp_diagnostics.settings.is_enabled() then
+    aardwolf_gmcp_diagnostics.ui.message("Updated from gmcp.comm.tick.")
+  end
+end
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.lifecycle = aardwolf_gmcp_diagnostics.lifecycle or {}
+
+function aardwolf_gmcp_diagnostics.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::room_info")
+  registerNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::room_info", "gmcp.room.info", aardwolf_gmcp_diagnostics.protocol.on_room_info)
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::vitals")
+  registerNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::vitals", "gmcp.char.vitals", aardwolf_gmcp_diagnostics.protocol.on_vitals)
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::tick")
+  registerNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::tick", "gmcp.comm.tick", aardwolf_gmcp_diagnostics.protocol.on_tick)
+end
+
+function aardwolf_gmcp_diagnostics.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::room_info")
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::vitals")
+  deleteNamedEventHandler("aardwolf_gmcp_diagnostics", "aardwolf-gmcp-diagnostics::event::tick")
+end
+
+aardwolf_gmcp_diagnostics.lifecycle.initialize()
+
+aardwolf_gmcp_diagnostics = aardwolf_gmcp_diagnostics or {}
+aardwolf_gmcp_diagnostics.help = aardwolf_gmcp_diagnostics.help or {}
+
+function aardwolf_gmcp_diagnostics.help.summary()
+  return "Safe native GMCP state diagnostics for Aardwolf."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_tick.main</name><script>aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.state = aardwolf_tick.state or {}
+
+function aardwolf_tick.state.record(key, value)
+  aardwolf_tick.state.values = aardwolf_tick.state.values or {}
+  aardwolf_tick.state.values[key] = value
+  aardwolf_tick.state.update_count = (aardwolf_tick.state.update_count or 0) + 1
+end
+
+function aardwolf_tick.state.reset()
+  aardwolf_tick.state.values = {}
+  aardwolf_tick.state.update_count = 0
+end
+
+function aardwolf_tick.state.summary()
+  return "updates=" .. tostring(aardwolf_tick.state.update_count or 0)
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.settings = aardwolf_tick.settings or {}
+
+function aardwolf_tick.settings.is_enabled()
+  return aardwolf_tick.settings.enabled ~= false
+end
+
+function aardwolf_tick.settings.set_enabled(enabled)
+  aardwolf_tick.settings.enabled = enabled and true or false
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.ui = aardwolf_tick.ui or {}
+
+function aardwolf_tick.ui.message(message)
+  echo("\n[aardwolf-tick] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_tick.ui.status(summary)
+  aardwolf_tick.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.commands = aardwolf_tick.commands or {}
+
+function aardwolf_tick.commands.status()
+  aardwolf_tick.ui.status(aardwolf_tick.state.summary())
+end
+
+function aardwolf_tick.commands.set_enabled(enabled)
+  aardwolf_tick.settings.set_enabled(enabled)
+  aardwolf_tick.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_tick.commands.toggle()
+  aardwolf_tick.commands.set_enabled(not aardwolf_tick.settings.is_enabled())
+end
+
+function aardwolf_tick.commands.reset()
+  aardwolf_tick.state.reset()
+  aardwolf_tick.ui.message("State reset.")
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.protocol = aardwolf_tick.protocol or {}
+
+function aardwolf_tick.protocol.on_tick()
+  local payload = gmcp and gmcp.comm and gmcp.comm.tick
+  if payload == nil then
+    return
+  end
+  aardwolf_tick.state.record("tick", payload)
+  if aardwolf_tick.settings.is_enabled() then
+    aardwolf_tick.ui.message("Updated from gmcp.comm.tick.")
+  end
+end
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.lifecycle = aardwolf_tick.lifecycle or {}
+
+function aardwolf_tick.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick")
+  registerNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick", "gmcp.comm.tick", aardwolf_tick.protocol.on_tick)
+end
+
+function aardwolf_tick.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_tick", "aardwolf-tick::event::tick")
+end
+
+aardwolf_tick.lifecycle.initialize()
+
+aardwolf_tick = aardwolf_tick or {}
+aardwolf_tick.help = aardwolf_tick.help or {}
+
+function aardwolf_tick.help.summary()
+  return "Direct GMCP tick status with a text-first accessible fallback."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_console.main</name><script>aardwolf_console = aardwolf_console or {}
+aardwolf_console.state = aardwolf_console.state or {}
+
+function aardwolf_console.state.record(key, value)
+  aardwolf_console.state.values = aardwolf_console.state.values or {}
+  aardwolf_console.state.values[key] = value
+  aardwolf_console.state.update_count = (aardwolf_console.state.update_count or 0) + 1
+end
+
+function aardwolf_console.state.reset()
+  aardwolf_console.state.values = {}
+  aardwolf_console.state.update_count = 0
+end
+
+function aardwolf_console.state.summary()
+  return "updates=" .. tostring(aardwolf_console.state.update_count or 0)
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.settings = aardwolf_console.settings or {}
+
+function aardwolf_console.settings.is_enabled()
+  return aardwolf_console.settings.enabled ~= false
+end
+
+function aardwolf_console.settings.set_enabled(enabled)
+  aardwolf_console.settings.enabled = enabled and true or false
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.ui = aardwolf_console.ui or {}
+
+function aardwolf_console.ui.message(message)
+  echo("\n[aardwolf-console] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_console.ui.status(summary)
+  aardwolf_console.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.commands = aardwolf_console.commands or {}
+
+function aardwolf_console.commands.status()
+  aardwolf_console.ui.status(aardwolf_console.state.summary())
+end
+
+function aardwolf_console.commands.set_enabled(enabled)
+  aardwolf_console.settings.set_enabled(enabled)
+  aardwolf_console.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_console.commands.toggle()
+  aardwolf_console.commands.set_enabled(not aardwolf_console.settings.is_enabled())
+end
+
+function aardwolf_console.commands.reset()
+  aardwolf_console.state.reset()
+  aardwolf_console.ui.message("State reset.")
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.protocol = aardwolf_console.protocol or {}
+
+function aardwolf_console.protocol.describe()
+  return "Safe console controls and migration help for output plugins."
+end
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.lifecycle = aardwolf_console.lifecycle or {}
+
+function aardwolf_console.lifecycle.initialize()
+end
+
+function aardwolf_console.lifecycle.shutdown()
+end
+
+aardwolf_console.lifecycle.initialize()
+
+aardwolf_console = aardwolf_console or {}
+aardwolf_console.help = aardwolf_console.help or {}
+
+function aardwolf_console.help.summary()
+  return "Safe console controls and migration help for output plugins."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_communication.main</name><script>aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.state = aardwolf_communication.state or {}
+
+function aardwolf_communication.state.record(key, value)
+  aardwolf_communication.state.values = aardwolf_communication.state.values or {}
+  aardwolf_communication.state.values[key] = value
+  aardwolf_communication.state.update_count = (aardwolf_communication.state.update_count or 0) + 1
+end
+
+function aardwolf_communication.state.reset()
+  aardwolf_communication.state.values = {}
+  aardwolf_communication.state.update_count = 0
+end
+
+function aardwolf_communication.state.summary()
+  return "updates=" .. tostring(aardwolf_communication.state.update_count or 0)
+end
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.settings = aardwolf_communication.settings or {}
+
+function aardwolf_communication.settings.is_enabled()
+  return aardwolf_communication.settings.enabled ~= false
+end
+
+function aardwolf_communication.settings.set_enabled(enabled)
+  aardwolf_communication.settings.enabled = enabled and true or false
+end
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.ui = aardwolf_communication.ui or {}
+
+function aardwolf_communication.ui.message(message)
+  echo("\n[aardwolf-communication] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_communication.ui.status(summary)
+  aardwolf_communication.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.commands = aardwolf_communication.commands or {}
+
+function aardwolf_communication.commands.status()
+  aardwolf_communication.ui.status(aardwolf_communication.state.summary())
+end
+
+function aardwolf_communication.commands.set_enabled(enabled)
+  aardwolf_communication.settings.set_enabled(enabled)
+  aardwolf_communication.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_communication.commands.toggle()
+  aardwolf_communication.commands.set_enabled(not aardwolf_communication.settings.is_enabled())
+end
+
+function aardwolf_communication.commands.reset()
+  aardwolf_communication.state.reset()
+  aardwolf_communication.ui.message("State reset.")
+end
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.protocol = aardwolf_communication.protocol or {}
+
+function aardwolf_communication.protocol.on_channel()
+  local payload = gmcp and gmcp.comm and gmcp.comm.channel
+  if payload == nil then
+    return
+  end
+  aardwolf_communication.state.record("channel", payload)
+  if aardwolf_communication.settings.is_enabled() then
+    aardwolf_communication.ui.message("Updated from gmcp.comm.channel.")
+  end
+end
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.lifecycle = aardwolf_communication.lifecycle or {}
+
+function aardwolf_communication.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_communication", "aardwolf-communication::event::channel")
+  registerNamedEventHandler("aardwolf_communication", "aardwolf-communication::event::channel", "gmcp.comm.channel", aardwolf_communication.protocol.on_channel)
+end
+
+function aardwolf_communication.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_communication", "aardwolf-communication::event::channel")
+end
+
+aardwolf_communication.lifecycle.initialize()
+
+aardwolf_communication = aardwolf_communication or {}
+aardwolf_communication.help = aardwolf_communication.help or {}
+
+function aardwolf_communication.help.summary()
+  return "Namespaced channel and chat visibility controls using native GMCP."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_character.main</name><script>aardwolf_character = aardwolf_character or {}
+aardwolf_character.state = aardwolf_character.state or {}
+
+function aardwolf_character.state.record(key, value)
+  aardwolf_character.state.values = aardwolf_character.state.values or {}
+  aardwolf_character.state.values[key] = value
+  aardwolf_character.state.update_count = (aardwolf_character.state.update_count or 0) + 1
+end
+
+function aardwolf_character.state.reset()
+  aardwolf_character.state.values = {}
+  aardwolf_character.state.update_count = 0
+end
+
+function aardwolf_character.state.summary()
+  return "updates=" .. tostring(aardwolf_character.state.update_count or 0)
+end
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.settings = aardwolf_character.settings or {}
+
+function aardwolf_character.settings.is_enabled()
+  return aardwolf_character.settings.enabled ~= false
+end
+
+function aardwolf_character.settings.set_enabled(enabled)
+  aardwolf_character.settings.enabled = enabled and true or false
+end
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.ui = aardwolf_character.ui or {}
+
+function aardwolf_character.ui.message(message)
+  echo("\n[aardwolf-character] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_character.ui.status(summary)
+  aardwolf_character.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.commands = aardwolf_character.commands or {}
+
+function aardwolf_character.commands.status()
+  aardwolf_character.ui.status(aardwolf_character.state.summary())
+end
+
+function aardwolf_character.commands.set_enabled(enabled)
+  aardwolf_character.settings.set_enabled(enabled)
+  aardwolf_character.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_character.commands.toggle()
+  aardwolf_character.commands.set_enabled(not aardwolf_character.settings.is_enabled())
+end
+
+function aardwolf_character.commands.reset()
+  aardwolf_character.state.reset()
+  aardwolf_character.ui.message("State reset.")
+end
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.protocol = aardwolf_character.protocol or {}
+
+function aardwolf_character.protocol.on_vitals()
+  local payload = gmcp and gmcp.char and gmcp.char.vitals
+  if payload == nil then
+    return
+  end
+  aardwolf_character.state.record("vitals", payload)
+  if aardwolf_character.settings.is_enabled() then
+    aardwolf_character.ui.message("Updated from gmcp.char.vitals.")
+  end
+end
+
+function aardwolf_character.protocol.on_group()
+  local payload = gmcp and gmcp.group
+  if payload == nil then
+    return
+  end
+  aardwolf_character.state.record("group", payload)
+  if aardwolf_character.settings.is_enabled() then
+    aardwolf_character.ui.message("Updated from gmcp.group.")
+  end
+end
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.lifecycle = aardwolf_character.lifecycle or {}
+
+function aardwolf_character.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_character", "aardwolf-character::event::vitals")
+  registerNamedEventHandler("aardwolf_character", "aardwolf-character::event::vitals", "gmcp.char.vitals", aardwolf_character.protocol.on_vitals)
+  deleteNamedEventHandler("aardwolf_character", "aardwolf-character::event::group")
+  registerNamedEventHandler("aardwolf_character", "aardwolf-character::event::group", "gmcp.group", aardwolf_character.protocol.on_group)
+end
+
+function aardwolf_character.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_character", "aardwolf-character::event::vitals")
+  deleteNamedEventHandler("aardwolf_character", "aardwolf-character::event::group")
+end
+
+aardwolf_character.lifecycle.initialize()
+
+aardwolf_character = aardwolf_character or {}
+aardwolf_character.help = aardwolf_character.help or {}
+
+function aardwolf_character.help.summary()
+  return "Text-first character, group, and vital-status summaries from GMCP."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_help.main</name><script>aardwolf_help = aardwolf_help or {}
+aardwolf_help.state = aardwolf_help.state or {}
+
+function aardwolf_help.state.record(key, value)
+  aardwolf_help.state.values = aardwolf_help.state.values or {}
+  aardwolf_help.state.values[key] = value
+  aardwolf_help.state.update_count = (aardwolf_help.state.update_count or 0) + 1
+end
+
+function aardwolf_help.state.reset()
+  aardwolf_help.state.values = {}
+  aardwolf_help.state.update_count = 0
+end
+
+function aardwolf_help.state.summary()
+  return "updates=" .. tostring(aardwolf_help.state.update_count or 0)
+end
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.settings = aardwolf_help.settings or {}
+
+function aardwolf_help.settings.is_enabled()
+  return aardwolf_help.settings.enabled ~= false
+end
+
+function aardwolf_help.settings.set_enabled(enabled)
+  aardwolf_help.settings.enabled = enabled and true or false
+end
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.ui = aardwolf_help.ui or {}
+
+function aardwolf_help.ui.message(message)
+  echo("\n[aardwolf-help] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_help.ui.status(summary)
+  aardwolf_help.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.commands = aardwolf_help.commands or {}
+
+function aardwolf_help.commands.status()
+  aardwolf_help.ui.status(aardwolf_help.state.summary())
+end
+
+function aardwolf_help.commands.set_enabled(enabled)
+  aardwolf_help.settings.set_enabled(enabled)
+  aardwolf_help.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_help.commands.toggle()
+  aardwolf_help.commands.set_enabled(not aardwolf_help.settings.is_enabled())
+end
+
+function aardwolf_help.commands.reset()
+  aardwolf_help.state.reset()
+  aardwolf_help.ui.message("State reset.")
+end
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.protocol = aardwolf_help.protocol or {}
+
+function aardwolf_help.protocol.describe()
+  return "Accessible in-client help and migration guidance."
+end
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.lifecycle = aardwolf_help.lifecycle or {}
+
+function aardwolf_help.lifecycle.initialize()
+end
+
+function aardwolf_help.lifecycle.shutdown()
+end
+
+aardwolf_help.lifecycle.initialize()
+
+aardwolf_help = aardwolf_help or {}
+aardwolf_help.help = aardwolf_help.help or {}
+
+function aardwolf_help.help.summary()
+  return "Accessible in-client help and migration guidance."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_interface.main</name><script>aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.state = aardwolf_interface.state or {}
+
+function aardwolf_interface.state.record(key, value)
+  aardwolf_interface.state.values = aardwolf_interface.state.values or {}
+  aardwolf_interface.state.values[key] = value
+  aardwolf_interface.state.update_count = (aardwolf_interface.state.update_count or 0) + 1
+end
+
+function aardwolf_interface.state.reset()
+  aardwolf_interface.state.values = {}
+  aardwolf_interface.state.update_count = 0
+end
+
+function aardwolf_interface.state.summary()
+  return "updates=" .. tostring(aardwolf_interface.state.update_count or 0)
+end
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.settings = aardwolf_interface.settings or {}
+
+function aardwolf_interface.settings.is_enabled()
+  return aardwolf_interface.settings.enabled ~= false
+end
+
+function aardwolf_interface.settings.set_enabled(enabled)
+  aardwolf_interface.settings.enabled = enabled and true or false
+end
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.ui = aardwolf_interface.ui or {}
+
+function aardwolf_interface.ui.message(message)
+  echo("\n[aardwolf-interface] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_interface.ui.status(summary)
+  aardwolf_interface.ui.message("Status: " .. tostring(summary))
+end
+
+function aardwolf_interface.ui.create()
+  if aardwolf_interface.ui.label or type(Geyser) ~= "table" or type(Geyser.Label) ~= "table" then
+    return
+  end
+  aardwolf_interface.ui.label = Geyser.Label:new({
+    ["name"] = "aardwolf-interface::ui::status",
+    ["x"] = "-34c", ["y"] = "1c", ["width"] = "32c", ["height"] = "2c",
+    ["fgColor"] = "white", ["color"] = "black",
+  })
+  aardwolf_interface.ui.refresh_layout()
+end
+
+function aardwolf_interface.ui.refresh_layout()
+  local label = aardwolf_interface.ui.label
+  if label then
+    label:resize("32c", "2c")
+    label:echo("Aardwolf interface\n" .. aardwolf_interface.state.summary())
+  else
+    aardwolf_interface.ui.message("No graphical label is available; use aard interface status.")
+  end
+end
+
+function aardwolf_interface.ui.destroy()
+  if aardwolf_interface.ui.label then
+    aardwolf_interface.ui.label:delete()
+    aardwolf_interface.ui.label = nil
+  end
+end
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.commands = aardwolf_interface.commands or {}
+
+function aardwolf_interface.commands.status()
+  aardwolf_interface.ui.status(aardwolf_interface.state.summary())
+end
+
+function aardwolf_interface.commands.set_enabled(enabled)
+  aardwolf_interface.settings.set_enabled(enabled)
+  aardwolf_interface.ui.message(enabled and "Enabled." or "Disabled.")
+end
+
+function aardwolf_interface.commands.toggle()
+  aardwolf_interface.commands.set_enabled(not aardwolf_interface.settings.is_enabled())
+end
+
+function aardwolf_interface.commands.reset()
+  aardwolf_interface.state.reset()
+  aardwolf_interface.ui.message("State reset.")
+end
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.protocol = aardwolf_interface.protocol or {}
+
+function aardwolf_interface.protocol.on_window_resize()
+  aardwolf_interface.state.record("window", true)
+  aardwolf_interface.ui.refresh_layout()
+end
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.lifecycle = aardwolf_interface.lifecycle or {}
+
+function aardwolf_interface.lifecycle.initialize()
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize")
+  registerNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize", "sysWindowResizeEvent", aardwolf_interface.protocol.on_window_resize)
+  aardwolf_interface.ui.create()
+  aardwolf_interface.ui.refresh_layout()
+end
+
+function aardwolf_interface.lifecycle.shutdown()
+  deleteNamedEventHandler("aardwolf_interface", "aardwolf-interface::event::window_resize")
+  aardwolf_interface.ui.destroy()
+end
+
+aardwolf_interface.lifecycle.initialize()
+
+aardwolf_interface = aardwolf_interface or {}
+aardwolf_interface.help = aardwolf_interface.help or {}
+
+function aardwolf_interface.help.summary()
+  return "Accessible interface state controls with text fallback."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_profile_data.main</name><script>aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.state = aardwolf_profile_data.state or {}
+
+function aardwolf_profile_data.state.record(key, value)
+  aardwolf_profile_data.state.values = aardwolf_profile_data.state.values or {}
+  aardwolf_profile_data.state.values[key] = value
+  aardwolf_profile_data.state.update_count = (aardwolf_profile_data.state.update_count or 0) + 1
+end
+
+function aardwolf_profile_data.state.reset()
+  aardwolf_profile_data.state.values = {}
+  aardwolf_profile_data.state.update_count = 0
+end
+
+function aardwolf_profile_data.state.summary()
+  return "updates=" .. tostring(aardwolf_profile_data.state.update_count or 0)
+end
+
+function aardwolf_profile_data.state.note(text)
+  aardwolf_profile_data.state.notes = aardwolf_profile_data.state.notes or {}
+  table.insert(aardwolf_profile_data.state.notes, text)
+end
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.settings = aardwolf_profile_data.settings or {}
+
+function aardwolf_profile_data.settings.is_enabled()
+  return aardwolf_profile_data.settings.enabled ~= false
+end
+
+function aardwolf_profile_data.settings.set_enabled(enabled)
+  aardwolf_profile_data.settings.enabled = enabled and true or false
+end
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.ui = aardwolf_profile_data.ui or {}
+
+function aardwolf_profile_data.ui.message(message)
+  echo("\n[aardwolf-profile-data] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_profile_data.ui.status(summary)
+  aardwolf_profile_data.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.commands = aardwolf_profile_data.commands or {}
+
+function aardwolf_profile_data.commands.status()
+  aardwolf_profile_data.ui.status("notes=" .. tostring(#(aardwolf_profile_data.state.notes or {})))
+end
+
+function aardwolf_profile_data.commands.note(text)
+  if type(text) == "string" and text ~= "" then
+    aardwolf_profile_data.state.note(text)
+    aardwolf_profile_data.ui.message("Note added to the local export set.")
+  end
+end
+
+function aardwolf_profile_data.commands.file_path()
+  return getMudletHomeDir() .. "/aardwolf-profile-data.json"
+end
+
+function aardwolf_profile_data.commands.export()
+  local file, error_message = io.open(aardwolf_profile_data.commands.file_path(), "w")
+  if not file then
+    aardwolf_profile_data.ui.message("Export failed: " .. tostring(error_message))
+    return
+  end
+  file:write(yajl.to_string({notes = aardwolf_profile_data.state.notes or {}}))
+  file:close()
+  aardwolf_profile_data.ui.message("Exported local notes by explicit request.")
+end
+
+function aardwolf_profile_data.commands.import()
+  local file = io.open(aardwolf_profile_data.commands.file_path(), "r")
+  if not file then
+    aardwolf_profile_data.ui.message("No local export file was found.")
+    return
+  end
+  local contents = file:read("*a")
+  file:close()
+  local succeeded, value = pcall(yajl.to_value, contents)
+  if succeeded and type(value) == "table" and type(value.notes) == "table" then
+    aardwolf_profile_data.state.notes = value.notes
+    aardwolf_profile_data.ui.message("Imported local notes by explicit request.")
+  else
+    aardwolf_profile_data.ui.message("The local export file is invalid.")
+  end
+end
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.protocol = aardwolf_profile_data.protocol or {}
+
+function aardwolf_profile_data.protocol.describe()
+  return "Explicit local profile note export and import tools."
+end
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.lifecycle = aardwolf_profile_data.lifecycle or {}
+
+function aardwolf_profile_data.lifecycle.initialize()
+end
+
+function aardwolf_profile_data.lifecycle.shutdown()
+end
+
+aardwolf_profile_data.lifecycle.initialize()
+
+aardwolf_profile_data = aardwolf_profile_data or {}
+aardwolf_profile_data.help = aardwolf_profile_data.help or {}
+
+function aardwolf_profile_data.help.summary()
+  return "Explicit local profile note export and import tools."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_accessibility.main</name><script>aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.state = aardwolf_accessibility.state or {}
+
+function aardwolf_accessibility.state.record(key, value)
+  aardwolf_accessibility.state.values = aardwolf_accessibility.state.values or {}
+  aardwolf_accessibility.state.values[key] = value
+  aardwolf_accessibility.state.update_count = (aardwolf_accessibility.state.update_count or 0) + 1
+end
+
+function aardwolf_accessibility.state.reset()
+  aardwolf_accessibility.state.values = {}
+  aardwolf_accessibility.state.update_count = 0
+end
+
+function aardwolf_accessibility.state.summary()
+  return "updates=" .. tostring(aardwolf_accessibility.state.update_count or 0)
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.settings = aardwolf_accessibility.settings or {}
+
+function aardwolf_accessibility.settings.is_enabled()
+  return aardwolf_accessibility.settings.enabled ~= false
+end
+
+function aardwolf_accessibility.settings.set_enabled(enabled)
+  aardwolf_accessibility.settings.enabled = enabled and true or false
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.ui = aardwolf_accessibility.ui or {}
+
+function aardwolf_accessibility.ui.message(message)
+  echo("\n[aardwolf-accessibility] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_accessibility.ui.status(summary)
+  aardwolf_accessibility.ui.message("Status: " .. tostring(summary))
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.commands = aardwolf_accessibility.commands or {}
+
+function aardwolf_accessibility.commands.status()
+  local voices = type(ttsGetVoices) == "function" and ttsGetVoices() or {}
+  aardwolf_accessibility.ui.status("enabled=" .. tostring(aardwolf_accessibility.settings.is_enabled()) .. "; voices=" .. tostring(#voices))
+end
+
+function aardwolf_accessibility.commands.set_enabled(enabled)
+  aardwolf_accessibility.settings.set_enabled(enabled)
+  aardwolf_accessibility.ui.message(enabled and "Text-to-speech enabled." or "Text-to-speech disabled.")
+end
+
+function aardwolf_accessibility.commands.speak(text)
+  if not aardwolf_accessibility.settings.is_enabled() or type(text) ~= "string" or text == "" then
+    return
+  end
+  if type(ttsQueue) == "function" then
+    ttsQueue(text)
+  else
+    aardwolf_accessibility.ui.message("Text-to-speech is unavailable in this Mudlet profile.")
+  end
+end
+
+function aardwolf_accessibility.commands.clear()
+  if type(ttsClearQueue) == "function" then
+    ttsClearQueue()
+  end
+end
+
+function aardwolf_accessibility.commands.rate(direction)
+  if type(ttsGetRate) ~= "function" or type(ttsSetRate) ~= "function" then
+    aardwolf_accessibility.ui.message("Text-to-speech rate control is unavailable.")
+    return
+  end
+  local current = ttsGetRate() or 0
+  local delta = direction == "faster" and 0.1 or -0.1
+  ttsSetRate(current + delta)
+end
+
+function aardwolf_accessibility.commands.rate_value(value)
+  if value == nil or value == "" then
+    if type(ttsGetRate) == "function" then
+      aardwolf_accessibility.ui.message("Current text-to-speech rate: " .. tostring(ttsGetRate()))
+    end
+    return
+  end
+  local rate = tonumber(value)
+  if rate and type(ttsSetRate) == "function" then
+    ttsSetRate(rate)
+  else
+    aardwolf_accessibility.ui.message("Text-to-speech rate control is unavailable.")
+  end
+end
+
+function aardwolf_accessibility.commands.voices()
+  local voices = type(ttsGetVoices) == "function" and ttsGetVoices() or {}
+  aardwolf_accessibility.ui.message("Available voices: " .. tostring(#voices))
+end
+
+function aardwolf_accessibility.commands.voice(name)
+  if type(ttsSetVoiceByName) == "function" and type(name) == "string" and name ~= "" then
+    ttsSetVoiceByName(name)
+  end
+end
+
+function aardwolf_accessibility.commands.interrupt(text)
+  aardwolf_accessibility.commands.clear()
+  aardwolf_accessibility.commands.speak(text)
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.protocol = aardwolf_accessibility.protocol or {}
+
+function aardwolf_accessibility.protocol.describe()
+  return "Portable Mudlet text-to-speech controls without native libraries."
+end
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.lifecycle = aardwolf_accessibility.lifecycle or {}
+
+function aardwolf_accessibility.lifecycle.initialize()
+end
+
+function aardwolf_accessibility.lifecycle.shutdown()
+end
+
+aardwolf_accessibility.lifecycle.initialize()
+
+aardwolf_accessibility = aardwolf_accessibility or {}
+aardwolf_accessibility.help = aardwolf_accessibility.help or {}
+
+function aardwolf_accessibility.help.summary()
+  return "Portable Mudlet text-to-speech controls without native libraries."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.state</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.state = aardwolf_map.state or {}
+
+function aardwolf_map.state.resource_path()
+  return getMudletHomeDir() .. "/aardwolf-map/aardwolf-map-v11.json"
+end
+
+function aardwolf_map.state.resource_paths()
+  return {
+    aardwolf_map.state.resource_path(),
+    getMudletHomeDir() .. "/aardwolf-mudlet-suite/aardwolf-map-v11.json",
+  }
+end
+
+function aardwolf_map.state.owner_value()
+  return "Aardwolf.db/v11"
+end
+
+function aardwolf_map.state.owner_key()
+  return "aardwolf_map.owner"
+end
+
+function aardwolf_map.state.hash_for_vnum(vnum)
+  return "aardwolf-map:vnum:" .. tostring(vnum)
+end
+
+function aardwolf_map.state.read_resource()
+  for _, path in ipairs(aardwolf_map.state.resource_paths()) do
+    local file = io.open(path, "rb")
+    if file then
+      local contents = file:read("*a")
+      file:close()
+      local succeeded, value = pcall(yajl.to_value, contents)
+      if not succeeded or type(value) ~= "table" then
+        return nil, "The packaged map resource is not valid JSON."
+      end
+      if value.schema_version ~= 1 or type(value.source) ~= "table" or type(value.source.sha256) ~= "string" then
+        return nil, "The packaged map resource has an unsupported schema."
+      end
+      if type(value.rooms) ~= "table" or type(value.exits) ~= "table" or type(value.areas) ~= "table" then
+        return nil, "The packaged map resource is missing map records."
+      end
+      return value, nil
+    end
+  end
+  return nil, "The packaged map resource could not be opened from its standalone or suite package directory."
+end
+
+function aardwolf_map.state.room_id_for_vnum(vnum)
+  local room_id = getRoomIDbyHash(aardwolf_map.state.hash_for_vnum(vnum))
+  if type(room_id) ~= "number" or room_id &lt; 0 then
+    return nil
+  end
+  return room_id
+end
+
+function aardwolf_map.state.is_owned_room(room_id)
+  return getRoomUserData(room_id, aardwolf_map.state.owner_key()) == aardwolf_map.state.owner_value()
+end
+
+function aardwolf_map.state.write_room_data(room_id, key, value)
+  if value ~= nil and value ~= "" then
+    setRoomUserData(room_id, "aardwolf_map." .. key, tostring(value))
+  end
+end
+
+function aardwolf_map.state.encode_value(value)
+  local succeeded, encoded = pcall(yajl.to_string, value)
+  if succeeded and type(encoded) == "string" then
+    return encoded
+  end
+  return nil
+end
+
+function aardwolf_map.state.decode_value(value)
+  if type(value) ~= "string" or value == "" then
+    return nil
+  end
+  local succeeded, decoded = pcall(yajl.to_value, value)
+  if succeeded then
+    return decoded
+  end
+  return nil
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.settings</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.settings = aardwolf_map.settings or {}
+
+function aardwolf_map.settings.map_key(name)
+  return "aardwolf_map." .. name
+end
+
+function aardwolf_map.settings.get_map_value(name)
+  return getMapUserData(aardwolf_map.settings.map_key(name))
+end
+
+function aardwolf_map.settings.set_map_value(name, value)
+  setMapUserData(aardwolf_map.settings.map_key(name), value)
+end
+
+function aardwolf_map.settings.get_area_ids()
+  local value = aardwolf_map.state.decode_value(aardwolf_map.settings.get_map_value("area_ids"))
+  if type(value) == "table" then
+    return value
+  end
+  return {}
+end
+
+function aardwolf_map.settings.set_area_ids(area_ids)
+  local encoded = aardwolf_map.state.encode_value(area_ids)
+  if encoded then
+    aardwolf_map.settings.set_map_value("area_ids", encoded)
+  end
+end
+
+function aardwolf_map.settings.completed_source_hash()
+  return aardwolf_map.settings.get_map_value("completed_source_sha256")
+end
+
+function aardwolf_map.settings.mark_completed(source_hash)
+  aardwolf_map.settings.set_map_value("completed_source_sha256", source_hash)
+  aardwolf_map.settings.set_map_value("source_format", aardwolf_map.state.owner_value())
+end
+
+function aardwolf_map.settings.record_source_metadata(data)
+  local source = aardwolf_map.state.encode_value(data.source)
+  local environments = aardwolf_map.state.encode_value(data.environments)
+  if source then
+    aardwolf_map.settings.set_map_value("source", source)
+  end
+  if environments then
+    aardwolf_map.settings.set_map_value("source_environments", environments)
+  end
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.commands</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.commands = aardwolf_map.commands or {}
+
+function aardwolf_map.commands.start_import()
+  aardwolf_map.lifecycle.begin_import()
+end
+
+function aardwolf_map.commands.cancel_import()
+  aardwolf_map.lifecycle.cancel_import()
+end
+
+function aardwolf_map.commands.show_status()
+  aardwolf_map.lifecycle.show_status()
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.protocol</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.protocol = aardwolf_map.protocol or {}
+
+function aardwolf_map.protocol.on_room_info()
+  local room_info = gmcp and gmcp.room and gmcp.room.info
+  if type(room_info) ~= "table" then
+    return
+  end
+  local vnum = tonumber(room_info.num)
+  if not vnum or vnum % 1 ~= 0 then
+    return
+  end
+  local room_id = aardwolf_map.state.room_id_for_vnum(vnum)
+  if room_id and aardwolf_map.state.is_owned_room(room_id) then
+    centerview(room_id)
+  end
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.ui</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.ui = aardwolf_map.ui or {}
+
+function aardwolf_map.ui.message(message)
+  echo("\n[Aardwolf Map] " .. tostring(message) .. "\n")
+end
+
+function aardwolf_map.ui.import_started(total_rooms, total_exits)
+  aardwolf_map.ui.message("Import started: " .. tostring(total_rooms) .. " rooms and " .. tostring(total_exits) .. " exits will merge in batches.")
+end
+
+function aardwolf_map.ui.import_finished(status)
+  aardwolf_map.ui.message("Import complete. Created " .. tostring(status.created_rooms) .. " rooms, reused " .. tostring(status.reused_rooms) .. ", and skipped " .. tostring(status.skipped_rooms) .. " protected collisions. Imported " .. tostring(status.imported_exits) .. " exits; skipped " .. tostring(status.skipped_exits) .. ".")
+end
+
+function aardwolf_map.ui.status(status)
+  local phase = status.phase or "idle"
+  aardwolf_map.ui.message("Status: " .. phase .. "; rooms " .. tostring(status.room_index or 0) .. "/" .. tostring(status.room_total or 0) .. ", exits " .. tostring(status.exit_index or 0) .. "/" .. tostring(status.exit_total or 0) .. ".")
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.lifecycle</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.lifecycle = aardwolf_map.lifecycle or {}
+aardwolf_map.lifecycle.runtime = aardwolf_map.lifecycle.runtime or {}
+
+local batch_size = 100
+local timer_namespace = "aardwolf_map"
+local timer_name = "aardwolf-map::timer::import"
+local event_handler_name = "aardwolf-map::event::room-info"
+
+local function status()
+  return aardwolf_map.lifecycle.runtime
+end
+
+local function set_idle(phase)
+  status().phase = phase
+  status().data = nil
+  status().room_index = 0
+  status().exit_index = 0
+end
+
+local function is_import_area(data, area_uid)
+  for _, candidate in ipairs(data.import_area_uids) do
+    if candidate == area_uid then
+      return true
+    end
+  end
+  return false
+end
+
+local function ensure_areas(data)
+  local area_ids = aardwolf_map.settings.get_area_ids()
+  local source_records = {}
+  for _, area in ipairs(data.areas) do
+    source_records[area.uid] = area
+    if is_import_area(data, area.uid) then
+      local area_context = { id = tonumber(area_ids[area.uid]) }
+      if not area_context.id or area_context.id &lt; 0 then
+        area_context.id = addAreaName("Aardwolf (" .. tostring(area.uid) .. "): " .. tostring(area.name))
+        if type(area_context.id) ~= "number" or area_context.id &lt; 0 then
+          return nil, "Could not create the namespaced area for source area " .. tostring(area.uid) .. "."
+        end
+        area_ids[area.uid] = area_context.id
+      end
+      setAreaUserData(area_context.id, "aardwolf_map.owner", aardwolf_map.state.owner_value())
+      setAreaUserData(area_context.id, "aardwolf_map.source_uid", tostring(area.uid))
+      if area.texture then
+        setAreaUserData(area_context.id, "aardwolf_map.texture", tostring(area.texture))
+      end
+      if area.color then
+        setAreaUserData(area_context.id, "aardwolf_map.source_color", tostring(area.color))
+      end
+      if area.flags then
+        setAreaUserData(area_context.id, "aardwolf_map.flags", tostring(area.flags))
+      end
+    end
+  end
+  aardwolf_map.settings.set_area_ids(area_ids)
+  local encoded_records = aardwolf_map.state.encode_value(source_records)
+  if encoded_records then
+    aardwolf_map.settings.set_map_value("source_area_records", encoded_records)
+  end
+  return area_ids, nil
+end
+
+local function create_source_room(room, area_ids)
+  local room_id = createRoomID()
+  if type(room_id) ~= "number" or room_id &lt; 0 then
+    return nil, "Mudlet could not allocate a compact room ID."
+  end
+  if not addRoom(room_id) then
+    return nil, "Mudlet could not create a room for source vnum " .. tostring(room.vnum) .. "."
+  end
+  local area_id = tonumber(area_ids[room.area_uid])
+  if not area_id then
+    return nil, "The source room area is unavailable for vnum " .. tostring(room.vnum) .. "."
+  end
+  setRoomIDbyHash(room_id, aardwolf_map.state.hash_for_vnum(room.vnum))
+  setRoomName(room_id, room.name)
+  setRoomArea(room_id, area_id)
+  setRoomCoordinates(room_id, room.layout[1], room.layout[2], room.layout[3])
+  setRoomEnv(room_id, 1000 + tonumber(room.terrain_uid))
+  aardwolf_map.state.write_room_data(room_id, "vnum", room.vnum)
+  aardwolf_map.state.write_room_data(room_id, "area_uid", room.area_uid)
+  aardwolf_map.state.write_room_data(room_id, "terrain", room.terrain)
+  aardwolf_map.state.write_room_data(room_id, "terrain_uid", room.terrain_uid)
+  aardwolf_map.state.write_room_data(room_id, "info", room.info)
+  aardwolf_map.state.write_room_data(room_id, "notes", room.notes)
+  aardwolf_map.state.write_room_data(room_id, "building", room.building)
+  aardwolf_map.state.write_room_data(room_id, "norecall", room.norecall)
+  aardwolf_map.state.write_room_data(room_id, "noportal", room.noportal)
+  aardwolf_map.state.write_room_data(room_id, "ignore_exits_mismatch", room.ignore_exits_mismatch)
+  local source_coordinates = aardwolf_map.state.encode_value(room.source_coordinates)
+  if source_coordinates then
+    aardwolf_map.state.write_room_data(room_id, "source_coordinates", source_coordinates)
+  end
+  setRoomUserData(room_id, aardwolf_map.state.owner_key(), aardwolf_map.state.owner_value())
+  return room_id, nil
+end
+
+local function import_room(room)
+  local current = status()
+  local room_id = aardwolf_map.state.room_id_for_vnum(room.vnum)
+  if room_id then
+    if aardwolf_map.state.is_owned_room(room_id) then
+      current.reused_rooms = current.reused_rooms + 1
+    else
+      current.skipped_rooms = current.skipped_rooms + 1
+      current.blocked_vnums[tostring(room.vnum)] = true
+    end
+    return nil
+  end
+  local created_id, error_message = create_source_room(room, current.area_ids)
+  if not created_id then
+    current.error_message = error_message
+    return nil
+  end
+  current.created_rooms = current.created_rooms + 1
+  return created_id
+end
+
+local function import_exit(exit_record)
+  local current = status()
+  if current.blocked_vnums[tostring(exit_record.from_vnum)] or current.blocked_vnums[tostring(exit_record.to_vnum)] then
+    current.skipped_exits = current.skipped_exits + 1
+    return
+  end
+  local from_id = aardwolf_map.state.room_id_for_vnum(exit_record.from_vnum)
+  local to_id = aardwolf_map.state.room_id_for_vnum(exit_record.to_vnum)
+  if not from_id or not to_id or not aardwolf_map.state.is_owned_room(from_id) or not aardwolf_map.state.is_owned_room(to_id) then
+    current.skipped_exits = current.skipped_exits + 1
+    return
+  end
+  setExit(from_id, to_id, exit_record.direction)
+  current.imported_exits = current.imported_exits + 1
+end
+
+local function finish_import()
+  deleteNamedTimer(timer_namespace, timer_name)
+  local current = status()
+  aardwolf_map.settings.mark_completed(current.data.source.sha256)
+  current.phase = "complete"
+  current.data = nil
+  aardwolf_map.ui.import_finished(current)
+end
+
+function aardwolf_map.lifecycle.process_import()
+  local current = status()
+  if current.cancel_requested then
+    deleteNamedTimer(timer_namespace, timer_name)
+    set_idle("cancelled")
+    aardwolf_map.ui.message("Import cancelled. Existing package-owned rooms remain; run aard map import to resume safely.")
+    return
+  end
+  if current.error_message then
+    deleteNamedTimer(timer_namespace, timer_name)
+    local error_message = current.error_message
+    set_idle("error")
+    aardwolf_map.ui.message(error_message)
+    return
+  end
+  if current.phase == "rooms" then
+    local last_room = math.min(current.room_index + batch_size, current.room_total)
+    while current.room_index &lt; last_room do
+      current.room_index = current.room_index + 1
+      import_room(current.data.rooms[current.room_index])
+      if current.error_message then
+        return
+      end
+    end
+    if current.room_index == current.room_total then
+      if current.write_exits then
+        current.phase = "exits"
+      else
+        finish_import()
+      end
+    end
+    return
+  end
+  if current.phase == "exits" then
+    local last_exit = math.min(current.exit_index + batch_size, current.exit_total)
+    while current.exit_index &lt; last_exit do
+      current.exit_index = current.exit_index + 1
+      import_exit(current.data.exits[current.exit_index])
+    end
+    if current.exit_index == current.exit_total then
+      finish_import()
+    end
+  end
+end
+
+function aardwolf_map.lifecycle.begin_import()
+  local current = status()
+  if current.phase == "rooms" or current.phase == "exits" then
+    aardwolf_map.ui.message("An import is already running. Use aard map import cancel before starting another one.")
+    return
+  end
+  local data, error_message = aardwolf_map.state.read_resource()
+  if not data then
+    aardwolf_map.ui.message(error_message)
+    return
+  end
+  local area_ids, area_error = ensure_areas(data)
+  if not area_ids then
+    aardwolf_map.ui.message(area_error)
+    return
+  end
+  aardwolf_map.settings.record_source_metadata(data)
+  current.phase = "rooms"
+  current.data = data
+  current.area_ids = area_ids
+  current.room_index = 0
+  current.exit_index = 0
+  current.room_total = #data.rooms
+  current.exit_total = #data.exits
+  current.created_rooms = 0
+  current.reused_rooms = 0
+  current.skipped_rooms = 0
+  current.imported_exits = 0
+  current.skipped_exits = 0
+  current.blocked_vnums = {}
+  current.cancel_requested = false
+  current.error_message = nil
+  current.write_exits = aardwolf_map.settings.completed_source_hash() ~= data.source.sha256
+  registerNamedTimer(timer_namespace, timer_name, 0.01, aardwolf_map.lifecycle.process_import, true)
+  aardwolf_map.ui.import_started(current.room_total, current.exit_total)
+end
+
+function aardwolf_map.lifecycle.cancel_import()
+  local current = status()
+  if current.phase ~= "rooms" and current.phase ~= "exits" then
+    aardwolf_map.ui.message("No map import is running.")
+    return
+  end
+  current.cancel_requested = true
+end
+
+function aardwolf_map.lifecycle.show_status()
+  aardwolf_map.ui.status(status())
+end
+
+function aardwolf_map.lifecycle.initialize()
+  set_idle("idle")
+  registerNamedEventHandler(timer_namespace, event_handler_name, "gmcp.room.info", aardwolf_map.protocol.on_room_info)
+end
+
+function aardwolf_map.lifecycle.shutdown()
+  deleteNamedTimer(timer_namespace, timer_name)
+  deleteNamedEventHandler(timer_namespace, event_handler_name)
+  set_idle("unloaded")
+end
+
+aardwolf_map.lifecycle.initialize()
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_map.help</name><script>aardwolf_map = aardwolf_map or {}
+aardwolf_map.help = aardwolf_map.help or {}
+
+function aardwolf_map.help.summary()
+  return "Commands: aard map import, aard map import cancel, and aard map status."
+end
+</script><packageName></packageName><eventHandlerList></eventHandlerList></Script></ScriptPackage><KeyPackage></KeyPackage><VariablePackage></VariablePackage></MudletPackage>

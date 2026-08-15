@@ -6,6 +6,15 @@ a raw Mudlet object export, not the full resource-bearing package archive.
 Regenerate every release artifact with `python3 tools/build_mudlet_release.py`;
 it runs the release validator before copying deterministic native output.
 
+## All-in-one installation
+
+Install [aardwolf-mudlet-suite.mpackage](dist/aardwolf-mudlet-suite.mpackage)
+when one archive is preferred. It contains the native objects from every
+package in this catalog and the declared map JSON resource. Do not install the
+suite alongside the individual `.mpackage` files in the same profile: the
+objects have the same package-owned names. The suite XML is available beside
+it for inspection, but cannot provide the map resource on its own.
+
 | Package | Purpose | Source scope |
 | --- | --- | --- |
 | `aardwolf-mushclient-collection` | Audited catalog; local clock and blank-line compatibility | Collection-wide ledger |

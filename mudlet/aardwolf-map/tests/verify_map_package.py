@@ -43,11 +43,13 @@ def main() -> int:
     require([alias["name"] for alias in aliases] == ["aardwolf_map.import", "aardwolf_map.import_cancel", "aardwolf_map.status"], "explicit map aliases are missing")
     lifecycle = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_lifecycle.lua").read_text(encoding="utf-8")
     protocol = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_protocol.lua").read_text(encoding="utf-8")
+    state = (PACKAGE / "src" / "scripts" / "aardwolf_map" / "aardwolf_map_state.lua").read_text(encoding="utf-8")
     require("createRoomID()" in lifecycle and "setRoomIDbyHash" in lifecycle, "importer does not use compact owned IDs")
     require("registerNamedTimer" in lifecycle and "deleteNamedTimer" in lifecycle, "import batching cannot be cancelled")
     require("aardwolf-map::event::room-info" in lifecycle and "gmcp.room.info" in lifecycle, "named GMCP handler is missing")
     require("clearMap" not in lifecycle and "deleteRoom" not in lifecycle, "importer contains destructive mapper actions")
     require("centerview(room_id)" in protocol and "send(" not in protocol, "GMCP handler has side effects beyond centering")
+    require("aardwolf-mudlet-suite/aardwolf-map-v11.json" in state, "map resource does not support the suite package directory")
     return 0
 
 
