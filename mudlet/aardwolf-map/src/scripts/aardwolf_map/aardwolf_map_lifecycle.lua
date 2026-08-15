@@ -6,6 +6,28 @@ local batch_size = 100
 local timer_namespace = "aardwolf_map"
 local timer_name = "aardwolf-map::timer::import"
 local event_handler_name = "aardwolf-map::event::room-info"
+local environment_id_base = 1000
+
+-- Exact RGB equivalents of the MUSHclient ColourNameToRGB names used by the
+-- source mapper's ANSI terrain palette.
+local source_ansi_rgb = {
+  [0] = {0, 0, 0},
+  [1] = {128, 0, 0},
+  [2] = {0, 128, 0},
+  [3] = {128, 128, 0},
+  [4] = {0, 0, 128},
+  [5] = {128, 0, 128},
+  [6] = {0, 128, 128},
+  [7] = {192, 192, 192},
+  [8] = {128, 128, 128},
+  [9] = {255, 0, 0},
+  [10] = {0, 255, 0},
+  [11] = {255, 255, 0},
+  [12] = {0, 0, 255},
+  [13] = {255, 0, 255},
+  [14] = {0, 255, 255},
+  [15] = {255, 255, 255},
+}
 
 local function status()
   return aardwolf_map.lifecycle.runtime
@@ -25,6 +47,37 @@ local function is_import_area(data, area_uid)
     end
   end
   return false
+end
+
+local function custom_environment_id(source_uid)
+  local uid = tonumber(source_uid)
+  if not uid or uid ~= math.floor(uid) or uid < 0 or uid > 999 then
+    return nil
+  end
+  return environment_id_base + uid
+end
+
+local function ensure_environments(data)
+  if type(data.environments) ~= "table" or type(setCustomEnvColor) ~= "function" then
+    return nil, "Mudlet custom environment colors are unavailable."
+  end
+  local result = {registered = 0}
+  for _, environment in ipairs(data.environments) do
+    local environment_id = type(environment) == "table" and custom_environment_id(environment.uid) or nil
+    local color_index = type(environment) == "table" and tonumber(environment.color) or nil
+    local rgb = color_index and color_index == math.floor(color_index) and source_ansi_rgb[color_index] or nil
+    if not environment_id or not rgb then
+      return nil, "The packaged terrain record is invalid for environment " .. tostring(type(environment) == "table" and environment.name or "unknown") .. "."
+    end
+    local succeeded, error_message = pcall(setCustomEnvColor, environment_id, rgb[1], rgb[2], rgb[3], 255)
+    if not succeeded then
+      return nil, "Could not register terrain color for " .. tostring(environment.name) .. ": " .. tostring(error_message)
+    end
+    result.registered = result.registered + 1
+  end
+  aardwolf_map.settings.set_map_value("environment_id_base", tostring(environment_id_base))
+  aardwolf_map.settings.set_map_value("registered_environment_count", tostring(result.registered))
+  return result.registered, nil
 end
 
 local function ensure_areas(data)
@@ -63,6 +116,10 @@ local function ensure_areas(data)
 end
 
 local function create_source_room(room, area_ids)
+  local environment_id = custom_environment_id(room.terrain_uid)
+  if not environment_id then
+    return nil, "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "."
+  end
   local room_id = createRoomID()
   if type(room_id) ~= "number" or room_id < 0 then
     return nil, "Mudlet could not allocate a compact room ID."
@@ -78,7 +135,7 @@ local function create_source_room(room, area_ids)
   setRoomName(room_id, room.name)
   setRoomArea(room_id, area_id)
   setRoomCoordinates(room_id, room.layout[1], room.layout[2], room.layout[3])
-  setRoomEnv(room_id, 1000 + tonumber(room.terrain_uid))
+  setRoomEnv(room_id, environment_id)
   aardwolf_map.state.write_room_data(room_id, "vnum", room.vnum)
   aardwolf_map.state.write_room_data(room_id, "area_uid", room.area_uid)
   aardwolf_map.state.write_room_data(room_id, "terrain", room.terrain)
@@ -102,6 +159,12 @@ local function import_room(room)
   local room_id = aardwolf_map.state.room_id_for_vnum(room.vnum)
   if room_id then
     if aardwolf_map.state.is_owned_room(room_id) then
+      local environment_id = custom_environment_id(room.terrain_uid)
+      if not environment_id then
+        current.error_message = "The source terrain is unavailable for vnum " .. tostring(room.vnum) .. "."
+        return nil
+      end
+      setRoomEnv(room_id, environment_id)
       current.reused_rooms = current.reused_rooms + 1
     else
       current.skipped_rooms = current.skipped_rooms + 1
@@ -140,6 +203,9 @@ local function finish_import()
   aardwolf_map.settings.mark_completed(current.data.source.sha256)
   current.phase = "complete"
   current.data = nil
+  if type(updateMap) == "function" then
+    pcall(updateMap)
+  end
   aardwolf_map.ui.import_finished(current)
 end
 
@@ -199,6 +265,11 @@ function aardwolf_map.lifecycle.begin_import()
     aardwolf_map.ui.message(error_message)
     return
   end
+  local registered_environments, environment_error = ensure_environments(data)
+  if not registered_environments then
+    aardwolf_map.ui.message(environment_error)
+    return
+  end
   local area_ids, area_error = ensure_areas(data)
   if not area_ids then
     aardwolf_map.ui.message(area_error)
@@ -213,6 +284,7 @@ function aardwolf_map.lifecycle.begin_import()
   current.room_total = #data.rooms
   current.exit_total = #data.exits
   current.created_rooms = 0
+  current.registered_environments = registered_environments
   current.reused_rooms = 0
   current.skipped_rooms = 0
   current.imported_exits = 0

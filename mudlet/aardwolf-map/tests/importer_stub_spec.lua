@@ -9,7 +9,7 @@ local yajl_registry = {}
 local yajl_sequence = 0
 
 local function reset_mapper()
-  mapper = { area_names = {}, areas = {}, exits = {}, handlers = {}, hashes = {}, map_data = {}, next_area = 1, next_room = 1, rooms = {}, timers = {} }
+  mapper = { area_names = {}, areas = {}, environment_colors = {}, exits = {}, handlers = {}, hashes = {}, map_data = {}, next_area = 1, next_room = 1, rooms = {}, timers = {} }
   yajl_registry = {}
   yajl_sequence = 0
 end
@@ -97,6 +97,11 @@ function setExit(from_id, to_id, direction)
   return true
 end
 
+function setCustomEnvColor(environment_id, red, green, blue, alpha)
+  mapper.environment_colors[environment_id] = { red, green, blue, alpha }
+  return true
+end
+
 function setMapUserData(key, value)
   mapper.map_data[key] = value
   return true
@@ -132,6 +137,10 @@ function setRoomUserData(room_id, key, value)
   return true
 end
 
+function updateMap()
+  mapper.map_updates = (mapper.map_updates or 0) + 1
+end
+
 yajl = {}
 function yajl.to_string(value)
   yajl_sequence = yajl_sequence + 1
@@ -164,7 +173,7 @@ local function fixture(source_hash, room_count)
   for index = 1, room_count - 1 do
     exits[index] = { direction = "e", from_vnum = index * 10, level = "0", to_vnum = (index + 1) * 10 }
   end
-  return { areas = { { color = nil, flags = nil, name = "Alpha", texture = nil, uid = "alpha" } }, environments = { { color = "green", name = "grass", uid = 1 } }, exits = exits, import_area_uids = { "alpha" }, rooms = rooms, schema_version = 1, source = { sha256 = source_hash } }
+  return { areas = { { color = nil, flags = nil, name = "Alpha", texture = nil, uid = "alpha" } }, environments = { { color = 2, name = "grass", uid = 1 } }, exits = exits, import_area_uids = { "alpha" }, rooms = rooms, schema_version = 1, source = { sha256 = source_hash } }
 end
 
 local function run_import()
@@ -186,13 +195,21 @@ run_import()
 assert_equal("complete", aardwolf_map.lifecycle.runtime.phase, "initial import completes")
 assert_equal(2, aardwolf_map.lifecycle.runtime.created_rooms, "initial rooms are created")
 assert_equal(1, mapper.set_exit_calls, "initial exit is created")
+assert_equal(0, mapper.environment_colors[1001][1], "terrain red channel is registered")
+assert_equal(128, mapper.environment_colors[1001][2], "terrain green channel is registered")
+assert_equal(0, mapper.environment_colors[1001][3], "terrain blue channel is registered")
+assert_equal(255, mapper.environment_colors[1001][4], "terrain color is opaque")
+assert_equal(1001, mapper.rooms[1].environment, "room uses the namespaced terrain environment")
+assert_equal(1, mapper.map_updates, "completed import refreshes the mapper")
 assert_equal("Aardwolf.db/v11", getRoomUserData(1, "aardwolf_map.owner"), "room ownership is recorded")
 assert_equal(1, getRoomIDbyHash("aardwolf-map:vnum:10"), "source hash resolves to compact room ID")
 
+mapper.rooms[1].environment = 999
 aardwolf_map.lifecycle.begin_import()
 run_import()
 assert_equal(1, mapper.set_exit_calls, "completed import does not rewrite exits")
 assert_equal(2, aardwolf_map.lifecycle.runtime.reused_rooms, "completed import reuses owned rooms")
+assert_equal(1001, mapper.rooms[1].environment, "repeat import repairs package-owned terrain assignment")
 
 reset_mapper()
 load_package()
