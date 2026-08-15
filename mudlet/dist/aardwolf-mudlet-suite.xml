@@ -1573,9 +1573,12 @@ local ui = aardwolf_interface.ui
 local util = aardwolf_interface.util
 local settings = aardwolf_interface.settings
 local state = aardwolf_interface.state
-local actions = aardwolf_interface.actions
 local commands = aardwolf_interface.commands
 local constants = aardwolf_interface.constants
+
+local function action_module()
+  return aardwolf_interface and aardwolf_interface.actions
+end
 
 local PREFIX = "aardwolf-interface::ui::"
 local TIMER_USER = "aardwolf_interface"
@@ -1879,26 +1882,38 @@ local function toggle_empty()
 end
 
 local function execute_action(id)
-  return function() if actions and actions.execute then actions.execute(id); ui.request_render() end end
+  return function()
+    local handlers = action_module()
+    if handlers and type(handlers.execute) == "function" then
+      local ok, failure = handlers.execute(id)
+      if not ok and failure then ui.message(failure) end
+      ui.request_render()
+      return
+    end
+    ui.message("Action system is not available yet.")
+  end
 end
 
 local function pending_action()
-  if not actions then return nil end
-  if type(actions.pending) == "function" then return actions.pending() end
-  return type(actions.pending) == "table" and actions.pending or nil
+  local handlers = action_module()
+  if not handlers then return nil end
+  if type(handlers.pending) == "function" then return handlers.pending() end
+  return type(handlers.pending) == "table" and handlers.pending or nil
 end
 
 local function confirm_action()
-  if not actions then return end
-  if actions.confirm_pending then actions.confirm_pending()
-  elseif actions.confirm then actions.confirm() end
+  local handlers = action_module()
+  if not handlers then return end
+  if handlers.confirm_pending then handlers.confirm_pending()
+  elseif handlers.confirm then handlers.confirm() end
   ui.request_render()
 end
 
 local function cancel_action()
-  if not actions then return end
-  if actions.cancel_pending then actions.cancel_pending()
-  elseif actions.cancel then actions.cancel() end
+  local handlers = action_module()
+  if not handlers then return end
+  if handlers.cancel_pending then handlers.cancel_pending()
+  elseif handlers.cancel then handlers.cancel() end
   ui.request_render()
 end
 
@@ -1919,10 +1934,12 @@ local function submit_custom_editor()
   if not label then label, command = specification:match("^%s*([^|]+)%s*|%s*(.-)%s*$"); category = "Custom" end
   local ok, error_message
   if ui.editing_action_id then
-    local update = actions and (actions.update_custom or actions.update)
+    local handlers = action_module()
+    local update = handlers and (handlers.update_custom or handlers.update)
     if update then ok, error_message = update(ui.editing_action_id, label, command, category) end
   else
-    local add = actions and (actions.add_custom or actions.add)
+    local handlers = action_module()
+    local add = handlers and (handlers.add_custom or handlers.add)
     if add then ok, error_message = add(label, command, category) end
   end
   if ok then
