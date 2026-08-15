@@ -6,21 +6,25 @@ function aardwolf_interface.commands.hide() aardwolf_interface.settings.update("
 function aardwolf_interface.commands.status()
   local data=aardwolf_interface.settings.data
   local layout=aardwolf_interface.ui and aardwolf_interface.ui.layout or {}
-  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% inspector=%s suspended=%s console=%s legacy-disabled=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),tostring(layout.suspended==true),tostring(layout.window_width and math.max(0,layout.window_width-layout.base-layout.total) or "--"),tostring(aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.legacy_script_disabled==true),aardwolf_interface.state.connection))
+  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% dock-pinned=%s dock-width=%s suspended=%s console=%s legacy-disabled=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),tostring(layout.dock or 0),tostring(layout.suspended==true),tostring(layout.window_width and math.max(0,layout.window_width-layout.base-layout.total) or "--"),tostring(aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.legacy_script_disabled==true),aardwolf_interface.state.connection))
 end
 function aardwolf_interface.commands.repair()
   local ok=aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.repair and aardwolf_interface.lifecycle.repair()
   message(ok and "Interface viewport repaired and rebuilt." or "Interface repair could not build Geyser; use 'aard interface summary all' for text output.")
 end
-function aardwolf_interface.commands.set_tab(tab) if ({map=true,character=true,group=true,inventory=true})[tab] then aardwolf_interface.settings.update("active_tab",tab); aardwolf_interface.ui.set_tab(tab) end end
+function aardwolf_interface.commands.set_tab(tab)
+  if tab=="map" then tab="overview" end
+  if ({overview=true,character=true,group=true,inventory=true})[tab] then aardwolf_interface.ui.set_tab(tab) end
+end
 aardwolf_interface.commands.select_tab=aardwolf_interface.commands.set_tab
 function aardwolf_interface.commands.toggle_pin(tab)
   local data=aardwolf_interface.settings.data
-  if tab=="off" then data.inspector_pinned=false elseif tab then data.inspector_pinned=true; data.inspector_tab=tab else data.inspector_pinned=not data.inspector_pinned end
-  data.details_visible=data.inspector_pinned; aardwolf_interface.settings.save(); aardwolf_interface.ui.reflow()
+  if tab=="map" then tab="overview" end
+  if tab=="off" then data.inspector_pinned=false elseif tab then data.inspector_pinned=true; data.active_tab=tab else data.inspector_pinned=not data.inspector_pinned end
+  aardwolf_interface.settings.save(); aardwolf_interface.ui.reflow(); aardwolf_interface.ui.request_render()
 end
 function aardwolf_interface.commands.details_show() aardwolf_interface.commands.set_tab("inventory"); aardwolf_interface.commands.toggle_pin("inventory") end
-function aardwolf_interface.commands.details_hide() aardwolf_interface.commands.toggle_pin("off"); if aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.set_tab("map") end end
+function aardwolf_interface.commands.details_hide() aardwolf_interface.commands.toggle_pin("off"); if aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.set_tab("overview") end end
 function aardwolf_interface.commands.details_toggle() if aardwolf_interface.settings.data.inspector_pinned or aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.details_hide() else aardwolf_interface.commands.details_show() end end
 function aardwolf_interface.commands.details_refresh() aardwolf_interface.details.refresh() end
 function aardwolf_interface.commands.details_status() local value=aardwolf_interface.state.value("details"); message(string.format("inventory status=%s generation=%d equipment=%d bags=%d",aardwolf_interface.state.envelope("details").status,value.generation or 0,#(value.equipment or {}),#(value.bags or {}))) end

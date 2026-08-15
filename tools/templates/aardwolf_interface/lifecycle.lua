@@ -135,7 +135,7 @@ function aardwolf_interface.lifecycle.initialize()
   -- the live border still exactly matches what this package applied, then
   -- clear the stale ownership record before calculating the new layout.
   if aardwolf_interface.ui and aardwolf_interface.ui.release_saved_claims then aardwolf_interface.ui.release_saved_claims() end
-  aardwolf_interface.ui.build(); aardwolf_interface.details.start(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
+  aardwolf_interface.ui.build(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
   aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end
   if aardwolf_interface.settings.is_visible() then aardwolf_interface.ui.show() else aardwolf_interface.ui.hide() end
 end

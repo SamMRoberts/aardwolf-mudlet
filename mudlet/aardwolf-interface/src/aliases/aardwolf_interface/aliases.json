@@ -41,11 +41,11 @@
   },
   {
     "name": "aardwolf_interface.tab",
-    "regex": "^aard interface tab (map|character|group|inventory)$"
+    "regex": "^aard interface tab (overview|map|character|group|inventory)$"
   },
   {
     "name": "aardwolf_interface.pin",
-    "regex": "^aard interface pin(?: (map|character|group|inventory|off))?$"
+    "regex": "^aard interface pin(?: (overview|map|character|group|inventory|off))?$"
   },
   {
     "name": "aardwolf_interface.palette",

@@ -82,8 +82,8 @@ FEATURES = (
             ("details_refresh", "^aard interface details refresh$", "aardwolf_interface.commands.details_refresh()"),
             ("details_status", "^aard interface details status$", "aardwolf_interface.commands.details_status()"),
             ("theme", "^aard theme change$", "aardwolf_interface.commands.toggle_theme()"),
-            ("tab", "^aard interface tab (map|character|group|inventory)$", "aardwolf_interface.commands.set_tab(matches[2])"),
-            ("pin", "^aard interface pin(?: (map|character|group|inventory|off))?$", "aardwolf_interface.commands.toggle_pin(matches[2])"),
+            ("tab", "^aard interface tab (overview|map|character|group|inventory)$", "aardwolf_interface.commands.set_tab(matches[2])"),
+            ("pin", "^aard interface pin(?: (overview|map|character|group|inventory|off))?$", "aardwolf_interface.commands.toggle_pin(matches[2])"),
             ("palette", "^aard interface palette(?: (show|hide|toggle))?$", "aardwolf_interface.commands.toggle_palette(matches[2])"),
             ("summary", "^aard interface summary (room|character|quest|group|equipment|bags|actions|all)$", "aardwolf_interface.commands.summary(matches[2])"),
             ("theme_set", "^aard interface theme (obsidian|high-contrast)$", "aardwolf_interface.commands.set_theme(matches[2])"),
@@ -95,7 +95,7 @@ FEATURES = (
             ("action_move", "^aard interface action move (custom%-[0-9]+) ([0-9]{1,2})$", "aardwolf_interface.commands.action_move(matches[2], matches[3])"),
             ("action_list", "^aard interface action list$", "aardwolf_interface.commands.action_list()"),
         ),
-        "interface", "1.5.0",
+        "interface", "1.6.0",
     ),
     Feature(
         "aardwolf-profile-data", "aardwolf_profile_data", "Explicit local profile note export and import tools.",
@@ -634,7 +634,7 @@ def write_feature(feature: Feature, destination: Path) -> None:
         else f"GMCP events: {event_list}. The package uses namespaced handlers, sends no game commands, and removes its handlers through `{feature.namespace}.lifecycle.shutdown()`."
     )
     help_text = (
-        "The workspace opens on Map and preserves at least half the usable width or 640 pixels for the game console, collapsing to a restore rail when needed. Use `aard interface tab`, `pin`, `palette`, `summary`, `theme`, `density`, `scale`, and `action` commands for alias-equivalent access to every visual action. Legacy details commands select or pin Inventory. Custom actions always require Send/Cancel confirmation."
+        "The expanded workspace keeps the native map visible and opens the adaptive player data dock on Overview. It preserves at least half the usable width or 640 pixels for the game console, collapsing to a restore rail when needed. Use `aard interface tab`, `pin`, `palette`, `summary`, `theme`, `density`, `scale`, and `action` commands for alias-equivalent access to every visual action. Legacy Map commands select Overview; legacy details commands select or pin Inventory. Custom actions always require Send/Cancel confirmation."
         if feature.kind == "interface"
         else "Diagnostic console logging is off by default. Use `gmcpdebug on` or `gmcpdebug off`; `aard gmcp status` reports the current logging state and captured update count."
         if feature.kind == "diagnostics"
@@ -647,19 +647,19 @@ def write_feature(feature: Feature, destination: Path) -> None:
     feature_notes = '''
 ## Dashboard behavior
 
-The package claims one responsive right border. Workspace width defaults to 440 pixels and is clamped to 360–520. It preserves at least `max(640px, 50% of usable width)` for the console and collapses to a 44-pixel restore rail when that cannot be satisfied. A 360–440 pixel inspector is pinned only when the console minimum still fits. Map is the default tab; room context, exits, connection state, four contextual actions, and tabs remain persistent.
+The package claims one responsive right border. Workspace width defaults to 440 pixels and is clamped to 360–520. It preserves at least `max(640px, 50% of usable width)` for the console and collapses to a 44-pixel restore rail when that cannot be satisfied. Room context, exits, connection state, four contextual actions, map controls, terrain, and the native mapper remain persistent whenever the deck is expanded.
 
-The Map tab embeds Mudlet's native mapper but never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. Map controls are capability-checked, and integration status distinguishes a resolved package-owned Aardwolf room from unrelated Mudlet map content.
+The persistent mapper never imports, creates, edits, or deletes map rooms. Use `aard map import` from `aardwolf-map` to populate the packaged Aardwolf snapshot. Map controls are capability-checked, and integration status distinguishes a resolved package-owned Aardwolf room from unrelated Mudlet map content.
 
-The Map, Character, Group, and Inventory tabs render escaped structured data with unavailable, partial, stale, and error states. The bottom HUD places HP/Mana/Moves on row one and TNL/Enemy/Hunger/Thirst on row two, wrapping to three rows under 640 pixels. Text stays on a stable dark surface above a separate thin semantic progress track. Package-local Obsidian Jewel and High Contrast themes, two densities, and four text scales need no external resources.
+The Overview, Character, Group, and Inventory tabs render escaped structured data with unavailable, partial, stale, and error states. Overview prioritizes progression, quest state, conditions, currencies, loadout freshness, bag capacity, and group state. The bottom HUD places HP/Mana/Moves on row one and TNL/Enemy/Hunger/Thirst on row two, wrapping to three rows under 640 pixels. Text stays on a stable dark surface above a separate thin semantic progress track. Package-local Obsidian Jewel and High Contrast themes, two densities, and four text scales need no external resources.
 
-The optional 360–440 pixel inspector starts unpinned and remembers explicit pin intent while temporarily unpinning when width is insufficient. Inventory's Equipment and Bags subtabs retain a visibly stale last snapshot when hidden. Every standard Aardwolf wear slot can be shown, empty slots are optional, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
+The adaptive player data dock starts unpinned and stacks beneath the map. On sufficiently wide windows it can occupy a 360–440 pixel full-height far-right column; explicit pin intent is remembered while the dock temporarily stacks when width is insufficient. Inventory's Equipment and Bags subtabs retain a visibly stale last snapshot when hidden. Every standard Aardwolf wear slot can be shown, empty slots are optional, and unknown numeric slots are appended. Affects and Resists are intentionally not displayed or queried.
 
 An explicit Inventory refresh performs one paced transaction using `eqdata`, `invdata`, and verified-container `invdetails`. Bag-detail requests are limited to one per second. There is no periodic polling or Invmon mutation. Captures are bounded to 100 records and malformed or incomplete responses preserve the previous valid snapshot with an error marker.
 
 While a package-owned refresh capture is active, its recognized tagged response, structured event, header, data, and terminator lines are removed from the game console. The suppression exists only for the bounded active capture or for structured `invmon` and `invitem` events consumed while details are expanded. The same commands entered by the user outside that capture remain visible.
 
-Version 1.5 disables the exact retained `aardwolf_interface.main` legacy script when Mudlet exposes it, then tears down pre-1.5 handlers, timers, Geyser roots, and exact package-owned border claims before rebuilding. For the cleanest upgrade, install either the standalone interface or the suite, not both. If a prior installation left the viewport constrained, run `aard interface repair`. Schema 3 settings migrate to schema 4, including `dark` to `obsidian` and legacy details intent to the responsive inspector.
+Version 1.6 retains the 1.5 legacy cleanup and adds the persistent mapper with the adaptive data dock. For the cleanest upgrade, install either the standalone interface or the suite, not both. If a prior installation left the viewport constrained, run `aard interface repair`. Schema 4 settings migrate to schema 5, mapping the former Map tab to Overview while preserving visibility, pin intent, appearance, inventory preferences, custom actions, and exact border ownership.
 ''' if feature.kind == "interface" else ""
     readme = f'''# {feature.name}
 
@@ -697,7 +697,10 @@ Artifacts are regenerated by the native package builder after the source and rel
 assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert all(command in source for command in ("commands.set_tab", "commands.toggle_pin", "commands.toggle_palette", "commands.summary", "commands.action_add"))
 assert 'id="map-import"' in source and 'new_button("map-import"' in source and "aardwolf_map.commands.start_import" in source
-assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 4' in source and 'candidate.theme == "dark"' in source
+assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 5' in source and 'candidate.theme == "dark"' in source
+assert 'TABS = {"overview", "character", "group", "inventory"}' in source
+assert 'if tab == "map" then tab = "overview" end' in source and 'mapper_visible = not data().palette_open' in source
+assert 'new_container("data-dock", ui.root)' in source and 'render_overview' in source and 'dock-pinned=' in source
 assert "setBorderRight" in source and "setBorderBottom" in source and "Geyser.CommandLine:new" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.comm.quest"))
 assert "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source

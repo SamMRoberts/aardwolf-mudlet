@@ -3,7 +3,7 @@
 local source=debug.getinfo(1,"S").source:sub(2)
 local root=assert(source:match("^(.*)/tests/"))
 local width,height,right,bottom=1200,800,8,10
-local sent,gmcp_sent,events,timers,triggers,objects,deleted={},{},{},{},{},{},0
+local sent,gmcp_sent,events,timers,triggers,objects,created,deleted={},{},{},{},{},{},{},0
 local trigger_id=0
 function echo() end
 function cecho() end
@@ -59,6 +59,7 @@ local function object(kind,constraints,parent)
   function result:setCursor() end
   function result:setFocus() end
   objects[result.name]=result
+  created[result.name]=(created[result.name] or 0)+1
   return result
 end
 local function class(kind) return {new=function(_,constraints,parent) return object(kind,constraints,parent) end} end
@@ -97,6 +98,7 @@ for _,module in ipairs({"state","settings","details","actions","protocol","comma
 -- Mudlet's fifth registerNamedTimer argument is `repeating`. The heartbeat is
 -- periodic, while render coalescing and capture timeouts must be one-shot.
 assert(timers["aardwolf-interface:aardwolf-interface::heartbeat"].repeating==true)
+assert(aardwolf_interface.details.runtime.trigger_id==nil)
 aardwolf_interface.ui.request_render()
 assert(timers["aardwolf_interface:aardwolf-interface::timer::render"].repeating==false)
 timers["aardwolf_interface:aardwolf-interface::timer::render"].callback()
@@ -110,19 +112,43 @@ assert(width-right>=640)
 local embedded_mapper=objects["aardwolf-interface::ui::mapper"]
 assert(embedded_mapper.parent==objects["aardwolf-interface::ui::workspace"])
 assert(embedded_mapper.x>0)
-aardwolf_interface.settings.data.active_tab="character"; aardwolf_interface.ui.render(); assert(embedded_mapper.hidden)
-aardwolf_interface.settings.data.active_tab="map"; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden)
+local mapper_x,mapper_y,mapper_width,mapper_height=embedded_mapper.x,embedded_mapper.y,embedded_mapper.width,embedded_mapper.height
+for _,tab in ipairs({"overview","character","group","inventory"}) do
+  aardwolf_interface.settings.data.active_tab=tab; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden,"mapper hidden on "..tab)
+  assert(embedded_mapper.x==mapper_x and embedded_mapper.y==mapper_y and embedded_mapper.width==mapper_width and embedded_mapper.height==mapper_height,"mapper geometry changed on "..tab)
+end
+aardwolf_interface.settings.data.palette_open=true; aardwolf_interface.ui.render(); assert(embedded_mapper.hidden)
+aardwolf_interface.settings.data.palette_open=false; aardwolf_interface.ui.render(); assert(not embedded_mapper.hidden)
+local data_dock=objects["aardwolf-interface::ui::data-dock"]
+assert(data_dock.parent==aardwolf_interface.ui.root and data_dock.x>0 and data_dock.y>embedded_mapper.y)
+assert(embedded_mapper.x>=0 and embedded_mapper.x+embedded_mapper.width<=aardwolf_interface.ui.layout.workspace)
 
-local migrated=aardwolf_interface.settings.validate({schema_version=3,visible=false,details_visible=true,theme="dark",workspace_width=999})
-assert(migrated.schema_version==4 and migrated.theme=="obsidian" and migrated.workspace_width==520)
-assert(migrated.inspector_pinned==true and migrated.inspector_tab=="inventory")
+local migrated=aardwolf_interface.settings.validate({schema_version=4,visible=false,active_tab="map",inspector_pinned=true,inspector_tab="inventory",theme="dark",workspace_width=999})
+assert(migrated.schema_version==5 and migrated.theme=="obsidian" and migrated.workspace_width==520)
+assert(migrated.inspector_pinned==true and migrated.active_tab=="inventory" and migrated.inspector_tab==nil)
+local migrated_map=aardwolf_interface.settings.validate({schema_version=4,active_tab="map",inspector_pinned=false,inspector_tab="inventory"})
+assert(migrated_map.active_tab=="overview" and not migrated_map.inspector_pinned)
+local legacy_details=aardwolf_interface.settings.validate({schema_version=3,details_visible=true,active_tab="map"})
+assert(legacy_details.schema_version==5 and legacy_details.inspector_pinned==true and legacy_details.active_tab=="inventory")
+aardwolf_interface.commands.set_tab("map"); assert(aardwolf_interface.settings.data.active_tab=="overview" and not embedded_mapper.hidden)
+aardwolf_interface.commands.toggle_pin("map"); assert(aardwolf_interface.settings.data.inspector_pinned and aardwolf_interface.settings.data.active_tab=="overview")
+aardwolf_interface.commands.toggle_pin("off"); assert(not aardwolf_interface.settings.data.inspector_pinned)
+aardwolf_interface.commands.details_show(); assert(aardwolf_interface.settings.data.active_tab=="inventory" and aardwolf_interface.settings.data.inspector_pinned)
+aardwolf_interface.commands.details_hide(); assert(aardwolf_interface.settings.data.active_tab=="overview" and not aardwolf_interface.settings.data.inspector_pinned and aardwolf_interface.details.runtime.trigger_id==nil)
 for _,theme in ipairs({"obsidian","high-contrast"}) do for _,density in ipairs({"compact","comfortable"}) do for _,scale in ipairs({90,100,115,130}) do aardwolf_interface.settings.data.theme=theme; aardwolf_interface.settings.data.density=density; aardwolf_interface.settings.data.text_scale=scale; aardwolf_interface.ui.reflow() end end end
 
--- Wide layouts may pin an inspector; narrower ones preserve the console and
+-- Wide layouts may pin the data dock; narrower ones stack it while preserving
+-- pin intent and the console, then collapse to the restore rail if necessary.
 -- finally collapse to the 44-pixel restore rail.
 width=2000; aardwolf_interface.settings.data.inspector_pinned=true; aardwolf_interface.ui.reflow()
-assert(aardwolf_interface.ui.layout.inspector>=360)
-width=1200; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.inspector==0)
+assert(aardwolf_interface.ui.layout.dock>=360 and data_dock.x>aardwolf_interface.ui.layout.workspace and data_dock.y==0)
+local pinned_mapper_width=embedded_mapper.width
+width=1200; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.dock==0 and aardwolf_interface.settings.data.inspector_pinned==true)
+assert(data_dock.x>0 and data_dock.y>embedded_mapper.y and embedded_mapper.width==pinned_mapper_width)
+height=360; aardwolf_interface.ui.reflow(); assert(embedded_mapper.height>0 and data_dock.height>0 and data_dock.y>embedded_mapper.y)
+assert(created["aardwolf-interface::ui::mapper"]==1 and created["aardwolf-interface::ui::data-dock"]==1 and created["aardwolf-interface::ui::overview-card"]==1)
+height=520; aardwolf_interface.ui.reflow(); assert(data_dock.height>=180)
+height=800
 width=800; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.collapsed and aardwolf_interface.ui.layout.workspace==44); local two_row_height=aardwolf_interface.ui.bottom_root.height
 width=500; height=360; aardwolf_interface.ui.reflow(); assert(aardwolf_interface.ui.layout.suspended and aardwolf_interface.ui.layout.workspace==0 and right==8); assert(aardwolf_interface.ui.bottom_root.height>two_row_height)
 width=1200; aardwolf_interface.settings.data.collapsed_by_user=false; aardwolf_interface.ui.reflow()
@@ -161,6 +187,27 @@ local character_text=objects["aardwolf-interface::ui::character-card"].text
 for _,expected in ipairs({"Denzil","Ranger","Hunter","Triton","21 / 18","39 / 28","204 / 204","Standing","Active","-19","316","2683920","50000","QP earned","ready","status","None"}) do
   assert(character_text:find(expected,1,true),"missing rendered character value: "..expected)
 end
+aardwolf_interface.commands.set_tab("overview"); aardwolf_interface.ui.render()
+local overview_text=objects["aardwolf-interface::ui::overview-card"].text
+assert(objects["aardwolf-interface::ui::dock-header"].text:find("OVERVIEW",1,true) and objects["aardwolf-interface::ui::dock-header"].text:find("Updated",1,true))
+for _,expected in ipairs({"Progression","Denzil","Ranger / Hunter","316 / 1000","Quest","ready","Resources","50000 / 2683920","Conditions","Solo","Equipment and bags are not loaded"}) do
+  assert(overview_text:find(expected,1,true),"missing overview value: "..expected)
+end
+aardwolf_interface.state.record("worth",{qp=64},"partial"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Resources &middot; PARTIAL",1,true))
+aardwolf_interface.protocol.worth()
+aardwolf_interface.state.record("quest",{status="ready"},"stale"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Quest &middot; STALE",1,true))
+aardwolf_interface.protocol.quest()
+aardwolf_interface.state.record("group",{members={}},"unavailable"); aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Group GMCP unavailable",1,true))
+aardwolf_interface.protocol.group()
+aardwolf_interface.state.record("quest",{status="active",action="status",target="academy rat",timer=17},"current")
+aardwolf_interface.state.record("group",{members={{name="Denzil"},{name="Ally"}}},"current")
+aardwolf_interface.ui.render()
+local active_overview=objects["aardwolf-interface::ui::overview-card"].text
+for _,expected in ipairs({"active","academy rat","17","2 members"}) do assert(active_overview:find(expected,1,true),"missing active overview value: "..expected) end
+aardwolf_interface.protocol.quest(); aardwolf_interface.protocol.group()
 
 -- Custom actions are printable, bounded, persisted, and never sent before an
 -- explicit confirmation. Server-derived room text cannot enter send().
@@ -176,7 +223,10 @@ aardwolf_interface.protocol.room(); assert(aardwolf_interface.actions.execute("l
 
 -- The strict detail transaction ignores unrelated CSV and wrong tags, accepts
 -- only its active grammar, verifies container IDs, and deletes accepted lines.
+aardwolf_interface.details.stop()
+assert(aardwolf_interface.details.runtime.trigger_id==nil)
 aardwolf_interface.details.refresh()
+assert(aardwolf_interface.details.runtime.trigger_id~=nil)
 assert(timers["aardwolf-interface:aardwolf-interface::details-timeout"].repeating==false)
 assert(not aardwolf_interface.details.capture_line("1,2,unrelated,csv"))
 assert(aardwolf_interface.details.capture_line("{eqdata}"))
@@ -196,6 +246,9 @@ assert(aardwolf_interface.details.capture_line("{/invdata}"))
 local captured=aardwolf_interface.state.value("details")
 assert(captured.equipment[1].name=="Helm" and #captured.inventory==2 and #captured.bags==1)
 assert(captured.bags[1].id==201 and #captured.bags[1].items==1 and captured.bags[1].max_weight==300)
+aardwolf_interface.commands.set_tab("overview"); aardwolf_interface.ui.render()
+local loaded_overview=objects["aardwolf-interface::ui::overview-card"].text
+for _,expected in ipairs({"Loadout","Equipped slots","Bags","Bag weight","5 / 300"}) do assert(loaded_overview:find(expected,1,true)) end
 aardwolf_interface.details.runtime.capture={kind="bagdata",id=201,rows={},generation=1,invalid=0,opened=false}
 assert(aardwolf_interface.details.capture_line("{invdata 999}"))
 assert(aardwolf_interface.state.envelope("details").status=="partial")
@@ -219,5 +272,9 @@ assert(aardwolf_interface.ui.scroll_capable==false and objects["aardwolf-interfa
 aardwolf_interface.settings.data.active_tab="character"; aardwolf_interface.ui.page=2; aardwolf_interface.ui.render()
 assert(objects["aardwolf-interface::ui::page-status"].text=="Page 2 / 2")
 assert(objects["aardwolf-interface::ui::character-card"].text:find("Standing",1,true))
+aardwolf_interface.settings.data.active_tab="overview"; aardwolf_interface.ui.page=2; aardwolf_interface.ui.render()
+assert(objects["aardwolf-interface::ui::page-status"].text=="Page 2 / 2")
+assert(objects["aardwolf-interface::ui::overview-card"].text:find("Resources",1,true))
+assert(not objects["aardwolf-interface::ui::mapper"].hidden)
 aardwolf_interface.lifecycle.shutdown(true)
 print("aardwolf-interface stub spec passed")

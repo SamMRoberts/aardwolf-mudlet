@@ -43,7 +43,7 @@ SUITE_MFILE = {
     "description": "All-in-one native Mudlet package with the adaptive command deck, collision-safe map integration, quiet character summaries, accessibility, and audited compatibility tools.",
     "package": SUITE_NAME,
     "title": "Aardwolf Mudlet Suite",
-    "version": "1.5.0",
+    "version": "1.6.0",
 }
 
 

@@ -38,7 +38,7 @@ EXPECTED_RELEASE_VERSIONS = {
     "aardwolf-communication": "1.0.0",
     "aardwolf-character": "1.1.0",
     "aardwolf-help": "1.0.0",
-    "aardwolf-interface": "1.5.0",
+    "aardwolf-interface": "1.6.0",
     "aardwolf-profile-data": "1.0.0",
     "aardwolf-accessibility": "1.0.0",
     "aardwolf-map": "1.1.0",
@@ -48,7 +48,7 @@ SUITE_MFILE = {
     "description": "All-in-one native Mudlet package with the adaptive command deck, collision-safe map integration, quiet character summaries, accessibility, and audited compatibility tools.",
     "package": "aardwolf-mudlet-suite",
     "title": "Aardwolf Mudlet Suite",
-    "version": "1.5.0",
+    "version": "1.6.0",
 }
 
 

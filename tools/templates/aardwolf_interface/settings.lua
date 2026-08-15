@@ -1,7 +1,7 @@
 aardwolf_interface.settings = aardwolf_interface.settings or {}
 
-local SCHEMA_VERSION = 4
-local VALID_TABS = {map = true, character = true, group = true, inventory = true}
+local SCHEMA_VERSION = 5
+local VALID_TABS = {overview = true, character = true, group = true, inventory = true}
 local VALID_SCALES = {[90] = true, [100] = true, [115] = true, [130] = true}
 
 local function defaults()
@@ -13,9 +13,8 @@ local function defaults()
     density = "comfortable",
     text_scale = 100,
     workspace_width = 440,
-    active_tab = "map",
+    active_tab = "overview",
     inspector_pinned = false,
-    inspector_tab = "inventory",
     palette_open = false,
     inventory_tab = "equipment",
     show_empty_slots = false,
@@ -26,6 +25,11 @@ local function defaults()
     border_claim = nil,
     bottom_border_claim = nil,
   }
+end
+
+local function normalized_tab(value)
+  if value == "map" then return "overview" end
+  return VALID_TABS[value] and value or nil
 end
 
 local function border_claim(value, size_key, maximum)
@@ -62,15 +66,21 @@ function aardwolf_interface.settings.validate(candidate)
   local scale = tonumber(candidate.text_scale)
   if VALID_SCALES[scale] then output.text_scale = scale end
   output.workspace_width = aardwolf_interface.util.bounded(candidate.workspace_width, 360, 520) or output.workspace_width
-  if VALID_TABS[candidate.active_tab] then output.active_tab = candidate.active_tab end
-  if VALID_TABS[candidate.inspector_tab] then output.inspector_tab = candidate.inspector_tab end
+  local active_tab = normalized_tab(candidate.active_tab)
+  -- Schema 4 could retain a separate selected inspector view. When that
+  -- inspector was pinned it is the view the player was actually using, so it
+  -- becomes the schema-5 dock selection. Otherwise the former Map tab maps to
+  -- Overview as expected.
+  if version < 5 and candidate.inspector_pinned == true then
+    active_tab = normalized_tab(candidate.inspector_tab) or active_tab
+  end
+  if active_tab then output.active_tab = active_tab end
   if candidate.inventory_tab == "equipment" or candidate.inventory_tab == "bags" then output.inventory_tab = candidate.inventory_tab end
   for _, name in ipairs({"inspector_pinned", "palette_open", "show_empty_slots", "collapsed_by_user", "sync_map_theme"}) do
     if type(candidate[name]) == "boolean" then output[name] = candidate[name] end
   end
   if version < 4 and output.details_visible then
     output.inspector_pinned = true
-    output.inspector_tab = "inventory"
     output.active_tab = "inventory"
   end
   local seen = {}
@@ -155,5 +165,5 @@ end
 
 function aardwolf_interface.settings.details_are_visible()
   local data = aardwolf_interface.settings.data or defaults()
-  return data.details_visible == true or data.active_tab == "inventory" or data.inspector_pinned == true
+  return data.active_tab == "inventory"
 end

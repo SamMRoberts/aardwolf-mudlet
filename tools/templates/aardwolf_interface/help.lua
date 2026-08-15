@@ -3,8 +3,8 @@ function aardwolf_interface.help.show()
   aardwolf_interface.ui.message([[Aardwolf Adaptive Command Deck
 aard interface show|hide|status
 aard interface repair
-aard interface tab map|character|group|inventory
-aard interface pin [map|character|group|inventory|off]
+aard interface tab overview|map|character|group|inventory
+aard interface pin [overview|map|character|group|inventory|off]
 aard interface palette [show|hide|toggle]
 aard interface summary room|character|quest|group|equipment|bags|actions|all
 aard interface theme obsidian|high-contrast

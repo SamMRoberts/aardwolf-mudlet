@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[1]
 metadata = json.loads((root / "package-metadata.json").read_text())
 assert metadata["name"] == "aardwolf-interface"
 assert metadata["namespace"] == "aardwolf_interface"
-assert metadata["version"] == "1.5.0"
+assert metadata["version"] == "1.6.0"
 aliases = json.loads((root / "src" / "aliases" / "aardwolf_interface" / "aliases.json").read_text())
 assert aliases
 for alias in aliases:
@@ -23,7 +23,10 @@ assert "Geyser.Container" in source and "Geyser.Label" in source and "Geyser.Map
 assert (root / "tests" / "interface_stub_spec.lua").is_file()
 assert all(command in source for command in ("commands.set_tab", "commands.toggle_pin", "commands.toggle_palette", "commands.summary", "commands.action_add"))
 assert 'id="map-import"' in source and 'new_button("map-import"' in source and "aardwolf_map.commands.start_import" in source
-assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 4' in source and 'candidate.theme == "dark"' in source
+assert "schema_version = SCHEMA_VERSION" in source and 'SCHEMA_VERSION = 5' in source and 'candidate.theme == "dark"' in source
+assert 'TABS = {"overview", "character", "group", "inventory"}' in source
+assert 'if tab == "map" then tab = "overview" end' in source and 'mapper_visible = not data().palette_open' in source
+assert 'new_container("data-dock", ui.root)' in source and 'render_overview' in source and 'dock-pinned=' in source
 assert "setBorderRight" in source and "setBorderBottom" in source and "Geyser.CommandLine:new" in source
 assert all(event in source for event in ("gmcp.char.base", "gmcp.char.vitals", "gmcp.char.maxstats", "gmcp.char.status", "gmcp.char.stats", "gmcp.char.worth", "gmcp.group", "gmcp.room.info", "gmcp.comm.tick", "gmcp.comm.quest"))
 assert "sysWindowResizeEvent" in source and "sysUninstallPackage" in source and "sysExitEvent" in source

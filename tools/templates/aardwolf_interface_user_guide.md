@@ -1,6 +1,6 @@
 # Aardwolf Adaptive Command Deck User Guide
 
-This guide covers `aardwolf-interface` 1.5 for Mudlet 4.14 and newer. The package provides a responsive right-side workspace and bottom HUD while preserving the main game console.
+This guide covers `aardwolf-interface` 1.6 for Mudlet 4.14 and newer. The package provides a persistent-map workspace, adaptive player data dock, and bottom HUD while preserving the main game console.
 
 ## Install or upgrade
 
@@ -10,18 +10,19 @@ This guide covers `aardwolf-interface` 1.5 for Mudlet 4.14 and newer. The packag
 4. Reopen the profile or run `aard interface repair` once.
 5. Run `aard interface status`. The response reports visibility, selected tab, theme, scale, whether the workspace is suspended, and the remaining console width.
 
-Version 1.5 also repairs common in-place upgrades automatically. When Mudlet exposes the exact retained `aardwolf_interface.main` object, startup disables it; it then removes pre-1.5 interface handlers, timers, and Geyser roots, restores exact package-owned border claims or the retained legacy root's recorded base, and builds one current workspace.
+Version 1.6 retains the 1.5 in-place upgrade repair and migrates schema-4 Map-tab settings to the Overview data dock.
 
 ## Layout
 
 The command deck normally claims 440 pixels on the right. It preserves at least 640 pixels or half of the usable window—whichever is larger—for game text.
 
 - **Persistent context:** character and connection state, room, area, vnum, terrain, tick, exits, four contextual actions, and tabs.
-- **Map:** native Mudlet mapper, centering and zoom controls, coordinates, terrain, and map import status.
+- **Persistent map:** native Mudlet mapper, centering and zoom controls, coordinates, terrain, and map import status remain visible across ordinary data-tab changes.
+- **Overview:** progression, quest, conditions, currencies, equipment freshness, bag capacity, and group/solo state.
 - **Character:** name, pretitle, race, class/subclass, clan, level/class count, tier, remorts/redos/pups, per-level progression, current/max attributes and vitals, hitroll, damroll, saves, alignment, position/state/enemy, TNL, currencies, practices/trains, quest state, hunger, and thirst received through GMCP.
 - **Group:** unavailable, not-grouped, and active-group states with structured member values.
 - **Inventory:** Equipment and Bags views populated only by an explicit detail refresh.
-- **Inspector:** an optional second panel on sufficiently wide windows. Pin intent is remembered but temporarily suppressed when it would crowd the console.
+- **Data dock:** Overview, Character, Group, and Inventory stack beneath the map when unpinned and move into a full-height far-right column when pinned. Pin intent is remembered but temporarily suppressed when it would crowd the console.
 - **HUD:** HP, Mana, and Moves on the first row; TNL, Enemy, Hunger, and Thirst on the second. It wraps on narrow windows.
 
 When the full workspace does not fit, it becomes a 44-pixel restore rail. If even the rail would violate the console minimum, the right workspace is suspended and claims no additional width. Resize the window or use the text summaries until it fits.
@@ -34,12 +35,14 @@ aard interface hide
 aard interface status
 aard interface repair
 
+aard interface tab overview
 aard interface tab map
 aard interface tab character
 aard interface tab group
 aard interface tab inventory
 
 aard interface pin
+aard interface pin overview
 aard interface pin inventory
 aard interface pin off
 aard interface palette show
@@ -109,7 +112,7 @@ The interface does not make unsolicited speech announcements. Text-to-speech rem
 
 ## Map integration
 
-The interface embeds Mudlet's mapper but does not manufacture map readiness from unrelated rooms. Install `aardwolf-map` or the suite with Mudlet's Package Manager, then use the Map tab's **Import** button or run `aard map import` to merge its packaged Aardwolf snapshot. Map status distinguishes import state, a resolved current Aardwolf room, stale data, and errors.
+The interface embeds Mudlet's mapper but does not manufacture map readiness from unrelated rooms. Install `aardwolf-map` or the suite with Mudlet's Package Manager, then use the persistent map's **Import** button or run `aard map import` to merge its packaged Aardwolf snapshot. Map status distinguishes import state, a resolved current Aardwolf room, stale data, and errors. Legacy `aard interface tab map` and `aard interface pin map` select Overview because the mapper no longer needs its own tab.
 
 Do not use Mudlet's Mapper **Load another map**, the generic mapper's `map load`, or `loadMap()` with `Aardwolf.db`, the packaged JSON, package XML, or `.mpackage`. Those are not native Mudlet map backups and will produce `no format version detected`.
 
@@ -143,10 +146,10 @@ Run `aard map status`, then `aard map import` if no packaged map is ready. A Mud
 
 The command deck and Mudlet's `generic_mapper` package both control the same embedded native mapper, so they cannot safely display separate mapper widgets in the same profile. Open Package Manager and remove `generic_mapper`; this does not delete Mudlet's map database. Keep `aardwolf-map` and either the suite or standalone interface installed, then reopen the profile or run `aard interface repair`.
 
-Do not run the generic mapper's `map show` command while the command deck is active. If it moves the mapper after startup, `aard interface repair` returns the mapper to the Map tab.
+Do not run the generic mapper's `map show` command while the command deck is active. If it moves the mapper after startup, `aard interface repair` returns the mapper to the persistent map workspace.
 
 ## Settings and removal
 
-Settings are profile-local in `getMudletHomeDir()/aardwolf-interface/settings.lua`. Visibility, tab, theme, density, text scale, inspector intent, and custom actions persist. Avoid editing this file while Mudlet is running.
+Settings are profile-local in `getMudletHomeDir()/aardwolf-interface/settings.lua`. Visibility, selected dock tab, theme, density, text scale, dock pin intent, and custom actions persist. Avoid editing this file while Mudlet is running.
 
 Before uninstalling, `aard interface hide` is optional; the uninstall lifecycle releases exact package-owned borders, handlers, timers, capture triggers, and Geyser roots. Removing the package does not delete Mudlet map data or custom actions stored in the profile settings file.

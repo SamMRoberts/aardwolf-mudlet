@@ -166,6 +166,7 @@ function aardwolf_interface.details.on_line()
 end
 function aardwolf_interface.details.refresh()
   if aardwolf_interface.state.connection~="connected" then return false,"Disconnected" end
+  aardwolf_interface.details.start()
   local runtime=aardwolf_interface.details.runtime; runtime.generation=runtime.generation+1; runtime.queue={{kind="eqdata",command="eqdata"},{kind="invdata",command="invdata"}}
   local value=details(); value.refreshing=true; value.error=nil; value.errors={}; value.generation=runtime.generation; aardwolf_interface.state.set_details(value,"partial")
   aardwolf_interface.details.next()

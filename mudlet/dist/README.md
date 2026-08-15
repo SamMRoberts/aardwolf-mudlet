@@ -11,10 +11,10 @@ both. The adjacent XML is a raw object export for inspection and does not
 contain resources, so it is not a functional replacement for the suite when
 using the map importer.
 
-The current suite version is 1.5.0. It includes Mudlet's required `config.lua`
+The current suite version is 1.6.0. It includes Mudlet's required `config.lua`
 Package Manager metadata and the Obsidian Jewel adaptive command deck: a
-responsive right workspace with persistent room context, Map/Character/Group/
-Inventory tabs, an optional inspector, a balanced multi-row HUD, accessible
+responsive right workspace with persistent room context, Overview/Character/
+Group/Inventory data views, a persistent map, an adaptive player data dock, a balanced multi-row HUD, accessible
 plain-text summaries, and a contextual action drawer. The map integration adds
 collision-safe environment colors, source/Obsidian/high-contrast palettes,
 resumable import lifecycle, and trustworthy status snapshots. Character and

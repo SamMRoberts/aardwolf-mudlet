@@ -24,8 +24,8 @@
 </script><command></command><packageName></packageName><regex>^aard interface details refresh$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.details_status</name><script>aardwolf_interface.commands.details_status()
 </script><command></command><packageName></packageName><regex>^aard interface details status$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.theme</name><script>aardwolf_interface.commands.toggle_theme()
 </script><command></command><packageName></packageName><regex>^aard theme change$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.tab</name><script>aardwolf_interface.commands.set_tab(matches[2])
-</script><command></command><packageName></packageName><regex>^aard interface tab (map|character|group|inventory)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.pin</name><script>aardwolf_interface.commands.toggle_pin(matches[2])
-</script><command></command><packageName></packageName><regex>^aard interface pin(?: (map|character|group|inventory|off))?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.palette</name><script>aardwolf_interface.commands.toggle_palette(matches[2])
+</script><command></command><packageName></packageName><regex>^aard interface tab (overview|map|character|group|inventory)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.pin</name><script>aardwolf_interface.commands.toggle_pin(matches[2])
+</script><command></command><packageName></packageName><regex>^aard interface pin(?: (overview|map|character|group|inventory|off))?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.palette</name><script>aardwolf_interface.commands.toggle_palette(matches[2])
 </script><command></command><packageName></packageName><regex>^aard interface palette(?: (show|hide|toggle))?$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.summary</name><script>aardwolf_interface.commands.summary(matches[2])
 </script><command></command><packageName></packageName><regex>^aard interface summary (room|character|quest|group|equipment|bags|actions|all)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.theme_set</name><script>aardwolf_interface.commands.set_theme(matches[2])
 </script><command></command><packageName></packageName><regex>^aard interface theme (obsidian|high-contrast)$</regex></Alias><Alias isActive="yes" isFolder="no"><name>aardwolf_interface.density</name><script>aardwolf_interface.commands.set_density(matches[2])
@@ -885,8 +885,8 @@ end
 aardwolf_interface.state.reset_session("disconnected")
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_interface.settings</name><script>aardwolf_interface.settings = aardwolf_interface.settings or {}
 
-local SCHEMA_VERSION = 4
-local VALID_TABS = {map = true, character = true, group = true, inventory = true}
+local SCHEMA_VERSION = 5
+local VALID_TABS = {overview = true, character = true, group = true, inventory = true}
 local VALID_SCALES = {[90] = true, [100] = true, [115] = true, [130] = true}
 
 local function defaults()
@@ -898,9 +898,8 @@ local function defaults()
     density = "comfortable",
     text_scale = 100,
     workspace_width = 440,
-    active_tab = "map",
+    active_tab = "overview",
     inspector_pinned = false,
-    inspector_tab = "inventory",
     palette_open = false,
     inventory_tab = "equipment",
     show_empty_slots = false,
@@ -911,6 +910,11 @@ local function defaults()
     border_claim = nil,
     bottom_border_claim = nil,
   }
+end
+
+local function normalized_tab(value)
+  if value == "map" then return "overview" end
+  return VALID_TABS[value] and value or nil
 end
 
 local function border_claim(value, size_key, maximum)
@@ -947,15 +951,21 @@ function aardwolf_interface.settings.validate(candidate)
   local scale = tonumber(candidate.text_scale)
   if VALID_SCALES[scale] then output.text_scale = scale end
   output.workspace_width = aardwolf_interface.util.bounded(candidate.workspace_width, 360, 520) or output.workspace_width
-  if VALID_TABS[candidate.active_tab] then output.active_tab = candidate.active_tab end
-  if VALID_TABS[candidate.inspector_tab] then output.inspector_tab = candidate.inspector_tab end
+  local active_tab = normalized_tab(candidate.active_tab)
+  -- Schema 4 could retain a separate selected inspector view. When that
+  -- inspector was pinned it is the view the player was actually using, so it
+  -- becomes the schema-5 dock selection. Otherwise the former Map tab maps to
+  -- Overview as expected.
+  if version &lt; 5 and candidate.inspector_pinned == true then
+    active_tab = normalized_tab(candidate.inspector_tab) or active_tab
+  end
+  if active_tab then output.active_tab = active_tab end
   if candidate.inventory_tab == "equipment" or candidate.inventory_tab == "bags" then output.inventory_tab = candidate.inventory_tab end
   for _, name in ipairs({"inspector_pinned", "palette_open", "show_empty_slots", "collapsed_by_user", "sync_map_theme"}) do
     if type(candidate[name]) == "boolean" then output[name] = candidate[name] end
   end
   if version &lt; 4 and output.details_visible then
     output.inspector_pinned = true
-    output.inspector_tab = "inventory"
     output.active_tab = "inventory"
   end
   local seen = {}
@@ -1040,7 +1050,7 @@ end
 
 function aardwolf_interface.settings.details_are_visible()
   local data = aardwolf_interface.settings.data or defaults()
-  return data.details_visible == true or data.active_tab == "inventory" or data.inspector_pinned == true
+  return data.active_tab == "inventory"
 end
 </script><packageName></packageName><eventHandlerList></eventHandlerList></Script><Script isActive="yes" isFolder="no"><name>aardwolf_interface.details</name><script>aardwolf_interface.details = aardwolf_interface.details or {runtime={generation=0,queue={},capture=nil,trigger_id=nil}}
 local LIMIT, TIMER = 100, "aardwolf-interface::details-timeout"
@@ -1210,6 +1220,7 @@ function aardwolf_interface.details.on_line()
 end
 function aardwolf_interface.details.refresh()
   if aardwolf_interface.state.connection~="connected" then return false,"Disconnected" end
+  aardwolf_interface.details.start()
   local runtime=aardwolf_interface.details.runtime; runtime.generation=runtime.generation+1; runtime.queue={{kind="eqdata",command="eqdata"},{kind="invdata",command="invdata"}}
   local value=details(); value.refreshing=true; value.error=nil; value.errors={}; value.generation=runtime.generation; aardwolf_interface.state.set_details(value,"partial")
   aardwolf_interface.details.next()
@@ -1484,21 +1495,25 @@ function aardwolf_interface.commands.hide() aardwolf_interface.settings.update("
 function aardwolf_interface.commands.status()
   local data=aardwolf_interface.settings.data
   local layout=aardwolf_interface.ui and aardwolf_interface.ui.layout or {}
-  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% inspector=%s suspended=%s console=%s legacy-disabled=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),tostring(layout.suspended==true),tostring(layout.window_width and math.max(0,layout.window_width-layout.base-layout.total) or "--"),tostring(aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.legacy_script_disabled==true),aardwolf_interface.state.connection))
+  message(string.format("visible=%s tab=%s width=%d theme=%s density=%s scale=%d%% dock-pinned=%s dock-width=%s suspended=%s console=%s legacy-disabled=%s connection=%s",tostring(data.visible),data.active_tab,data.workspace_width,data.theme,data.density,data.text_scale,tostring(data.inspector_pinned),tostring(layout.dock or 0),tostring(layout.suspended==true),tostring(layout.window_width and math.max(0,layout.window_width-layout.base-layout.total) or "--"),tostring(aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.legacy_script_disabled==true),aardwolf_interface.state.connection))
 end
 function aardwolf_interface.commands.repair()
   local ok=aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.repair and aardwolf_interface.lifecycle.repair()
   message(ok and "Interface viewport repaired and rebuilt." or "Interface repair could not build Geyser; use 'aard interface summary all' for text output.")
 end
-function aardwolf_interface.commands.set_tab(tab) if ({map=true,character=true,group=true,inventory=true})[tab] then aardwolf_interface.settings.update("active_tab",tab); aardwolf_interface.ui.set_tab(tab) end end
+function aardwolf_interface.commands.set_tab(tab)
+  if tab=="map" then tab="overview" end
+  if ({overview=true,character=true,group=true,inventory=true})[tab] then aardwolf_interface.ui.set_tab(tab) end
+end
 aardwolf_interface.commands.select_tab=aardwolf_interface.commands.set_tab
 function aardwolf_interface.commands.toggle_pin(tab)
   local data=aardwolf_interface.settings.data
-  if tab=="off" then data.inspector_pinned=false elseif tab then data.inspector_pinned=true; data.inspector_tab=tab else data.inspector_pinned=not data.inspector_pinned end
-  data.details_visible=data.inspector_pinned; aardwolf_interface.settings.save(); aardwolf_interface.ui.reflow()
+  if tab=="map" then tab="overview" end
+  if tab=="off" then data.inspector_pinned=false elseif tab then data.inspector_pinned=true; data.active_tab=tab else data.inspector_pinned=not data.inspector_pinned end
+  aardwolf_interface.settings.save(); aardwolf_interface.ui.reflow(); aardwolf_interface.ui.request_render()
 end
 function aardwolf_interface.commands.details_show() aardwolf_interface.commands.set_tab("inventory"); aardwolf_interface.commands.toggle_pin("inventory") end
-function aardwolf_interface.commands.details_hide() aardwolf_interface.commands.toggle_pin("off"); if aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.set_tab("map") end end
+function aardwolf_interface.commands.details_hide() aardwolf_interface.commands.toggle_pin("off"); if aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.set_tab("overview") end end
 function aardwolf_interface.commands.details_toggle() if aardwolf_interface.settings.data.inspector_pinned or aardwolf_interface.settings.data.active_tab=="inventory" then aardwolf_interface.commands.details_hide() else aardwolf_interface.commands.details_show() end end
 function aardwolf_interface.commands.details_refresh() aardwolf_interface.details.refresh() end
 function aardwolf_interface.commands.details_status() local value=aardwolf_interface.state.value("details"); message(string.format("inventory status=%s generation=%d equipment=%d bags=%d",aardwolf_interface.state.envelope("details").status,value.generation or 0,#(value.equipment or {}),#(value.bags or {}))) end
@@ -1566,11 +1581,12 @@ local PREFIX = "aardwolf-interface::ui::"
 local TIMER_USER = "aardwolf_interface"
 local RENDER_TIMER = "aardwolf-interface::timer::render"
 local WORKSPACE_MIN, WORKSPACE_DEFAULT, WORKSPACE_MAX = 360, 440, 520
-local INSPECTOR_MIN, INSPECTOR_MAX = 360, 440
+local DOCK_MIN, DOCK_MAX = 360, 440
 local COLLAPSED_WIDTH, GAP = 44, 6
 local HUD_MARGIN, HUD_GAP, HUD_ROW_HEIGHT = 6, 4, 24
 local CONTENT_MARGIN = 8
-local TABS = {"map", "character", "group", "inventory"}
+local TABS = {"overview", "character", "group", "inventory"}
+local TAB_LABELS = {overview = "Overview", character = "Character", group = "Group", inventory = "Inventory"}
 local SCALE = {[90] = 0.90, [100] = 1.00, [115] = 1.15, [130] = 1.30}
 
 local fallback_themes = {
@@ -1731,15 +1747,15 @@ local function layout()
   local suspended = usable &lt; minimum_console + COLLAPSED_WIDTH
   local collapsed = suspended or data().collapsed_by_user == true or usable - desired &lt; minimum_console
   local workspace = suspended and 0 or (collapsed and COLLAPSED_WIDTH or desired)
-  local inspector = 0
+  local dock = 0
   if not collapsed and data().inspector_pinned == true then
-    inspector = math.floor(bounded(usable * 0.22, INSPECTOR_MIN, INSPECTOR_MAX, INSPECTOR_MIN))
-    if usable - workspace - GAP - inspector &lt; minimum_console then inspector = 0 end
+    dock = math.floor(bounded(usable * 0.22, DOCK_MIN, DOCK_MAX, DOCK_MIN))
+    if usable - workspace - GAP - dock &lt; minimum_console then dock = 0 end
   end
   return {
     window_width = window_width, height = window_height, base = base, usable = usable,
     console_min = minimum_console, collapsed = collapsed, suspended = suspended, workspace = workspace,
-    inspector = inspector, total = workspace + (inspector &gt; 0 and GAP + inspector or 0),
+    dock = dock, total = workspace + (dock &gt; 0 and GAP + dock or 0),
   }
 end
 
@@ -1957,29 +1973,40 @@ function ui.build()
   w.palette_toggle = new_button("palette-toggle", w.workspace, function()
     if commands and commands.toggle_palette then commands.toggle_palette() else ui.toggle_palette() end
   end, "Open the contextual action drawer")
-  w.pin_toggle = new_button("pin-toggle", w.workspace, function()
-    if commands and commands.toggle_pin then commands.toggle_pin() else data().inspector_pinned = not data().inspector_pinned; persist(); ui.reflow() end
-  end, "Pin or unpin the wide-screen inspector")
   w.context = new_container("context-strip", w.workspace)
   for index = 1, 4 do w["context_" .. index] = new_button("context-" .. index, w.context, function() end) end
-  w.tabs = new_container("tabs", w.workspace)
-  for _, tab in ipairs(TABS) do w["tab_" .. tab] = new_button("tab-" .. tab, w.tabs, tab_callback(tab), "Show " .. tab .. " data") end
-  w.content = new_container("content", w.workspace)
-  create_content(w.content)
-
-  local map = w.map_content
-  w.map_toolbar = new_container("map-toolbar", map)
+  w.map_toolbar = new_container("map-toolbar", w.workspace)
   w.map_import = new_button("map-import", w.map_toolbar, execute_action("map-import"), "Merge the packaged Aardwolf snapshot; do not use Mudlet's native map loader")
   w.map_center = new_button("map-center", w.map_toolbar, function() if aardwolf_interface.lifecycle and aardwolf_interface.lifecycle.center_map then aardwolf_interface.lifecycle.center_map() end end, "Center the map on the current room")
   w.map_zoom_in = new_button("map-zoom-in", w.map_toolbar, execute_action("map-zoom-in"), "Zoom map in")
   w.map_zoom_out = new_button("map-zoom-out", w.map_toolbar, execute_action("map-zoom-out"), "Zoom map out")
-  w.map_status = new_label("map-status", map)
+  w.map_status = new_label("map-status", w.workspace)
   -- Geyser.Mapper ultimately positions Mudlet's native mapper relative to its
   -- window. A mapper nested beneath ScrollBox loses the outer workspace
   -- offset on Mudlet 4.22 and is drawn over the game console. Keep it as a
-  -- direct workspace child and place it over the Map tab's reserved region.
+  -- direct workspace child and place it within the persistent map region.
   w.mapper = Geyser.Mapper:new({name = PREFIX .. "mapper", x = 0, y = 0, width = 10, height = 10, embedded = true}, w.workspace)
-  w.map_legend = new_label("map-legend", map)
+  w.map_legend = new_label("map-legend", w.workspace)
+
+  -- The same data dock moves between the far-right pinned column and a
+  -- stacked position below the map. Building it once avoids duplicate Geyser
+  -- widgets, stale scroll state, and competing lifecycle ownership.
+  w.data_dock = new_container("data-dock", ui.root)
+  w.dock_background = new_label("dock-background", w.data_dock)
+  w.dock_header = new_label("dock-header", w.data_dock)
+  w.pin_toggle = new_button("pin-toggle", w.data_dock, function()
+    if commands and commands.toggle_pin then commands.toggle_pin() else data().inspector_pinned = not data().inspector_pinned; persist(); ui.reflow() end
+  end, "Pin or unpin the player data dock")
+  w.tabs = new_container("tabs", w.data_dock)
+  for _, tab in ipairs(TABS) do w["tab_" .. tab] = new_button("tab-" .. tab, w.tabs, tab_callback(tab), "Show " .. TAB_LABELS[tab] .. " data") end
+  w.content = new_container("content", w.data_dock)
+  create_content(w.content)
+
+  w.overview_actions = new_container("overview-actions", w.overview_content)
+  w.overview_character_refresh = new_button("overview-character-refresh", w.overview_actions, execute_action("character-refresh"), "Request a fresh character GMCP snapshot")
+  w.overview_quest_refresh = new_button("overview-quest-refresh", w.overview_actions, execute_action("quest-refresh"), "Request fresh quest status")
+  w.overview_inventory_refresh = new_button("overview-inventory-refresh", w.overview_actions, execute_action("details-refresh"), "Refresh equipment and bag details")
+  w.overview_card = new_label("overview-card", w.overview_content)
   w.character_card = new_label("character-card", w.character_content)
   w.group_card = new_label("group-card", w.group_content)
   w.inventory_toolbar = new_container("inventory-toolbar", w.inventory_content)
@@ -1989,12 +2016,7 @@ function ui.build()
   w.inventory_refresh = new_button("inventory-refresh", w.inventory_toolbar, function() if aardwolf_interface.details and aardwolf_interface.details.refresh then aardwolf_interface.details.refresh() end end, "Refresh equipment and bag details")
   w.inventory_card = new_label("inventory-card", w.inventory_content)
 
-  w.inspector = new_container("inspector", ui.root)
-  w.inspector_background = new_label("inspector-background", w.inspector)
-  w.inspector_header = new_label("inspector-header", w.inspector)
-  w.inspector_body = new_label("inspector-body", w.inspector)
-
-  w.drawer = new_container("action-drawer", w.workspace)
+  w.drawer = new_container("action-drawer", ui.root)
   w.drawer_background = new_label("action-drawer-background", w.drawer)
   w.drawer_header = new_label("action-drawer-header", w.drawer)
   w.drawer_close = new_button("action-drawer-close", w.drawer, function() ui.toggle_palette(false) end, "Close action drawer")
@@ -2006,7 +2028,7 @@ function ui.build()
   w.drawer_page = new_label("action-drawer-page", w.drawer)
   w.drawer_add = new_button("action-drawer-add", w.drawer, function() ui.prompt_custom_editor() end, "Add a custom action")
 
-  w.editor = new_container("custom-editor", w.workspace)
+  w.editor = new_container("custom-editor", ui.root)
   w.editor_background = new_label("custom-editor-background", w.editor)
   w.editor_title = new_label("custom-editor-title", w.editor)
   w.editor_help = new_label("custom-editor-help", w.editor)
@@ -2018,7 +2040,7 @@ function ui.build()
   w.editor_save = new_button("custom-editor-save", w.editor, submit_custom_editor, "Validate and save the custom action")
   w.editor_cancel = new_button("custom-editor-cancel", w.editor, function() ui.editor_open = false; ui.request_render() end, "Cancel editing")
 
-  w.confirm = new_container("custom-confirm", w.workspace)
+  w.confirm = new_container("custom-confirm", ui.root)
   w.confirm_background = new_label("custom-confirm-background", w.confirm)
   w.confirm_text = new_label("custom-confirm-text", w.confirm)
   w.confirm_send = new_button("custom-confirm-send", w.confirm, confirm_action, "Send this custom command")
@@ -2042,10 +2064,10 @@ function ui.apply_theme()
   local header = string.format("background-color:%s;color:%s;border-bottom:2px solid %s;padding:%dpx;font-size:%dpt;font-weight:bold;", t.section, t.accent, t.jewel, density(4, 7), font_size(11))
   local button = string.format("background-color:%s;color:%s;border:1px solid %s;padding:3px;font-size:%dpt;font-weight:bold;", t.elevated, t.text, t.border, font_size(9))
   local selected = string.format("background-color:%s;color:%s;border:1px solid %s;padding:3px;font-size:%dpt;font-weight:bold;", t.selected, t.accent, t.accent, font_size(9))
-  for _, name in ipairs({"background", "bottom_background", "inspector_background", "drawer_background", "editor_background", "confirm_background"}) do safe(widget(name), "setStyleSheet", panel) end
-  for _, name in ipairs({"header", "inspector_header", "drawer_header", "editor_title"}) do safe(widget(name), "setStyleSheet", header) end
-  for _, name in ipairs({"map_status", "map_legend", "character_card", "group_card", "inventory_card", "inspector_body", "drawer_actions", "editor_help", "confirm_text"}) do safe(widget(name), "setStyleSheet", section) end
-  for _, name in ipairs({"rail", "palette_toggle", "pin_toggle", "map_import", "map_center", "map_zoom_in", "map_zoom_out", "inventory_equipment", "inventory_bags", "inventory_empty", "inventory_refresh", "drawer_close", "drawer_add", "drawer_prev", "drawer_next", "editor_save", "editor_cancel", "confirm_send", "confirm_cancel", "page_prev", "page_next"}) do safe(widget(name), "setStyleSheet", button) end
+  for _, name in ipairs({"background", "bottom_background", "dock_background", "drawer_background", "editor_background", "confirm_background"}) do safe(widget(name), "setStyleSheet", panel) end
+  for _, name in ipairs({"header", "dock_header", "drawer_header", "editor_title"}) do safe(widget(name), "setStyleSheet", header) end
+  for _, name in ipairs({"map_status", "map_legend", "overview_card", "character_card", "group_card", "inventory_card", "drawer_actions", "editor_help", "confirm_text"}) do safe(widget(name), "setStyleSheet", section) end
+  for _, name in ipairs({"rail", "palette_toggle", "pin_toggle", "map_import", "map_center", "map_zoom_in", "map_zoom_out", "overview_character_refresh", "overview_quest_refresh", "overview_inventory_refresh", "inventory_equipment", "inventory_bags", "inventory_empty", "inventory_refresh", "drawer_close", "drawer_add", "drawer_prev", "drawer_next", "editor_save", "editor_cancel", "confirm_send", "confirm_cancel", "page_prev", "page_next"}) do safe(widget(name), "setStyleSheet", button) end
   for index = 1, 4 do safe(widget("context_" .. index), "setStyleSheet", button) end
   for index = 1, 12 do safe(widget("drawer_action_" .. index), "setStyleSheet", button) end
   for _, tab in ipairs(TABS) do safe(widget("tab_" .. tab), "setStyleSheet", data().active_tab == tab and selected or button) end
@@ -2088,25 +2110,59 @@ function ui.reflow()
   elseif l.collapsed then
     safe(ui.root, "show")
     safe(widget("rail"), "move", 0, 0); safe(widget("rail"), "resize", COLLAPSED_WIDTH, "100%"); safe(widget("rail"), "show")
-    safe(widget("workspace"), "hide"); safe(widget("inspector"), "hide")
+    safe(widget("workspace"), "hide"); safe(widget("data_dock"), "hide")
   else
     safe(ui.root, "show")
     safe(widget("rail"), "hide"); safe(widget("workspace"), "show")
     safe(widget("workspace"), "move", 0, 0); safe(widget("workspace"), "resize", l.workspace, "100%")
-    safe(widget("header"), "move", CONTENT_MARGIN, CONTENT_MARGIN); safe(widget("header"), "resize", l.workspace - 112, density(92, 112))
-    safe(widget("palette_toggle"), "move", l.workspace - 96, CONTENT_MARGIN); safe(widget("palette_toggle"), "resize", 40, 32)
-    safe(widget("pin_toggle"), "move", l.workspace - 52, CONTENT_MARGIN); safe(widget("pin_toggle"), "resize", 44, 32)
+    safe(widget("header"), "move", CONTENT_MARGIN, CONTENT_MARGIN); safe(widget("header"), "resize", l.workspace - 68, density(92, 112))
+    safe(widget("palette_toggle"), "move", l.workspace - 52, CONTENT_MARGIN); safe(widget("palette_toggle"), "resize", 44, 32)
     local header_bottom = CONTENT_MARGIN + density(92, 112) + GAP
     safe(widget("context"), "move", CONTENT_MARGIN, header_bottom); safe(widget("context"), "resize", l.workspace - CONTENT_MARGIN * 2, 32)
     local action_width = (l.workspace - CONTENT_MARGIN * 2 - GAP * 3) / 4
     for index = 1, 4 do safe(widget("context_" .. index), "move", (index - 1) * (action_width + GAP), 0); safe(widget("context_" .. index), "resize", action_width, 32) end
-    local tabs_y = header_bottom + 32 + GAP
-    safe(widget("tabs"), "move", CONTENT_MARGIN, tabs_y); safe(widget("tabs"), "resize", l.workspace - CONTENT_MARGIN * 2, 32)
-    local tab_width = (l.workspace - CONTENT_MARGIN * 2 - GAP * 3) / 4
+    local map_y = header_bottom + 32 + GAP
+    local available_height = math.max(80, l.height - map_y - CONTENT_MARGIN)
+    local map_height, dock_x, dock_y, dock_width, dock_height
+    if l.dock &gt; 0 then
+      map_height = available_height
+      dock_x, dock_y, dock_width, dock_height = l.workspace + GAP, 0, l.dock, l.height
+    else
+      map_height = math.floor(bounded(available_height * 0.45, 160, 420, 240))
+      local minimum_split = 160 + GAP + 180
+      if available_height &gt;= minimum_split and available_height - map_height - GAP &lt; 180 then map_height = available_height - GAP - 180 end
+      if available_height &lt; minimum_split then map_height = math.max(80, math.floor((available_height - GAP) * 0.47)) end
+      dock_x, dock_y, dock_width = CONTENT_MARGIN, map_y + map_height + GAP, l.workspace - CONTENT_MARGIN * 2
+      dock_height = math.max(80, l.height - dock_y - CONTENT_MARGIN)
+    end
+
+    local map_status_height = map_height &gt;= 180 and 40 or 28
+    local map_legend_height = map_height &gt;= 180 and 32 or 24
+    local mapper_y = map_y + 34 + map_status_height + 4
+    local legend_y = map_y + math.max(34 + map_status_height + 12, map_height - map_legend_height)
+    local mapper_height = math.max(8, legend_y - mapper_y - 4)
+    safe(widget("map_toolbar"), "move", CONTENT_MARGIN, map_y); safe(widget("map_toolbar"), "resize", l.workspace - CONTENT_MARGIN * 2, 30)
+    safe(widget("map_import"), "move", 0, 0); safe(widget("map_import"), "resize", 78, 30)
+    safe(widget("map_center"), "move", 84, 0); safe(widget("map_center"), "resize", 78, 30)
+    safe(widget("map_zoom_in"), "move", 168, 0); safe(widget("map_zoom_in"), "resize", 38, 30)
+    safe(widget("map_zoom_out"), "move", 212, 0); safe(widget("map_zoom_out"), "resize", 38, 30)
+    safe(widget("map_status"), "move", CONTENT_MARGIN, map_y + 34); safe(widget("map_status"), "resize", l.workspace - CONTENT_MARGIN * 2, map_status_height)
+    -- The mapper remains a direct workspace child because nested ScrollBox
+    -- coordinates can place Mudlet's native mapper over the game console.
+    safe(widget("mapper"), "move", CONTENT_MARGIN, mapper_y); safe(widget("mapper"), "resize", l.workspace - CONTENT_MARGIN * 2, mapper_height)
+    safe(widget("map_legend"), "move", CONTENT_MARGIN, legend_y); safe(widget("map_legend"), "resize", l.workspace - CONTENT_MARGIN * 2, map_legend_height)
+
+    safe(widget("data_dock"), "move", dock_x, dock_y); safe(widget("data_dock"), "resize", dock_width, dock_height); safe(widget("data_dock"), "show")
+    safe(widget("dock_background"), "move", 0, 0); safe(widget("dock_background"), "resize", "100%", "100%")
+    safe(widget("dock_header"), "move", CONTENT_MARGIN, CONTENT_MARGIN); safe(widget("dock_header"), "resize", dock_width - 84, 36)
+    safe(widget("pin_toggle"), "move", dock_width - 68, CONTENT_MARGIN); safe(widget("pin_toggle"), "resize", 60, 32)
+    local tabs_y = 50
+    safe(widget("tabs"), "move", CONTENT_MARGIN, tabs_y); safe(widget("tabs"), "resize", dock_width - CONTENT_MARGIN * 2, 32)
+    local tab_width = (dock_width - CONTENT_MARGIN * 2 - GAP * 3) / 4
     for index, tab in ipairs(TABS) do safe(widget("tab_" .. tab), "move", (index - 1) * (tab_width + GAP), 0); safe(widget("tab_" .. tab), "resize", tab_width, 32) end
     local content_y = tabs_y + 32 + GAP
-    safe(widget("content"), "move", CONTENT_MARGIN, content_y); safe(widget("content"), "resize", l.workspace - CONTENT_MARGIN * 2, math.max(80, l.height - content_y - CONTENT_MARGIN))
-    local content_width, content_height = l.workspace - CONTENT_MARGIN * 2, math.max(80, l.height - content_y - CONTENT_MARGIN)
+    local content_width, content_height = dock_width - CONTENT_MARGIN * 2, math.max(56, dock_height - content_y - CONTENT_MARGIN)
+    safe(widget("content"), "move", CONTENT_MARGIN, content_y); safe(widget("content"), "resize", content_width, content_height)
     if widget("scroll") then safe(widget("scroll"), "move", 0, 0); safe(widget("scroll"), "resize", content_width, content_height) end
     if widget("pager") then
       safe(widget("pager"), "move", 0, 0); safe(widget("pager"), "resize", content_width, content_height)
@@ -2116,17 +2172,13 @@ function ui.reflow()
     end
     local page_reserved = widget("pager") and 32 or 0
     for _, tab in ipairs(TABS) do safe(widget(tab .. "_content"), "move", 0, 0); safe(widget(tab .. "_content"), "resize", content_width, content_height - page_reserved) end
-    safe(widget("map_toolbar"), "move", 0, 0); safe(widget("map_toolbar"), "resize", content_width, 32)
-    safe(widget("map_import"), "move", 0, 0); safe(widget("map_import"), "resize", 78, 30)
-    safe(widget("map_center"), "move", 84, 0); safe(widget("map_center"), "resize", 78, 30)
-    safe(widget("map_zoom_in"), "move", 168, 0); safe(widget("map_zoom_in"), "resize", 38, 30)
-    safe(widget("map_zoom_out"), "move", 212, 0); safe(widget("map_zoom_out"), "resize", 38, 30)
-    safe(widget("map_status"), "move", 0, 36); safe(widget("map_status"), "resize", content_width, 58)
-    -- The mapper is a direct child of the workspace (see build()) so these
-    -- coordinates include the content origin instead of depending on nested
-    -- ScrollBox coordinate propagation.
-    safe(widget("mapper"), "move", CONTENT_MARGIN, content_y + 100); safe(widget("mapper"), "resize", content_width, math.max(120, content_height - 190))
-    safe(widget("map_legend"), "move", 0, math.max(226, content_height - 84)); safe(widget("map_legend"), "resize", content_width, 80)
+    local overview_height = content_height - page_reserved
+    if ui.scroll_capable then overview_height = math.max(overview_height, density(600, 700)) end
+    safe(widget("overview_content"), "resize", content_width, overview_height)
+    safe(widget("overview_actions"), "move", 0, 0); safe(widget("overview_actions"), "resize", content_width, 32)
+    local overview_button_width = (content_width - GAP * 2) / 3
+    for index, name in ipairs({"overview_character_refresh", "overview_quest_refresh", "overview_inventory_refresh"}) do safe(widget(name), "move", (index - 1) * (overview_button_width + GAP), 0); safe(widget(name), "resize", overview_button_width, 30) end
+    safe(widget("overview_card"), "move", 0, 38); safe(widget("overview_card"), "resize", content_width, overview_height - 38)
     local character_height = content_height - page_reserved
     if ui.scroll_capable then character_height = math.max(character_height, density(720, 800)) end
     safe(widget("character_content"), "resize", content_width, character_height)
@@ -2138,12 +2190,6 @@ function ui.reflow()
     safe(widget("inventory_empty"), "move", 162, 0); safe(widget("inventory_empty"), "resize", 100, 30)
     safe(widget("inventory_refresh"), "move", content_width - 72, 0); safe(widget("inventory_refresh"), "resize", 72, 30)
     safe(widget("inventory_card"), "move", 0, 38); safe(widget("inventory_card"), "resize", content_width, content_height - 38)
-    if l.inspector &gt; 0 then
-      safe(widget("inspector"), "move", l.workspace + GAP, 0); safe(widget("inspector"), "resize", l.inspector, "100%"); safe(widget("inspector"), "show")
-      safe(widget("inspector_background"), "move", 0, 0); safe(widget("inspector_background"), "resize", "100%", "100%")
-      safe(widget("inspector_header"), "move", CONTENT_MARGIN, CONTENT_MARGIN); safe(widget("inspector_header"), "resize", l.inspector - CONTENT_MARGIN * 2, 38)
-      safe(widget("inspector_body"), "move", CONTENT_MARGIN, 52); safe(widget("inspector_body"), "resize", l.inspector - CONTENT_MARGIN * 2, l.height - 60)
-    else safe(widget("inspector"), "hide") end
     local overlay_width = l.workspace - CONTENT_MARGIN * 4
     for _, name in ipairs({"drawer", "editor", "confirm"}) do safe(widget(name), "move", CONTENT_MARGIN * 2, density(150, 180)); safe(widget(name), "resize", overlay_width, math.min(460, l.height - density(170, 200))) end
     for _, prefix in ipairs({"drawer", "editor", "confirm"}) do safe(widget(prefix .. "_background"), "move", 0, 0); safe(widget(prefix .. "_background"), "resize", "100%", "100%") end
@@ -2215,7 +2261,6 @@ local function render_header()
     escape(#exit_names &gt; 0 and ("Exits: " .. table.concat(exit_names, " ")) or ("Room data: " .. room_badge)))
   safe(widget("header"), "echo", html)
   set_button_text(widget("palette_toggle"), "Actions")
-  set_button_text(widget("pin_toggle"), ui.layout and ui.layout.inspector &gt; 0 and "Unpin" or "Pin")
   set_button_text(widget("rail"), "A\nA\nR\nD")
 end
 
@@ -2239,14 +2284,89 @@ local function render_map()
   set_button_text(widget("map_zoom_out"), "-")
   local phase = map.phase or map.import_phase or "idle"
   local owned = finite(map.owned_room_count or map.owned_count) or 0
-  local guidance = owned == 0 and phase ~= "rooms" and phase ~= "exits" and "&lt;br&gt;&lt;font color='" .. theme().warning .. "'&gt;Use Import here or 'aard map import'—not Mudlet's Map Load.&lt;/font&gt;" or ""
-  safe(widget("map_status"), "echo", string.format("&lt;b&gt;Map %s&lt;/b&gt; &amp;middot; %s&lt;br&gt;Room %s &amp;rarr; %s &amp;middot; owned %s &amp;middot; source %s&lt;br&gt;Coordinates: %s, %s, %s%s",
-    escape(badge), escape(phase), escape(room.num or room.vnum), escape(map.room_id or map.resolved_room_id), escape(display(owned)), escape(map.source_hash or "--"), escape(display(room.x)), escape(display(room.y)), escape(display(room.z)), guidance))
+  local guidance = owned == 0 and phase ~= "rooms" and phase ~= "exits" and " &amp;middot; &lt;font color='" .. theme().warning .. "'&gt;Import required&lt;/font&gt;" or ""
+  local source_hash = clean(map.source_hash, 64) or "--"
+  if #source_hash &gt; 10 then source_hash = source_hash:sub(1, 10) end
+  safe(widget("map_status"), "echo", string.format("&lt;b&gt;Map %s&lt;/b&gt; &amp;middot; %s &amp;middot; owned %s &amp;middot; source %s%s&lt;br&gt;Room %s &amp;rarr; %s &amp;middot; coordinates %s, %s, %s",
+    escape(badge), escape(phase), escape(display(owned)), escape(source_hash), guidance, escape(room.num or room.vnum), escape(map.room_id or map.resolved_room_id), escape(display(room.x)), escape(display(room.y)), escape(display(room.z))))
   local legend = map.legend or room.legend
   if type(legend) == "table" then
     local entries = {}; for name, color in pairs(legend) do entries[#entries + 1] = "&lt;font color='" .. escape(color) .. "'&gt;&amp;#9670;&lt;/font&gt; " .. escape(name) end; table.sort(entries)
-    safe(widget("map_legend"), "echo", "&lt;b&gt;Terrain&lt;/b&gt;&lt;br&gt;" .. table.concat(entries, " &amp;nbsp; "))
-  else safe(widget("map_legend"), "echo", "&lt;b&gt;Terrain&lt;/b&gt;&lt;br&gt;" .. escape(room.terrain or room.environment or "No terrain data")) end
+    safe(widget("map_legend"), "echo", "&lt;b&gt;Terrain:&lt;/b&gt; " .. table.concat(entries, " &amp;nbsp; "))
+  else safe(widget("map_legend"), "echo", "&lt;b&gt;Terrain:&lt;/b&gt; " .. escape(room.terrain or room.environment or "No terrain data")) end
+end
+
+local function table_count(items)
+  if type(items) ~= "table" then return 0 end
+  local count = 0
+  for _, item in pairs(items) do if type(item) == "table" then count = count + 1 end end
+  return count
+end
+
+local function overview_section(title, section, body, unavailable_message)
+  local badge, status = status_badge(section)
+  if status == "unavailable" or status == "error" then
+    return "&lt;b&gt;" .. escape(title) .. " &amp;middot; " .. escape(badge) .. "&lt;/b&gt;&lt;br&gt;&lt;font color='" .. theme().muted .. "'&gt;" .. escape(unavailable_message) .. "&lt;/font&gt;"
+  end
+  return "&lt;b&gt;" .. escape(title) .. " &amp;middot; " .. escape(badge) .. "&lt;/b&gt;" .. body
+end
+
+local function render_overview()
+  local base, status, worth, quest = value("base"), value("status"), value("worth"), value("quest")
+  local details, group = value("details"), value("group")
+  local equipment_count = table_count(details.equipment)
+  local bags = type(details.bags) == "table" and details.bags or {}
+  local bag_used, bag_max = 0, 0
+  for _, bag in pairs(bags) do
+    if type(bag) == "table" then bag_used = bag_used + (finite(bag.used_weight) or 0); bag_max = bag_max + (finite(bag.max_weight) or 0) end
+  end
+  local members = type(group.members) == "table" and group.members or {}
+  local group_text = envelope("group").status == "unavailable" and "Group GMCP unavailable" or (#members == 0 and "Solo" or (#members .. " members"))
+  local class_text = table.concat((function()
+    local parts = {}; for _, item in ipairs({base.class, base.subclass}) do if clean(item, 80) and clean(item, 80) ~= "" then parts[#parts + 1] = clean(item, 80) end end; return parts
+  end)(), " / ")
+  if class_text == "" then class_text = "--" end
+
+  local player = overview_section("Progression", "base", key_value({
+    {"Player", base.name}, {"Class", class_text}, {"Level", base.level or status.level},
+    {"Tier / Remorts", display(base.tier) .. " / " .. display(base.remorts)},
+    {"TNL / Per level", display(status.tnl) .. " / " .. display(base.perlevel)},
+  }), "Character data is unavailable. Use Refresh Character.")
+  local quest_card = overview_section("Quest", "quest", key_value({
+    {"Status", quest.status or quest.state}, {"Action", quest.action}, {"Target", quest.target or quest.targ},
+    {"Room / Area", (clean(quest.room, 80) or "--") .. " / " .. (clean(quest.area, 80) or "--")},
+    {"Timer", quest.timer or quest.time},
+  }), "Quest data is unavailable. Use Refresh Quest.")
+  local resources = overview_section("Resources", "worth", key_value({
+    {"QP / Earned", display(worth.qp) .. " / " .. display(worth.qpearned)}, {"TP", worth.tp},
+    {"Gold / Bank", display(worth.gold) .. " / " .. display(worth.bank)},
+    {"Practices / Trains", display(worth.pracs) .. " / " .. display(worth.trains)},
+  }), "Character worth data is unavailable.")
+  local conditions = overview_section("Conditions", "status", key_value({
+    {"Position / State", (clean(status.pos, 80) or "--") .. " / " .. display(status.state)},
+    {"Alignment", status.align}, {"Hunger / Thirst", display(status.hunger) .. " / " .. display(status.thirst)},
+    {"Enemy", clean(status.enemy, 80) ~= "" and status.enemy or "None"},
+  }), "Character status is unavailable.")
+  local loadout_status = envelope("details").status
+  local loadout
+  if loadout_status == "unavailable" or (equipment_count == 0 and #bags == 0 and not details.last_updated) then
+    loadout = "&lt;b&gt;Loadout &amp;middot; " .. escape(loadout_status:upper()) .. "&lt;/b&gt;&lt;br&gt;&lt;font color='" .. theme().muted .. "'&gt;Equipment and bags are not loaded. Use Refresh Inventory.&lt;/font&gt;"
+  else
+    loadout = "&lt;b&gt;Loadout &amp;middot; " .. escape(loadout_status:upper()) .. "&lt;/b&gt;" .. key_value({
+      {"Equipped slots", equipment_count}, {"Bags", #bags}, {"Bag weight", display(bag_used) .. " / " .. display(bag_max)},
+      {"Updated", finite(details.last_updated) and os.date("%H:%M:%S", finite(details.last_updated)) or "--"},
+    })
+  end
+  local group_card = "&lt;b&gt;Group &amp;middot; " .. escape((envelope("group").status or "unavailable"):upper()) .. "&lt;/b&gt;&lt;br&gt;" .. escape(group_text)
+
+  set_button_text(widget("overview_character_refresh"), "Character")
+  set_button_text(widget("overview_quest_refresh"), "Quest")
+  set_button_text(widget("overview_inventory_refresh"), "Inventory")
+  local body
+  if not ui.scroll_capable and (ui.page or 1) == 1 then body = player .. "&lt;br&gt;&lt;br&gt;" .. quest_card
+  elseif not ui.scroll_capable then body = resources .. "&lt;br&gt;&lt;br&gt;" .. conditions .. "&lt;br&gt;&lt;br&gt;" .. loadout .. "&lt;br&gt;&lt;br&gt;" .. group_card
+  else body = "&lt;table width='100%'&gt;&lt;tr&gt;&lt;td valign='top' width='50%'&gt;" .. player .. "&lt;br&gt;&lt;br&gt;" .. quest_card .. "&lt;/td&gt;&lt;td valign='top'&gt;" .. resources .. "&lt;br&gt;&lt;br&gt;" .. conditions .. "&lt;br&gt;&lt;br&gt;" .. loadout .. "&lt;br&gt;&lt;br&gt;" .. group_card .. "&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" end
+  safe(widget("overview_card"), "echo", body)
 end
 
 local function render_character()
@@ -2360,12 +2480,27 @@ local function render_inventory()
   safe(widget("inventory_card"), "echo", table.concat(rows))
 end
 
-local function render_inspector()
-  if not ui.layout or ui.layout.inspector == 0 then return end
-  local tab = data().active_tab or "map"
-  safe(widget("inspector_header"), "echo", "&lt;b&gt;INSPECTOR &amp;middot; " .. escape(tab:upper()) .. "&lt;/b&gt;")
-  local room, quest, details = value("room"), value("quest"), value("details")
-  safe(widget("inspector_body"), "echo", key_value({{"Room", room.name}, {"Area", room.area}, {"Vnum", room.num or room.vnum}, {"Terrain", room.terrain}, {"Quest", quest.status or quest.state}, {"Quest timer", quest.timer or quest.time}, {"Equipment", details.equipment and "loaded" or "unavailable"}, {"Bags", details.bags and #details.bags or "unavailable"}}))
+local function render_dock_header()
+  local active = data().active_tab or "overview"
+  local section = ({character = "base", group = "group", inventory = "details"})[active] or "base"
+  local badge, received
+  if active == "overview" then
+    local distinct = {}
+    for _, name in ipairs({"base", "status", "worth", "quest", "group", "details"}) do
+      local item = envelope(name); local item_status = clean(item.status, 20) or "unavailable"
+      distinct[item_status] = true
+      local timestamp = finite(item.received_at); if timestamp and (not received or timestamp &gt; received) then received = timestamp end
+    end
+    local count = 0; local only
+    for name in pairs(distinct) do count = count + 1; only = name end
+    badge = count == 1 and only:upper() or "MIXED"
+  else
+    badge = status_badge(section)
+    received = finite(envelope(section).received_at)
+  end
+  local updated = received and os.date("%H:%M:%S", received) or "--"
+  safe(widget("dock_header"), "echo", "&lt;b&gt;" .. escape((TAB_LABELS[active] or active):upper()) .. "&lt;/b&gt; &amp;middot; " .. escape(badge) .. "&lt;br&gt;&lt;font color='" .. theme().muted .. "'&gt;Updated " .. escape(updated) .. "&lt;/font&gt;")
+  set_button_text(widget("pin_toggle"), data().inspector_pinned == true and "Unpin" or "Pin")
 end
 
 local function render_drawer()
@@ -2416,13 +2551,13 @@ end
 function ui.render()
   if not ui.root then return end
   ui.render_pending = false
-  render_header(); render_context(); render_map(); render_character(); render_group(); render_inventory(); render_inspector(); render_drawer(); render_overlays()
-  local active = data().active_tab or "map"
-  for _, tab in ipairs(TABS) do if tab == active then safe(widget(tab .. "_content"), "show") else safe(widget(tab .. "_content"), "hide") end; set_button_text(widget("tab_" .. tab), tab:sub(1, 1):upper() .. tab:sub(2)) end
-  local mapper_visible = active == "map" and not data().palette_open and not ui.editor_open and type(pending_action()) ~= "table"
+  render_header(); render_context(); render_map(); render_overview(); render_character(); render_group(); render_inventory(); render_dock_header(); render_drawer(); render_overlays()
+  local active = data().active_tab or "overview"
+  for _, tab in ipairs(TABS) do if tab == active then safe(widget(tab .. "_content"), "show") else safe(widget(tab .. "_content"), "hide") end; set_button_text(widget("tab_" .. tab), TAB_LABELS[tab]) end
+  local mapper_visible = not data().palette_open and not ui.editor_open and type(pending_action()) ~= "table"
   if mapper_visible then safe(widget("mapper"), "show") else safe(widget("mapper"), "hide") end
   if widget("pager") then
-    local pages = (active == "inventory" or active == "character") and 2 or 1; ui.page = math.max(1, math.min(ui.page or 1, pages))
+    local pages = (active == "overview" or active == "inventory" or active == "character") and 2 or 1; ui.page = math.max(1, math.min(ui.page or 1, pages))
     set_button_text(widget("page_prev"), "&lt;"); set_button_text(widget("page_next"), "&gt;"); safe(widget("page_status"), "echo", "Page " .. ui.page .. " / " .. pages)
   end
   local vitals, maximum, worth, base, status = value("vitals"), value("maxstats"), value("worth"), value("base"), value("status")
@@ -2472,9 +2607,11 @@ function ui.destroy()
 end
 
 function ui.set_tab(tab)
-  local valid = {map = true, character = true, group = true, inventory = true}
+  if tab == "map" then tab = "overview" end
+  local valid = {overview = true, character = true, group = true, inventory = true}
   if not valid[tab] then return false, "Unknown tab" end
-  if data().active_tab == "inventory" and tab ~= "inventory" and aardwolf_interface.details and aardwolf_interface.details.stop then aardwolf_interface.details.stop(true) end
+  local current_uses_details = data().active_tab == "inventory" or data().active_tab == "overview"
+  if current_uses_details and tab ~= data().active_tab and aardwolf_interface.details and aardwolf_interface.details.stop then aardwolf_interface.details.stop(true) end
   data().active_tab = tab; ui.page = 1; persist()
   if tab == "inventory" and aardwolf_interface.details and aardwolf_interface.details.start then aardwolf_interface.details.start() end
   ui.request_render(); return true
@@ -2649,7 +2786,7 @@ function aardwolf_interface.lifecycle.initialize()
   -- the live border still exactly matches what this package applied, then
   -- clear the stale ownership record before calculating the new layout.
   if aardwolf_interface.ui and aardwolf_interface.ui.release_saved_claims then aardwolf_interface.ui.release_saved_claims() end
-  aardwolf_interface.ui.build(); aardwolf_interface.details.start(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
+  aardwolf_interface.ui.build(); aardwolf_interface.lifecycle.register(); aardwolf_interface.lifecycle.initialized=true
   aardwolf_interface.lifecycle.hydrate(); if aardwolf_interface.state.connection=="connected" then aardwolf_interface.lifecycle.request_character(false); aardwolf_interface.lifecycle.request_quest(false) end
   if aardwolf_interface.settings.is_visible() then aardwolf_interface.ui.show() else aardwolf_interface.ui.hide() end
 end
@@ -2669,8 +2806,8 @@ function aardwolf_interface.help.show()
   aardwolf_interface.ui.message([[Aardwolf Adaptive Command Deck
 aard interface show|hide|status
 aard interface repair
-aard interface tab map|character|group|inventory
-aard interface pin [map|character|group|inventory|off]
+aard interface tab overview|map|character|group|inventory
+aard interface pin [overview|map|character|group|inventory|off]
 aard interface palette [show|hide|toggle]
 aard interface summary room|character|quest|group|equipment|bags|actions|all
 aard interface theme obsidian|high-contrast
