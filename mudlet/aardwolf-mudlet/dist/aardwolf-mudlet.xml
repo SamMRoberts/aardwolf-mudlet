@@ -1475,7 +1475,10 @@ end
 local function write_room_data(room_id, key, value)
   if value == nil or value == "" then
     local ok, result = pcall(clearRoomUserDataItem, room_id, map_key(key))
-    return ok and result ~= false
+    -- Mudlet returns false when the key was already absent. That is the
+    -- desired idempotent state for an empty source value; nil indicates an
+    -- invalid room or unavailable map and remains a real persistence error.
+    return ok and result ~= nil
   end
   local ok, result = pcall(setRoomUserData, room_id, map_key(key), tostring(value))
   return ok and result ~= false

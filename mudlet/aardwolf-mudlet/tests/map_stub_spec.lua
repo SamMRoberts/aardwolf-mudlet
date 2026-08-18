@@ -29,7 +29,15 @@ function addAreaName(name)
 end
 function addRoom(id) mapper.rooms[id] = mapper.rooms[id] or {user_data = {}}; return true end
 function centerview(id) mapper.centered = id end
-function clearRoomUserDataItem(id, key) if mapper.rooms[id] then mapper.rooms[id].user_data[key] = nil end; return true end
+function clearRoomUserDataItem(id, key)
+  if not mapper.rooms[id] then return nil, "invalid room" end
+  if mapper.rooms[id].user_data[key] == nil then
+    mapper.clear_absent_count = (mapper.clear_absent_count or 0) + 1
+    return false
+  end
+  mapper.rooms[id].user_data[key] = nil
+  return true
+end
 function createRoomID() local id = mapper.next_room; mapper.next_room = id + 1; return id end
 function deleteNamedEventHandler(user, name) mapper.handlers[user .. ":" .. name] = nil; return true end
 function deleteNamedTimer(user, name) mapper.timers[user .. ":" .. name] = nil; return true end
@@ -137,6 +145,7 @@ assert_equal(3, map.status().owned_count, "all rooms are owned")
 assert_equal(2, mapper.set_exit_calls, "source exits are installed")
 assert_equal(1, mapper.hashes["aardwolf-map:vnum:10"], "stable hash uses compact room ID")
 assert_equal("Aardwolf.db/v11", mapper.rooms[1].user_data["aardwolf_map.owner"], "room owner is marked")
+assert_true((mapper.clear_absent_count or 0) > 0, "already-absent nullable metadata is an idempotent success")
 assert_equal(128, mapper.colors[1000][2], "source terrain color is registered")
 assert_equal(1, mapper.centered, "completion centers imported GMCP room")
 
