@@ -1,0 +1,4 @@
+interface:
+  display_name: "Convert Aardwolf Map Database to Mudlet"
+  short_description: "Help with Convert Aardwolf Map Database to Mudlet tasks"
+  default_prompt: "Use $convert-aardwolf-map-database-to-mudlet to convert this Aardwolf.db v11 map without replacing my existing Mudlet map."
