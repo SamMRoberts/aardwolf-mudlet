@@ -1,12 +1,13 @@
 # Aardwolf Mudlet Dev
 
-Skills for creating, converting, reviewing, and packaging source-controlled Mudlet 4.14+ extensions for Aardwolf. This is a skills-only plugin: it has no MCP server, app connector, hooks, or credentials.
+Skills for creating, converting, reviewing, packaging, and developing full-lifecycle Geyser UI in source-controlled Mudlet 4.14+ extensions for Aardwolf. This is a skills-only plugin: it has no MCP server, app connector, hooks, or credentials.
 
 ## Skills
 
 - `create-aardwolf-mudlet-package` creates or extends a namespaced Mudlet package project, then builds native and optional Muddler artifacts.
 - `convert-mushclient-to-mudlet` inspects Aardwolf MUSHclient XML as data and produces a reviewed Mudlet project with a conversion inventory and report.
 - `convert-aardwolf-map-database-to-mudlet` converts a supported Aardwolf SQLite map database into a deterministic resource and a merge-safe Mudlet map importer; it never replaces or clears an existing profile map.
+- `develop-geyser-ui` designs, implements, configures, diagnoses, refactors, and audits responsive Geyser interfaces while preserving Mudlet 4.14 compatibility and explicit live-runtime acceptance boundaries.
 - `review-aardwolf-mudlet-package` performs an evidence-backed review of a package project's behavior, lifecycle, protocol use, portability, artifacts, and map-import safety when applicable.
 
 Use the matching skill for the task. The package project produced by a skill is the source of truth; generated XML and `.mpackage` files are build outputs.

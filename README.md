@@ -1,7 +1,8 @@
 # Aardwolf Mudlet Dev
 
 Codex skills for creating, converting, reviewing, testing, and packaging
-source-controlled Mudlet extensions for Aardwolf MUD.
+source-controlled Mudlet extensions and full-lifecycle Geyser interfaces for
+Aardwolf MUD.
 
 This is a skills-only plugin; it includes no MCP server, app connector, hooks,
 marketplace entry, installation flow, or publication configuration.
@@ -12,6 +13,8 @@ marketplace entry, installation flow, or publication configuration.
   projects with native XML and Muddler build paths.
 - `convert-mushclient-to-mudlet` inventories MUSHclient XML without executing
   it, converts supported behavior, and records every disposition.
+- `develop-geyser-ui` designs, implements, troubleshoots, refactors, and audits
+  responsive package-owned Geyser interfaces for Mudlet 4.14 and newer.
 - `review-aardwolf-mudlet-package` performs a release-oriented Aardwolf and
   Mudlet review.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop Geyser UI"
+  short_description: "Build and audit responsive Aardwolf Geyser interfaces"
+  default_prompt: "Use $develop-geyser-ui to design, implement, troubleshoot, or audit this Aardwolf Mudlet Geyser interface."
