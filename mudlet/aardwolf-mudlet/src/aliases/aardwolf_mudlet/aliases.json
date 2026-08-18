@@ -1,0 +1,10 @@
+[
+  {"name": "aardwolf_mudlet.command", "regex": "^aard(?:\\s+(.*))?$"},
+  {"name": "aardwolf_mudlet.legacy_group_on", "regex": "^groupon$"},
+  {"name": "aardwolf_mudlet.legacy_group_off", "regex": "^groupoff$"},
+  {"name": "aardwolf_mudlet.legacy_chats_show", "regex": "^chats show$"},
+  {"name": "aardwolf_mudlet.legacy_chats_hide", "regex": "^chats hide$"},
+  {"name": "aardwolf_mudlet.legacy_reset", "regex": "^resetaard$"},
+  {"name": "aardwolf_mudlet.legacy_tick", "regex": "^aard tick(?: (?:help|miniwin|status|reset))?$"},
+  {"name": "aardwolf_mudlet.legacy_tts", "regex": "^(sapi(?: .*)?|tts(?: .*)?|tts_interrupt(?: .*)?|tts_note(?: .*)?|tts_stop)$"}
+]

@@ -1,0 +1,17 @@
+[
+  {"name": "aardwolf_mudlet.state"},
+  {"name": "aardwolf_mudlet.chat"},
+  {"name": "aardwolf_mudlet.accessibility"},
+  {"name": "aardwolf_mudlet.sound"},
+  {"name": "aardwolf_mudlet.settings"},
+  {"name": "aardwolf_mudlet.data"},
+  {"name": "aardwolf_mudlet.capture"},
+  {"name": "aardwolf_mudlet.details"},
+  {"name": "aardwolf_mudlet.actions"},
+  {"name": "aardwolf_mudlet.map"},
+  {"name": "aardwolf_mudlet.protocol"},
+  {"name": "aardwolf_mudlet.commands"},
+  {"name": "aardwolf_mudlet.ui"},
+  {"name": "aardwolf_mudlet.help"},
+  {"name": "aardwolf_mudlet.lifecycle"}
+]

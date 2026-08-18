@@ -1,0 +1,9 @@
+{
+  "description": "A native Aardwolf Mudlet package with responsive Geyser UI, GMCP state, chat, equipment, accessibility, local media controls, and a merge-safe map importer.",
+  "game": "Aardwolf",
+  "minimum_mudlet_version": "4.14",
+  "name": "aardwolf-mudlet",
+  "namespace": "aardwolf_mudlet",
+  "schema_version": 1,
+  "version": "1.0.0"
+}

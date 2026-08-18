@@ -1,0 +1,7 @@
+{
+  "author": "Aardwolf Mudlet",
+  "description": "Native Aardwolf GMCP interface, configurable chat and quick actions, accessibility tools, and collision-safe map import.",
+  "package": "aardwolf-mudlet",
+  "title": "Aardwolf Mudlet",
+  "version": "1.0.0"
+}

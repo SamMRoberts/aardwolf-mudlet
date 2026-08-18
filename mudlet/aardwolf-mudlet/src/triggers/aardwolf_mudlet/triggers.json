@@ -1,0 +1,12 @@
+[
+  {"name": "aardwolf_mudlet.command_tag", "patterns": [{"type": "regex", "pattern": "^\\{Command:([A-Za-z0-9_]+) (Start|End)\\}$"}]},
+  {"name": "aardwolf_mudlet.capture_line", "patterns": [{"type": "regex", "pattern": "^.*$"}]},
+  {"name": "aardwolf_mudlet.system_line", "patterns": [{"type": "regex", "pattern": "^[A-Z][A-Z _]+:.*$"}]},
+  {"name": "aardwolf_mudlet.group_invite", "patterns": [{"type": "regex", "pattern": "^(\\w+) has invited you to join group: (.*)\\.$"}]},
+  {"name": "aardwolf_mudlet.group_cancelled_by_player", "patterns": [{"type": "regex", "pattern": "^(\\w+) has cancelled your invitation to join group: (.*)\\.$"}]},
+  {"name": "aardwolf_mudlet.group_declined", "patterns": [{"type": "regex", "pattern": "^You have declined the group invitation from (\\w+)\\.$"}]},
+  {"name": "aardwolf_mudlet.group_no_invitation", "patterns": [{"type": "regex", "pattern": "^You have no invitation outstanding from (\\w+)\\.$"}]},
+  {"name": "aardwolf_mudlet.group_player_left_group", "patterns": [{"type": "regex", "pattern": "^Your group invitation from (\\w+) is cancelled because (\\w+) has left that group\\.$"}]},
+  {"name": "aardwolf_mudlet.group_player_left_game", "patterns": [{"type": "regex", "pattern": "^Your group invitation from (\\w+) is cancelled because (\\w+) has left the game\\.$"}]},
+  {"name": "aardwolf_mudlet.group_disbanded", "patterns": [{"type": "regex", "pattern": "^Your group invite from (\\w+) is cancelled because the group has been disbanded\\.$"}]}
+]
