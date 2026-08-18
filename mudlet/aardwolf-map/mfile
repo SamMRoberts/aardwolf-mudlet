@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Merge-safe Aardwolf.db v11 importer with collision-safe terrain palettes and integration status.",
-  "package": "aardwolf-map",
-  "title": "Aardwolf Map",
-  "version": "1.1.0"
-}

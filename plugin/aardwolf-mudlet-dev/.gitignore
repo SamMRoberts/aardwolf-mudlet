@@ -1,0 +1,4 @@
+# Local desktop metadata and Python test caches are never plugin content.
+.DS_Store
+__pycache__/
+*.py[cod]

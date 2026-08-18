@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Explicit local profile note export and import tools.",
-  "package": "aardwolf-profile-data",
-  "title": "Aardwolf Profile Data",
-  "version": "1.0.0"
-}

@@ -1,9 +1,0 @@
-{
-  "description": "Safe, traceable Mudlet migration of selected Aardwolf MUSHclient plugin behavior",
-  "game": "Aardwolf",
-  "minimum_mudlet_version": "4.14",
-  "name": "aardwolf-mushclient-collection",
-  "namespace": "aardwolf_mushclient_collection",
-  "schema_version": 1,
-  "version": "1.0.0"
-}

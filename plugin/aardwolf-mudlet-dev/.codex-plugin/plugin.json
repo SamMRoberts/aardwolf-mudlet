@@ -1,7 +1,7 @@
 {
   "name": "aardwolf-mudlet-dev",
-  "version": "0.1.0",
-  "description": "Create, convert, review, test, and package Mudlet extensions for Aardwolf MUD.",
+  "version": "0.2.0",
+  "description": "Create, convert, review, test, and package Aardwolf Mudlet extensions, including safe conversion of MUSHclient plugins and Aardwolf map databases.",
   "author": {
     "name": "Sam Roberts"
   },
@@ -11,13 +11,18 @@
     "mudlet",
     "mushclient",
     "gmcp",
-    "lua"
+    "lua",
+    "mapper",
+    "mapping",
+    "sqlite",
+    "map-database",
+    "aardwolf-map"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Aardwolf Mudlet Dev",
-    "shortDescription": "Build and convert Aardwolf Mudlet packages.",
-    "longDescription": "Create, convert, review, test, and package source-controlled Mudlet extensions for Aardwolf MUD.",
+    "shortDescription": "Build, convert, and review Aardwolf Mudlet packages and maps.",
+    "longDescription": "Create, convert, review, test, and package source-controlled Mudlet extensions for Aardwolf MUD, including merge-safe Aardwolf map database imports.",
     "developerName": "Sam Roberts",
     "category": "Developer Tools",
     "capabilities": [
@@ -26,7 +31,8 @@
     ],
     "defaultPrompt": [
       "Create a source-controlled Mudlet package for this Aardwolf feature request.",
-      "Convert this Aardwolf MUSHclient plugin into a reviewed Mudlet package project."
+      "Convert this Aardwolf MUSHclient plugin into a reviewed Mudlet package project.",
+      "Convert this Aardwolf map database into a merge-safe Mudlet map package without replacing my existing profile map."
     ]
   }
 }

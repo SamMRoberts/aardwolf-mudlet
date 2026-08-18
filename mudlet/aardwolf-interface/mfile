@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Adaptive Obsidian Jewel Aardwolf command deck with responsive workspace, structured GMCP views, safe actions, and text fallbacks.",
-  "package": "aardwolf-interface",
-  "title": "Aardwolf Interface",
-  "version": "1.6.0"
-}

@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Audited catalog and compatibility package for the Aardwolf MUSHclient collection.",
-  "package": "aardwolf-mushclient-collection",
-  "title": "Aardwolf MUSHclient Collection",
-  "version": "1.0.0"
-}

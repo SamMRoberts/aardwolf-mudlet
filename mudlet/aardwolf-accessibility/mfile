@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Portable Mudlet text-to-speech controls without native libraries.",
-  "package": "aardwolf-accessibility",
-  "title": "Aardwolf Accessibility",
-  "version": "1.0.0"
-}

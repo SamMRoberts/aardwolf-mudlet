@@ -1,9 +1,0 @@
-[
-  {"name": "aardwolf_mushclient_collection.state"},
-  {"name": "aardwolf_mushclient_collection.settings"},
-  {"name": "aardwolf_mushclient_collection.commands"},
-  {"name": "aardwolf_mushclient_collection.protocol"},
-  {"name": "aardwolf_mushclient_collection.ui"},
-  {"name": "aardwolf_mushclient_collection.lifecycle"},
-  {"name": "aardwolf_mushclient_collection.help"}
-]

@@ -1,9 +1,0 @@
-{
-  "description": "Merge-safe Aardwolf.db v11 importer with collision-safe terrain palettes and integration status.",
-  "game": "Aardwolf",
-  "minimum_mudlet_version": "4.14",
-  "name": "aardwolf-map",
-  "namespace": "aardwolf_map",
-  "schema_version": 1,
-  "version": "1.1.0"
-}

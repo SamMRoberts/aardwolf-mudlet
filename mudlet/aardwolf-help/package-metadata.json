@@ -1,9 +1,0 @@
-{
-  "description": "Accessible in-client help and migration guidance.",
-  "game": "Aardwolf",
-  "minimum_mudlet_version": "4.14",
-  "name": "aardwolf-help",
-  "namespace": "aardwolf_help",
-  "schema_version": 1,
-  "version": "1.0.0"
-}
