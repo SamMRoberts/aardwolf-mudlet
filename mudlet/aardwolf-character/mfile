@@ -1,7 +1,0 @@
-{
-  "author": "Aardwolf Mudlet",
-  "description": "Text-first character, group, and vital-status summaries from GMCP.",
-  "package": "aardwolf-character",
-  "title": "Aardwolf Character",
-  "version": "1.1.0"
-}

@@ -1,9 +1,0 @@
-[
-  {"name":"aardwolf_map.state"},
-  {"name":"aardwolf_map.settings"},
-  {"name":"aardwolf_map.commands"},
-  {"name":"aardwolf_map.protocol"},
-  {"name":"aardwolf_map.ui"},
-  {"name":"aardwolf_map.lifecycle"},
-  {"name":"aardwolf_map.help"}
-]

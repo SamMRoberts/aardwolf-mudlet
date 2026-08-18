@@ -1,9 +1,0 @@
-{
-  "description": "Namespaced channel and chat visibility controls using native GMCP.",
-  "game": "Aardwolf",
-  "minimum_mudlet_version": "4.14",
-  "name": "aardwolf-communication",
-  "namespace": "aardwolf_communication",
-  "schema_version": 1,
-  "version": "1.0.0"
-}

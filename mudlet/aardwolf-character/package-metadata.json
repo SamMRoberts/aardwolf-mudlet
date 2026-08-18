@@ -1,9 +1,0 @@
-{
-  "description": "Text-first character, group, and vital-status summaries from GMCP.",
-  "game": "Aardwolf",
-  "minimum_mudlet_version": "4.14",
-  "name": "aardwolf-character",
-  "namespace": "aardwolf_character",
-  "schema_version": 1,
-  "version": "1.1.0"
-}

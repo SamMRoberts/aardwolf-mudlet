@@ -1,8 +1,0 @@
-[
-  {
-    "name": "aardwolf_mushclient_collection.omit_blank_lines",
-    "patterns": [
-      {"pattern": "^$", "type": "regex"}
-    ]
-  }
-]

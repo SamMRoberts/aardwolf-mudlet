@@ -1,1 +1,0 @@
-aardwolf_mushclient_collection.commands.omit_blank_line()
