@@ -1,0 +1,26 @@
+assert(getProfileName()=="AardwolfToolboxSettingsTest")
+local t=AardwolfToolbox
+local root=Geyser.windowList['AardwolfToolbox.vitals.root']
+assert(root)
+local gauge=root.windowList['AardwolfToolbox.vitals.hp']
+t.start(); assert(root==Geyser.windowList['AardwolfToolbox.vitals.root'])
+assert(t.config.set('vitals','bar_height',30)); assert(gauge:get_height()==30)
+assert(t.config.set('vitals','show_target',false))
+assert(root.windowList['AardwolfToolbox.vitals.target'].hidden)
+assert(t.config.set('vitals','enabled',false))
+assert(not Geyser.windowList['AardwolfToolbox.vitals.root'] and getBorderBottom()==0)
+assert(not BaseUI.sections.vitals.hidden)
+local floating,place,save=BaseUI.sectionFloating,BaseUI.placeSection,BaseUI.sections.vitals.save
+assert(t.config.set('vitals','enabled',true))
+assert(BaseUI.sections.vitals.hidden and BaseUI.sections.vitals.save~=save)
+t.vitals.stop()
+assert(BaseUI.sectionFloating==floating and BaseUI.placeSection==place and BaseUI.sections.vitals.save==save)
+assert(getBorderBottom()==0)
+assert(t.config.set('vitals','bar_height',22)); assert(t.config.set('vitals','show_target',true))
+assert(t.vitals.enabled)
+raiseEvent('sysDisconnectionEvent')
+VitalsTestPacket('vitals',{hp=123})
+assert(t.vitals.last=='Waiting for fresh character data')
+raiseEvent('sysConnectionEvent')
+dofile('/Users/samroberts/Repo/SamMRoberts/aardwolf-mudlet/tests/native_vitals.lua')
+echo('VITALS_NATIVE_LIFECYCLE_OK\n')

@@ -1,0 +1,37 @@
+assert(getProfileName()=="AardwolfToolboxSettingsTest")
+local _,_,connected=getConnectionInfo(); assert(not connected)
+local t=AardwolfToolbox
+local tags=t.tags
+local function feed(text) assert(feedTriggers(text.."\n")) end
+local function hasLine(text)
+  for _,s in ipairs(getLines(0,getLineCount())) do if s==text then return true end end
+  return false
+end
+local ok,err=pcall(function()
+  tags.stop(); tags.stop()
+  feed('{disabled_native}visible')
+  assert(hasLine('{disabled_native}visible'))
+  assert(tags.start()); assert(tags.start())
+  feed('{one_native}x'); assert(#tags.recent()==1)
+  assert(t.config.set('tags','suppress',false))
+  feed('{shown_native}visible'); assert(hasLine('{shown_native}visible'))
+  assert(tags.latest('shown_native').payload=='visible')
+  assert(t.config.set('tags','suppress',true))
+  assert(t.config.set('tags','block_timeout',1))
+  feed('{timeout_native}'); feed('hidden native timeout body')
+end)
+assert(ok,err)
+tempTimer(1.2,function()
+  local worked,message=pcall(function()
+    local record=tags.latest('timeout_native')
+    local block=tags.getBlock(record.blockId)
+    assert(block.status=='incomplete' and block.reason=='timeout')
+    assert(not hasLine('hidden native timeout body'))
+    feed('TAGS_TIMEOUT_VISIBLE'); assert(hasLine('TAGS_TIMEOUT_VISIBLE'))
+    raiseEvent('sysDisconnectionEvent'); assert(#tags.recent()==0)
+    raiseEvent('sysConnectionEvent'); feed('{fresh_native}0||')
+    assert(tags.latest('fresh_native').fields[3]=='')
+    assert(t.config.set('tags','block_timeout',10))
+  end)
+  echo('TAGS_NATIVE_LIFECYCLE '..tostring(worked)..' '..tostring(message)..'\n')
+end)

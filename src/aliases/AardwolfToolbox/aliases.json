@@ -1,0 +1,22 @@
+[
+  {
+    "name": "status",
+    "isActive": "yes",
+    "regex": "^aardwolf-status$"
+  },
+  {
+    "name": "mapper",
+    "isActive": "yes",
+    "regex": "^aardwolf-map(?: (on|off|status))?$"
+  },
+  {
+    "name": "settings",
+    "isActive": "yes",
+    "regex": "^aardwolf-(?:config|settings)$"
+  },
+  {
+    "name": "ascii",
+    "isActive": "yes",
+    "regex": "^aardwolf-ascii$"
+  }
+]
