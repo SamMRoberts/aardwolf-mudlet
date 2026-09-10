@@ -1,7 +1,7 @@
 # Aardwolf Toolbox
 
 A Mudlet 5.0.1 package with an incremental Aardwolf GMCP auto-mapper, a compact
-bottom Vitals strip, game-tag capture, a movable ASCII map pane, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
+bottom Vitals strip, game-tag capture, a movable ASCII map pane, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
 
 ## Install and use
 
@@ -109,6 +109,17 @@ See the [game-tag API and example](docs/game-tags.md) for access methods, gramma
 retention, and consumer lifecycle. Aardwolf's [tag reference](https://www.aardwolf.com/wiki/index.php/Help/Tags)
 explains how the server supplies tagged output.
 
+## Consider ratings (0.8.0)
+
+Consider messages now display a mob name, difficulty label, and relative level
+range, such as `Consider: a goblin | Easy | 5–9 levels below you`. Colors progress
+from gray/green for easier mobs through yellow/orange to red/purple for harder
+mobs. The original background is retained. This does not estimate actual levels.
+
+Use **aardwolf-config → Consider** to disable formatting or difficulty colors.
+Both options start enabled. Maps and tagged blocks take priority; no server
+commands are sent. See [consider ratings](docs/consider.md) for the full scale.
+
 ## Mapping behavior and preservation
 
 The producer is Aardwolf's lowercase `gmcp.room.info` event. Room numbers are
@@ -196,7 +207,7 @@ Alternatively, run `java -jar /path/to/muddle-1.1.0-all.jar` here with Java 17.
 Outputs are `build/AardwolfToolbox.xml` and `build/AardwolfToolbox.mpackage`.
 The archive includes `automapper.lua`, `configuration.lua`, and
 `settings-window.lua`, `vitals.lua`, `tags.lua`, `ascii-map.lua`, `incoming.lua`,
-and `borders.lua` runtime resources.
+`borders.lua`, and `consider.lua` runtime resources.
 
 ```sh
 python3 -m venv .venv

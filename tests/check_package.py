@@ -17,9 +17,9 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua",
-                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua",
+                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
@@ -35,6 +35,7 @@ class PackageTests(unittest.TestCase):
         self.lua.execute((ROOT / "tests/vitals_api.lua").read_text())
         self.lua.execute((ROOT / "tests/tags_api.lua").read_text())
         self.lua.execute((ROOT / "tests/ascii_api.lua").read_text())
+        self.lua.execute((ROOT / "tests/consider_api.lua").read_text())
         install_json(self.lua)
         self.lua.globals().config_source = self.config_source
         self.lua.globals().mapper_source = self.mapper_source

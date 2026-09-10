@@ -78,6 +78,14 @@ local function initialize()
       {key="height",type="number",default=460,min=100,max=16384,integer=true,label="Height (pixels)"},
     },apply=AardwolfToolbox.ascii.configure})
 
+  AardwolfToolbox.consider = resource("consider").new(_G,AardwolfToolbox.incoming)
+  config.registerFeature({id="consider",label="Consider",
+    description="Replace consider messages with clear difficulty labels and relative level ranges.",settings={
+      {key="enabled",type="boolean",default=true,label="Enable consider formatting"},
+      {key="colors",type="boolean",default=true,label="Use difficulty colors",
+        description="Difficulty labels and relative level ranges remain visible with colors disabled."},
+    },apply=AardwolfToolbox.consider.configure})
+
 end
 
 function AardwolfToolbox.start()
@@ -89,6 +97,7 @@ end
 function AardwolfToolbox.stop()
   if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
   if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
+  if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
   if AardwolfToolbox.ascii then AardwolfToolbox.ascii.stop() end
   if AardwolfToolbox.tags then AardwolfToolbox.tags.stop() end
   if AardwolfToolbox.vitals then AardwolfToolbox.vitals.stop() end
@@ -103,7 +112,7 @@ function AardwolfToolbox.openSettings()
       local mapper = AardwolfToolbox.mapper
       local mapperState = not AardwolfToolbox.config.get("mapper", "enabled") and "disabled in settings"
         or ((mapper.enabled and "running — " or "stopped — ") .. mapper.last)
-      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last
+      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last .. " | Consider: " .. AardwolfToolbox.consider.last
     end)
   end
   AardwolfToolbox.settingsWindow.open()

@@ -1,0 +1,31 @@
+assert(getProfileName()=="AardwolfToolboxSettingsTest" and not select(3,getConnectionInfo()),"Disposable offline profile required")
+local function contains(text)
+ for _,value in ipairs(getLines(0,getLineCount())) do if value==text then return true end end
+ return false
+end
+local ok,err=pcall(function()
+ local c=AardwolfToolbox.config
+ local instance=AardwolfToolbox.consider
+ assert(c.set("consider","enabled",true))
+ AardwolfToolbox.start(); instance.start()
+ local f=assert(io.open(getMudletHomeDir().."/AardwolfToolbox/AardwolfToolbox.xml","r"))
+ local xml=f:read("*a"); f:close()
+ local script=assert(xml:match('<script>(.-)</script>'))
+ script=script:gsub('&lt;','<'):gsub('&gt;','>'):gsub('&quot;','"'):gsub('&apos;',"'"):gsub('&amp;','&')
+ assert(loadstring(script))(); AardwolfToolbox.start()
+ assert(AardwolfToolbox.consider==instance)
+ instance.stop(); instance.stop()
+ feedTriggers("a stopped goblin snickers nervously.\n")
+ assert(contains("a stopped goblin snickers nervously."))
+ instance.start(); instance.start()
+ feedTriggers("a restarted goblin snickers nervously.\n")
+ assert(contains("Consider: a restarted goblin | Tough | 2–4 levels above you"))
+ local tags,ascii=c.get("tags","enabled"),c.get("ascii","enabled")
+ c.set("tags","enabled",false); c.set("ascii","enabled",false)
+ feedTriggers("an independent goblin snickers nervously.\n")
+ assert(contains("Consider: an independent goblin | Tough | 2–4 levels above you"))
+ c.set("tags","enabled",tags); c.set("ascii","enabled",ascii)
+ assert(c.set("consider","colors",false)); assert(c.set("consider","enabled",false))
+ AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("consider")
+end)
+echo("CONSIDER_NATIVE_LIFECYCLE "..tostring(ok).." "..tostring(err).."\n")

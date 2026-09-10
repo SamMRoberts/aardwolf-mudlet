@@ -1,3 +1,44 @@
+# Consider ratings verification — 2026-09-10
+
+Current artifact: `build/AardwolfToolbox.mpackage`, version 0.8.0.
+SHA-256: `0857acede7827fc7912916c8e548f4d66111e8e27c780faeb39ae1b4f515ed7b`.
+
+- Muddler 1.1.0 build, archive inspection (11 members, no diagnostics), and all
+  74 Lua 5.1 package tests passed. New coverage includes all 13 sentences and
+  exact labels/ranges/colors, literal Unicode and markup-like names, whitespace,
+  near matches, help rows, disabled/colors-disabled behavior, persistence,
+  lifecycle, capture priority, independent feature settings, and activation,
+  selection, replacement, and storage failures.
+- Native Mudlet 5.0.1 replay used disconnected `AardwolfToolboxSettingsTest`.
+  `native_consider.lua` reported `CONSIDER_NATIVE true nil`. Readback verified
+  all 13 foregrounds, retained ANSI backgrounds, consecutive line positions,
+  another trigger observing all input, no color bleed into following server text,
+  colors disabled, original text when disabled, Unicode/markup-like and long
+  names, and untouched consider sentences within ASCII maps and brace blocks.
+- `native_consider_lifecycle.lua` reported `CONSIDER_NATIVE_LIFECYCLE true nil`:
+  repeat startup/stop, installed-script recompilation, and independence from
+  ASCII/tag enable settings. Separate uninstall and reinstall operations verified
+  no owned widgets remained and disabled/color preferences persisted. The native
+  settings panel displayed both Consider switches. A fresh mouse interaction
+  check was not completed because coordinate automation returned
+  `noWindowsAvailable`; this is not claimed as mouse acceptance.
+- Saved native map `AardwolfToolbox-before-consider-20260910-162624.dat` and
+  archived the current profile and installed 0.7.0 package under
+  `backups/consider-upgrade-20260910-162634/`. Both ZIPs passed integrity checks
+  and have mode 0600.
+- Installed 0.8.0 in Aardwolf. `CONSIDER_PLAYER_COMPLETE true` verified active
+  Consider, Vitals, and ASCII components, suppressed starter Vitals, successful
+  profile save, and opening the Consider settings section. Deep native comparison
+  preserved all 162 rooms, coordinates, areas, exits, special exits, hashes,
+  environments, room/area/map metadata, and palette. All 11 installed members
+  match the build byte-for-byte; all three starter-package files and the existing
+  settings file match the backup. The new Consider settings use enabled defaults.
+- Aardwolf remained disconnected. No connection, gameplay commands, consider
+  requests, or synthetic player-profile input were sent. Live consider acceptance
+  remains pending naturally arriving output.
+
+Earlier release evidence follows.
+
 # ASCII map verification — 2026-09-10
 
 Current artifact: `build/AardwolfToolbox.mpackage`, version 0.7.0.
