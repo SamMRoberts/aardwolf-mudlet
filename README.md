@@ -11,7 +11,7 @@ installation and profile load unless disabled in saved settings. Move normally t
 it records visited rooms, connects reported exits when both endpoints are known,
 and follows your position in the map. It never walks or sends gameplay commands.
 
-Version **0.14.1** adds a colored top-bar spellup indicator: buff coverage, automation status, and click-to-open Buffs. Version **0.14.0** adds a Buffs dashboard tab, live spell/recovery tracking, and opt-in automatic `spellup learned retry`. Automatic casting starts off. See the [spellup guide](docs/spellups.md).
+Version **0.14.3** fixes spellup completion without end tags and bases buff coverage on the confirmed server-selected buff set. Version **0.14.1** adds a colored top-bar spellup indicator: buff coverage, automation status, and click-to-open Buffs. Version **0.14.0** adds a Buffs dashboard tab, live spell/recovery tracking, and opt-in automatic `spellup learned retry`. Automatic casting starts off. See the [spellup guide](docs/spellups.md).
 
 Version **0.13.0** added shared Appearance settings, Graphical/ASCII map tabs, a Player/Quest/Group/Combat dashboard, and persistent layout ownership. See [UI and dashboard guide](docs/ui-dashboard.md).
 

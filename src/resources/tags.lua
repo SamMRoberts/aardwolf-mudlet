@@ -215,6 +215,7 @@ function Tags.new(api, incoming)
       publishBlocks(finished,epoch)
     end
   end
+  function self.isCapturing() return self.enabled and #stack>0 end
   function self.getRecord(id) return copy(records[id]) end
   function self.getBlock(id) return copy(blocks[id]) end
   function self.latest(name)

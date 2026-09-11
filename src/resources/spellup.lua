@@ -9,6 +9,20 @@ function Controller.new(api,cache,spells)
   local handlers={}
   local timer,batchTimer,pendingAt,lastSent,inflight,paused,initial,blocked,failureCount
   local pump
+  local probeTimer,targets,baseline,unknown,observed,confirming,settled
+  local function copySet(t) local r={}; for k,v in pairs(t or {}) do r[k]=v end; return r end
+  local function activeSet()
+    local r={}
+    for _,e in ipairs(spells.snapshot().active) do
+      local spell=spells.get(e.id)
+      if spell and spell.spellup and not e.awaiting then r[e.id]=true end
+    end
+    return r
+  end
+  local function cancelProbe()
+    if probeTimer then api.killTimer(probeTimer); probeTimer=nil end
+    confirming=false
+  end
   local function now() return api.getEpoch() end
   local function notify() api.raiseEvent(OWNER..".updated") end
   local function gate()
@@ -28,16 +42,58 @@ function Controller.new(api,cache,spells)
   local function reset()
     if batchTimer then api.killTimer(batchTimer); batchTimer=nil end
     if timer then api.killTimer(timer); timer=nil end
+    cancelProbe(); targets=nil; baseline=nil; unknown=false; observed=false
     pendingAt=nil; inflight=false; paused=nil; blocked=nil; failureCount={}; lastSent=nil
     initial=options.auto_refresh; self.last=options.auto_refresh and "Waiting for data" or "Off"; notify()
   end
   function self.status()
     return {enabled=self.enabled,automatic=options.auto_refresh,inflight=inflight or false,pending=pendingAt~=nil,
-      paused=paused,last=self.last,command=COMMAND}
+      paused=paused,last=self.last,command=COMMAND,coverage=self.coverage()}
   end
-  function self.sync() return spells.sync(true) end
+  function self.coverage()
+    if not spells.isFresh() then return {known=false} end
+    local active=activeSet(); local count,total=0,0
+    for _,e in ipairs(spells.snapshot().active) do
+      if baseline and baseline[e.id] and e.awaiting then return {known=false,reason="Buff expiry awaiting server confirmation"} end
+    end
+    if not baseline then return {known=false,reason="Waiting for a confirmed spellup",active=0,total=0} end
+    for id in pairs(baseline) do total=total+1; if active[id] then count=count+1 end end
+    return {known=true,active=count,total=total}
+  end
+  local function finish()
+    cancelProbe()
+    if batchTimer then api.killTimer(batchTimer); batchTimer=nil end
+    inflight=false; initial=false
+    baseline=copySet(targets)
+    for id in pairs(activeSet()) do baseline[id]=true end
+    if paused=="Batch completion unconfirmed" then paused=nil end
+    targets=nil; unknown=false; observed=false
+    self.last=options.auto_refresh and "Ready" or "Off"; notify(); schedule()
+  end
+  local function probe()
+    if probeTimer or not self.enabled or not inflight or paused then return end
+    probeTimer=api.tempTimer(5,function()
+      probeTimer=nil
+      if not self.enabled or not inflight or paused then return end
+      if cache.enabled and select(3,api.getConnectionInfo()) and cache.get("char.status.state")==3 then
+        confirming=true; spells.sync(false)
+      else probe() end
+    end)
+  end
+  local function armBatchTimeout()
+    if batchTimer then api.killTimer(batchTimer) end
+    batchTimer=api.tempTimer(120,function()
+      batchTimer=nil; cancelProbe(); paused="Batch completion unconfirmed"; self.last="Paused: "..paused
+      pendingAt=nil; notify()
+    end)
+  end
+  function self.sync()
+    if inflight then confirming=true end
+    return spells.sync(true)
+  end
   function self.resume()
     paused=nil; blocked=nil; failureCount={}; initial=true; self.last="Waiting for data"
+    if inflight then confirming=true; armBatchTimeout(); probe() end
     spells.sync(true); schedule(); return true
   end
   local function sendBatch()
@@ -45,19 +101,15 @@ function Controller.new(api,cache,spells)
     if reason then self.last=reason; return false,reason end
     if inflight then return false,"Spellup already running" end
     if lastSent and now()-lastSent<options.min_interval then return false,"Waiting for minimum batch interval" end
-    inflight=true; lastSent=now(); pendingAt=nil; initial=false; self.last="Spellup running"
-    batchTimer=api.tempTimer(120,function()
-      batchTimer=nil; paused="Batch completion unconfirmed"; self.last="Paused: "..paused
-      pendingAt=nil; notify()
-      -- Remain in-flight: a local timeout is not proof the server queue ended.
-    end)
+    inflight=true; targets={}; settled={}; unknown=false; observed=false; lastSent=now(); pendingAt=nil; initial=false; self.last="Spellup running"
+    armBatchTimeout()
     local ok,result,message=pcall(api.send,COMMAND,false)
     if not ok or result==false then
       if batchTimer then api.killTimer(batchTimer); batchTimer=nil end
       paused="Send failed; server batch state uncertain"; self.last="Paused: "..paused; notify()
       return false,tostring(ok and message or result)
     end
-    notify(); return true,"Spellup started"
+    probe(); notify(); return true,"Spellup started"
   end
   function self.runOnce()
     if paused then return false,"Paused: "..paused end
@@ -80,7 +132,7 @@ function Controller.new(api,cache,spells)
     sendBatch()
   end
   function self.stop()
-    self.enabled=false
+    self.enabled=false; cancelProbe()
     for _,name in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,name) end; handlers={}
     if timer then api.killTimer(timer); timer=nil end
     if batchTimer then api.killTimer(batchTimer); batchTimer=nil end
@@ -96,29 +148,62 @@ function Controller.new(api,cache,spells)
         handlers[#handlers+1]=name; assert(api.registerNamedEventHandler(OWNER,name,event,fn),"Cannot register spellup handler")
       end
       on("reset","AardwolfToolbox.spells.reset",function()
+        baseline=nil; cancelProbe()
         -- Disconnection/session reset proves the old connection cannot accept work.
         if not select(3,api.getConnectionInfo()) then reset()
         else pendingAt=nil; initial=options.auto_refresh; self.last="Waiting for data" end
       end)
       on("cacheReset","AardwolfToolbox.gmcp.cleared",function()
+        baseline=nil; cancelProbe()
         if not select(3,api.getConnectionInfo()) then reset()
         else pendingAt=nil; initial=options.auto_refresh; self.last="Waiting for data"; schedule() end
       end)
-      on("synced","AardwolfToolbox.spells.synced",schedule)
+      on("synced","AardwolfToolbox.spells.synced",function()
+        if inflight and confirming then
+          confirming=false
+          local active=activeSet(); local complete=observed and not unknown
+          for id in pairs(targets or {}) do if not active[id] and not (settled and settled[id]) then complete=false end end
+          if complete then finish() else probe() end
+        end
+        if inflight then probe() end
+        schedule()
+      end)
+      on("queued","AardwolfToolbox.spells.queued",function(_,name)
+        if not inflight then return end
+        observed=true; targets=targets or activeSet()
+        local found
+        for id,spell in pairs(spells.snapshot().catalog) do
+          if spell.name==name then
+            if found then unknown=true end
+            found=id
+          end
+        end
+        if found then targets[found]=true else unknown=true end
+        probe()
+      end)
+      on("noWork","AardwolfToolbox.spells.noWork",function()
+        if not inflight then return end
+        -- Explicit server response, including a manually requested spellup after
+        -- a timeout. Confirm the current effects before releasing the batch.
+        observed=true; unknown=false; targets={}; pendingAt=nil
+        if paused=="Batch completion unconfirmed" then paused=nil end
+        confirming=true; spells.sync(true)
+      end)
       on("missing","AardwolfToolbox.spells.missing",function() if options.auto_refresh then queue() end end)
       on("invalid","AardwolfToolbox.spells.invalid",function(_,reason) self.last="Waiting for data: "..tostring(reason); schedule() end)
       on("complete","AardwolfToolbox.spells.complete",function()
         if not inflight then return end
-        if batchTimer then api.killTimer(batchTimer); batchTimer=nil end
-        inflight=false
-        if paused=="Batch completion unconfirmed" then paused=nil end
-        spells.sync(false); schedule()
+        finish(); spells.sync(true)
       end)
       on("externalBatch","AardwolfToolbox.spells.batchStarted",function()
-        if not inflight then inflight=true; self.last="External spellup running"; notify() end
+        if not inflight then inflight=true; targets={}; settled={}; observed=false; unknown=false; self.last="External spellup running"; armBatchTimeout(); probe(); notify() end
       end)
       on("failure","AardwolfToolbox.spells.failure",function(_,e)
         if not inflight or e.target~=0 then return end
+        if e.reason~=1 and targets and targets[e.id] then
+          settled=settled or {}; settled[e.id]=true
+          if e.reason==2 then targets[e.id]=nil end
+        end
         self.last=REASONS[e.reason] or "Unknown spell failure"
         if e.reason~=1 and e.reason~=2 then
           local key=e.id..":"..e.reason
@@ -143,6 +228,7 @@ function Controller.new(api,cache,spells)
         end
         schedule()
       end)
+      if inflight then armBatchTimeout(); probe() end
       schedule()
     end)
     if not ok then self.stop(); self.last=tostring(err); return false,self.last end

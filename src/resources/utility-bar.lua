@@ -199,8 +199,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     busy=false
     if not ok then error(err,0) end
   end
-  -- Coverage is deliberately about learned, classified spells, not every effect
-  -- or the server's equipment/exclusion rules, which are not reported here.
+  -- The controller owns the confirmed buff set and server batch state.
   function self.bindSpellups(tracker,controller,openBuffs)
     spells,spellup=tracker,controller
     if items.spellups then self.unregisterItem("spellups") end
@@ -212,23 +211,14 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     local glyph,color,coverage="?","#B0B0B0","Buff coverage unknown"
     if not spells.enabled then coverage="Spell tracking disabled"
     elseif spells.isFresh() then
-      local wanted,active,total,count,awaiting={},{},0,0,false
-      for id,row in pairs(snapshot.catalog) do
-        local spell=spells.get(id)
-        if spell and spell.spellup and row.type==1 and (row.practice or 0)>0 then wanted[id]=true; total=total+1 end
-      end
-      for _,effect in ipairs(snapshot.active) do
-        if wanted[effect.id] then
-          if effect.awaiting then awaiting=true else active[effect.id]=true end
-        end
-      end
-      for _ in pairs(active) do count=count+1 end
-      if awaiting then coverage="Buff expiry awaiting server confirmation"
-      elseif total==0 then coverage="No learned spellup spells reported"
-      elseif count==0 then glyph,color,coverage="○","#B0B0B0","No tracked buffs applied"
-      elseif count<total then glyph,color,coverage="◐","#FFCC66","Partially buffed"
-      else glyph,color,coverage="●","#66DD88","Fully buffed (tracked spells)" end
-      coverage=coverage.." — "..count.."/"..total.." learned spellup spells active"
+      local coverageState=status.coverage
+      if coverageState and coverageState.known then
+        local count,total=coverageState.active,coverageState.total
+        if total==0 or count==0 then glyph,color,coverage="○","#B0B0B0","No expected buffs applied"
+        elseif count<total then glyph,color,coverage="◐","#FFCC66","Partially buffed"
+        else glyph,color,coverage="●","#66DD88","Fully buffed (confirmed buff set)" end
+        coverage=coverage.." — "..count.."/"..total.." expected buffs active"
+      else coverage=coverageState and coverageState.reason or "Waiting for a confirmed spellup" end
     end
     local badge,badgeColor,automation="×","#B0B0B0","Auto refresh disabled"
     if status.automatic then badge,badgeColor,automation="✓","#66DD88","Auto refresh enabled" end
@@ -239,7 +229,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     items.spellups.state={text=glyph,color=color,badge=badge,badgeColor=badgeColor,visible=options.show_spellups~=false,
       tooltip="Spellups: "..coverage.."\n"..automation.." — "..status.last..
         "\n○ none · ◐ partial · ● full · ? unknown\n× auto off · ✓ auto on · … pending/waiting · ↻ running · ! paused"..
-        "\nCoverage excludes skills; server exclusions and equipment equivalents may keep it partial. Click to open Buffs; no casting."}
+        "\nCoverage uses buffs observed in the confirmed spellup, not all spells in your catalog. Click to open Buffs; no casting."}
   end
   local function readings()
     local base=cache.get("char.base"); if type(base)~="table" then base={} end

@@ -141,3 +141,20 @@ that spell tracking is synchronized.
 Verified with 131 contract tests, build/archive inspection, native offline replay,
 and fresh live Aardwolf data. The upgrade preserved 370 map rooms, preferences,
 and border reservations. Existing opted-in automation resumed after synchronization.
+
+## Completion and coverage (0.14.3)
+
+The command remains `spellup learned retry`. The tracker collects the server's
+`Queueing spell : name.` / `Queueing skill : name.` lines and confirms the queued
+effects using fresh snapshots. While a batch is outstanding, confirmation checks
+are spaced five seconds apart and stop on completion, pause/error, teardown, or
+the 120-second uncertainty limit. No individual casts or client-side retries are
+added. The server's `No spells or skills cast.` response also requests confirmation.
+An optional end tag remains supported but is no longer required for success.
+
+Coverage starts unknown until a batch is confirmed. The expected set combines
+its queued buffs and active classified buffs from the confirmation snapshot;
+unapplied catalog alternatives do not count as missing. Afterward, wearoffs make
+that set partial. A new completed batch replaces the baseline, allowing changed
+server exclusions. It is session-only. Unknown queue names and unresolved effects
+remain uncertain instead of being declared successful from elapsed time alone.

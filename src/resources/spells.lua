@@ -136,6 +136,10 @@ function Spells.new(api,cache,incoming,tags)
     if text=="{spellup-end}" or text=="{spellup-start}" then
       emit(text=="{spellup-end}" and "complete" or "batchStarted"); return true,true
     end
+    local ordinary=not frame and not (tags and tags.isCapturing and tags.isCapturing())
+    local queued=text:match("^Queueing spell : (.+)%.$") or text:match("^Queueing skill : (.+)%.$")
+    if ordinary and queued then emit("queued",queued); return false end
+    if ordinary and text=="No spells or skills cast." then emit("noWork"); return false end
     local tag,payload=text:match("^{([%a]+)}(.*)$")
     if tag=="affon" or tag=="affoff" or tag=="recon" or tag=="recoff" or tag=="sfail" then
       local e={kind=tag,at=now()}

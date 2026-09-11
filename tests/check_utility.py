@@ -60,7 +60,11 @@ class UtilityTests(unittest.TestCase):
           tracker={enabled=true,isFresh=function() return fresh end,
             get=function(id) return {spellup=true} end,
             snapshot=function() return {catalog={[1]={type=1,practice=100},[2]={type=1,practice=75},[3]={type=2,practice=100}},active=effects} end}
-          controller={status=function() return auto end}
+          controller={status=function()
+            auto.coverage={known=true,active=#effects,total=2}
+            if effects[1] and effects[1].awaiting then auto.coverage={known=false,reason='Buff expiry awaiting server confirmation'} end
+            return auto
+          end}
           bar.bindSpellups(tracker,controller,function() buffsOpened=true end)
           assert(bar.start()); local id='AardwolfToolbox.utilityBar.item.spellups'
           local widget=widgets[id]

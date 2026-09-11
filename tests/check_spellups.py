@@ -49,6 +49,65 @@ class SpellTests(unittest.TestCase):
           advance(11); assert(spells.isFresh() and casts()==1)
         ''')
 
+    def test_retry_batch_confirmed_without_end_marker_and_exclusions(self):
+        self.lua.execute('''
+          synchronize(); assert(controller.runOnce())
+          feed('Queueing spell : Detect magic.')
+          advance(5)
+          -- Missing queued buff is not completion; retry remains server-owned.
+          synchronize(); assert(controller.status().inflight and casts()==1)
+          feed('{sfail}35,0,1,-1'); advance(5)
+          local rows={'72,Éowyn <red>,2,0,100,-1,1','35,Detect magic,2,0,100,1,1'}
+          spellRows('',rows); spellRows('spellup',rows)
+          spellRows('affected',{'72,Éowyn <red>,2,100,100,-1,1','35,Detect magic,2,100,100,1,1'})
+          feed('{recoveries recoveries noprompt}'); feed('1,Suppression,0'); feed('{/recoveries}')
+          assert(not controller.status().inflight and not controller.status().paused)
+          local c=controller.coverage(); assert(c.known and c.total==2 and c.active==2)
+          feed('{affoff}35'); assert(controller.coverage().active==1)
+          advance(30); assert(casts()==1)
+        ''')
+
+    def test_no_work_confirms_existing_buff_set_not_entire_catalog(self):
+        self.lua.execute('''
+          synchronize(); assert(not controller.coverage().known)
+          assert(controller.runOnce()); feed('No spells or skills cast.'); synchronize()
+          local c=controller.coverage(); assert(c.known and c.active==1 and c.total==1)
+          assert(not controller.status().inflight)
+          -- Unapplied alternative 35 is in the classification but was never queued.
+          assert(spells.get(35).spellup and not spells.get(35).active)
+          connected=false; raiseEvent('sysDisconnectionEvent'); advance(0)
+          assert(not controller.coverage().known)
+        ''')
+
+    def test_terminal_failure_completes_with_partial_coverage_and_wait_reason(self):
+        self.lua.execute('''
+          synchronize(); assert(controller.runOnce()); feed('Queueing spell : Detect magic.')
+          feed('{sfail}35,0,4,-1'); advance(5); synchronize()
+          assert(not controller.status().inflight)
+          local c=controller.coverage(); assert(c.total==2 and c.active==1)
+          assert(casts()==1)
+        ''')
+
+    def test_ordinary_completion_text_inside_tags_is_not_a_batch_result(self):
+        self.lua.execute('''
+          controller.stop(); spells.stop()
+          local tags=Tags.new(_G,incoming); tags.configure({enabled=true,suppress=true,block_timeout=10})
+          spells=Spells.new(_G,cache,incoming,tags); controller=Spellup.new(_G,cache,spells)
+          spells.configure(prefs); controller.configure(prefs); advance(0); synchronize()
+          assert(controller.runOnce()); local before=#commands
+          feed('{unfamiliar}'); feed('No spells or skills cast.'); feed('Queueing spell : Detect magic.'); feed('{/unfamiliar}')
+          assert(#commands==before and controller.status().inflight)
+          advance(5); synchronize(); assert(controller.status().inflight)
+        ''')
+
+    def test_unknown_queue_name_does_not_invent_completion(self):
+        self.lua.execute('''
+          synchronize(); assert(controller.runOnce()); feed('Queueing spell : Unknown name.')
+          advance(5); synchronize(); assert(controller.status().inflight)
+          prefs.auto_refresh=false; controller.configure(prefs)
+          controller.stop(); local n=#commands; advance(30); assert(#commands==n)
+        ''')
+
     def test_interleaved_deltas_unknown_spells_and_zero(self):
         self.lua.execute('''
           spellRows(''); spellRows('spellup')
