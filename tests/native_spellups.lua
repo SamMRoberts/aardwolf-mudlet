@@ -52,7 +52,7 @@ local finalStage=function() stage(function()
 end) end
 local recoveryStage=function() stage(function()
   assert(n.commands[#n.commands]=='slist recoveries noprompt')
-  feedTriggers('{recoveries noprompt}\n1,Suppression,40\n{/recoveries}\n')
+  feedTriggers('{recoveries affected noprompt}\n{/recoveries}\n{recoveries recoveries noprompt}\n1,Suppression,40\n{/recoveries}\n')
 end,finalStage) end
 local activeStage=function() stage(function()
   assert(n.commands[#n.commands]=='slist affected noprompt'); rows('affected',600)

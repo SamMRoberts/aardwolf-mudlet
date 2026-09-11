@@ -31,6 +31,24 @@ class SpellTests(unittest.TestCase):
           assert(gags==14 and #visible==0)
         ''')
 
+    def test_server_recovery_headers_finish_sync_and_completion_resync(self):
+        self.lua.execute('''
+          spellRows(''); feed('{recoveries noprompt}'); feed('1,Suppression,0'); feed('{/recoveries}')
+          spellRows('spellup'); spellRows('affected')
+          -- The affected command also returns a filtered recovery list. It must
+          -- not satisfy the pending full recovery request.
+          feed('{recoveries affected noprompt}'); feed('{/recoveries}')
+          assert(not spells.isFresh())
+          feed('{recoveries recoveries noprompt}'); feed('1,Suppression,0'); feed('{/recoveries}')
+          assert(spells.isFresh() and spells.get(72).active and casts()==0)
+          assert(controller.runOnce()); feed('{spellup-end}'); advance(0)
+          assert(not controller.status().inflight)
+          spellRows(''); spellRows('spellup'); spellRows('affected')
+          feed('{recoveries recoveries noprompt}'); feed('1,Suppression,0'); feed('{/recoveries}')
+          assert(spells.isFresh() and controller.status().last=='Off')
+          advance(11); assert(spells.isFresh() and casts()==1)
+        ''')
+
     def test_interleaved_deltas_unknown_spells_and_zero(self):
         self.lua.execute('''
           spellRows(''); spellRows('spellup')

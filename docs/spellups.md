@@ -129,3 +129,15 @@ No animation, automatic casting, or additional server requests are introduced.
 
 Utility item states also accept validated `#RRGGBB` `color` and `badgeColor`
 fields and a literal `badge` string; text remains escaped in both bar and overflow.
+
+## Synchronization fix (0.14.2)
+
+Recovery snapshots accept the server's `{recoveries recoveries noprompt}` header
+as well as the shorter full-list forms. Filtered `{recoveries affected noprompt}`
+responses cannot satisfy the full recovery request. Timeout diagnostics identify
+the missing synchronization stage. A completed cast batch alone never proves
+that spell tracking is synchronized.
+
+Verified with 131 contract tests, build/archive inspection, native offline replay,
+and fresh live Aardwolf data. The upgrade preserved 370 map rooms, preferences,
+and border reservations. Existing opted-in automation resumed after synchronization.

@@ -13,7 +13,7 @@ local REQUESTS={
   {kind="catalog",header="spellheaders",args="noprompt",command="slist noprompt"},
   {kind="classification",header="spellheaders",args="spellup noprompt",command="slist spellup noprompt"},
   {kind="active",header="spellheaders",args="affected noprompt",command="slist affected noprompt"},
-  {kind="recoveries",header="recoveries",args="noprompt",command="slist recoveries noprompt"},
+  {kind="recoveries",header="recoveries",args="recoveries noprompt",command="slist recoveries noprompt"},
 }
 function Spells.new(api,cache,incoming,tags)
   local self={enabled=false,last="Disabled"}
@@ -70,7 +70,7 @@ function Spells.new(api,cache,incoming,tags)
   end
   local function armTimeout()
     if timeout then api.killTimer(timeout) end
-    timeout=api.tempTimer(10,function() timeout=nil; fail("Spell snapshot timed out") end)
+    timeout=api.tempTimer(10,function() timeout=nil; fail("Spell snapshot timed out: "..(request and request.kind or frame and frame.kind or "unknown")) end)
   end
   function self.sync(manual)
     if not self.enabled then return false,"Tracking is disabled" end
@@ -102,7 +102,7 @@ function Spells.new(api,cache,incoming,tags)
     if not ok or result==false then fail("Spell request failed: "..tostring(ok and message or result)) end
   end
   local function kindFor(header,args)
-    if header=="recoveries" then return (args=="" or args=="noprompt") and "recoveries" or "ignore" end
+    if header=="recoveries" then return (args=="" or args=="noprompt" or args=="recoveries" or args=="recoveries noprompt") and "recoveries" or "ignore" end
     if args=="affected" or args=="affected noprompt" then return "active" end
     if args=="spellup" or args=="spellup noprompt" then return "classification" end
     -- Filtered user lists must never replace the complete catalog.
@@ -161,7 +161,7 @@ function Spells.new(api,cache,incoming,tags)
     if header then
       if frame then fail("Interrupted spell snapshot") end
       args=args:match("^%s*(.-)%s*$")
-      local expected=request and request.header==header and request.args==args
+      local expected=request and request.header==header and request.kind==kindFor(header,args)
       frame={header=header,kind=kindFor(header,args),expected=expected,rows={},deltas={},lines=0,bytes=0,at=now()}
       armTimeout(); return true,true,"AardwolfToolbox.tags"
     end
