@@ -108,6 +108,25 @@ class SpellTests(unittest.TestCase):
           controller.stop(); local n=#commands; advance(30); assert(#commands==n)
         ''')
 
+    def test_manual_spellup_shows_running_without_enabling_auto_or_sending(self):
+        self.lua.execute('''
+          synchronize(); local n=#commands
+          raiseEvent('sysDataSendRequest','spellup learned retry'); advance(0)
+          assert(controller.status().inflight and controller.status().last=='Spellup running')
+          assert(not controller.status().automatic and #commands==n)
+          feed('Queueing spell : Detect magic.')
+          assert(controller.status().inflight)
+          feed('No spells or skills cast.'); synchronize()
+          assert(not controller.status().inflight and controller.status().last=='Off')
+          for _,cmd in ipairs({'spellup check','spellup learned retry check','spellup OtherPlayer','say spellup','spellups','look'}) do
+            raiseEvent('sysDataSendRequest',cmd); advance(0); assert(not controller.status().inflight)
+          end
+          connected=false; raiseEvent('sysDataSendRequest','spellup'); advance(0)
+          assert(not controller.status().inflight)
+          connected=true; controller.stop(); raiseEvent('sysDataSendRequest','spellup retry'); advance(0)
+          assert(not controller.status().inflight)
+        ''')
+
     def test_interleaved_deltas_unknown_spells_and_zero(self):
         self.lua.execute('''
           spellRows(''); spellRows('spellup')

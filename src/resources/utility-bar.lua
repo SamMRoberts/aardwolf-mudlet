@@ -223,7 +223,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     local badge,badgeColor,automation="×","#B0B0B0","Auto refresh disabled"
     if status.automatic then badge,badgeColor,automation="✓","#66DD88","Auto refresh enabled" end
     if status.paused then badge,badgeColor="!","#FF7777"
-    elseif status.inflight then badge,badgeColor="↻","#77CCFF"
+    elseif status.inflight then badge,badgeColor="↻ Casting","#77CCFF"
     elseif status.pending then badge,badgeColor="…","#FFCC66"
     elseif status.automatic and (not spells.isFresh() or status.last~="Ready") then badge,badgeColor="…","#FFCC66" end
     items.spellups.state={text=glyph,color=color,badge=badge,badgeColor=badgeColor,visible=options.show_spellups~=false,

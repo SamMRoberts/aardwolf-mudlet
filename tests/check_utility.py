@@ -79,7 +79,7 @@ class UtilityTests(unittest.TestCase):
           effects={{id=1},{id=2}}; check('●','#66DD88','2/2')
           auto={automatic=true,last='Ready'}; check('✓','#66DD88','Auto refresh enabled')
           auto.pending=true; auto.last='Refresh queued'; check('…','#FFCC66','Refresh queued')
-          auto.inflight=true; auto.last='Spellup running'; check('↻','#77CCFF','Spellup running')
+          auto.inflight=true; auto.last='Spellup running'; check('↻ Casting','#77CCFF','Spellup running')
           auto.paused='Uncertain'; auto.last='Paused: Uncertain'; check('!','#FF7777','Paused: Uncertain')
           auto.automatic=false; check('!','#FF7777','Auto refresh disabled')
           effects[1].awaiting=true; check('?','#B0B0B0','awaiting server confirmation')

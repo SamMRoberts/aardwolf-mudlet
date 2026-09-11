@@ -147,6 +147,18 @@ function Controller.new(api,cache,spells)
       local function on(name,event,fn)
         handlers[#handlers+1]=name; assert(api.registerNamedEventHandler(OWNER,name,event,fn),"Cannot register spellup handler")
       end
+      on("outgoing","sysDataSendRequest",function(_,command)
+        if inflight or type(command)~="string" or not cache.enabled or not select(3,api.getConnectionInfo()) then return end
+        local words={}; for word in command:lower():gmatch("%S+") do words[#words+1]=word end
+        if words[1]~="spellup" then return end
+        -- Only unambiguous self-spellup forms. A preview or another player's
+        -- name must not put this character's tracker into a casting state.
+        local allowed={learned=true,retry=true,all=true,silent=true,quick=true}
+        for i=2,#words do if not allowed[words[i]] then return end end
+        inflight=true; targets={}; settled={}; observed=false; unknown=false
+        pendingAt=nil; initial=false; lastSent=now(); paused=nil; blocked=nil; failureCount={}
+        self.last="Spellup running"; armBatchTimeout(); probe(); notify()
+      end)
       on("reset","AardwolfToolbox.spells.reset",function()
         baseline=nil; cancelProbe()
         -- Disconnection/session reset proves the old connection cannot accept work.
@@ -179,7 +191,7 @@ function Controller.new(api,cache,spells)
           end
         end
         if found then targets[found]=true else unknown=true end
-        probe()
+        self.last="Spellup running"; notify(); probe()
       end)
       on("noWork","AardwolfToolbox.spells.noWork",function()
         if not inflight then return end

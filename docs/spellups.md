@@ -158,3 +158,12 @@ unapplied catalog alternatives do not count as missing. Afterward, wearoffs make
 that set partial. A new completed batch replaces the baseline, allowing changed
 server exclusions. It is session-only. Unknown queue names and unresolved effects
 remain uncertain instead of being declared successful from elapsed time alone.
+
+## Visible casting status (0.14.4)
+
+The utility badge displays blue **↻ Casting** while a spellup is outstanding,
+including self spellups entered directly as `spellup`, `spellup retry`, or
+`spellup learned retry`. `all`, `silent`, and `quick` options are also recognized.
+Preview (`check`) and named-target commands are excluded. Observing a manual
+spellup does not enable automatic refresh or resend the command. The existing
+bounded confirmation checks finish the indicator after the server response.

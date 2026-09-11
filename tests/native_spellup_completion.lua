@@ -4,7 +4,10 @@ local t=AardwolfToolbox
 assert(t.config.set("spellups","auto_refresh",false))
 local original={send=send,sendGMCP=sendGMCP,getConnectionInfo=getConnectionInfo,sendTelnetChannel102=sendTelnetChannel102}
 local commands={}
+local finished=false
 local function finish(ok,err)
+  if finished then return end
+  finished=true
   local result={ok=ok,error=tostring(err),coverage=t.spellup.coverage(),status=t.spellup.status(),commands=commands}
   for k,v in pairs(original) do _G[k]=v end
   local f=assert(io.open('/private/tmp/native-spellup-completion.json','w'));f:write(yajl.to_string(result));f:close()
@@ -36,7 +39,19 @@ gmcp.char=gmcp.char or {};gmcp.char.status={state=3,pos='Standing'}
 raiseEvent('gmcp.char','gmcp.char.status')
 t.spells.sync(true)
 tempTimer(1,function()
-  local ok,err=pcall(function() assert(t.spells.isFresh());assert(t.spellup.runOnce()) end)
+  local ok,err=pcall(function() assert(t.spells.isFresh());raiseEvent('sysDataSendRequest','spellup learned retry');send('spellup learned retry');assert(t.spellup.status().inflight) end)
+  if not ok then finish(false,err) end
+end)
+tempTimer(2,function()
+  local function find(w)
+    if w.name=='AardwolfToolbox.utilityBar.item.spellups' then return w end
+    for _,child in pairs(w.windowList or {}) do local found=find(child);if found then return found end end
+  end
+  local ok,err=pcall(function()
+    local label=assert(find(Geyser),'Missing indicator')
+    assert(label.message:find('↻ Casting',1,true),label.message)
+    assert(label.message:find('#77CCFF',1,true),label.message)
+  end)
   if not ok then finish(false,err) end
 end)
 tempTimer(8,function()
