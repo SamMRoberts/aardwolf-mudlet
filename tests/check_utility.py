@@ -54,6 +54,41 @@ class UtilityTests(unittest.TestCase):
           end
         ''')
 
+    def test_spellup_indicator_coverage_automation_and_lifecycle(self):
+        self.lua.execute('''
+          fresh=true; tracking=true; effects={}; auto={automatic=false,last='Off'}
+          tracker={enabled=true,isFresh=function() return fresh end,
+            get=function(id) return {spellup=true} end,
+            snapshot=function() return {catalog={[1]={type=1,practice=100},[2]={type=1,practice=75},[3]={type=2,practice=100}},active=effects} end}
+          controller={status=function() return auto end}
+          bar.bindSpellups(tracker,controller,function() buffsOpened=true end)
+          assert(bar.start()); local id='AardwolfToolbox.utilityBar.item.spellups'
+          local widget=widgets[id]
+          local function check(symbol,color,description)
+            raiseEvent('AardwolfToolbox.spells.updated'); flush()
+            assert(widget.text:find(symbol,1,true)); assert(widget.text:find(color,1,true))
+            assert(widget.tooltip:find(description,1,true),widget.tooltip)
+            assert(widgets[id]==widget)
+          end
+          check('○','#B0B0B0','0/2')
+          effects={{id=1}}; check('◐','#FFCC66','1/2')
+          effects={{id=1},{id=2}}; check('●','#66DD88','2/2')
+          auto={automatic=true,last='Ready'}; check('✓','#66DD88','Auto refresh enabled')
+          auto.pending=true; auto.last='Refresh queued'; check('…','#FFCC66','Refresh queued')
+          auto.inflight=true; auto.last='Spellup running'; check('↻','#77CCFF','Spellup running')
+          auto.paused='Uncertain'; auto.last='Paused: Uncertain'; check('!','#FF7777','Paused: Uncertain')
+          auto.automatic=false; check('!','#FF7777','Auto refresh disabled')
+          effects[1].awaiting=true; check('?','#B0B0B0','awaiting server confirmation')
+          fresh=false; check('?','#B0B0B0','coverage unknown')
+          tracker.enabled=false; check('?','#B0B0B0','tracking disabled')
+          widget.callback(); assert(buffsOpened and #calls==0)
+          bar.configure({enabled=true,font_size=10,show_spellups=false}); flush(); assert(widget.hidden)
+          bar.stop(); assert(not widgets[id] and next(handlers)==nil)
+          assert(bar.start()); assert(bar.start()); assert(widgets[id])
+          assert(not pcall(bar.updateItem,'spellups',{color='red; html'}))
+          bar.stop()
+        ''')
+
     def test_readings_missing_zero_and_progression(self):
         self.lua.execute('''
           assert(bar.start()); assert(bar.start()); assert(edges.Top==28)

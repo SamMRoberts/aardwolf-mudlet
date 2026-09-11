@@ -104,3 +104,28 @@ References: [SLIST](https://aardwolf.com/wiki/index.php/Help/SLIST),
 [spellup](https://aardwolf.com/wiki/index.php/Help/Spellup).
 
 Verification and rollout status: [0.14.0 verification](spellups-0.14-verification.md).
+
+## Top-bar indicator (0.14.1)
+
+Click the two-part spellup indicator to open Buffs without casting. Hide it under
+Utility bar → Show spellup indicator. It uses shared Appearance typography.
+
+| Coverage icon | Meaning |
+| --- | --- |
+| Gray ○ | No tracked learned spellup spells active |
+| Amber ◐ | Some tracked spells active |
+| Green ● | All tracked learned spellup spells active |
+| Gray ? | Disabled, stale, unavailable, or expiry awaiting confirmation |
+
+The adjacent badge independently shows automation: gray × off, green ✓ enabled
+and ready, amber … queued or waiting, blue ↻ batch running, red ! paused/error.
+Hover for exact active/known counts, saved automation preference, current reason,
+and a symbol legend. A paused/uncertain batch takes precedence over running;
+a manually started batch can show running while automatic refresh remains off.
+Coverage counts learned spells in the server's spellup classification, excluding
+skills. It does not infer server exclusions or equipment-equivalent buffs, so a
+server-completed spellup may still correctly show partial tracked coverage.
+No animation, automatic casting, or additional server requests are introduced.
+
+Utility item states also accept validated `#RRGGBB` `color` and `badgeColor`
+fields and a literal `badge` string; text remains escaped in both bar and overflow.

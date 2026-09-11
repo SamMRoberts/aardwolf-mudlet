@@ -122,7 +122,7 @@ local function initialize()
       description="Enable server inventory monitoring and request a snapshot when command-ready. Monitoring stays enabled on teardown."},
   }
   for _,entry in ipairs({{"level","Level"},{"total","Total levels"},{"tier","Tier"},{"remorts","Remorts"},
-      {"worth","Total worth"},{"gold","Gold on hand"},{"items","Loose inventory count"}}) do
+      {"worth","Total worth"},{"gold","Gold on hand"},{"items","Loose inventory count"},{"spellups","spellup indicator"}}) do
     utilitySettings[#utilitySettings+1]={key="show_"..entry[1],type="boolean",default=true,label="Show "..entry[2]}
   end
   config.registerFeature({id="utility",label="Utility bar",
@@ -131,6 +131,7 @@ local function initialize()
 
   AardwolfToolbox.spells=resource("spells").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags)
   AardwolfToolbox.spellup=resource("spellup").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.spells)
+  AardwolfToolbox.utilityBar.bindSpellups(AardwolfToolbox.spells,AardwolfToolbox.spellup,function() AardwolfToolbox.openBuffs() end)
   config.registerFeature({id="spellups",label="Spellups",description="Track buffs and recoveries. Optional spellup learned retry starts batches only while standing outside combat. Pause stops new batches; already queued server casts may continue.",settings={
     {key="enabled",type="boolean",default=true,label="Enable spell tracking"},
     {key="automatic_setup",type="boolean",default=true,label="Automatic spell monitoring setup"},

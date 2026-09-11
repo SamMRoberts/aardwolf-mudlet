@@ -25,6 +25,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
   local root,overflow,menu,adapter,refreshTimer
   local options={enabled=true,font_size=10,inventory_tracking=true}
   local busy=false
+  local spells,spellup
   local function rowHeight() return ui and ui.metrics().height or 28 end
   local render
   local function hideMenu()
@@ -63,7 +64,8 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     assert(type(state)=="table","Invalid utility state")
     for key,value in pairs(state) do
       assert((key=="visible" and type(value)=="boolean") or
-        ((key=="text" or key=="compactText" or key=="tooltip") and type(value)=="string" and #value<=4096),"Invalid utility state field")
+        ((key=="color" or key=="badgeColor") and type(value)=="string" and value:match("^#%x%x%x%x%x%x$")) or
+        ((key=="text" or key=="compactText" or key=="tooltip" or key=="badge") and type(value)=="string" and #value<=4096),"Invalid utility state field")
     end
     for k,v in pairs(state) do item.state[k]=v end
     if render then render() end
@@ -140,6 +142,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
           entry.text=d.label..(s.text~="" and " "..(compact and s.compactText or s.text) or "")
           if compact and entry.id=="remorts" then entry.text="R "..s.text end
           if compact and entry.id=="total" then entry.text="Tot "..s.text end
+          if s.badge and s.badge~="" then entry.text=entry.text.." "..s.badge end
           entry.pinned=entry.id=="settings" or d.pinned==true
           entry.width=entry.id=="settings" and h or math.max(h,(ui and ui.measure(entry.text) or #entry.text*options.font_size*0.78)+20)
           total=total+entry.width
@@ -167,8 +170,18 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
         local tooltip=item.state.tooltip or item.definition.tooltip or entry.text
         style(item.widget,item.definition.callback~=nil,entry.id~="settings")
         style(item.menuWidget,item.definition.callback~=nil,false)
-        item.widget:echo(escape(entry.text)); item.widget:setToolTip(escape(tooltip))
-        item.menuWidget:echo(escape(item.definition.label.." "..item.state.text)); item.menuWidget:setToolTip(escape(tooltip))
+        local function content(text)
+          local state=item.state
+          if state.badge and state.badge~="" then text=text:sub(1,#text-#state.badge-1) end
+          local result=escape(text)
+          if state.color then result='<span style="color:'..state.color..'">'..result..'</span>' end
+          if state.badge and state.badge~="" then
+            result=result..' <span style="color:'..(state.badgeColor or '#b6c0c9')..'">'..escape(state.badge)..'</span>'
+          end
+          return result
+        end
+        item.widget:echo(content(entry.text)); item.widget:setToolTip(escape(tooltip))
+        item.menuWidget:echo(content(item.definition.label.." "..item.state.text..(item.state.badge and " "..item.state.badge or ""))); item.menuWidget:setToolTip(escape(tooltip))
         if entry.hidden then
           item.menuWidget:move(0,row*h); item.menuWidget:resize("100%",h); item.menuWidget:show(); row=row+1
         else
@@ -185,6 +198,48 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
     end)
     busy=false
     if not ok then error(err,0) end
+  end
+  -- Coverage is deliberately about learned, classified spells, not every effect
+  -- or the server's equipment/exclusion rules, which are not reported here.
+  function self.bindSpellups(tracker,controller,openBuffs)
+    spells,spellup=tracker,controller
+    if items.spellups then self.unregisterItem("spellups") end
+    self.registerItem({id="spellups",label="",order=900000,overflowPriority=1000,callback=openBuffs})
+  end
+  local function spellReading()
+    if not spells or not spellup or not items.spellups then return end
+    local snapshot,status=spells.snapshot(),spellup.status()
+    local glyph,color,coverage="?","#B0B0B0","Buff coverage unknown"
+    if not spells.enabled then coverage="Spell tracking disabled"
+    elseif spells.isFresh() then
+      local wanted,active,total,count,awaiting={},{},0,0,false
+      for id,row in pairs(snapshot.catalog) do
+        local spell=spells.get(id)
+        if spell and spell.spellup and row.type==1 and (row.practice or 0)>0 then wanted[id]=true; total=total+1 end
+      end
+      for _,effect in ipairs(snapshot.active) do
+        if wanted[effect.id] then
+          if effect.awaiting then awaiting=true else active[effect.id]=true end
+        end
+      end
+      for _ in pairs(active) do count=count+1 end
+      if awaiting then coverage="Buff expiry awaiting server confirmation"
+      elseif total==0 then coverage="No learned spellup spells reported"
+      elseif count==0 then glyph,color,coverage="○","#B0B0B0","No tracked buffs applied"
+      elseif count<total then glyph,color,coverage="◐","#FFCC66","Partially buffed"
+      else glyph,color,coverage="●","#66DD88","Fully buffed (tracked spells)" end
+      coverage=coverage.." — "..count.."/"..total.." learned spellup spells active"
+    end
+    local badge,badgeColor,automation="×","#B0B0B0","Auto refresh disabled"
+    if status.automatic then badge,badgeColor,automation="✓","#66DD88","Auto refresh enabled" end
+    if status.paused then badge,badgeColor="!","#FF7777"
+    elseif status.inflight then badge,badgeColor="↻","#77CCFF"
+    elseif status.pending then badge,badgeColor="…","#FFCC66"
+    elseif status.automatic and (not spells.isFresh() or status.last~="Ready") then badge,badgeColor="…","#FFCC66" end
+    items.spellups.state={text=glyph,color=color,badge=badge,badgeColor=badgeColor,visible=options.show_spellups~=false,
+      tooltip="Spellups: "..coverage.."\n"..automation.." — "..status.last..
+        "\n○ none · ◐ partial · ● full · ? unknown\n× auto off · ✓ auto on · … pending/waiting · ↻ running · ! paused"..
+        "\nCoverage excludes skills; server exclusions and equipment equivalents may keep it partial. Click to open Buffs; no casting."}
   end
   local function readings()
     local base=cache.get("char.base"); if type(base)~="table" then base={} end
@@ -204,6 +259,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
           tooltip=id=="items" and ("Loose carried items: "..exact(values[id])..". Click to refresh. "..inventory.last) or item.definition.label..": "..exact(values[id])}
       end
     end
+    spellReading()
     render()
   end
   local function refresh()
@@ -246,7 +302,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
         handlers[#handlers+1]=name
         assert(api.registerNamedEventHandler(OWNER,name,event,callback),"Cannot register utility handler")
       end
-      for _,event in ipairs({"AardwolfToolbox.gmcp.updated","AardwolfToolbox.gmcp.cleared","AardwolfToolbox.inventory.updated","AardwolfToolbox.ui.changed","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage","AdjustableContainerRepositionFinish"}) do on(event,event,refresh) end
+      for _,event in ipairs({"AardwolfToolbox.spells.updated","AardwolfToolbox.spells.reset","AardwolfToolbox.spells.synced","AardwolfToolbox.spellup.updated","AardwolfToolbox.gmcp.updated","AardwolfToolbox.gmcp.cleared","AardwolfToolbox.inventory.updated","AardwolfToolbox.ui.changed","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage","AdjustableContainerRepositionFinish"}) do on(event,event,refresh) end
       readings(); self.last="Running"
       local good,message=inventory.configure({enabled=options.inventory_tracking})
       if not good then self.last="Inventory: "..message; inventoryError=self.last end
