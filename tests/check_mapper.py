@@ -159,7 +159,8 @@ class MapperTests(unittest.TestCase):
           mapper.stop(); packet(102); assert(writes == before)
           mapper.start(); fire("gmcp.room.info"); assert(writes == before)
           packet(102); assert(count(rooms) == 2)
-          assert(rooms[localID(102)].y == 0)
+          local room=rooms[localID(102)]
+          assert(room.z==0 and not (room.x==0 and room.y==2))
         ''')
 
     def test_continent_coordinates_and_manual_layout_preserved(self):
@@ -175,10 +176,57 @@ class MapperTests(unittest.TestCase):
           assert(rooms[localID(102)].area ~= rooms[id].area)
         ''')
 
-    def test_duplicate_positions_use_free_level(self):
+    def test_duplicate_positions_stay_on_same_level(self):
         self.check('''
           packet(101); packet(102)
-          assert(rooms[localID(101)].z == 0 and rooms[localID(102)].z == 1)
+          local a,b = rooms[localID(101)],rooms[localID(102)]
+          assert(a.z == 0 and b.z == 0)
+          assert(a.x ~= b.x or a.y ~= b.y)
+        ''')
+
+    def test_collision_after_horizontal_movement_does_not_create_floor(self):
+        self.check('''
+          packet(101, {e=102}); packet(102, {n=103}); packet(103, {w=104})
+          packet(104, {s=105}); packet(105, {e=106}); packet(106)
+          for num=101,106 do assert(rooms[localID(num)].z==0) end
+          local a,b=rooms[localID(101)],rooms[localID(105)]
+          assert(a.x==0 and a.y==0 and (a.x~=b.x or a.y~=b.y))
+          assert(rooms[localID(104)].exits.south==localID(105))
+        ''')
+
+    def test_vertical_collision_keeps_intended_up_and_down_levels(self):
+        self.check('''
+          packet(101, {u=102,d=103}); packet(102)
+          packet(101, {u=104,d=103}); packet(104)
+          assert(rooms[localID(102)].z==1 and rooms[localID(104)].z==1)
+          packet(101, {u=104,d=103}); packet(103)
+          packet(101, {d=105}); packet(105)
+          assert(rooms[localID(103)].z==-1 and rooms[localID(105)].z==-1)
+          local id=localID(104); rooms[id].z=17
+          packet(104); assert(rooms[id].z==17)
+        ''')
+
+    def test_continent_collision_and_reconnect_do_not_invent_levels(self):
+        self.check('''
+          packet(101, {}, "world", {cont=1,id=0,x=3,y=4})
+          packet(102, {}, "world", {cont=1,id=0,x=3,y=4})
+          assert(rooms[localID(101)].z==0 and rooms[localID(102)].z==0)
+          mapper.reset(); packet(103, {}, "world")
+          mapper.reset(); packet(104, {}, "world")
+          assert(rooms[localID(103)].z==0 and rooms[localID(104)].z==0)
+        ''')
+
+    def test_full_floor_stops_without_using_another_level(self):
+        self.check('''
+          packet(101)
+          local countBefore=count(rooms)
+          local checks=0
+          getRoomsByPosition=function(area,x,y,z)
+            assert(z==0); checks=checks+1; return {localID(101)}
+          end
+          packet(102)
+          assert(not mapper.enabled and count(rooms)==countBefore)
+          assert(checks<=1100 and mapper.last:find("same level",1,true))
         ''')
 
     def test_manual_exits_preserved_and_unknown_maze_exits_ignored(self):

@@ -176,13 +176,28 @@ function Mapper.new(api, preferences)
         end
       end
     end
-    -- Never move existing rooms to make space; put a new collision on a free level.
-    for offset = 0, 1000 do
-      local occupied = api.getRoomsByPosition(area, x, y, z + offset)
+    -- Z represents a floor, not overflow space. Keep collision offsets in XY;
+    -- otherwise a crowded room raises every subsequently discovered neighbor.
+    local function vacant(dx, dy)
+      local occupied = api.getRoomsByPosition(area, x + dx, y + dy, z)
       if type(occupied) ~= "table" then error("Cannot inspect room placement", 0) end
-      if next(occupied) == nil then return x, y, z + offset end
+      return next(occupied) == nil
     end
-    error("No free room position within layout limit", 0)
+    if vacant(0, 0) then return x, y, z end
+    -- Bounded square rings on the mapper's two-unit grid (1,089 candidates).
+    -- Existing rooms, including manual placements, are never moved.
+    for radius = 1, 16 do
+      local distance = radius * 2
+      for offset = -distance, distance, 2 do
+        if vacant(offset, distance) then return x + offset, y + distance, z end
+        if vacant(offset, -distance) then return x + offset, y - distance, z end
+      end
+      for offset = -distance + 2, distance - 2, 2 do
+        if vacant(distance, offset) then return x + distance, y + offset, z end
+        if vacant(-distance, offset) then return x - distance, y + offset, z end
+      end
+    end
+    error("No free room position on the same level within layout limit", 0)
   end
 
   local function ensureRoom(room)

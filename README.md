@@ -11,6 +11,11 @@ installation and profile load unless disabled in saved settings. Move normally t
 it records visited rooms, connects reported exits when both endpoints are known,
 and follows your position in the map. It never walks or sends gameplay commands.
 
+Version 0.12.1 keeps new-room placement collisions on the intended Z level by
+searching nearby X/Y positions. Only reported up/down exits change the inferred
+floor; occupied coordinates no longer push rooms upstairs. Existing coordinates
+remain unchanged, including older incorrect placements and manual edits.
+
 Use one mapping package per profile. If `generic_mapper` is installed, Toolbox
 stays off and explains the conflict. Generic Mapper can move the same marker
 even after `stop mapping`, which only stops its room creation. To use Toolbox,

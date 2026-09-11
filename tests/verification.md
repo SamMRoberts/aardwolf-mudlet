@@ -1,5 +1,27 @@
 # Verification record
 
+## 0.12.1 mapper Z-axis collision fix
+
+- Reproduced five failing Z-placement cases against the old artifact before the fix.
+- All 32 mapper tests now pass, including horizontal loops, same-floor collisions,
+  true up/down transitions, continent collisions, restart, preservation of edited
+  coordinates, and bounded failure when no same-floor position is available.
+- Muddler build and archive inspection passed. Full suite: 101 tests, the same
+  14 pre-existing errors (ASCII, consider, and package lifecycle harnesses).
+- Native `native_mapper_z.lua` passed in the disconnected disposable SettingsTest
+  profile after removing its conflicting Generic Mapper. Direct native mapper API
+  checks confirmed same-floor collisions and up-exit placement; no player fixtures.
+- Backed up Aardwolf's native map and saved profile, then archived the profile and
+  0.12.0 package under `backups/mapper-z-20260911-091606/` (ZIP integrity checked,
+  permissions 0600). Installed 0.12.1 and verified the installed mapper matches
+  the built resource. Settings and starter UI file hashes remain unchanged.
+- Full native map snapshot comparison preserved all 308 rooms, coordinates,
+  exits, special exits, hashes, room/area/map metadata, and terrain palette.
+  Mapper is enabled and waiting for fresh room.info. Live exploration remains
+  unverified; no connection, movement, or synthetic player packets were issued.
+- Existing misplaced rooms are not relocated: older versions did not retain
+  placement provenance sufficient to distinguish mistakes from manual edits.
+
 ## 0.12.0 utility bar — implementation complete; native acceptance pending
 
 - Muddler 1.1.0 build and archive inspection passed (16 members, no diagnostics).
