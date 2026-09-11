@@ -37,12 +37,12 @@ function Borders.new(api)
     for _,claim in pairs(claims) do if claim.edge==edge then used=true end end
     if not used then base[edge],written[edge]=nil,nil end
   end
-  function self.reserve(owner,edge,size,rank,layout)
+  function self.reserve(owner,edge,size,rank,layout,fullWidth)
     local old=claims[owner]
     if old and old.edge~=edge then self.release(owner); old=nil end
     if old and old.size==size then return end
     if base[edge]==nil then base[edge]=read(edge) end
-    claims[owner]={edge=edge,size=size,rank=rank,layout=layout}
+    claims[owner]={edge=edge,size=size,rank=rank,layout=layout,fullWidth=fullWidth}
     self.refresh()
   end
   function self.box(owner)
@@ -52,8 +52,8 @@ function Borders.new(api)
       if name~=owner and other.edge==c.edge and other.rank<c.rank then offset=offset+other.size end
     end
     if c.edge=="bottom" or c.edge=="top" then
-      return total("left"),c.edge=="bottom" and h-offset-c.size or offset,
-        math.max(1,w-total("left")-total("right")),c.size
+      return c.fullWidth and 0 or total("left"),c.edge=="bottom" and h-offset-c.size or offset,
+        c.fullWidth and w or math.max(1,w-total("left")-total("right")),c.size
     end
     return c.edge=="right" and w-offset-c.size or offset,total("top"),c.size,
       math.max(1,h-total("top")-total("bottom"))

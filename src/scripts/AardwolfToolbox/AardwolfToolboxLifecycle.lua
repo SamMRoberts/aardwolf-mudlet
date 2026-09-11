@@ -104,6 +104,24 @@ local function initialize()
       {key="font_size",type="number",default=10,min=8,max=13,integer=true,label="Font size (points)"},
     },apply=AardwolfToolbox.player.configure})
 
+
+  AardwolfToolbox.inventory = resource("inventory").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming)
+  AardwolfToolbox.utilityBar = resource("utility-bar").new(_G,AardwolfToolbox.gmcp,
+    AardwolfToolbox.inventory,AardwolfToolbox.borders,function() AardwolfToolbox.openSettings() end)
+  local utilitySettings={
+    {key="enabled",type="boolean",default=true,label="Enable utility bar"},
+    {key="font_size",type="number",default=10,min=8,max=16,integer=true,label="Font size (points)"},
+    {key="inventory_tracking",type="boolean",default=true,label="Automatic inventory tracking",
+      description="Enable server inventory monitoring and request a snapshot when command-ready. Monitoring stays enabled on teardown."},
+  }
+  for _,entry in ipairs({{"level","Level"},{"total","Total levels"},{"tier","Tier"},{"remorts","Remorts"},
+      {"worth","Total worth"},{"gold","Gold on hand"},{"items","Loose inventory count"}}) do
+    utilitySettings[#utilitySettings+1]={key="show_"..entry[1],type="boolean",default=true,label="Show "..entry[2]}
+  end
+  config.registerFeature({id="utility",label="Utility bar",
+    description="Full-width player progression, gold, and loose inventory above the console and sidebar.",
+    settings=utilitySettings,apply=AardwolfToolbox.utilityBar.configure})
+
 end
 
 function AardwolfToolbox.start()
@@ -115,6 +133,7 @@ end
 function AardwolfToolbox.stop()
   if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
   if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
+  if AardwolfToolbox.utilityBar then AardwolfToolbox.utilityBar.stop() end
   if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
   if AardwolfToolbox.help then AardwolfToolbox.help.stop() end
   if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
@@ -133,7 +152,7 @@ function AardwolfToolbox.openSettings()
       local mapper = AardwolfToolbox.mapper
       local mapperState = not AardwolfToolbox.config.get("mapper", "enabled") and "disabled in settings"
         or ((mapper.enabled and "running — " or "stopped — ") .. mapper.last)
-      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last .. " | Consider: " .. AardwolfToolbox.consider.last .. " | GMCP: " .. AardwolfToolbox.gmcp.last .. " | Player: " .. AardwolfToolbox.player.last .. " | Help: " .. AardwolfToolbox.help.last
+      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last .. " | Consider: " .. AardwolfToolbox.consider.last .. " | GMCP: " .. AardwolfToolbox.gmcp.last .. " | Player: " .. AardwolfToolbox.player.last .. " | Help: " .. AardwolfToolbox.help.last .. " | Utility: " .. AardwolfToolbox.utilityBar.last .. " | Inventory: " .. AardwolfToolbox.inventory.last
     end)
   end
   AardwolfToolbox.settingsWindow.open()

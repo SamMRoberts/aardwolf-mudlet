@@ -1,3 +1,32 @@
+# Verification record
+
+## 0.12.0 utility bar — implementation complete; native acceptance pending
+
+- Muddler 1.1.0 build and archive inspection passed (16 members, no diagnostics).
+- Twelve new Lua 5.1 contract tests passed: progression/money/missing values,
+  overflow and retained registry widgets, callback cleanup, sidebar restoration,
+  shared borders, persistence/failed writes, readiness gates, all documented
+  inventory actions, duplicate/interleaved events, malformed input, bounded
+  capture, timeout, one-retry behavior, and dispatcher forwarding/ownership.
+- Full suite: 97 tests, 14 errors. The same 14 test names failed in the untouched
+  0.11.0 baseline (85 tests); no new failing test names. Existing failures comprise
+  eight ASCII checks, two consider checks, and four package lifecycle checks.
+  Their tests were not weakened or skipped. Archive inventory expectations were
+  extended for the two new resources.
+- Initial disconnected `AardwolfToolboxSettingsTest` native installation displayed
+  the full-width top row and offset sidebar while retaining bottom Vitals. Native
+  assertions passed for full-width geometry, unchanged sidebar constraints,
+  inventory capture, and cached level. The next assertion stopped because the
+  previous help fixture had left Game tags disabled. The utility fixture now
+  explicitly enables it before testing shared capture.
+- The Mac then locked and automatic unlock failed. Consequently the corrected
+  native fixture, top-docked ASCII coexistence, mouse/overflow interactions,
+  native teardown/reinstall, and final-build native acceptance remain pending.
+- Aardwolf player-profile backup and installation have NOT been performed for this
+  release. No player commands or synthetic player data were sent. Unlock the Mac
+  to finish native validation, backup the current profile/settings/package/map,
+  install, and inspect naturally arriving data.
+
 # Floating help — 2026-09-10
 
 Version 0.11.0 adds the floating help pane. Build and three focused help tests

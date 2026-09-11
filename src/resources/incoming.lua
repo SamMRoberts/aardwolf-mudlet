@@ -18,10 +18,17 @@ function Incoming.new(api)
         for _,entry in ipairs(ordered) do
           local consumer=entry.consumer
           if consumers[entry.name]==consumer then
-            local worked,claimed,suppress=pcall(consumer.receive,text)
+            local worked,claimed,suppress,forward=pcall(consumer.receive,text)
             if not worked then self.remove(entry.name); consumer.failed(claimed); return end
             if claimed then
+              -- A machine-readable consumer can forward the same snapshot to the
+              -- generic tag archive, without allowing ordinary formatters to claim it.
               if suppress then api.deleteLine() end
+              local observer=forward and consumers[forward]
+              if observer then
+                local observed,err=pcall(observer.receive,text)
+                if not observed then self.remove(forward); observer.failed(err) end
+              end
               return
             end
           end

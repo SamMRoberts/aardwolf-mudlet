@@ -1,7 +1,7 @@
 # Aardwolf Toolbox
 
 A Mudlet 5.0.1 package with an incremental Aardwolf GMCP auto-mapper, a compact
-bottom Vitals strip, game-tag capture, a movable ASCII map pane, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
+bottom Vitals strip, a full-width utility bar, inventory tracking, game-tag capture, a movable ASCII map pane, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
 
 ## Install and use
 
@@ -55,6 +55,22 @@ files are preserved and reported rather than overwritten.
 
 Future features register their settings with this window. See the
 [settings framework contract](docs/settings-framework.md) for types and examples.
+
+## Top utility bar (0.12.0)
+
+The top row spans the console and sidebar: level, total levels (excluding powerups),
+tier, remorts, worth, gold, and loose inventory count. Worth means bank plus carried
+gold. Missing readings show `--`; zero remains visible. Amounts shorten when space
+is tight, with exact amounts in tooltips; lower-priority readings move into **⋯**.
+The **⚙** button opens the shared settings window.
+
+Under **Utility bar**, change the font, hide individual readings, disable the bar,
+or disable automatic inventory tracking. Tracking explicitly enables server
+monitoring and requests `invdata` once a fresh GMCP state says the character is
+command-ready. Clicking **Items** refreshes that snapshot when safe. It counts loose
+carried items, excluding worn equipment and container contents. Monitoring remains
+on at teardown so other packages can continue using it. No inventory data persists.
+See [utility bar and extension API](docs/utility-bar.md) for details.
 
 ## Bottom Vitals
 
