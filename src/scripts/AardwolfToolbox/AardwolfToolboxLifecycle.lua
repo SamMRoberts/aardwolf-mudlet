@@ -34,6 +34,8 @@ local function initialize()
         description = "Record rooms and exits. Turning this off releases the mapper's listeners."},
       {key = "follow_room", type = "boolean", default = true, label = "Follow current room",
         description = "Center the map when fresh room information arrives."},
+      {key = "unexplored_rooms", type = "boolean", default = true, label = "Create unexplored room placeholders",
+        description = "Show reported destinations as gray ? rooms and unknown or obstructed destinations as exit stubs. Existing placeholders remain when disabled."},
       {key = "terrain_colors", type = "boolean", default = true, label = "Color rooms by terrain",
         description = "Color visited rooms by terrain. Existing colors and manual overrides are preserved when disabled."},
     },
@@ -162,6 +164,17 @@ local function initialize()
     {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="combat",label="Combat"},{value="buffs",label="Buffs"}}},
   },validate=function(values) return values.map_percent+values.dashboard_percent<=80,"Map and dashboard shares must leave at least 20% for chat." end,apply=AardwolfToolbox.dashboard.configure})
 
+  local Shortcuts=resource("shortcuts")
+  local Actions=resource("action-bar")
+  AardwolfToolbox.actionBar=Actions.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.borders,AardwolfToolbox.ui,
+    Shortcuts,resource("navigation"),function(id,add)
+      AardwolfToolbox.openSettings()
+      AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
+    end,function() return AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened end)
+  AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
+  AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
+  config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure))
+
 end
 
 function AardwolfToolbox.start()
@@ -180,6 +193,7 @@ end
 function AardwolfToolbox.stop()
   if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
   if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
+  if AardwolfToolbox.actionBar then AardwolfToolbox.actionBar.stop() end
   if AardwolfToolbox.dashboard then AardwolfToolbox.dashboard.stop() end
   if AardwolfToolbox.utilityBar then AardwolfToolbox.utilityBar.stop() end
   if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
@@ -206,7 +220,7 @@ function AardwolfToolbox.openSettings()
           " · Actual: "..(mapper.enabled and "running" or "stopped").." · "..mapper.last
       end
       if id=="spellups" then return AardwolfToolbox.spells.last.." · "..AardwolfToolbox.spellup.last end
-      local key=id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
+      local key=id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
       local component=AardwolfToolbox[key]
       return AardwolfToolbox.config.runtimeErrors[id] or (component and component.last) or "Settings ready"
     end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end)

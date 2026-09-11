@@ -69,7 +69,7 @@ must be idempotent and must not call `config.set` recursively. They should not
 send gameplay commands. Startup activates features only after preferences load.
 
 JSON is stored in `getMudletHomeDir()/AardwolfToolbox-settings.json` as
-`{"version":1,"values":{"feature":{"key":true}}}`. An adjacent `.tmp` file is
+`{"version":2,"values":{"feature":{"key":true}}}`. An adjacent `.tmp` file is
 written, closed, and atomically renamed. Read size is limited to 1 MiB. Unknown
 feature/setting values survive saves, allowing temporarily absent features to
 return. Missing settings use declared defaults.
@@ -103,3 +103,39 @@ font and border ownership provenance. Metadata uses the same checked atomic JSON
 replacement, preserves feature values, and does not invalidate a user draft.
 User-editable preferences must still be registered settings. Shared typography
 and future UI contracts are documented in [UI and dashboard](ui-dashboard.md).
+
+## Ordered records (settings format 2)
+
+A `records` setting defines `fields` using the existing primitive field types,
+`maxItems` (1–48), and a default ordered list. Each record has a unique stable
+`id` plus exactly the declared fields. IDs use lowercase letters, digits and
+underscores and begin with a letter. Field defaults are used when adding a row.
+`fixed=true` keeps the initial rows in place while allowing field edits.
+
+The shared editor supports Add, Edit, Duplicate, Delete and Move up/down. All
+changes remain in the window draft until Apply; Cancel and stale-draft checks
+apply to entire lists. `get`, drafts, and apply callbacks receive deep copies.
+
+```lua
+AardwolfToolbox.config.registerFeature({
+  id="example_list", label="Example list",
+  settings={{key="items", label="Items", type="records", maxItems=10,
+    default={}, fields={
+      {key="label",label="Label",type="text",default="New item",maxLength=80},
+      {key="enabled",label="Enabled",type="boolean",default=true}
+    }}},
+  apply=function(values)
+    -- Retain your own state and update owned widgets; never send game commands here.
+    return true
+  end
+})
+```
+
+Version 0.15.0 writes settings format **2**, including structured records. It
+continues reading version 1 and saves its exact original bytes to
+`AardwolfToolbox-settings.json.v1.bak` before replacing that file with format 2.
+Backup or write failure leaves the saved preferences and active configuration
+unchanged. An existing different backup blocks migration rather than overwriting
+it. Unknown feature/settings values remain stored. Older packages cannot read
+format 2; restore the backup only when deliberately downgrading (later preferences
+will be lost).

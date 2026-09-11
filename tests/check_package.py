@@ -17,9 +17,9 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua",
-                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "spells.lua", "spellup.lua",
+                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "spells.lua", "spellup.lua", "action-bar.lua", "navigation.lua", "shortcuts.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","spells","spellup")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","spells","spellup","action-bar","navigation","shortcuts")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
@@ -79,6 +79,24 @@ class PackageTests(unittest.TestCase):
         self.lua.execute(self.alias)
         self.lua.execute('assert(output[3] == "Aardwolf Toolbox: inactive; calls=2\\n")')
         self.lua.execute('AardwolfToolbox.start(); assert(AardwolfToolbox.active)')
+
+    def test_placeholder_preference_persists_without_replaying_room_data(self):
+        self.lua.execute('''
+          AardwolfToolbox.start()
+          assert(AardwolfToolbox.config.get("mapper","unexplored_rooms"))
+          packet(101,{n=102}); local before=writes
+          assert(AardwolfToolbox.config.set("mapper","unexplored_rooms",false))
+          assert(writes==before)
+          AardwolfToolboxLifecycle("sysUninstallPackage","AardwolfToolbox")
+        ''')
+        self.lua.execute(self.script)
+        self.lua.execute('''
+          AardwolfToolbox.start()
+          assert(not AardwolfToolbox.config.get("mapper","unexplored_rooms"))
+          local before=writes; fire('gmcp.room.info'); assert(writes==before)
+          packet(101,{n=102,e=103}); assert(localID(103)==-1)
+          packet(102); assert(getRoomUserData(localID(102),'AardwolfToolbox:discovery')=='visited')
+        ''')
 
     def test_mapper_commands_persist_and_load_before_activation(self):
         self.lua.execute('''

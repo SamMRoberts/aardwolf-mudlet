@@ -1,5 +1,9 @@
 -- One owned, lazy settings panel. All editor input is consumed locally.
 local Window = {}
+local function copy(v)
+  if type(v)~="table" then return v end
+  local r={}; for k,x in pairs(v) do r[k]=copy(x) end; return r
+end
 local PREFIX = "AardwolfToolbox.settings."
 local function escape(value)
   return (tostring(value):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
@@ -11,6 +15,7 @@ local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px 
 function Window.new(api, config, runtimeStatus, ui, resetLayout)
   local self = {opened = false}
   local root, body, message, status, navigation, timer, draft, revision, selected
+  local recordSelection={}
   local editors, generation, serial, bodyGeneration = {}, 0, 0, 0
   local contentWidgets, contentWidth, contentHeight = {}, nil, nil
   local function label(parent, suffix, text, x, y, width, height, callback)
@@ -32,7 +37,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
     for _, editor in ipairs(editors) do
       local value = editor.widget:getText()
       if editor.setting.type == "number" then value = tonumber(value) or value end
-      draft[selected][editor.setting.key] = value
+      editor.target[editor.setting.key] = value
     end
   end
   local function refreshStatus()
@@ -51,7 +56,8 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
     if navigation then navigation:resize(143, height) end
     for _, widget in ipairs(contentWidgets) do widget:resize(width, widget.height) end
   end
-  local function render()
+  local render
+  render=function()
     bodyGeneration = bodyGeneration + 1
     local currentBody = bodyGeneration
     editors, contentWidgets, contentWidth = {}, {}, nil
@@ -73,30 +79,69 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
         feedback(text); render()
       end); y=y+48
     end
-    for _, setting in ipairs(feature.settings) do
+    local function field(setting,target)
       local key = setting.key
       label(body, "field", setting.label, 0, y, "100%", controlHeight); y = y + controlHeight+2
       if setting.description then
         label(body, "help", setting.description, 0, y, "100%", 54); y = y + 56
       end
-      if setting.type == "boolean" then
+      if setting.type == "records" then
+        local list=target[key]
+        local function redraw() feedback("Unsaved changes"); render() end
+        local function add(source)
+          if #list>=setting.maxItems then feedback("Maximum "..setting.maxItems.." records"); return end
+          capture()
+          local record=source and copy(source) or {}
+          if not source then for _,f in ipairs(setting.fields) do record[f.key]=copy(f.default) end end
+          local n=1; local used={}; for _,r in ipairs(list) do used[r.id]=true end
+          while used["button_"..n] do n=n+1 end
+          record.id="button_"..n
+          list[#list+1]=record; recordSelection[key]=record.id; redraw()
+        end
+        if not setting.fixed then
+          label(body,"addrecord","Add button",4,y,"-8px",controlHeight,function() add() end); y=y+controlHeight+8
+        end
+        for index,record in ipairs(list) do
+          local button=label(body,"record",(recordSelection[key]==record.id and "▾ " or "▸ ")..record.label,4,y,"-8px",controlHeight,function()
+            capture(); recordSelection[key]=recordSelection[key]==record.id and nil or record.id; render()
+          end)
+          y=y+controlHeight+4
+          if recordSelection[key]==record.id then
+            for _,f in ipairs(setting.fields) do
+              if not (setting.fixed and f.key=="label") then field(f,record) end
+            end
+            if not setting.fixed then
+              for _,action in ipairs({"Duplicate","Delete","Move up","Move down"}) do
+                label(body,"recordaction",action,4,y,"-8px",controlHeight,function()
+                  capture()
+                  if action=="Duplicate" then add(record); return end
+                  if action=="Delete" then table.remove(list,index); recordSelection[key]=nil
+                  elseif action=="Move up" and index>1 then list[index],list[index-1]=list[index-1],list[index]
+                  elseif action=="Move down" and index<#list then list[index],list[index+1]=list[index+1],list[index] end
+                  redraw()
+                end); y=y+controlHeight+4
+              end
+            end
+          end
+        end
+      elseif setting.type == "boolean" then
         local button
-        button = label(body, "toggle", draft[selected][key] and "Enabled" or "Disabled", 4, y, "-8px", controlHeight, function()
+        button = label(body, "toggle", target[key] and "Enabled" or "Disabled", 4, y, "-8px", controlHeight, function()
           if currentBody ~= bodyGeneration then return end
-          draft[selected][key] = not draft[selected][key]
-          button:echo(draft[selected][key] and "Enabled" or "Disabled")
+          target[key] = not target[key]
+          button:echo(target[key] and "Enabled" or "Disabled")
           feedback("Unsaved changes")
         end)
       elseif setting.type == "choice" then
         local function display()
-          for _, option in ipairs(setting.options) do if option.value == draft[selected][key] then return option.label .. "  ▸" end end
+          for _, option in ipairs(setting.options) do if option.value == target[key] then return option.label .. "  ▸" end end
         end
         local button
         button = label(body, "choice", display(), 4, y, "-8px", controlHeight, function()
           if currentBody ~= bodyGeneration then return end
           for index, option in ipairs(setting.options) do
-            if option.value == draft[selected][key] then
-              draft[selected][key] = setting.options[index % #setting.options + 1].value; break
+            if option.value == target[key] then
+              target[key] = setting.options[index % #setting.options + 1].value; break
             end
           end
           button:echo(escape(display())); feedback("Unsaved changes")
@@ -106,28 +151,44 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
         local input = api.Geyser.CommandLine:new({name = PREFIX .. "input" .. serial,
           x = 4, y = y, width = "-8px", height = controlHeight}, body)
         input:setStyleSheet("QPlainTextEdit { font-family: '"..(ui and ui.metrics().font or "Arial").."'; font-size: "..(ui and ui.metrics().size or 11).."pt; background-color: #15202c; color: #ffffff; border: 1px solid #526b86; padding: 3px; }")
-        input:print(tostring(draft[selected][key]))
+        input:print(tostring(target[key]))
         local current = generation
         input:setAction(function(text)
           if not self.opened or generation ~= current or bodyGeneration ~= currentBody then return end
           -- Enter never falls through to Mudlet's game command dispatch.
           input:print(text); capture(); feedback("Unsaved changes")
         end)
-        editors[#editors + 1] = {widget = input, setting = setting}
+        editors[#editors + 1] = {widget = input, setting = setting, target=target}
         contentWidgets[#contentWidgets + 1] = input
       end
       y = y + controlHeight+16
     end
+    for _,setting in ipairs(feature.settings) do field(setting,draft[selected]) end
     fitContents()
   end
 
   function self.select(id)
     assert(config.features[id], "Unknown feature")
-    capture(); selected = id; render()
+    capture(); selected = id; render(); refreshStatus()
+  end
+  function self.editRecord(feature,key,id,add)
+    self.select(feature)
+    if add then
+      local definition
+      for _,setting in ipairs(config.features[feature].settings) do if setting.key==key then definition=setting end end
+      assert(definition and definition.type=="records","Unknown record setting")
+      local list=draft[feature][key]
+      if #list>=definition.maxItems then feedback("Maximum buttons reached"); return end
+      local record={}; for _,f in ipairs(definition.fields) do record[f.key]=copy(f.default) end
+      local used={}; for _,r in ipairs(list) do used[r.id]=true end
+      local n=1; while used["button_"..n] do n=n+1 end
+      record.id="button_"..n; list[#list+1]=record; id=record.id
+    end
+    recordSelection[key]=id; render()
   end
   function self.restoreDefaults()
     if not self.opened or not selected then return end
-    for _, setting in ipairs(config.features[selected].settings) do draft[selected][setting.key] = setting.default end
+    for _, setting in ipairs(config.features[selected].settings) do draft[selected][setting.key] = copy(setting.default) end
     render(); feedback("Defaults selected. Apply to save.")
   end
   function self.apply()
@@ -140,6 +201,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
   end
   function self.close()
     self.opened = false; generation = generation + 1
+    api.raiseEvent("AardwolfToolbox.settings.visibility")
     if timer then api.killTimer(timer); timer = nil end
     if root then root:delete(); root = nil end
     body, message, status, navigation, draft, selected = nil, nil, nil, nil, nil, nil
@@ -177,6 +239,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
         adjLabelstyle = "background-color: #202b39; border: 1px solid #526b86;",
         padding = 8}, nil)
       self.opened = true
+      api.raiseEvent("AardwolfToolbox.settings.visibility")
       -- Use event coordinates: the global mouse query can lag on multi-monitor desktops.
       -- Owning these interactions also excludes docking and shared-border changes.
       local drag

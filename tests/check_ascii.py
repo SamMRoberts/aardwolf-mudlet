@@ -44,16 +44,16 @@ class ASCIITests(unittest.TestCase):
 
     def test_docking_vitals_and_external_reservations(self):
         self.lua.execute('''
-          local vh=AardwolfToolbox.ui.metrics().height+10; assert(borderBottom==vh)
+          local vh=AardwolfToolbox.ui.metrics().height+10; local bh=AardwolfToolbox.ui.metrics().height*3+16; assert(borderBottom==vh+bh)
           for _,edge in ipairs({'bottom','left','right','top','floating'}) do
             assert(c.set('ascii','dock',edge)); assert(a.enabled and AardwolfToolbox.vitals.enabled)
           end
-          assert(borderBottom==vh and borderLeft==0 and borderRight==300 and borderTop==AardwolfToolbox.ui.metrics().height)
-          assert(c.set('ascii','dock','bottom')); assert(borderBottom==vh+c.get("ascii","height"))
+          assert(borderBottom==vh+bh and borderLeft==0 and borderRight==300 and borderTop==AardwolfToolbox.ui.metrics().height)
+          assert(c.set('ascii','dock','bottom')); assert(borderBottom==vh+bh+c.get("ascii","height"))
           assert(widgets['AardwolfToolbox.vitals.root'].y==800-vh)
-          assert(c.set('ascii','enabled',false)); assert(borderBottom==vh)
+          assert(c.set('ascii','enabled',false)); assert(borderBottom==vh+bh)
           a.open(); c.set('ascii','dock','right'); borderRight=75
-          c.set('ascii','enabled',false); assert(borderRight==75 and borderBottom==vh)
+          c.set('ascii','enabled',false); assert(borderRight==75 and borderBottom==vh+bh)
           AardwolfToolbox.stop(); assert(borderBottom==0 and borderRight==75 and count(widgets)==0)
         ''')
 

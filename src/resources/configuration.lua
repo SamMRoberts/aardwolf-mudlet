@@ -4,6 +4,22 @@ local function copy(value)
   if type(value) ~= "table" then return value end
   local result = {}; for k,v in pairs(value) do result[k] = copy(v) end; return result
 end
+local function equal(a,b)
+  if type(a) ~= type(b) then return false end
+  if type(a) ~= "table" then return a == b end
+  for k,v in pairs(a) do if not equal(v,b[k]) then return false end end
+  for k in pairs(b) do if a[k] == nil then return false end end
+  return true
+end
+local function jsonValue(v,depth)
+  if type(v)=="string" or type(v)=="boolean" then return true end
+  if type(v)=="number" then return v==v and math.abs(v)<math.huge end
+  if type(v)~="table" or depth>8 then return false end
+  for k,item in pairs(v) do
+    if (type(k)~="string" and type(k)~="number") or not jsonValue(item,depth+1) then return false end
+  end
+  return true
+end
 local function identifier(value)
   return type(value) == "string" and value:match("^[a-z][a-z0-9_]*$") ~= nil
 end
@@ -11,9 +27,25 @@ local function finite(value)
   return type(value) == "number" and value == value and math.abs(value) < math.huge
 end
 local function valid(setting, value)
+  if setting.type == "records" then
+    if type(value)~="table" or #value>setting.maxItems then return false end
+    local ids={}
+    for k in pairs(value) do if type(k)~="number" or k%1~=0 or k<1 or k>#value then return false end end
+    for _,record in ipairs(value) do
+      if type(record)~="table" or not identifier(record.id) or ids[record.id] then return false end
+      ids[record.id]=true
+      local keys={id=true}
+      for _,field in ipairs(setting.fields) do
+        keys[field.key]=true
+        if not valid(field,record[field.key]) then return false end
+      end
+      for key in pairs(record) do if not keys[key] then return false end end
+    end
+    return true
+  end
   if setting.type == "boolean" then return type(value) == "boolean" end
   if setting.type == "text" then
-    return type(value) == "string" and not value:find("[%c]")
+    return type(value) == "string" and not value:find("[%z\1-\31\127]")
       and #value <= (setting.maxLength or 1024)
   end
   if setting.type == "number" then
@@ -29,7 +61,7 @@ end
 
 function Config.new(api)
   local self = {features = {}, order = {}, revision = 0, runtimeErrors = {}, active = false}
-  local values, metadata = {}, {}
+  local values, metadata, legacyBytes = {}, {}, nil
   local path = api.getMudletHomeDir() .. "/AardwolfToolbox-settings.json"
   self.path = path
   local function diagnostic(message)
@@ -42,19 +74,19 @@ function Config.new(api)
     local closed = file:close()
     local ok, data = pcall(api.yajl.to_value, bytes or "")
     if not closed or not bytes or #bytes > 1048576 or not ok or type(data) ~= "table"
-        or data.version ~= 1 or type(data.values) ~= "table" then
+        or (data.version ~= 1 and data.version ~= 2) or type(data.values) ~= "table" then
       diagnostic("Cannot read settings or unsupported format; original file preserved: " .. path)
     else
       local usable = true
       for feature, fields in pairs(data.values) do
         if not identifier(feature) or type(fields) ~= "table" then usable = false; break end
         for key, value in pairs(fields) do
-          if not identifier(key) or not (type(value) == "string" or type(value) == "boolean" or finite(value)) then
+          if not identifier(key) or not jsonValue(value,0) then
             usable = false; break
           end
         end
       end
-      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {} else diagnostic("Invalid settings structure; original file preserved: " .. path) end
+      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {}; if data.version==1 then legacyBytes=bytes end else diagnostic("Invalid settings structure; original file preserved: " .. path) end
     end
   elseif code ~= 2 then
     diagnostic("Cannot open settings; original file preserved: " .. tostring(err))
@@ -65,7 +97,7 @@ function Config.new(api)
     for _, setting in ipairs(self.features[id].settings) do
       local value = values[id] and values[id][setting.key]
       if value == nil or not valid(setting, value) then value = setting.default end
-      result[setting.key] = value
+      result[setting.key] = copy(value)
     end
     return result
   end
@@ -93,12 +125,23 @@ function Config.new(api)
       keys[setting.key] = true
       assert(type(setting.label) == "string" and #setting.label > 0, "Setting label required")
       assert(setting.description == nil or type(setting.description) == "string", "Invalid description")
-      assert(setting.type == "boolean" or setting.type == "text" or setting.type == "number" or setting.type == "choice", "Unsupported setting type")
+      assert(setting.type == "boolean" or setting.type == "text" or setting.type == "number" or setting.type == "choice" or setting.type == "records", "Unsupported setting type")
       assert(setting.min == nil or finite(setting.min), "Invalid minimum")
       assert(setting.max == nil or finite(setting.max), "Invalid maximum")
       assert(not (setting.min and setting.max) or setting.min <= setting.max, "Invalid numeric range")
       assert(setting.integer == nil or type(setting.integer) == "boolean", "Invalid integer constraint")
       assert(setting.maxLength == nil or (finite(setting.maxLength) and setting.maxLength >= 0 and setting.maxLength % 1 == 0), "Invalid length constraint")
+      if setting.type == "records" then
+        assert(finite(setting.maxItems) and setting.maxItems>=1 and setting.maxItems<=48 and setting.maxItems%1==0,"Invalid record limit")
+        assert(type(setting.fields)=="table" and #setting.fields>0,"Record fields required")
+        local fields={id=true}
+        for _,field in ipairs(setting.fields) do
+          assert(identifier(field.key) and not fields[field.key] and type(field.label)=="string","Invalid record field")
+          fields[field.key]=true
+          assert(field.type=="text" or field.type=="number" or field.type=="boolean" or field.type=="choice","Invalid record field type")
+          assert(valid(field,field.default),"Invalid record field default")
+        end
+      end
       if setting.type == "choice" then
         assert(type(setting.options) == "table" and #setting.options > 0, "Choice options required")
         local seen = {}
@@ -140,7 +183,7 @@ function Config.new(api)
   end
 
   local function persist(nextValues,nextMetadata)
-    local ok, encoded = pcall(api.yajl.to_string, {version = 1, values = nextValues, metadata = nextMetadata})
+    local ok, encoded = pcall(api.yajl.to_string, {version = 2, values = nextValues, metadata = nextMetadata})
     if not ok then return nil, "Cannot encode settings" end
     if #encoded > 1048576 then return nil, "Settings exceed the 1 MiB storage limit" end
     local temporary = path .. ".tmp"
@@ -152,8 +195,25 @@ function Config.new(api)
       api.os.remove(temporary)
       return nil, "Cannot save settings: " .. tostring(writeError or closeError)
     end
+    if legacyBytes then
+      local backup=path..".v1.bak"
+      local existing,existingError,existingCode=api.io.open(backup,"rb")
+      if not existing and existingCode~=2 then api.os.remove(temporary); return nil,"Cannot inspect version 1 backup: "..tostring(existingError) end
+      if existing then
+        local bytes=existing:read(1048577); local closedBackup=existing:close()
+        if not closedBackup or bytes~=legacyBytes then api.os.remove(temporary); return nil,"Version 1 backup already exists with different contents" end
+      else
+        local out,backupError=api.io.open(backup..".tmp","wb")
+        if not out then api.os.remove(temporary); return nil,"Cannot back up version 1 settings: "..tostring(backupError) end
+        local wroteBackup=out:write(legacyBytes); local closedBackup=out:close()
+        if not wroteBackup or not closedBackup or not api.os.rename(backup..".tmp",backup) then
+          api.os.remove(backup..".tmp"); api.os.remove(temporary); return nil,"Cannot back up version 1 settings"
+        end
+      end
+    end
     local renamed, renameError = api.os.rename(temporary, path)
     if not renamed then api.os.remove(temporary); return nil, "Cannot replace settings: " .. tostring(renameError) end
+    legacyBytes=nil
     return true
   end
   function self.getMetadata(key) return copy(metadata[key]) end
@@ -181,8 +241,8 @@ function Config.new(api)
       for _, setting in ipairs(self.features[id].settings) do
         local value = draft[id][setting.key]
         if not valid(setting, value) then return nil, "Invalid value: " .. self.features[id].label .. " / " .. setting.label end
-        if self.get(id, setting.key) ~= value then changed[id] = true end
-        nextValues[id][setting.key] = value
+        if not equal(self.get(id, setting.key),value) then changed[id] = true end
+        nextValues[id][setting.key] = copy(value)
       end
     end
     for _,id in ipairs(self.order) do

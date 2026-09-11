@@ -61,7 +61,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_corrupt_unsupported_and_invalid_saved_values_preserved(self):
         self.check('''
-          for _,bytes in ipairs({"broken", '{"version":2,"values":{}}', '{"version":1,"values":{"demo":{"size":999}}}'}) do
+          for _,bytes in ipairs({"broken", '{"version":3,"values":{}}', '{"version":1,"values":{"demo":{"size":999}}}'}) do
             files[config.path]=bytes
             local c=Config.new(_G); c.registerFeature(definition())
             assert(c.readError and not c.set("demo","size",6))
@@ -155,4 +155,19 @@ class SettingsTests(unittest.TestCase):
           color=false; terrainPacket(101,"water"); assert(getRoomEnv(id)==env)
           color=true; setRoomEnv(id,99); terrainPacket(101,"water"); assert(getRoomEnv(id)==99)
           mapper.stop()
+        ''')
+
+    def test_v1_backup_and_structured_unknown_retention(self):
+        self.check('''
+          local original=yajl.to_string({version=1,values={demo={size=4},later={records={{id='one',value='keep'}}}}})
+          files[config.path]=original
+          local c=Config.new(_G); c.registerFeature(definition())
+          fileFailures.rename=true; assert(not c.set('demo','size',6)); fileFailures.rename=nil
+          assert(files[c.path]==original and c.get('demo','size')==4)
+          assert(c.set('demo','size',6)); assert(files[c.path..'.v1.bak']==original)
+          local stored=yajl.to_value(files[c.path]); assert(stored.version==2 and stored.values.later.records[1].value=='keep')
+          assert(c.set('demo','size',7) and files[c.path..'.v1.bak']==original)
+          files[c.path]=original; files[c.path..'.v1.bak']='unrelated backup'
+          c=Config.new(_G); c.registerFeature(definition()); assert(not c.set('demo','size',8))
+          assert(files[c.path]==original and files[c.path..'.v1.bak']=='unrelated backup')
         ''')

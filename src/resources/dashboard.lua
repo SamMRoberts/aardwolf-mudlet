@@ -264,13 +264,14 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       if base.container.attached then base.container:detach() end
       borders.reserve(OWNER,"right",math.floor(width),0)
       local top=borders.fullWidthTop()
-      base.container:move(w-width,top); base.container:resize(width,math.max(1,h-top))
+      local bottom=borders.fullWidthBottom()
+      base.container:move(w-width,top); base.container:resize(width,math.max(1,h-top-bottom))
       base.container:show()
       for _,section in ipairs({base.container,base.sections.map,base.sections.chat}) do
         section:lockContainer("full"); section.adjLabel:hide()
         section.Inside:move(0,0); section.Inside:resize("100%","100%")
       end
-      widthHandle:move(w-width-16,top); widthHandle:resize(32,h-top); widthHandle:show()
+      widthHandle:move(w-width-16,top); widthHandle:resize(32,math.max(1,h-top-bottom)); widthHandle:show()
       local parent=base.container.Inside; local available=parent:get_height()-64
       local mapHeight=available*options.map_percent/100
       local dashHeight=available*math.min(options.dashboard_percent,80-options.map_percent)/100
@@ -416,7 +417,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       for i,item in ipairs({{"quest","Quest"},{"tick","Tick ago"},{"repop","Repop ago"}}) do
         bar.registerItem({id=item[1],label=item[2],order=20+i,overflowPriority=i,tooltip="Session-only server observations"})
       end
-      for _,event in ipairs({"AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
+      for _,event in ipairs({"AardwolfToolbox.actions.layout","AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,refresh),"Cannot register dashboard handler")
       end

@@ -170,3 +170,19 @@ function terrainPacket(num, terrain, sector)
     exits = {}, terrain = terrain, sector = sector}}}
   fire("gmcp.room.info")
 end
+
+function getRoomChar(id) return rooms[id] and (rooms[id].symbol or "") end
+function setRoomChar(id, symbol)
+  if not writing("setRoomChar") then return nil,"failure" end
+  rooms[id].symbol=symbol; return true
+end
+function getExitStubsNames(id)
+  local result={}
+  for name in pairs(rooms[id].stubs or {}) do result[#result+1]=name end
+  return result
+end
+function setExitStub(id, direction, enabled)
+  if not writing("setExitStub") then return end
+  rooms[id].stubs=rooms[id].stubs or {}
+  rooms[id].stubs[dirs[direction]]=enabled and true or nil
+end

@@ -5,7 +5,10 @@ import json
 def install_json(lua):
     def plain(value):
         if hasattr(value, 'items'):
-            return {key: plain(item) for key, item in value.items()}
+            items = dict(value.items())
+            if items and set(items) == set(range(1, len(items) + 1)):
+                return [plain(items[i]) for i in range(1, len(items) + 1)]
+            return {key: plain(item) for key, item in items.items()}
         return value
 
     def table(value):

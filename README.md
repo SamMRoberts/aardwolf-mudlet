@@ -207,7 +207,8 @@ neither adopts nor replaces an existing Aardwolf map automatically.
 
 Continental rooms (`coord.cont = 1`) use server x/y with y inverted for Mudlet.
 Inside areas, layout follows the previous room's reported exit when available.
-Disconnected rooms start at the origin; overlapping new rooms use a free level.
+Disconnected rooms start at the origin; overlapping newly visited rooms use a free
+position on the same level.
 This is an inferred layout, not a reproduction of Aardwolf's ASCII map. Existing
 positions are never rearranged, and no reverse exits are inferred.
 
@@ -216,9 +217,34 @@ can resolve after a profile restart. A changed or removed exit is updated only
 when its current value still matches this mapper's last write. Manual changes
 and deletions are preserved and counted as conflicts. An unresolved destination
 is never used as a room ID. Unknown maze destinations preserve existing topology.
-Each event adds at most one room and processes at most 60 incoming references;
+Each event adds at most one visited room and six unexplored placeholders, and processes
+at most 60 incoming references;
 excess references are counted as deferred and resolve when their source is revisited.
 The six metadata searches run synchronously in Mudlet and may cost more on large maps.
+
+### Unexplored rooms (0.16.0)
+
+**Auto-mapper → Create unexplored room placeholders** starts enabled. Each fresh
+room update creates gray **?** neighbors with empty names for reported n/e/s/w/u/d
+destinations not yet mapped. These are one-hop previews, not recursively generated
+rooms. No room details, reverse exits, or special exits are guessed. Horizontal
+previews stay on the current floor (two-unit area spacing, one-unit continent
+spacing); only up/down changes Z. An unknown destination or occupied preview
+position is shown as a directional exit stub instead.
+
+Entering a placeholder fills in the same room ID and preserves incoming links.
+The area and display position are provisional until entry; fresh destination data
+can confirm a different area or continent position. Manual names, placements,
+symbols, colors, annotations, exits, and stubs are preserved. Conflicts are reported
+without moving saved rooms; conflicting destination identities do not prevent other
+safe neighbors from being discovered. Existing visited rooms are never downgraded.
+
+Turning the setting off stops creating previews; existing placeholders remain and
+are completed when visited. Disabling mapping stops updates entirely. Placeholders
+persist in the native map across reloads and uninstall; removed exits do not delete
+their old destinations. A gray **?** is a destination reported by the server, not
+proof it is reachable; the feature never issues movement commands. Mapper status
+includes `placeholders`, `promoted`, `stubs`, and deferred/conflict counts.
 
 Before the first map write per mapper instance, a checked binary backup is saved
 as `AardwolfToolbox-before-<timestamp>-<suffix>.dat` in the profile directory.
@@ -279,3 +305,7 @@ and [Mudlet mapper functions](https://wiki.mudlet.org/w/Manual:Mapper_Functions)
 Drag the title to move the pane and its edges to resize it. Right-click the title to lock/unlock, dock to any edge, adjust font size, open settings, or close. Closing disables capture and restores normal map output. All controls, including capture timeout and saved geometry, are also in **aardwolf-config → ASCII map**. Bottom docking leaves the Vitals strip above the command input. Disabling Game tags does not disable ASCII maps.
 
 See [ASCII map behavior and configuration](docs/ascii-map.md).
+
+## Action and navigation bar (0.15.0)
+
+Configure paged command/alias buttons and optional shortcuts in `aardwolf-config → Action bar`. The compass places North above, South below, West left and East right, with Up/Down alongside. Doors and Other exits send explicit single actions. [Action bar guide](docs/action-bar.md). Settings now use format 2 with an automatic version-1 backup; older package versions cannot read format 2.

@@ -22,15 +22,16 @@ class MapperTests(unittest.TestCase):
 
     def test_exploration_links_reported_directions_only(self):
         self.check('''
-          packet(101, {n = 102}); assert(count(rooms) == 1)
-          assert(rooms[localID(101)].exits.north == nil)
+          packet(101, {n = 102}); assert(count(rooms) == 2)
+          assert(rooms[localID(101)].exits.north == localID(102))
+          assert(rooms[localID(102)].name == "")
           packet(102, {}); assert(count(rooms) == 2)
           assert(rooms[localID(101)].exits.north == localID(102))
           assert(rooms[localID(102)].exits.south == nil)
           assert(rooms[localID(102)].y == 2 and centered == localID(102))
           assert(backupCount == 1 and backupWrites == 0)
           packet(101, {n = 102}); assert(count(rooms) == 2)
-          assert(mapper.added == 2 and mapper.reused == 1)
+          assert(mapper.added == 2 and mapper.reused == 2 and mapper.promoted == 1)
         ''')
 
     def test_generic_mapper_blocks_start_without_map_mutation(self):
@@ -160,7 +161,7 @@ class MapperTests(unittest.TestCase):
           mapper.start(); fire("gmcp.room.info"); assert(writes == before)
           packet(102); assert(count(rooms) == 2)
           local room=rooms[localID(102)]
-          assert(room.z==0 and not (room.x==0 and room.y==2))
+          assert(room.z==0 and room.x==0 and room.y==2)
         ''')
 
     def test_continent_coordinates_and_manual_layout_preserved(self):

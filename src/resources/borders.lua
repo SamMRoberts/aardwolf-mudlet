@@ -67,7 +67,7 @@ function Borders.new(api,config)
   function self.reserve(owner,edge,size,rank,layout,fullWidth)
     local old=claims[owner]
     if old and old.edge~=edge then self.release(owner); old=nil end
-    if old and old.size==size then return end
+    if old and old.size==size and old.rank==rank and old.fullWidth==fullWidth then return end
     if base[edge]==nil then base[edge]=read(edge) end
     claims[owner]={edge=edge,size=size,rank=rank,layout=layout,fullWidth=fullWidth}
     self.refresh()
@@ -76,6 +76,16 @@ function Borders.new(api,config)
     local height=base.top or read("top")
     for _,claim in pairs(claims) do if claim.edge=="top" and claim.fullWidth then height=height+claim.size end end
     return height
+  end
+  function self.fullWidthBottom()
+    local result=0
+    for owner,claim in pairs(claims) do
+      if claim.edge=="bottom" and claim.fullWidth then
+        local _,h=api.getMainWindowSize(); local _,y=self.box(owner)
+        result=math.max(result,h-y)
+      end
+    end
+    return result
   end
   function self.box(owner)
     local c=assert(claims[owner]); local w,h=api.getMainWindowSize()
