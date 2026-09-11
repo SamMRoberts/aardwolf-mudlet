@@ -18,5 +18,15 @@
     "name": "ascii",
     "isActive": "yes",
     "regex": "^aardwolf-ascii$"
+  },
+  {
+    "name": "buffs",
+    "isActive": "yes",
+    "regex": "^aardwolf-buffs$"
+  },
+  {
+    "name": "spellup",
+    "isActive": "yes",
+    "regex": "^aardwolf-spellup(?: (on|off|status|sync|now))?$"
   }
 ]

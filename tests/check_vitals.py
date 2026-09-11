@@ -64,10 +64,10 @@ class VitalsTests(unittest.TestCase):
         self.lua.execute('''
           borderBottom=10; start(); local original=gauge('hp')
           assert(borderBottom==42 and original.width==218 and original.height==22)
-          start(); assert(original==gauge('hp') and count(handlers)==12)
+          start(); assert(original==gauge('hp') and count(handlers)==13)
           options.show_tnl=false; options.bar_height=30; start()
           assert(gauge('tnl').hidden and original.width>290 and borderBottom==50)
-          windowWidth=600; fire('sysWindowResizeEvent'); assert(original.fontSize<11)
+          windowWidth=600; fire('sysWindowResizeEvent'); assert(original.fontSize==11)
           assert(original.y==gauge('moves').y and original==gauge('hp'))
           v.stop(); v.stop(); assert(borderBottom==10 and count(widgets)==0 and count(handlers)==0)
           assert(count(modules)==0); start(); borderBottom=99; fire('sysWindowResizeEvent')

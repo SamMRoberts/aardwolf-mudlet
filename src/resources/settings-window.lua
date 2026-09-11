@@ -8,7 +8,7 @@ end
 local STYLE = "QLabel { background-color: #202b39; color: #eef3fa; border: 0; padding: 5px; qproperty-wordWrap: true; }"
 local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px solid #526b86; border-radius: 4px; padding: 5px; } QLabel:hover { background-color: #46627f; }"
 
-function Window.new(api, config, runtimeStatus)
+function Window.new(api, config, runtimeStatus, ui, resetLayout)
   local self = {opened = false}
   local root, body, message, status, navigation, timer, draft, revision, selected
   local editors, generation, serial, bodyGeneration = {}, 0, 0, 0
@@ -17,6 +17,7 @@ function Window.new(api, config, runtimeStatus)
     serial = serial + 1
     local item = api.Geyser.Label:new({name = PREFIX .. suffix .. serial, x = x, y = y,
       width = width, height = height, fontSize = suffix == "status" and 10 or 11}, parent)
+    if ui then ui.apply(item,suffix=="status" and "secondary" or nil) end
     item:setStyleSheet(callback and BUTTON or STYLE)
     item:echo(escape(text), "nocolor")
     if callback then
@@ -36,7 +37,7 @@ function Window.new(api, config, runtimeStatus)
   end
   local function refreshStatus()
     if status then
-      local ok, text = pcall(runtimeStatus)
+      local ok, text = pcall(runtimeStatus,selected)
       status:echo(escape(ok and text or "Runtime status unavailable"))
     end
   end
@@ -59,20 +60,28 @@ function Window.new(api, config, runtimeStatus)
     body = api.Geyser.ScrollBox:new({name = PREFIX .. "body", x = 155, y = 60,
       width = "-8px", height = "-108px"}, root)
     local feature = config.features[selected]
+    local controlHeight=ui and ui.metrics().height or 32
     local y = 0
     label(body, "heading", feature.label, 0, y, "100%", 34); y = y + 38
     if feature.description then
-      label(body, "description", feature.description, 0, y, "100%", 60); y = y + 64
+      local h=ui and math.max(60,math.ceil(ui.measure(feature.description)/math.max(100,root:get_width()-230))*ui.metrics().line+18) or 60
+      label(body, "description", feature.description, 0, y, "100%", h); y = y + h+4
+    end
+    if selected=="dashboard" and resetLayout then
+      label(body,"resetlayout","Reset layout",0,y,"100%",40,function()
+        local ok,text=resetLayout(); if ok then draft,revision=config.draft() end
+        feedback(text); render()
+      end); y=y+48
     end
     for _, setting in ipairs(feature.settings) do
       local key = setting.key
-      label(body, "field", setting.label, 0, y, "100%", 30); y = y + 32
+      label(body, "field", setting.label, 0, y, "100%", controlHeight); y = y + controlHeight+2
       if setting.description then
         label(body, "help", setting.description, 0, y, "100%", 54); y = y + 56
       end
       if setting.type == "boolean" then
         local button
-        button = label(body, "toggle", draft[selected][key] and "Enabled" or "Disabled", 4, y, "-8px", 32, function()
+        button = label(body, "toggle", draft[selected][key] and "Enabled" or "Disabled", 4, y, "-8px", controlHeight, function()
           if currentBody ~= bodyGeneration then return end
           draft[selected][key] = not draft[selected][key]
           button:echo(draft[selected][key] and "Enabled" or "Disabled")
@@ -83,7 +92,7 @@ function Window.new(api, config, runtimeStatus)
           for _, option in ipairs(setting.options) do if option.value == draft[selected][key] then return option.label .. "  ▸" end end
         end
         local button
-        button = label(body, "choice", display(), 4, y, "-8px", 32, function()
+        button = label(body, "choice", display(), 4, y, "-8px", controlHeight, function()
           if currentBody ~= bodyGeneration then return end
           for index, option in ipairs(setting.options) do
             if option.value == draft[selected][key] then
@@ -95,8 +104,8 @@ function Window.new(api, config, runtimeStatus)
       else
         serial = serial + 1
         local input = api.Geyser.CommandLine:new({name = PREFIX .. "input" .. serial,
-          x = 4, y = y, width = "-8px", height = 32}, body)
-        input:setStyleSheet("QPlainTextEdit { background-color: #15202c; color: #ffffff; border: 1px solid #526b86; padding: 3px; }")
+          x = 4, y = y, width = "-8px", height = controlHeight}, body)
+        input:setStyleSheet("QPlainTextEdit { font-family: '"..(ui and ui.metrics().font or "Arial").."'; font-size: "..(ui and ui.metrics().size or 11).."pt; background-color: #15202c; color: #ffffff; border: 1px solid #526b86; padding: 3px; }")
         input:print(tostring(draft[selected][key]))
         local current = generation
         input:setAction(function(text)
@@ -107,7 +116,7 @@ function Window.new(api, config, runtimeStatus)
         editors[#editors + 1] = {widget = input, setting = setting}
         contentWidgets[#contentWidgets + 1] = input
       end
-      y = y + 48
+      y = y + controlHeight+16
     end
     fitContents()
   end
@@ -125,7 +134,7 @@ function Window.new(api, config, runtimeStatus)
     if not self.opened then return end
     capture()
     local ok, text = config.apply(draft, revision)
-    if ok then draft, revision = config.draft() end
+    if ok then draft, revision = config.draft(); render() end
     feedback(text); refreshStatus()
     return ok, text
   end
@@ -143,6 +152,15 @@ function Window.new(api, config, runtimeStatus)
     if root:get_width() < 520 or root:get_height() < 380 then
       root:resize(math.max(520, root:get_width()), math.max(380, root:get_height()))
     end
+    if ui then
+      local function styleTree(parent)
+        for _,widget in pairs(parent.windowList or {}) do
+          if widget.type=="label" then ui.apply(widget) end
+          styleTree(widget)
+        end
+      end
+      styleTree(root); ui.chrome(root)
+    end
     fitContents()
     timer = api.tempTimer(1, function() tick(current) end)
   end
@@ -154,7 +172,7 @@ function Window.new(api, config, runtimeStatus)
     selected = config.order[1]
     local ok, err = pcall(function()
       root = api.Adjustable.Container:new({name = PREFIX .. "root", x = 70, y = 80,
-        width = 680, height = 550, titleText = "Aardwolf Toolbox — Settings",
+        width = 820, height = 650, titleText = "Aardwolf Toolbox — Settings",
         titleTxtColor = "white", titleFormat = "l12", autoSave = false, autoLoad = false,
         adjLabelstyle = "background-color: #202b39; border: 1px solid #526b86;",
         padding = 8}, nil)

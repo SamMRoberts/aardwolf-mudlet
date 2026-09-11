@@ -1,7 +1,7 @@
 # Aardwolf Toolbox
 
 A Mudlet 5.0.1 package with an incremental Aardwolf GMCP auto-mapper, a compact
-bottom Vitals strip, a full-width utility bar, inventory tracking, game-tag capture, a movable ASCII map pane, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
+bottom Vitals strip, a full-width utility bar, tabbed maps and gameplay dashboard, shared readable typography, inventory tracking, game-tag capture, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
 
 ## Install and use
 
@@ -11,7 +11,11 @@ installation and profile load unless disabled in saved settings. Move normally t
 it records visited rooms, connects reported exits when both endpoints are known,
 and follows your position in the map. It never walks or sends gameplay commands.
 
-Version 0.12.1 keeps new-room placement collisions on the intended Z level by
+Version **0.14.0** adds a Buffs dashboard tab, live spell/recovery tracking, and opt-in automatic `spellup learned retry`. Automatic casting starts off. See the [spellup guide](docs/spellups.md).
+
+Version **0.13.0** added shared Appearance settings, Graphical/ASCII map tabs, a Player/Quest/Group/Combat dashboard, and persistent layout ownership. See [UI and dashboard guide](docs/ui-dashboard.md).
+
+The mapper keeps new-room placement collisions on the intended Z level by
 searching nearby X/Y positions. Only reported up/down exits change the inferred
 floor; occupied coordinates no longer push rooms upstairs. Existing coordinates
 remain unchanged, including older incorrect placements and manual edits.
@@ -28,7 +32,9 @@ later. Other packages and unrelated room listeners remain supported.
 | Command | Action |
 | --- | --- |
 | `aardwolf-config` or `aardwolf-settings` | Open the floating settings panel. |
-| `aardwolf-ascii` | Enable/open or raise the ASCII map pane. |
+| `aardwolf-ascii` | Enable/select ASCII, or raise its popped-out pane. |
+| `aardwolf-buffs` | Open the Buffs dashboard tab. |
+| `aardwolf-spellup on\|off\|status\|sync\|now` | Control guarded spellup automation or synchronize spell data. |
 | `aardwolf-status` | Show package status and session invocation count. |
 | `aardwolf-map` or `aardwolf-map status` | Show mapper state, counts, last result, and backup path. |
 | `aardwolf-map off` | Stop mapping and release this component's handlers/subscription. |
@@ -69,7 +75,7 @@ gold. Missing readings show `--`; zero remains visible. Amounts shorten when spa
 is tight, with exact amounts in tooltips; lower-priority readings move into **⋯**.
 The **⚙** button opens the shared settings window.
 
-Under **Utility bar**, change the font, hide individual readings, disable the bar,
+Under **Utility bar**, hide individual readings, disable the bar,
 or disable automatic inventory tracking. Tracking explicitly enables server
 monitoring and requests `invdata` once a fresh GMCP state says the character is
 command-ready. Clicking **Items** refreshes that snapshot when safe. It counts loose
@@ -87,10 +93,10 @@ pane is hidden through a reversible adapter; disabling the strip restores it.
 
 In **aardwolf-config → Vitals**, choose **Enable bottom Vitals**,
 **Show target health**, **Show TNL**,
-**Bar height** (16–36 pixels; default 22), and **Font size** (8–16 points; default 11).
+**Bar height** (16–36 pixels; default 22, increased when necessary to fit the shared font). Fonts are configured under **Appearance**.
 Hiding either target health or TNL shares its space among the other bars.
 Narrow windows shorten labels
-and shrink text while keeping one row. Default gaps are 6 pixels with 5 pixels
+without shrinking text, while keeping one row. Default gaps are 6 pixels with 5 pixels
 of padding. Changes take effect after Apply and persist per profile.
 
 TNL shows experience remaining and percentage earned, using the server's
@@ -152,7 +158,7 @@ Configure it under **aardwolf-config → Help pane**. See [floating help](docs/h
 A compact player panel sits between the graphical map and docked chat. It shows
 level, race/class, core stats, combat rolls, position, alignment, hunger, and
 thirst from the shared GMCP cache. Use **aardwolf-config → Player panel** to
-toggle it or adjust its font. See [player panel](docs/player-panel.md).
+toggle it; use **Appearance** to adjust shared fonts. See [player panel](docs/player-panel.md).
 
 ## Shared GMCP values (0.9.0)
 

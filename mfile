@@ -1,7 +1,7 @@
 {
   "package": "AardwolfToolbox",
   "title": "Aardwolf Toolbox",
-  "description": "Aardwolf top utility bar, inventory tracking, auto-mapper, bottom Vitals, tag capture, movable ASCII maps, colored consider ratings, and persistent settings. Targets Mudlet 5.0.1.",
-  "version": "0.12.1",
+  "description": "Readable shared typography, tabbed maps and gameplay dashboard, utility bar, bottom Vitals, auto-mapper, passive capture, and persistent settings for Mudlet 5.0.1.",
+  "version": "0.14.0",
   "author": "SamMRoberts"
 }

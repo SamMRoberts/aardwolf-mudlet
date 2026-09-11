@@ -29,7 +29,7 @@ end
 
 function Config.new(api)
   local self = {features = {}, order = {}, revision = 0, runtimeErrors = {}, active = false}
-  local values = {}
+  local values, metadata = {}, {}
   local path = api.getMudletHomeDir() .. "/AardwolfToolbox-settings.json"
   self.path = path
   local function diagnostic(message)
@@ -54,7 +54,7 @@ function Config.new(api)
           end
         end
       end
-      if usable then values = data.values else diagnostic("Invalid settings structure; original file preserved: " .. path) end
+      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {} else diagnostic("Invalid settings structure; original file preserved: " .. path) end
     end
   elseif code ~= 2 then
     diagnostic("Cannot open settings; original file preserved: " .. tostring(err))
@@ -113,6 +113,7 @@ function Config.new(api)
     for key in pairs(definition.settings) do
       assert(type(key) == "number" and key >= 1 and key <= #definition.settings and key % 1 == 0, "Settings must be an ordered list")
     end
+    assert(definition.validate==nil or type(definition.validate)=="function","Invalid feature validator")
     local feature = copy(definition)
     self.features[feature.id] = feature
     self.order[#self.order + 1] = feature.id
@@ -138,6 +139,32 @@ function Config.new(api)
     return result, self.revision
   end
 
+  local function persist(nextValues,nextMetadata)
+    local ok, encoded = pcall(api.yajl.to_string, {version = 1, values = nextValues, metadata = nextMetadata})
+    if not ok then return nil, "Cannot encode settings" end
+    if #encoded > 1048576 then return nil, "Settings exceed the 1 MiB storage limit" end
+    local temporary = path .. ".tmp"
+    local output, message = api.io.open(temporary, "wb")
+    if not output then return nil, "Cannot save settings: " .. tostring(message) end
+    local wrote, writeError = output:write(encoded)
+    local closed, closeError = output:close()
+    if not wrote or not closed then
+      api.os.remove(temporary)
+      return nil, "Cannot save settings: " .. tostring(writeError or closeError)
+    end
+    local renamed, renameError = api.os.rename(temporary, path)
+    if not renamed then api.os.remove(temporary); return nil, "Cannot replace settings: " .. tostring(renameError) end
+    return true
+  end
+  function self.getMetadata(key) return copy(metadata[key]) end
+  function self.setMetadata(key,value)
+    if self.readError then return nil,self.readError end
+    local nextMetadata=copy(metadata); nextMetadata[key]=copy(value)
+    local ok,message=persist(values,nextMetadata)
+    if ok then metadata=nextMetadata end
+    return ok,message
+  end
+
   function self.apply(draft, revision)
     if revision ~= self.revision then return nil, "Settings changed elsewhere. Cancel and reopen this window before applying." end
     if self.readError then return nil, self.readError end
@@ -158,20 +185,15 @@ function Config.new(api)
         nextValues[id][setting.key] = value
       end
     end
-    local ok, encoded = pcall(api.yajl.to_string, {version = 1, values = nextValues})
-    if not ok then return nil, "Cannot encode settings" end
-    if #encoded > 1048576 then return nil, "Settings exceed the 1 MiB storage limit" end
-    local temporary = path .. ".tmp"
-    local output, message = api.io.open(temporary, "wb")
-    if not output then return nil, "Cannot save settings: " .. tostring(message) end
-    local wrote, writeError = output:write(encoded)
-    local closed, closeError = output:close()
-    if not wrote or not closed then
-      api.os.remove(temporary)
-      return nil, "Cannot save settings: " .. tostring(writeError or closeError)
+    for _,id in ipairs(self.order) do
+      local validate=self.features[id].validate
+      if validate then
+        local ok,valid,message=pcall(validate,copy(draft[id]))
+        if not ok or not valid then return nil,message or "Invalid settings for "..id end
+      end
     end
-    local renamed, renameError = api.os.rename(temporary, path)
-    if not renamed then api.os.remove(temporary); return nil, "Cannot replace settings: " .. tostring(renameError) end
+    local saved,message=persist(nextValues,metadata)
+    if not saved then return nil,message end
     values, self.revision = nextValues, self.revision + 1
     local errors = {}
     for _, id in ipairs(self.order) do

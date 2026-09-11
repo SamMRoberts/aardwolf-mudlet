@@ -208,6 +208,13 @@ function Tags.new(api, incoming)
     if not options.enabled then self.stop(); return true end
     return self.start()
   end
+  -- An owning protocol parser may abandon only its own forwarded outer block.
+  function self.abortCapture(name,reason)
+    if stack[1] and stack[1].name==name then
+      local epoch=generation; local finished=finish(reason)
+      publishBlocks(finished,epoch)
+    end
+  end
   function self.getRecord(id) return copy(records[id]) end
   function self.getBlock(id) return copy(blocks[id]) end
   function self.latest(name)

@@ -17,9 +17,9 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua",
-                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua",
+                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "spells.lua", "spellup.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","spells","spellup")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
@@ -46,10 +46,10 @@ class PackageTests(unittest.TestCase):
         self.lua.execute(self.script)
 
     def test_inventory_and_syntax(self):
-        self.assertEqual(len(self.root.findall(".//Alias")), 4)
+        self.assertEqual(len(self.root.findall(".//Alias")), 6)
         self.assertEqual(len(self.root.findall(".//Script")), 1)
         self.assertEqual([node.findtext("regex") for node in self.root.findall(".//Alias")],
-                         ["^aardwolf-status$", "^aardwolf-map(?: (on|off|status))?$", "^aardwolf-(?:config|settings)$", "^aardwolf-ascii$"])
+                         ["^aardwolf-status$", "^aardwolf-map(?: (on|off|status))?$", "^aardwolf-(?:config|settings)$", "^aardwolf-ascii$", "^aardwolf-buffs$", "^aardwolf-spellup(?: (on|off|status|sync|now))?$"])
         self.lua.eval("function(s) assert(loadstring(s)) end")(self.mapper_source)
         self.assertFalse(self.root.findtext(".//Alias/command"))
         for node in self.root.findall(".//Alias") + self.root.findall(".//Script"):
@@ -90,9 +90,9 @@ class PackageTests(unittest.TestCase):
         self.lua.execute(self.script)
         self.lua.execute('''
           AardwolfToolboxLifecycle("sysLoadEvent")
-          assert(not AardwolfToolbox.mapper.enabled and count(handlers)==17)
+          assert(not AardwolfToolbox.mapper.enabled); handlerCount=count(handlers)
           AardwolfToolbox.mapCommand("on")
-          assert(AardwolfToolbox.mapper.enabled and count(handlers)==21)
+          assert(AardwolfToolbox.mapper.enabled and count(handlers)==handlerCount+4)
         ''')
 
     def test_tag_preferences_and_lifecycle(self):
@@ -125,14 +125,14 @@ class PackageTests(unittest.TestCase):
           assert(c.set('vitals','bar_height',30))
           assert(c.set('vitals','show_target',false))
           assert(c.set('vitals','show_tnl',false))
-          assert(gauge('hp').height==30 and gauge('target').hidden and gauge('tnl').hidden)
+          assert(gauge('hp').height==math.max(30,AardwolfToolbox.ui.metrics().height) and gauge('target').hidden and gauge('tnl').hidden)
           AardwolfToolboxLifecycle('sysUninstallPackage','AardwolfToolbox')
           assert(count(handlers)==0 and count(widgets)==0 and borderBottom==0)
         ''')
         self.lua.execute(self.script)
         self.lua.execute('''
           AardwolfToolbox.start()
-          assert(gauge('hp').height==30 and gauge('target').hidden and gauge('tnl').hidden)
+          assert(gauge('hp').height==math.max(30,AardwolfToolbox.ui.metrics().height) and gauge('target').hidden and gauge('tnl').hidden)
         ''')
 
     def test_profile_load_uninstall_and_reinstall(self):

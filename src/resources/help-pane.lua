@@ -4,7 +4,7 @@ local OWNER="AardwolfToolbox.help"
 local function escape(text)
   return (text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"):gsub('"',"&quot;"))
 end
-function Help.new(api,incoming)
+function Help.new(api,incoming,ui)
   local self={enabled=false,last="Disabled"}
   local options={enabled=true,font_size=11}
   local root,console,frame,timer,displayTimer
@@ -46,7 +46,7 @@ function Help.new(api,incoming)
       buttonstyle="background-color: #151a20; color: #cbd4dd; border: none;"})
     console=api.Geyser.MiniConsole:new({name=OWNER..".console",x=0,y=0,width="100%",height="100%",
       autoWrap=true,scrollBar=true,scrolling=false,fontSize=options.font_size},root)
-    console:setFont("Menlo"); console:setFontSize(options.font_size)
+    if ui then ui.apply(console,"reading"); ui.chrome(root) else console:setFont("Menlo"); console:setFontSize(options.font_size) end
     console:setColor(0,0,0,255); console:setBufferSize(5000,100)
     root.minimizeLabel:hide()
     root.exitLabel:setClickCallback(function() root:hide() end)
@@ -57,7 +57,7 @@ function Help.new(api,incoming)
     end
     local old=root.adjLabel.rightClickMenu
     deleteMenu(old); old:delete()
-    root.adjLabel:createRightClickMenu({MenuItems={"Close"},MenuWidth=120,MenuHeight=25,MenuFormat="l11"})
+    root.adjLabel:createRightClickMenu({MenuItems={"Close"},MenuWidth=120,MenuHeight=ui and ui.metrics().height or 32,MenuFormat="l"..(ui and ui.metrics().size or 11)})
     root.rCLabel=root.adjLabel.rightClickMenu
     root.adjLabel:setMenuAction("Close",function() api.closeAllLevels(root.rCLabel); root:hide() end)
   end
@@ -113,15 +113,21 @@ function Help.new(api,incoming)
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,clear),"Cannot register help handler")
       end
+      if ui then
+        handlers[#handlers+1]="AardwolfToolbox.ui.changed"
+        assert(api.registerNamedEventHandler(OWNER,"AardwolfToolbox.ui.changed","AardwolfToolbox.ui.changed",function()
+          if console then ui.apply(console,"reading"); ui.chrome(root) end
+        end))
+      end
       self.enabled=true; self.last="Waiting for tagged help"
     end)
     if not ok then failed(err); return false,self.last end
     return true
   end
   function self.configure(values)
-    options={enabled=values.enabled,font_size=values.font_size}
+    options={enabled=values.enabled,font_size=values.font_size or 11}
     if not options.enabled then self.stop(); return true end
-    if console then console:setFontSize(options.font_size) end
+    if console then if ui then ui.apply(console,"reading"); ui.chrome(root) else console:setFontSize(options.font_size) end end
     return self.start()
   end
   return self

@@ -128,7 +128,7 @@ class SettingsTests(unittest.TestCase):
           r.adjLabel.moveCallback({globalX=-350,globalY=100})
           assert(r.x==220 and r.y==130)
           r.adjLabel.releaseCallback()
-          r.adjLabel.callback({button="LeftButton",x=679,y=549,globalX=0,globalY=0})
+          r.adjLabel.callback({button="LeftButton",x=r.width-1,y=r.height-1,globalX=0,globalY=0})
           r.adjLabel.moveCallback({globalX=-600,globalY=-500})
           assert(r.width==520 and r.height==380)
           assert(widgets["AardwolfToolbox.settings.body"]:get_width() <= r.width-179)

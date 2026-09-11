@@ -19,7 +19,7 @@ end
 local function integer(n) return n and string.format("%.0f", n) or "--" end
 local function clamp(n) return math.max(0, math.min(100, n)) end
 
-function Vitals.new(api, borders)
+function Vitals.new(api, borders, ui)
   local self = {enabled=false, last="Waiting for character data"}
   local options={enabled=true,show_tnl=true,show_target=true,bar_height=22,font_size=11}
   local root, gauges, readings, packets = nil, {}, {}, {}
@@ -87,7 +87,8 @@ function Vitals.new(api, borders)
     local count=3+(options.show_tnl and 1 or 0)+(options.show_target and 1 or 0)
     local gap=width < 350 and 3 or 6
     local gaugeWidth=math.max(1,(width-10-gap*(count-1))/count)
-    local font=math.min(options.font_size, math.max(6,math.floor(gaugeWidth/16)))
+    local font=ui and ui.metrics().size or options.font_size
+    local barHeight=math.max(options.bar_height,ui and ui.metrics().height or 0)
     local short=gaugeWidth < 190
     local index=0
     for _, stat in ipairs(STATS) do
@@ -96,7 +97,8 @@ function Vitals.new(api, borders)
       if visible then
         index=index+1
         gauge:show(); gauge:move(5+(index-1)*(gaugeWidth+gap),5)
-        gauge:resize(gaugeWidth,options.bar_height); gauge:setFontSize(font)
+        gauge:resize(gaugeWidth,barHeight); gauge:setFontSize(font)
+        if ui then ui.apply(gauge.text) end
         local current, maximum=readings[stat.key],readings[stat.maximum]
         local percentage, text=0,nil
         local available=current~=nil and maximum~=nil and maximum>0
@@ -119,6 +121,14 @@ function Vitals.new(api, borders)
           if available then percentage=clamp(100*current/maximum) end
           text=(short and stat.short or stat.label).." "..integer(current).."/"..integer(maximum)
         end
+        if ui then
+          gauge.text:setToolTip(text)
+          if ui.measure(text)>gaugeWidth-8 then
+            if stat.key=="target" then text=readings.enemy==false and "No target" or "Target "..integer(readings.enemypct).."%"
+            elseif stat.key=="tnl" then text="TNL "..integer(current)
+            else text=stat.short.." "..integer(current) end
+          end
+        end
         gauge:setValue(percentage,100,text)
       else gauge:hide() end
     end
@@ -129,14 +139,14 @@ function Vitals.new(api, borders)
     local ok,err=pcall(function()
       if borders then
         borders.refresh()
-        borders.reserve(OWNER,"bottom",options.bar_height+10,0,layout)
+        borders.reserve(OWNER,"bottom",math.max(options.bar_height,ui and ui.metrics().height or 0)+10,0,layout)
         local x,y,w,h=borders.box(OWNER)
         root:move(x,y); root:resize(w,h); render(); return
       end
       if borderWritten~=nil and api.getBorderBottom()~=borderWritten then
         error("Bottom border changed outside Toolbox; Vitals stopped to preserve the new layout",0)
       end
-      local height=options.bar_height+10
+      local height=math.max(options.bar_height,ui and ui.metrics().height or 0)+10
       local wanted=borderBefore+height
       if borderWritten~=wanted then
         borderWritten=wanted -- set before the resize event caused by the write
@@ -247,6 +257,7 @@ function Vitals.new(api, borders)
         on(name,"gmcp.char."..name,function() receive(field) end)
       end
       on("resize","sysWindowResizeEvent",layout)
+      on("appearance","AardwolfToolbox.ui.changed",layout)
       on("dock","AdjustableContainerRepositionFinish",layout)
       on("disconnect","sysDisconnectionEvent",function() suspended=true; self.reset() end)
       on("connect","sysConnectionEvent",function() suspended=false; self.reset() end)
@@ -261,7 +272,7 @@ function Vitals.new(api, borders)
     return true
   end
   function self.configure(values)
-    options={enabled=values.enabled,show_tnl=values.show_tnl,show_target=values.show_target,bar_height=values.bar_height,font_size=values.font_size}
+    options={enabled=values.enabled,show_tnl=values.show_tnl,show_target=values.show_target,bar_height=values.bar_height,font_size=values.font_size or 11}
     if not options.enabled then self.stop(); return true end
     local ok,result,message=pcall(self.start)
     if not ok then self.stop(); self.last=tostring(result); return false,self.last end

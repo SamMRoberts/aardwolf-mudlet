@@ -91,3 +91,15 @@ a 520×380 minimum size. A single owned one-shot timer refreshes runtime status
 while open and reschedules itself; closing kills it before recursive deletion.
 No UI or timer is created merely by registering a feature. Package stop/uninstall
 deletes the panel; package restart preserves its configuration service instance.
+
+## Cross-field validation and layout metadata
+
+A feature may provide `validate(values)`, returning `true` or `false, message`.
+It runs on a defensive copy of the whole feature draft before any persistence
+or activation. Use it for relationships such as layout shares, not runtime work.
+
+Package infrastructure uses `getMetadata(key)` and `setMetadata(key, value)` for
+font and border ownership provenance. Metadata uses the same checked atomic JSON
+replacement, preserves feature values, and does not invalidate a user draft.
+User-editable preferences must still be registered settings. Shared typography
+and future UI contracts are documented in [UI and dashboard](ui-dashboard.md).

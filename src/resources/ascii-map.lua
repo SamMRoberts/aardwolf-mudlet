@@ -1,10 +1,11 @@
 local ASCII = {}
 local OWNER="AardwolfToolbox.ascii"
 local function clamp(n,low,high) return math.max(low,math.min(n,math.max(low,high))) end
-function ASCII.new(api,config,incoming,borders,openSettings)
+function ASCII.new(api,config,incoming,borders,openSettings,ui)
   local self={enabled=false,last="Disabled"}
   local options,root,console,frame,timer,renderTimer,drag,busy
   local handlers={}
+  local host,hostVisible
   local function cancel()
     if timer then api.killTimer(timer); timer=nil end
     frame=nil
@@ -23,6 +24,7 @@ function ASCII.new(api,config,incoming,borders,openSettings)
   end
   function self.stop()
     self.enabled=false; reset(); drag=nil
+    if console and host then console:changeContainer(root.Inside) end
     incoming.remove(OWNER)
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end
     handlers={}
@@ -37,10 +39,14 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     busy=true
     local ok,err=pcall(function()
       local w,h=api.getMainWindowSize()
-      if options.dock=="floating" then
+      if host then
+        borders.release(OWNER)
+        if console.container~=host then console:changeContainer(host) end; console:move(0,0); console:resize("100%","100%")
+        root:hide(); if hostVisible then console:show(); console:raise() else console:hide() end
+      elseif options.dock=="floating" then
         borders.release(OWNER)
         local width,height=math.min(options.width,w),math.min(options.height,h)
-        root:move(clamp(options.x,0,w-width),clamp(options.y,0,h-height))
+        root:move(clamp(options.x,0,w-width),clamp(options.y,math.min(api.getBorderTop(),h-height),h-height))
         root:resize(width,height)
       else
         local edge=options.dock
@@ -49,7 +55,7 @@ function ASCII.new(api,config,incoming,borders,openSettings)
         local x,y,width,height=borders.box(OWNER)
         root:move(x,y); root:resize(width,height)
       end
-      console:setFontSize(options.font_size)
+      if ui then ui.apply(console,"reading"); ui.chrome(root) else console:setFontSize(options.font_size or 11) end
     end)
     busy=false
     if not ok then error(err,0) end
@@ -76,13 +82,13 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     for _,edge in ipairs({"floating","left","right","top","bottom"}) do
       item("Dock: "..edge,function() save({dock=edge}) end)
     end
-    item("Larger font",function() save({font_size=math.min(20,options.font_size+1)}) end)
-    item("Smaller font",function() save({font_size=math.max(6,options.font_size-1)}) end)
+    item("Larger font",function() if ui then config.set("appearance","reading_size",math.min(24,ui.metrics("reading").size+1)) else save({font_size=math.min(20,options.font_size+1)}) end end)
+    item("Smaller font",function() if ui then config.set("appearance","reading_size",math.max(11,ui.metrics("reading").size-1)) else save({font_size=math.max(6,options.font_size-1)}) end end)
     item("Capture timeout...",openSettings)
     item("Position / size...",openSettings)
     item("Settings...",openSettings)
     item("Close / disable",function() save({enabled=false}) end)
-    root.adjLabel:createRightClickMenu({MenuItems=names,MenuWidth=180,MenuHeight=25,MenuFormat="l11"})
+    root.adjLabel:createRightClickMenu({MenuItems=names,MenuWidth=240,MenuHeight=ui and ui.metrics().height or 32,MenuFormat="l"..(ui and ui.metrics().size or 11)})
     root.rCLabel=root.adjLabel.rightClickMenu
     for label,callback in pairs(actions) do
       root.adjLabel:setMenuAction(label,function()
@@ -99,7 +105,7 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     root.Inside:resize("100%","-20px")
     console=api.Geyser.MiniConsole:new({name=OWNER..".console",x=0,y=0,width="100%",height="100%",
       autoWrap=false,wrapAt=262145,scrollBar=true,horizontalScrollBar=true},root)
-    console:setFont("Menlo"); console:setFontSize(options.font_size)
+    console:setFont("Menlo"); console:setFontSize(options.font_size or 11)
     console:setColor(0,0,0,255)
     api.setBgColor(console.name,0,0,0)
     console:setWrap(262145); console:enableScrollBar(); console:enableHorizontalScrollBar()
@@ -162,7 +168,7 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     console:clear()
     for _,runs in ipairs(rows) do
       for _,run in ipairs(runs) do
-        api.setFgColor(console.name,unpack(run.fg)); api.setBgColor(console.name,0,0,0)
+        api.setFgColor(console.name,unpack(run.fg)); api.setBgColor(console.name,unpack(run.bg))
         console:echo(run.text)
       end
       console:echo("\n")
@@ -204,11 +210,11 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     local ok,err=pcall(function()
       build(); self.enabled=true
       incoming.add(OWNER,10,receive,failed)
-      for _,event in ipairs({"sysConnectionEvent","sysDisconnectionEvent","sysWindowResizeEvent"}) do
+      for _,event in ipairs({"sysConnectionEvent","sysDisconnectionEvent","sysWindowResizeEvent","AardwolfToolbox.ui.changed"}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,function()
           local worked,message=pcall(function()
-            if event=="sysWindowResizeEvent" then borders.refresh(); layout() else reset() end
+            if event=="sysWindowResizeEvent" or event=="AardwolfToolbox.ui.changed" then borders.refresh(); layout() else reset() end
           end)
           if not worked then failed(message) end
         end),"Cannot register ASCII map handler")
@@ -226,11 +232,21 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     if not ok then failed(err); return false,self.last end
     return true
   end
+  function self.setHost(parent,visible)
+    host,hostVisible=parent,visible
+    if console then
+      console:changeContainer(parent or root.Inside)
+      console:move(0,0); console:resize("100%","100%")
+      if not parent then root:show(); console:show() end
+      layout()
+    end
+  end
   function self.open()
     local ok,message=config.set("ascii","enabled",true)
     if not ok then diagnostic(message); return false end
     if not self.start() then return false end
-    root:show(); root:raiseAll(); return true
+    if host then api.raiseEvent("AardwolfToolbox.ascii.requestTab")
+    else root:show(); root:raiseAll() end; return true
   end
   return self
 end

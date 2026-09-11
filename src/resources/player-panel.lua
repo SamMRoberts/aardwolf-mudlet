@@ -9,11 +9,12 @@ local function number(value)
   if type(value)~="number" or value~=value or math.abs(value)==math.huge then return "--" end
   return string.format("%.0f",value)
 end
-function Panel.new(api,cache)
+function Panel.new(api,cache,ui)
   local self={enabled=false,last="Disabled"}
   local options={enabled=true,font_size=10}
-  local root,adapter,timer
+  local root,adapter,timer,host,mountedParent
   local busy=false
+  local visible=true
   local labels,handlers={},{}
   local function render()
     if not root then return end
@@ -41,21 +42,30 @@ function Panel.new(api,cache)
     end
   end
   local function paint(height)
-    local line=(height-12)/7
-    local font=math.min(options.font_size,math.max(7,math.floor(line/1.5)))
+    local line=ui and ui.metrics().line or (height-12)/7
+    local font=ui and ui.metrics().size or options.font_size
+    local y=6
     for row,cells in ipairs(labels) do
-      for col,label in ipairs(cells) do
-        label:move((col-1)*100/#cells.."%",6+(row-1)*line)
-        label:resize(100/#cells.."%",line)
-        label:setStyleSheet("background-color: transparent; border: none; padding-left: 7px; color: "..
-          (row==1 and "#dce4ea" or (row==2 or row>=6) and "#9ca8b2" or "#bec8d0")..
-          "; font-size: "..font.."pt; font-style: normal;"..(row==1 and " font-weight: bold;" or " font-weight: normal;"))
+      local columns=#cells
+      if ui and columns>1 then
+        local width=root:get_width()
+        columns=math.max(1,math.min(columns,math.floor(width/(ui.measure("STR 9999/9999")+18))))
       end
+      for col,label in ipairs(cells) do
+        label:move(((col-1)%columns)*100/columns.."%",y+math.floor((col-1)/columns)*line)
+        label:resize(100/columns.."%",line)
+        if ui then ui.apply(label) else label:setFontSize(font) end
+        label:setStyleSheet("background-color: transparent; border: none; padding-left: 7px; color: "..
+          (row==1 and "#e0e6ec" or (row==2 or row>=6) and "#bdc9d3" or "#d4dce4")..
+          "; font-style: normal;"..(row==1 and " font-weight: bold;" or " font-weight: normal;"))
+      end
+      y=y+math.ceil(#cells/columns)*line
     end
+    return y+6
   end
   local function removeRoot()
     if root then root:delete(); root=nil end
-    labels={}
+    labels={}; mountedParent=nil
   end
   local function restore()
     if not adapter then return end
@@ -67,8 +77,8 @@ function Panel.new(api,cache)
   local function mount(base)
     local parent=base.container and base.container.Inside
     if not parent then return end
-    if root and adapter.parent==parent then return end
-    removeRoot(); adapter.parent=parent
+    if root and mountedParent==parent then return end
+    removeRoot(); mountedParent=parent
     root=api.Geyser.Container:new({name=OWNER..".root",x=0,y=0,width="100%",height=1},parent)
     local background=api.Geyser.Label:new({name=OWNER..".background",x=0,y=0,width="100%",height="100%"},root)
     background:setStyleSheet("background-color: #11161b; border: none;")
@@ -82,6 +92,12 @@ function Panel.new(api,cache)
     render()
   end
   local function adapt()
+    if host then
+      mount({container={Inside=host}})
+      local height=7*(ui and ui.metrics().line or options.font_size*1.5+2)+12
+      root:move(0,0); root:resize("100%",height); root:resize("100%",paint(height)); render(); if visible then root:show() else root:hide() end
+      self.last="Player dashboard"; return
+    end
     local base=api.BaseUI
     if adapter and (base~=adapter.base or base.layoutDock~=adapter.layout) then restore() end
     if type(base)~="table" or type(base.placeSection)~="function" or type(base.layoutDock)~="function"
@@ -153,7 +169,7 @@ function Panel.new(api,cache)
         if path=="char" or path:match("^char%.") then refresh() end
       end)
       on("clear","AardwolfToolbox.gmcp.cleared",refresh)
-      for _,event in ipairs({"sysWindowResizeEvent","AdjustableContainerRepositionFinish","sysInstallPackage","sysUninstallPackage"}) do
+      for _,event in ipairs({"AardwolfToolbox.ui.changed","sysWindowResizeEvent","AdjustableContainerRepositionFinish","sysInstallPackage","sysUninstallPackage"}) do
         on(event,event,refresh)
       end
       adapt()
@@ -161,8 +177,16 @@ function Panel.new(api,cache)
     if not ok then self.stop(); self.last="Stopped: "..tostring(err); return false,self.last end
     return true
   end
+  function self.setVisible(value)
+    visible=value
+    if root then if value then root:show() else root:hide() end end
+  end
+  function self.setHost(parent)
+    self.stop(); host=parent
+    if options.enabled then self.start() end
+  end
   function self.configure(values)
-    options={enabled=values.enabled,font_size=values.font_size}
+    options={enabled=values.enabled,font_size=values.font_size or 11}
     if not options.enabled then self.stop(); return true end
     if not self.enabled then return self.start() end
     refresh(); return true

@@ -92,7 +92,8 @@ class ConsiderTests(unittest.TestCase):
           incoming('{block}'); incoming('a goblin snickers nervously.'); incoming('{/block}'); assert(#replacements==0)
           c.set('tags','enabled',false); c.set('ascii','enabled',false); c.set('vitals','enabled',false); c.set('mapper','enabled',false)
           assert(count(triggers)==1); incoming('a goblin snickers nervously.'); assert(#replacements==1)
-          c.set('consider','enabled',false); assert(count(triggers)==0)
+          c.set('consider','enabled',false); assert(count(triggers)==1) -- Help and inventory still consume input.
+          AardwolfToolbox.stop(); assert(count(triggers)==0)
         ''')
 
     def test_activation_selection_storage_and_replacement_failures(self):

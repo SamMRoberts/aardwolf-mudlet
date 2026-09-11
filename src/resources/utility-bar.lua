@@ -19,12 +19,13 @@ local function short(n)
   end
   return exact(n)
 end
-function Bar.new(api,cache,inventory,borders,openSettings)
+function Bar.new(api,cache,inventory,borders,openSettings,ui)
   local self={enabled=false,last="Disabled"}
   local items,handlers={},{}
   local root,overflow,menu,adapter,refreshTimer
   local options={enabled=true,font_size=10,inventory_tracking=true}
   local busy=false
+  local function rowHeight() return ui and ui.metrics().height or 28 end
   local render
   local function hideMenu()
     if menu then menu:hide() end
@@ -38,8 +39,8 @@ function Bar.new(api,cache,inventory,borders,openSettings)
   end
   local function widgets(id,item)
     if not root or item.widget then return end
-    item.widget=api.Geyser.Label:new({name=OWNER..".item."..id,x=0,y=0,width=1,height=28},root)
-    item.menuWidget=api.Geyser.Label:new({name=OWNER..".menu."..id,x=0,y=0,width="100%",height=28},menu)
+    item.widget=api.Geyser.Label:new({name=OWNER..".item."..id,x=0,y=0,width=1,height=rowHeight()},root)
+    item.menuWidget=api.Geyser.Label:new({name=OWNER..".menu."..id,x=0,y=0,width="100%",height=rowHeight()},menu)
     item.widget:setClickCallback(function() activate(id) end)
     item.menuWidget:setClickCallback(function() activate(id) end)
   end
@@ -84,6 +85,7 @@ function Bar.new(api,cache,inventory,borders,openSettings)
     local base=api.BaseUI
     if adapter and (not base or base~=adapter.base or base.container~=adapter.root or adapter.root.reposition~=adapter.wrapper) then restoreSidebar() end
     if not base then return end
+    if base.AardwolfToolboxDashboard then restoreSidebar(); return end
     if not base.container then self.last="Waiting for starter sidebar construction"; return end
     if not adapter then
       local r=base.container
@@ -108,15 +110,18 @@ function Bar.new(api,cache,inventory,borders,openSettings)
     adapter.root:set_constraints(adapter.root)
   end
   local function style(label,clickable,separator)
+    if ui then ui.apply(label) else label:setFontSize(options.font_size) end
     label:setStyleSheet("QLabel { background-color: #14191e; color: #b6c0c9; padding-left: 7px; font-weight: normal; font-size: "..
-      options.font_size.."pt; border: none;"..(separator and " border-right: 1px solid #30373e;" or "")..
+      (ui and ui.metrics().size or options.font_size).."pt; border: none;"..(separator and " border-right: 1px solid #30373e;" or "")..
       " }"..(clickable and " QLabel:hover { color: #eef2f5; background-color: #252e36; }" or ""))
   end
   render=function()
     if not root or busy then return end
     busy=true
     local ok,err=pcall(function()
-      local x,y,w,h=borders.box(OWNER)
+      local h=rowHeight()
+      borders.reserve(OWNER,"top",h,0,function() if root then render() end end,true)
+      local x,y,w= borders.box(OWNER)
       root:move(x,y); root:resize(w,h)
       local ordered={}
       for id,item in pairs(items) do
@@ -135,7 +140,8 @@ function Bar.new(api,cache,inventory,borders,openSettings)
           entry.text=d.label..(s.text~="" and " "..(compact and s.compactText or s.text) or "")
           if compact and entry.id=="remorts" then entry.text="R "..s.text end
           if compact and entry.id=="total" then entry.text="Tot "..s.text end
-          entry.width=entry.id=="settings" and 34 or math.max(40,#entry.text*options.font_size*0.78+16)
+          entry.pinned=entry.id=="settings" or d.pinned==true
+          entry.width=entry.id=="settings" and h or math.max(h,(ui and ui.measure(entry.text) or #entry.text*options.font_size*0.78)+20)
           total=total+entry.width
         end
         return total
@@ -143,17 +149,19 @@ function Bar.new(api,cache,inventory,borders,openSettings)
       local needed=prepare()
       if needed>w then compact=true; needed=prepare() end
       local candidates={}
-      for _,entry in ipairs(ordered) do if entry.id~="settings" then candidates[#candidates+1]=entry end end
+      for _,entry in ipairs(ordered) do if not entry.pinned then candidates[#candidates+1]=entry end end
       table.sort(candidates,function(a,b)
         if a.item.definition.overflowPriority==b.item.definition.overflowPriority then return a.item.definition.order>b.item.definition.order end
         return a.item.definition.overflowPriority<b.item.definition.overflowPriority
       end)
       local hidden=0
       for _,entry in ipairs(candidates) do
-        if needed+(hidden>0 and 32 or 0)<=w then break end
+        if needed+(hidden>0 and h or 0)<=w then break end
         entry.hidden=true; hidden=hidden+1; needed=needed-entry.width
       end
       local left,row=0,0
+      local pinnedWidth=0; for _,entry in ipairs(ordered) do if entry.pinned then pinnedWidth=pinnedWidth+entry.width end end
+      local right=math.max(0,w-pinnedWidth)
       for _,entry in ipairs(ordered) do
         local item=entry.item
         local tooltip=item.state.tooltip or item.definition.tooltip or entry.text
@@ -162,17 +170,17 @@ function Bar.new(api,cache,inventory,borders,openSettings)
         item.widget:echo(escape(entry.text)); item.widget:setToolTip(escape(tooltip))
         item.menuWidget:echo(escape(item.definition.label.." "..item.state.text)); item.menuWidget:setToolTip(escape(tooltip))
         if entry.hidden then
-          item.menuWidget:move(0,row*28); item.menuWidget:resize("100%",28); item.menuWidget:show(); row=row+1
+          item.menuWidget:move(0,row*h); item.menuWidget:resize("100%",h); item.menuWidget:show(); row=row+1
         else
-          item.widget:move(entry.id=="settings" and math.max(0,w-34) or left,0)
-          item.widget:resize(entry.width,28); item.widget:show()
-          if entry.id~="settings" then left=left+entry.width end
+          item.widget:move(entry.pinned and right or left,0)
+          item.widget:resize(entry.width,h); item.widget:show()
+          if entry.pinned then right=right+entry.width else left=left+entry.width end
         end
       end
-      overflow:move(math.max(0,w-66),0); overflow:resize(32,28)
+      overflow:move(math.max(0,w-pinnedWidth-h),0); overflow:resize(h,h)
       if hidden>0 then overflow:show() else overflow:hide(); hideMenu() end
       local menuWidth=math.min(350,w)
-      menu:move(x+math.max(0,w-menuWidth),y+28); menu:resize(menuWidth,math.max(1,row*28))
+      menu:move(x+math.max(0,w-menuWidth),y+h); menu:resize(menuWidth,math.max(1,row*h))
       sidebar()
     end)
     busy=false
@@ -225,20 +233,20 @@ function Bar.new(api,cache,inventory,borders,openSettings)
     local inventoryError
     local ok,err=pcall(function()
       self.enabled=true
-      borders.reserve(OWNER,"top",28,0,function() if root then render() end end,true)
-      root=api.Geyser.Container:new({name=OWNER..".root",x=0,y=0,width="100%",height=28})
+      borders.reserve(OWNER,"top",rowHeight(),0,function() if root then render() end end,true)
+      root=api.Geyser.Container:new({name=OWNER..".root",x=0,y=0,width="100%",height=rowHeight()})
       local background=api.Geyser.Label:new({name=OWNER..".background",x=0,y=0,width="100%",height="100%"},root)
       background:setStyleSheet("background-color: #14191e; border: none; border-bottom: 1px solid #30373e;")
       menu=api.Geyser.Container:new({name=OWNER..".menu",x=0,y=28,width=350,height=1})
       menu:hide()
-      overflow=api.Geyser.Label:new({name=OWNER..".overflow",x=0,y=0,width=32,height=28},root)
+      overflow=api.Geyser.Label:new({name=OWNER..".overflow",x=0,y=0,width=32,height=rowHeight()},root)
       style(overflow,true,false); overflow:echo("⋯"); overflow:setToolTip("More utility readings")
       overflow:setClickCallback(function() if menu.hidden then menu:show(); menu:raiseAll() else hideMenu() end end)
       local function on(name,event,callback)
         handlers[#handlers+1]=name
         assert(api.registerNamedEventHandler(OWNER,name,event,callback),"Cannot register utility handler")
       end
-      for _,event in ipairs({"AardwolfToolbox.gmcp.updated","AardwolfToolbox.gmcp.cleared","AardwolfToolbox.inventory.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage","AdjustableContainerRepositionFinish"}) do on(event,event,refresh) end
+      for _,event in ipairs({"AardwolfToolbox.gmcp.updated","AardwolfToolbox.gmcp.cleared","AardwolfToolbox.inventory.updated","AardwolfToolbox.ui.changed","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage","AdjustableContainerRepositionFinish"}) do on(event,event,refresh) end
       readings(); self.last="Running"
       local good,message=inventory.configure({enabled=options.inventory_tracking})
       if not good then self.last="Inventory: "..message; inventoryError=self.last end

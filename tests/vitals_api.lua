@@ -3,7 +3,7 @@ Geyser.Container=Geyser.Label
 Geyser.Gauge=setmetatable({}, {__index=Geyser.Label})
 function Geyser.Gauge:new(cons,parent)
   local gauge=Geyser.Label.new(self,cons,parent)
-  gauge.text={}
+  gauge.text=Geyser.Label:new({name=cons.name.."_text"},gauge)
   return gauge
 end
 function Geyser.Gauge:setValue(value,maximum,label)

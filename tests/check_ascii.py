@@ -44,16 +44,16 @@ class ASCIITests(unittest.TestCase):
 
     def test_docking_vitals_and_external_reservations(self):
         self.lua.execute('''
-          assert(borderBottom==32)
+          local vh=AardwolfToolbox.ui.metrics().height+10; assert(borderBottom==vh)
           for _,edge in ipairs({'bottom','left','right','top','floating'}) do
             assert(c.set('ascii','dock',edge)); assert(a.enabled and AardwolfToolbox.vitals.enabled)
           end
-          assert(borderBottom==32 and borderLeft==0 and borderRight==300 and borderTop==0)
-          assert(c.set('ascii','dock','bottom')); assert(borderBottom==492)
-          assert(widgets['AardwolfToolbox.vitals.root'].y==768)
-          assert(c.set('ascii','enabled',false)); assert(borderBottom==32)
+          assert(borderBottom==vh and borderLeft==0 and borderRight==300 and borderTop==AardwolfToolbox.ui.metrics().height)
+          assert(c.set('ascii','dock','bottom')); assert(borderBottom==vh+c.get("ascii","height"))
+          assert(widgets['AardwolfToolbox.vitals.root'].y==800-vh)
+          assert(c.set('ascii','enabled',false)); assert(borderBottom==vh)
           a.open(); c.set('ascii','dock','right'); borderRight=75
-          c.set('ascii','enabled',false); assert(borderRight==75 and borderBottom==32)
+          c.set('ascii','enabled',false); assert(borderRight==75 and borderBottom==vh)
           AardwolfToolbox.stop(); assert(borderBottom==0 and borderRight==75 and count(widgets)==0)
         ''')
 
@@ -116,10 +116,10 @@ class ASCIITests(unittest.TestCase):
           incoming('visible now'); assert(visible[#visible]=='visible now' and pane.text=='old\\n')
           incoming('<MAPSTART>'); incoming('new'); incoming('<MAPEND>')
           assert(pane.text=='new\\n')
-          assert(not c.set('ascii','font_size',21) and not c.set('ascii','capture_timeout',0))
+          assert(not c.set('appearance','reading_size',25) and not c.set('ascii','capture_timeout',0))
           local draft,revision=c.draft(); a.open()
-          assert(c.set('ascii','locked',true)); draft.ascii.font_size=18
-          assert(not c.apply(draft,revision)); assert(c.get('ascii','font_size')==11)
+          assert(c.set('ascii','locked',true)); draft.appearance.reading_size=18
+          assert(not c.apply(draft,revision)); assert(c.get('appearance','reading_size')==13)
         ''')
 
     def test_context_menu_opens_ascii_settings(self):

@@ -33,3 +33,11 @@ Use `borders.lua` for Toolbox console reservations, including bottom space share
 with Vitals. Do not use Adjustable's independent layout persistence or native
 border attachment for Toolbox panes. Persist completed geometry changes with
 one configuration draft/apply transaction and reject stale drafts.
+
+## Shared appearance and dashboard
+
+Use `AardwolfToolbox.ui.apply` before rendering labels and `ui.measure` for text
+width. Reflow on `AardwolfToolbox.ui.changed`; do not shrink fonts to fit or add
+isolated font preferences. The dashboard owns starter sidebar geometry while
+active; do not stack independent wrappers around `BaseUI.layoutDock` or its
+player/Vitals placement hooks. See `docs/ui-dashboard.md`.
