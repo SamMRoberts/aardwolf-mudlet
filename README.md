@@ -112,13 +112,34 @@ explains how the server supplies tagged output.
 ## Consider ratings (0.8.0)
 
 Consider messages now display a mob name, difficulty label, and relative level
-range, such as `Consider: a goblin | Easy | 5–9 levels below you`. Colors progress
+range, such as `(Hidden) | a goblin | Easy | −9…−5 lvls`. Colors progress
 from gray/green for easier mobs through yellow/orange to red/purple for harder
 mobs. The original background is retained. This does not estimate actual levels.
 
 Use **aardwolf-config → Consider** to disable formatting or difficulty colors.
 Both options start enabled. Maps and tagged blocks take priority; no server
 commands are sent. See [consider ratings](docs/consider.md) for the full scale.
+
+## Floating help (0.11.0)
+
+Tagged `{help}` pages open in a floating pane, using `{helpkeywords}` as the title
+and `{helpbody}` as the body. Close hides the pane; the next page reopens it.
+Configure it under **aardwolf-config → Help pane**. See [floating help](docs/help-pane.md).
+
+## Player sidebar panel (0.10.0)
+
+A compact player panel sits between the graphical map and docked chat. It shows
+level, race/class, core stats, combat rolls, position, alignment, hunger, and
+thirst from the shared GMCP cache. Use **aardwolf-config → Player panel** to
+toggle it or adjust its font. See [player panel](docs/player-panel.md).
+
+## Shared GMCP values (0.9.0)
+
+Future features can read `AardwolfToolbox.gmcp.get("char.vitals.hp")` or access
+the nested `AardwolfToolbox.gmcp.data` variables. Character, communication, group,
+and room messages are copied into session memory and cleared on disconnect.
+Use **aardwolf-config → GMCP data** to toggle caching. See the
+[GMCP cache API](docs/gmcp-cache.md) for paths, update events, and lifecycle rules.
 
 ## Mapping behavior and preservation
 
@@ -207,7 +228,7 @@ Alternatively, run `java -jar /path/to/muddle-1.1.0-all.jar` here with Java 17.
 Outputs are `build/AardwolfToolbox.xml` and `build/AardwolfToolbox.mpackage`.
 The archive includes `automapper.lua`, `configuration.lua`, and
 `settings-window.lua`, `vitals.lua`, `tags.lua`, `ascii-map.lua`, `incoming.lua`,
-`borders.lua`, and `consider.lua` runtime resources.
+`borders.lua`, `consider.lua`, `gmcp-cache.lua`, `player-panel.lua`, and `help-pane.lua` runtime resources.
 
 ```sh
 python3 -m venv .venv

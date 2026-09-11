@@ -92,10 +92,16 @@ function ASCII.new(api,config,incoming,borders,openSettings)
   end
   local function build()
     root=api.Adjustable.Container:new({name=OWNER..".window",titleText="ASCII map",
-      x=40,y=140,width=420,height=460,autoSave=false,autoLoad=false,locked=false})
+      x=40,y=140,width=265,height=330,autoSave=false,autoLoad=false,locked=false,
+      padding=0,adjLabelstyle="background-color: black; border: none; border-radius: 0px;",
+      buttonstyle="background-color: black; color: white; border: none;"})
+    root.Inside:move(0,20)
+    root.Inside:resize("100%","-20px")
     console=api.Geyser.MiniConsole:new({name=OWNER..".console",x=0,y=0,width="100%",height="100%",
       autoWrap=false,wrapAt=262145,scrollBar=true,horizontalScrollBar=true},root)
     console:setFont("Menlo"); console:setFontSize(options.font_size)
+    console:setColor(0,0,0,255)
+    api.setBgColor(console.name,0,0,0)
     console:setWrap(262145); console:enableScrollBar(); console:enableHorizontalScrollBar()
     console:setBufferSize(300,10)
     root.minimizeLabel:hide()
@@ -156,7 +162,7 @@ function ASCII.new(api,config,incoming,borders,openSettings)
     console:clear()
     for _,runs in ipairs(rows) do
       for _,run in ipairs(runs) do
-        api.setFgColor(console.name,unpack(run.fg)); api.setBgColor(console.name,unpack(run.bg))
+        api.setFgColor(console.name,unpack(run.fg)); api.setBgColor(console.name,0,0,0)
         console:echo(run.text)
       end
       console:echo("\n")

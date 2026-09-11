@@ -1,3 +1,113 @@
+# Floating help — 2026-09-10
+
+Version 0.11.0 adds the floating help pane. Build and three focused help tests
+passed: title/body parsing, literal content, blank lines, suppression, priority,
+disable/lifecycle, repeat starts, incomplete bodies, and timeout recovery.
+Native `tests/native_help.lua` in disconnected `AardwolfToolboxSettingsTest`
+reported `HELP_NATIVE true nil`, verifying the keyword title, literal body,
+unmodified consider sentences, and adjacent before/after main-console lines.
+Native checks caught and fixed title escaping returning an extra Lua value and
+the default MiniConsole split view; final screenshot showed a single help view.
+The full package suite and mouse interaction checks were not run for this update.
+
+Backups: `backups/help-pane-20260910-224927/`. Installed the final build in Aardwolf,
+saved the profile, and read `true Waiting for tagged help`. No help requests,
+gameplay commands, synthetic player data, or server tag preference changes were
+sent. Naturally arriving live help remains unverified.
+
+# Player stat totals/base values — 2026-09-10
+
+Version 0.10.1 displays core stats as regular totals from `char.stats` followed
+by italic unbuffed values from `char.maxstats`. Build and three focused panel
+tests passed, including late maxstats updates, missing readings, and zero totals.
+Backups: `backups/stat-ratios-20260910-222316/`. Installed in Aardwolf, saved the
+profile, and read native status `true Docked above chat`. No synthetic data or
+gameplay commands were sent. Live populated-value/italic visual acceptance is
+pending fresh GMCP. The full package suite was not rerun.
+
+# Player sidebar panel — 2026-09-10
+
+Version 0.10.0 adds the compact player panel between the graphical map and chat.
+Muddler build and seven focused player-panel/cache tests passed. Panel coverage
+includes GMCP updates, missing/zero readings, escaped names, placement, chat
+floating, insufficient height, delayed starter construction, repeated startup,
+cleanup, and restoration. The complete legacy package/UI suite was not rerun.
+
+Native installation initially exposed a conflict with the Vitals placement
+adapter. The final integration wraps `BaseUI.layoutDock` instead, leaves
+`placeSection` available to Vitals, and guards against synchronous layout events
+during widget construction. After replacement, native status reported
+`true Docked above chat`. A screenshot confirmed the panel between map and chat,
+with ASCII and bottom Vitals retained. Readings displayed waiting placeholders;
+live GMCP updates and mouse resizing remain unverified for this feature.
+
+Backups are under `backups/player-panel-20260910-220848/`. Installed the final
+0.10.0 build in Aardwolf and saved the profile. No gameplay commands, connection,
+or synthetic player-profile data were sent.
+
+# GMCP cache update — 2026-09-10
+
+Version 0.9.0 adds a passive session cache for character, communication, group,
+and room messages, a settings toggle, defensive reads, and update events.
+Muddler build and four isolated `check_gmcp_cache.py` tests passed. These cover
+types/paths, defensive copies, replacement snapshots, malformed values, cached
+table rejection, reconnect/protocol resets, repeated lifecycle, and failed
+registration cleanup. The full package/UI suite was not rerun; the preceding
+formatting and pane changes remain pending user manual acceptance.
+
+Backed up profile, native map, and old package under
+`backups/gmcp-cache-20260910-215817/`, installed in Aardwolf, and saved the profile.
+Native status reported `true Waiting for fresh GMCP`. No synthetic player data,
+connection, or gameplay commands were sent. Live GMCP delivery remains unverified.
+
+# ASCII pane style update — 2026-09-10
+
+Version 0.8.3 removes the visible ASCII pane frame, uses a black background,
+and defaults to 265×330 pixels. The title and controls remain. Built with Muddler,
+installed in Aardwolf, and saved the requested dimensions through the shared
+configuration service. Backups: `backups/ascii-style-20260910-214847/`.
+No tests, replay, archive inspection, or post-change behavior checks were run,
+as requested. Manual acceptance is pending.
+
+# Compact consider update — 2026-09-10
+
+Package version 0.8.2 removes the `Consider:` prefix, separates leading
+parenthesized tags from the mob name, and shortens relative level ranges.
+Example: `(Hidden) (Golden Aura) | Some singing mice | Hard | +5–9 lvls`.
+
+Built with Muddler and installed in Aardwolf loaded offline. The package manager
+reported successful removal and installation; the profile was saved. Map/profile
+and old-package backups are under `backups/consider-compact-20260910-214357/`.
+Expected test outputs were updated, but no tests, replay, archive inspection,
+or post-install behavior checks were run, as explicitly requested by the user.
+Manual acceptance is pending. Earlier verification below applies to older builds.
+
+# Consider pronoun fix verification — 2026-09-10
+
+Artifact: `build/AardwolfToolbox.mpackage`, version 0.8.1.
+SHA-256: `4f370a92098db2c375e9e7d74e6a09440e506535fb5916d8ff5abd30100a59da`.
+
+- Live console inspection reproduced the missing match: Cinderella uses
+  “fighting her” and singing mice use “fighting it”; the help table uses “them.”
+  Mob names already used wildcard captures. The formatter now accepts exactly
+  `him`, `her`, `it`, or `them` for this rating, retaining status prefixes.
+- Added a regression test that failed against 0.8.0, then passed against 0.8.1.
+  All 75 package tests, Muddler build, archive inspection, and diff checks passed.
+- Updated `native_consider.lua` and replayed in the disconnected disposable
+  `AardwolfToolboxSettingsTest` profile. `CONSIDER_NATIVE true nil` confirmed
+  all original ratings plus the observed prefixed names and all four pronouns,
+  including amber foreground and retained ANSI background.
+- Backed up the native map as `AardwolfToolbox-before-consider-20260910-174108.dat`
+  and the profile/old package under `backups/consider-pronoun-fix-20260910-174118/`.
+  ZIP integrity checks passed; backup archives have mode 0600.
+- Installed 0.8.1 in Aardwolf. Deep comparison preserved all 165 rooms and map
+  attributes. Consider/colors were enabled, Vitals and ASCII remained active,
+  starter Vitals stayed hidden, and profile saving succeeded. Installed artifact
+  bytes, original starter UI files, and existing preferences were verified.
+- No gameplay commands or synthetic replay were sent in Aardwolf. The fixed
+  formatter was waiting for naturally arriving consider text at verification;
+  live post-fix acceptance remains pending.
+
 # Consider ratings verification — 2026-09-10
 
 Current artifact: `build/AardwolfToolbox.mpackage`, version 0.8.0.

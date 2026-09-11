@@ -9,6 +9,11 @@ local function initialize()
   if AardwolfToolbox.config then return end
   local config = resource("configuration").new(_G)
   AardwolfToolbox.config = config
+  AardwolfToolbox.gmcp = resource("gmcp-cache").new(_G)
+  config.registerFeature({id="gmcp",label="GMCP data",
+    description="Keep session-only character, communication, group, and room values for Toolbox features.",
+    settings={{key="enabled",type="boolean",default=true,label="Enable GMCP cache"}},
+    apply=AardwolfToolbox.gmcp.configure})
   AardwolfToolbox.mapper = resource("automapper").new(_G, function(key)
     return config.get("mapper", key)
   end)
@@ -35,6 +40,12 @@ local function initialize()
   })
   AardwolfToolbox.borders = resource("borders").new(_G)
   AardwolfToolbox.incoming = resource("incoming").new(_G)
+  AardwolfToolbox.help = resource("help-pane").new(_G,AardwolfToolbox.incoming)
+  config.registerFeature({id="help",label="Help pane",
+    description="Open tagged help in a floating window, titled with its keywords.",settings={
+      {key="enabled",type="boolean",default=true,label="Enable floating help"},
+      {key="font_size",type="number",default=11,min=8,max=18,integer=true,label="Font size (points)"},
+    },apply=AardwolfToolbox.help.configure})
   AardwolfToolbox.vitals = resource("vitals").new(_G,AardwolfToolbox.borders)
   config.registerFeature({id="vitals", label="Vitals",
     description="Compact HP, Mana, Moves, target health, and level progress above the command input.",
@@ -74,8 +85,8 @@ local function initialize()
       {key="capture_timeout",type="number",default=10,min=1,max=120,label="Capture timeout (seconds)"},
       {key="x",type="number",default=40,min=0,max=16384,integer=true,label="Floating X (pixels)"},
       {key="y",type="number",default=140,min=0,max=16384,integer=true,label="Floating Y (pixels)"},
-      {key="width",type="number",default=420,min=160,max=16384,integer=true,label="Width (pixels)"},
-      {key="height",type="number",default=460,min=100,max=16384,integer=true,label="Height (pixels)"},
+      {key="width",type="number",default=265,min=160,max=16384,integer=true,label="Width (pixels)"},
+      {key="height",type="number",default=330,min=100,max=16384,integer=true,label="Height (pixels)"},
     },apply=AardwolfToolbox.ascii.configure})
 
   AardwolfToolbox.consider = resource("consider").new(_G,AardwolfToolbox.incoming)
@@ -85,6 +96,13 @@ local function initialize()
       {key="colors",type="boolean",default=true,label="Use difficulty colors",
         description="Difficulty labels and relative level ranges remain visible with colors disabled."},
     },apply=AardwolfToolbox.consider.configure})
+
+  AardwolfToolbox.player = resource("player-panel").new(_G,AardwolfToolbox.gmcp)
+  config.registerFeature({id="player",label="Player panel",
+    description="Compact player level, stats, and status between the map and chat.",settings={
+      {key="enabled",type="boolean",default=true,label="Enable player panel"},
+      {key="font_size",type="number",default=10,min=8,max=13,integer=true,label="Font size (points)"},
+    },apply=AardwolfToolbox.player.configure})
 
 end
 
@@ -97,7 +115,10 @@ end
 function AardwolfToolbox.stop()
   if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
   if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
+  if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
+  if AardwolfToolbox.help then AardwolfToolbox.help.stop() end
   if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
+  if AardwolfToolbox.gmcp then AardwolfToolbox.gmcp.stop() end
   if AardwolfToolbox.ascii then AardwolfToolbox.ascii.stop() end
   if AardwolfToolbox.tags then AardwolfToolbox.tags.stop() end
   if AardwolfToolbox.vitals then AardwolfToolbox.vitals.stop() end
@@ -112,7 +133,7 @@ function AardwolfToolbox.openSettings()
       local mapper = AardwolfToolbox.mapper
       local mapperState = not AardwolfToolbox.config.get("mapper", "enabled") and "disabled in settings"
         or ((mapper.enabled and "running — " or "stopped — ") .. mapper.last)
-      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last .. " | Consider: " .. AardwolfToolbox.consider.last
+      return "Mapper: " .. mapperState .. " | Vitals: " .. AardwolfToolbox.vitals.last .. " | Tags: " .. AardwolfToolbox.tags.last .. " | ASCII: " .. AardwolfToolbox.ascii.last .. " | Consider: " .. AardwolfToolbox.consider.last .. " | GMCP: " .. AardwolfToolbox.gmcp.last .. " | Player: " .. AardwolfToolbox.player.last .. " | Help: " .. AardwolfToolbox.help.last
     end)
   end
   AardwolfToolbox.settingsWindow.open()

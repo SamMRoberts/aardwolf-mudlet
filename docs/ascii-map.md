@@ -4,7 +4,7 @@ Version 0.7.0 adds a passive ASCII map display to AardwolfToolbox. Use `aardwolf
 
 Only complete frames replace the previous display. Exact `<MAPSTART>` and `<MAPEND>` lines may have surrounding whitespace. While enabled, markers and all enclosed lines are hidden from the main console. Spaces, empty lines, symbols, title, exits, and foreground/background color runs are retained. Text is written literally to a monospaced MiniConsole, without HTML, links, Lua, or color-markup interpretation. Wrapping is disabled; scrollbars allow inspecting larger maps without changing alignment.
 
-The pane starts floating at (40, 140), 420×460 pixels, unlocked. Drag its title to move; drag an edge to resize. Right-click the title for lock/unlock, floating or four-edge docking, font adjustment, settings, and close. The context menu follows Mudlet's normal popup behavior. A docked pane can be dragged back to floating or resized along its reserved edge. Closing disables the feature, immediately returning subsequent map output to the game console. Reopen with `aardwolf-ascii`.
+The pane starts floating at (40, 140), 265×330 pixels, with a borderless black background, unlocked. Drag its title to move; drag an edge to resize. Right-click the title for lock/unlock, floating or four-edge docking, font adjustment, settings, and close. The context menu follows Mudlet's normal popup behavior. A docked pane can be dragged back to floating or resized along its reserved edge. Closing disables the feature, immediately returning subsequent map output to the game console. Reopen with `aardwolf-ascii`.
 
 | Setting | Default | Range / choices |
 | --- | --- | --- |
@@ -14,7 +14,7 @@ The pane starts floating at (40, 140), 420×460 pixels, unlocked. Drag its title
 | Font size | 11 points | 6–20 |
 | Capture timeout | 10 seconds | 1–120 |
 | Floating X / Y | 40 / 140 pixels | 0–16384, clamped on screen |
-| Width / height | 420 / 460 pixels | Minimum 160 / 100; maximum 16384 |
+| Width / height | 265 / 330 pixels | Minimum 160 / 100; maximum 16384 |
 
 Settings use the existing profile-local `AardwolfToolbox-settings.json`. Completed mouse moves/resizes save one draft atomically. A stale draft or failed write restores the saved placement and reports the failure. Adjustable's separate save/load persistence is disabled. Dock thickness uses width for left/right and height for top/bottom. Docked resizing preserves the saved floating coordinates. Settings permit unlocking at any time.
 
@@ -31,3 +31,7 @@ No map contents are persisted. Disabling, stopping, or uninstalling removes owne
 `ascii-map.lua` exposes repeatable `start`, `configure`, `stop`, `destroy`, and `open` operations. Toolbox feature code should register all preferences through the shared configuration registry; it should not create another incoming trigger or directly alter border space. `borders.lua` coordinates Toolbox reservations and preserves the external baseline at each edge.
 
 Validation fixtures in `tests/native_ascii*.lua` reject execution outside the disconnected disposable `AardwolfToolboxSettingsTest` profile. Never replay them in a player profile. Native live acceptance uses naturally arriving map frames only.
+
+Version 0.8.3 removes the visible frame and uses a black background throughout,
+including behind captured map text. Server foreground colors are retained.
+The title and its movement, docking, and close controls remain available.

@@ -1,23 +1,38 @@
 -- Fixed Aardwolf consider sentences; captured names are always literal text.
 local Consider = {}
 local OWNER = "AardwolfToolbox.consider"
+local pronouns = {him=true, her=true, it=true, them=true}
 local ratings = {
-  {"You would stomp <mob> into the ground.", "Trivial", "20+ levels below you", {176,176,176}},
-  {"<mob> would be easy, but is it even worth the work out?", "Very easy", "10–19 levels below you", {102,221,136}},
-  {"No Problem! <mob> is weak compared to you.", "Easy", "5–9 levels below you", {153,221,102}},
-  {"<mob> looks a little worried about the idea.", "Favorable", "2–4 levels below you", {102,221,204}},
-  {"<mob> should be a fair fight!", "Fair fight", "within 1 level of you", {238,238,238}},
-  {"<mob> snickers nervously.", "Tough", "2–4 levels above you", {255,221,102}},
-  {"<mob> chuckles at the thought of you fighting them.", "Hard", "5–9 levels above you", {255,187,85}},
-  {"Best run away from <mob> while you can!", "Dangerous", "10–15 levels above you", {255,153,85}},
-  {"Challenging <mob> would be either very brave or very stupid.", "Very dangerous", "16–20 levels above you", {255,119,85}},
-  {"<mob> would crush you like a bug!", "Crushing", "21–30 levels above you", {255,102,102}},
-  {"<mob> would dance on your grave!", "Deadly", "31–40 levels above you", {255,102,136}},
-  {"<mob> says 'BEGONE FROM MY SIGHT unworthy!'", "Overwhelming", "41–50 levels above you", {238,119,221}},
-  {"You would be completely annihilated by <mob>!", "Annihilating", "51+ levels above you", {204,153,255}},
+  {"You would stomp <mob> into the ground.", "Trivial", "≤−20 lvls", {176,176,176}},
+  {"<mob> would be easy, but is it even worth the work out?", "Very easy", "−19…−10 lvls", {102,221,136}},
+  {"No Problem! <mob> is weak compared to you.", "Easy", "−9…−5 lvls", {153,221,102}},
+  {"<mob> looks a little worried about the idea.", "Favorable", "−4…−2 lvls", {102,221,204}},
+  {"<mob> should be a fair fight!", "Fair fight", "±1 lvl", {238,238,238}},
+  {"<mob> snickers nervously.", "Tough", "+2–4 lvls", {255,221,102}},
+  {"<mob> chuckles at the thought of you fighting them.", "Hard", "+5–9 lvls", {255,187,85}},
+  {"Best run away from <mob> while you can!", "Dangerous", "+10–15 lvls", {255,153,85}},
+  {"Challenging <mob> would be either very brave or very stupid.", "Very dangerous", "+16–20 lvls", {255,119,85}},
+  {"<mob> would crush you like a bug!", "Crushing", "+21–30 lvls", {255,102,102}},
+  {"<mob> would dance on your grave!", "Deadly", "+31–40 lvls", {255,102,136}},
+  {"<mob> says 'BEGONE FROM MY SIGHT unworthy!'", "Overwhelming", "+41–50 lvls", {238,119,221}},
+  {"You would be completely annihilated by <mob>!", "Annihilating", "≥+51 lvls", {204,153,255}},
 }
 for _,rating in ipairs(ratings) do
   rating.pattern = "^" .. rating[1]:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1"):gsub("<mob>", "(.+)") .. "$"
+  -- The help table uses "them"; live output uses the mob's pronoun.
+  rating.pattern = rating.pattern:gsub("fighting them", function() return "fighting (%a+)" end)
+end
+
+local function displayMob(mob)
+  local tags, name = {}, mob
+  while true do
+    local tag, rest = name:match("^(%b())%s+(.+)$")
+    if not tag then break end
+    tags[#tags+1]=tag
+    name=rest
+  end
+  if #tags==0 then return mob end
+  return table.concat(tags," ").." | "..name
 end
 
 function Consider.new(api, incoming)
@@ -36,9 +51,9 @@ function Consider.new(api, incoming)
     if not self.enabled or type(text)~="string" then return end
     local trimmed=text:match("^%s*(.-)%s*$")
     for _,rating in ipairs(ratings) do
-      local mob=trimmed:match(rating.pattern)
-      if mob and mob:find("%S") then
-        local replacement="Consider: "..mob.." | "..rating[2].." | "..rating[3]
+      local mob,pronoun=trimmed:match(rating.pattern)
+      if mob and mob:find("%S") and (not pronoun or pronouns[pronoun]) then
+        local replacement=displayMob(mob).." | "..rating[2].." | "..rating[3]
         local ok,err=pcall(function()
           api.selectCurrentLine()
           -- Never splice into a different line if native selection is refused.

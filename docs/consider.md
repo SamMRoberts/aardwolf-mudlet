@@ -1,8 +1,11 @@
 # Consider ratings
 
-AardwolfToolbox 0.8.0 replaces Aardwolf's 13 consider messages with a compact line:
+AardwolfToolbox 0.8.2 replaces Aardwolf's 13 consider messages with a compact line:
 
-`Consider: a goblin | Easy | 5–9 levels below you`
+`(Hidden) (Golden Aura) | Some singing mice | Hard | +5–9 lvls`
+
+Fields are tags, mob name, danger, and relative level range. Leading parenthesized
+tags are grouped separately; mobs without tags begin directly with their name.
 
 These are relative level ranges, not actual mob levels. The formatter uses the
 server's consider sentence and does not require character-level or GMCP data.
@@ -23,9 +26,9 @@ server's consider sentence and does not require character-level or GMCP data.
 | +41 to +50 | Overwhelming | Magenta `#EE77DD` |
 | +51 and above | Annihilating | Purple `#CC99FF` |
 
-Negative ranges read “levels below you”; positive ranges read “levels above you.”
-The fair-fight range reads “within 1 level of you.” Open ends read “20+ levels below
-you” and “51+ levels above you.” Difficulty is always written out as well as colored.
+Negative ranges indicate levels below you (`−9…−5 lvls`); positive ranges indicate
+levels above you (`+5–9 lvls`). A fair fight reads `±1 lvl`. Open ends read
+`≤−20 lvls` and `≥+51 lvls`. Difficulty is always written out as well as colored.
 
 Open **aardwolf-config → Consider**:
 
@@ -43,6 +46,9 @@ Only complete lines matching the fixed Aardwolf sentences are formatted, allowin
 surrounding whitespace. Help-table rows with a trailing range and other unmatched
 lines remain unchanged. Mob names are literal text, including punctuation and
 Unicode; they are never interpreted as HTML, color markup, links, or Lua.
+Mob placeholders use wildcard captures, not the literal word `MOB`. The Hard
+rating accepts the live pronouns `him`, `her`, `it`, and `them`; status prefixes
+such as `(Hidden) (Golden Aura)` are retained in the separate tags field.
 
 The line is replaced in place without adding or deleting newlines. Normal console
 wrapping still applies to long names. Difficulty colors preserve the sentence's

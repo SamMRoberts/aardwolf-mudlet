@@ -17,9 +17,9 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua",
-                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua",
+                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
