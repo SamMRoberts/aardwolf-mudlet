@@ -163,8 +163,14 @@ class SpellTests(unittest.TestCase):
           assert(#commands==2 and not spells.isFresh())
           local n=#commands; advance(60); assert(#commands==n)
           assert(spells.sync(true)); advance(0); synchronize(); assert(spells.isFresh())
-          feed('{spellheaders affected noprompt}'); feed('72,Bad,2,30,101,-1,1')
+          feed('{spellheaders affected noprompt}'); feed('72,Bad,6,30,100,-1,1')
           assert(spells.get(72).active.duration==120 and not spells.isFresh())
+        ''')
+
+    def test_practice_above_one_hundred_is_valid(self):
+        self.lua.execute('''
+          feed('{spellheaders noprompt}'); feed('72,Skilled,2,0,110,-1,1'); feed('{/spellheaders}')
+          assert(spells.get(72).practice==110)
         ''')
 
     def test_limits_duplicates_and_orphan_ends(self):

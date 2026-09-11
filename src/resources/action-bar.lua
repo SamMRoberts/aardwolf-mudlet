@@ -4,12 +4,13 @@ local DIRECTIONS={"north","south","east","west","up","down"}
 local COMPASS={north={1,0},south={1,2},west={0,1},east={2,1},up={3,0},down={3,2}}
 local NAV={"north","south","east","west","up","down","doors","other","previous","next"}
 local function escape(s) return tostring(s):gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"):gsub('"',"&quot;") end
-function Bar.definition(shortcuts,apply)
+function Bar.definition(shortcuts,apply,abilityFields)
   local fields={{key="label",type="text",default="New button",maxLength=120,label="Label"},
     {key="tooltip",type="text",default="",maxLength=512,label="Tooltip"},
     {key="enabled",type="boolean",default=true,label="Enabled"},
     {key="command",type="text",default="",maxLength=1024,label="Command or alias"},
     {key="mode",type="choice",default="command",label="Execution mode",options={{value="command",label="Command — send literally"},{value="alias",label="Alias — normal expansion"}}}}
+  for _,field in ipairs(abilityFields or {}) do fields[#fields+1]=field end
   for _,field in ipairs(shortcuts.fields()) do fields[#fields+1]=field end
   local bindings={}
   for _,id in ipairs(NAV) do
@@ -27,7 +28,17 @@ function Bar.definition(shortcuts,apply)
   },validate=function(v)
     local all={}
     for _,r in ipairs(v.buttons) do
-      if not r.label:match("%S") or not r.command:match("%S") then return nil,"Every button needs a label and one command." end
+      if not r.label:match("%S") then return nil,"Every button needs a label." end
+      if not r.ability_mode or r.ability_mode=="manual" then
+        if not r.command:match("%S") then return nil,"Every command button needs one command." end
+      elseif r.ability_mode=="specific" then
+        if r.ability_id<1 then return nil,"Choose a specific learned ability." end
+      elseif r.ability_mode=="highest" then
+        if r.ability_role=="any" or not r.ability_type:match("%S") or r.ability_targeting=="any"
+            or r.ability_targeting=="unknown" or r.ability_targeting=="special" then
+          return nil,"Automatic ability buttons need a role, type, and compatible targeting behavior."
+        end
+      end
       all[#all+1]=r
     end
     local ids={}
@@ -37,7 +48,7 @@ function Bar.definition(shortcuts,apply)
     return shortcuts.validate(all)
   end,apply=apply}
 end
-function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing)
+function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,abilities)
   local self={enabled=false,last="Disabled",page=1,pages={}}
   local root,menu,options,handlers,widgets,serial=nil,nil,nil,{},{},0
   local menuIdentity,doorTarget,doorRoom,firstVisible
@@ -145,6 +156,12 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing)
     for _,button in ipairs(config.get("actions","buttons")) do
       if button.id==id then
         if not button.enabled then return feedback(nil,"Button disabled") end
+        if button.ability_mode and button.ability_mode~="manual" then
+          if not abilities then return feedback(nil,"Ability catalog unavailable") end
+          local command,reason=abilities.resolve(button)
+          if not command then return feedback(nil,reason) end
+          return self.dispatch(command,"command")
+        end
         return self.dispatch(button.command,button.mode)
       end
     end
@@ -228,7 +245,12 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing)
       local b=button("action_"..r.id,text,bx,entry.width,function(event)
         if event and event.button=="RightButton" then edit(r.id) else self.activate(r.id) end
       end)
-      b:setToolTip(escape(r.label.." "..Shortcut.signature(r).."\n"..r.mode..": "..r.command.."\n"..r.tooltip))
+      local detail=r.mode..": "..r.command
+      if abilities and r.ability_mode and r.ability_mode~="manual" then
+        local command,reason=abilities.resolve(r)
+        detail=command or "Unavailable: "..tostring(reason)
+      end
+      b:setToolTip(escape(r.label.." "..Shortcut.signature(r).."\n"..detail.."\n"..r.tooltip))
       if not r.enabled then b:setStyleSheet("QLabel { background:#20252b; color:#aeb8c2; border:1px solid #415366; }") end
       bx=bx+entry.width+4
     end
@@ -267,6 +289,8 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing)
           assert(api.registerNamedEventHandler(OWNER,event,event,fn),"Cannot register action bar handler")
         end
         on("AardwolfToolbox.settings.visibility",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
+        on("AardwolfToolbox.abilities.updated",render)
+        on("AardwolfToolbox.abilities.reset",render)
         on("sysWindowResizeEvent",function() closeMenu(); render() end)
         on("AardwolfToolbox.ui.changed",function() closeMenu(); render() end)
         on("AardwolfToolbox.gmcp.updated",function(_,path)

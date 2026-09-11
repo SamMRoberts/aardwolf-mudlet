@@ -61,7 +61,7 @@ end
 
 function Config.new(api)
   local self = {features = {}, order = {}, revision = 0, runtimeErrors = {}, active = false}
-  local values, metadata, legacyBytes = {}, {}, nil
+  local values, metadata, legacyBytes, legacyVersion = {}, {}, nil, nil
   local path = api.getMudletHomeDir() .. "/AardwolfToolbox-settings.json"
   self.path = path
   local function diagnostic(message)
@@ -74,7 +74,7 @@ function Config.new(api)
     local closed = file:close()
     local ok, data = pcall(api.yajl.to_value, bytes or "")
     if not closed or not bytes or #bytes > 1048576 or not ok or type(data) ~= "table"
-        or (data.version ~= 1 and data.version ~= 2) or type(data.values) ~= "table" then
+        or (data.version ~= 1 and data.version ~= 2 and data.version ~= 3) or type(data.values) ~= "table" then
       diagnostic("Cannot read settings or unsupported format; original file preserved: " .. path)
     else
       local usable = true
@@ -86,7 +86,7 @@ function Config.new(api)
           end
         end
       end
-      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {}; if data.version==1 then legacyBytes=bytes end else diagnostic("Invalid settings structure; original file preserved: " .. path) end
+      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {}; if data.version<3 then legacyBytes=bytes; legacyVersion=data.version end else diagnostic("Invalid settings structure; original file preserved: " .. path) end
     end
   elseif code ~= 2 then
     diagnostic("Cannot open settings; original file preserved: " .. tostring(err))
@@ -158,6 +158,21 @@ function Config.new(api)
     end
     assert(definition.validate==nil or type(definition.validate)=="function","Invalid feature validator")
     local feature = copy(definition)
+    -- Additive record migrations run only for older settings and never overwrite
+    -- saved values or unknown fields. The original bytes are backed up on write.
+    if legacyVersion and feature.id=="actions" and values.actions and type(values.actions.buttons)=="table" then
+      for _,setting in ipairs(feature.settings) do
+        if setting.key=="buttons" then
+          for _,record in ipairs(values.actions.buttons) do
+            if type(record)=="table" then
+              for _,field in ipairs(setting.fields) do
+                if field.abilityField and record[field.key]==nil then record[field.key]=copy(field.default) end
+              end
+            end
+          end
+        end
+      end
+    end
     self.features[feature.id] = feature
     self.order[#self.order + 1] = feature.id
     for _, setting in ipairs(feature.settings) do
@@ -183,7 +198,7 @@ function Config.new(api)
   end
 
   local function persist(nextValues,nextMetadata)
-    local ok, encoded = pcall(api.yajl.to_string, {version = 2, values = nextValues, metadata = nextMetadata})
+    local ok, encoded = pcall(api.yajl.to_string, {version = 3, values = nextValues, metadata = nextMetadata})
     if not ok then return nil, "Cannot encode settings" end
     if #encoded > 1048576 then return nil, "Settings exceed the 1 MiB storage limit" end
     local temporary = path .. ".tmp"
@@ -196,18 +211,18 @@ function Config.new(api)
       return nil, "Cannot save settings: " .. tostring(writeError or closeError)
     end
     if legacyBytes then
-      local backup=path..".v1.bak"
+      local backup=path..".v"..legacyVersion..".bak"
       local existing,existingError,existingCode=api.io.open(backup,"rb")
-      if not existing and existingCode~=2 then api.os.remove(temporary); return nil,"Cannot inspect version 1 backup: "..tostring(existingError) end
+      if not existing and existingCode~=2 then api.os.remove(temporary); return nil,"Cannot inspect legacy settings backup: "..tostring(existingError) end
       if existing then
         local bytes=existing:read(1048577); local closedBackup=existing:close()
-        if not closedBackup or bytes~=legacyBytes then api.os.remove(temporary); return nil,"Version 1 backup already exists with different contents" end
+        if not closedBackup or bytes~=legacyBytes then api.os.remove(temporary); return nil,"Legacy settings backup already exists with different contents" end
       else
         local out,backupError=api.io.open(backup..".tmp","wb")
-        if not out then api.os.remove(temporary); return nil,"Cannot back up version 1 settings: "..tostring(backupError) end
+        if not out then api.os.remove(temporary); return nil,"Cannot back up legacy settings: "..tostring(backupError) end
         local wroteBackup=out:write(legacyBytes); local closedBackup=out:close()
         if not wroteBackup or not closedBackup or not api.os.rename(backup..".tmp",backup) then
-          api.os.remove(backup..".tmp"); api.os.remove(temporary); return nil,"Cannot back up version 1 settings"
+          api.os.remove(backup..".tmp"); api.os.remove(temporary); return nil,"Cannot back up legacy settings"
         end
       end
     end

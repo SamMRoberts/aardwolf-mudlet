@@ -207,7 +207,7 @@ function Bar.new(api,cache,inventory,borders,openSettings,ui)
   end
   local function spellReading()
     if not spells or not spellup or not items.spellups then return end
-    local snapshot,status=spells.snapshot(),spellup.status()
+    local snapshot,status=spells.snapshot(false),spellup.status()
     local glyph,color,coverage="?","#B0B0B0","Buff coverage unknown"
     if not spells.enabled then coverage="Spell tracking disabled"
     elseif spells.isFresh() then

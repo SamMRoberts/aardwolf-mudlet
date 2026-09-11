@@ -27,7 +27,9 @@ class ActionTests(unittest.TestCase):
           function raiseEvent(event,...) originalRaise(event,...); fire(event,...) end
           AardwolfToolbox.start(); c=AardwolfToolbox.config; bar=AardwolfToolbox.actionBar
           function action(id,command,key)
-            return {id=id,label='Éowyn <Heal>',tooltip='literal',enabled=true,command=command or 'heal',mode='command',key=key or '',ctrl=false,alt=false,shift=false,meta=false}
+            local record={id=id,label='Éowyn <Heal>',tooltip='literal',enabled=true,command=command or 'heal',mode='command',key=key or '',ctrl=false,alt=false,shift=false,meta=false}
+            for _,f in ipairs(c.features.actions.settings[3].fields) do if record[f.key]==nil then record[f.key]=f.default end end
+            return record
           end
           function ready(state)
             gmcp=gmcp or {}; gmcp.char={status={state=state or 3}}; fire('gmcp.char','gmcp.char.status')
@@ -77,7 +79,7 @@ class ActionTests(unittest.TestCase):
           fileFailures.write=true; assert(not c.apply(d,r)); fileFailures.write=nil
           assert(c.get('actions','buttons')[1].command=='bash')
           assert(c.apply(d,r)); d.actions.buttons[1].command='mutated'; assert(c.get('actions','buttons')[1].command=='draft')
-          local stored=yajl.to_value(files[c.path]); assert(stored.version==2 and stored.values.actions.buttons[1].id=='a')
+          local stored=yajl.to_value(files[c.path]); assert(stored.version==3 and stored.values.actions.buttons[1].id=='a')
           keyFailure=true; assert(c.set('actions','keys_enabled',false)); assert(c.set('actions','keys_enabled',true))
           assert(not bar.enabled and count(keys)==0 and c.runtimeErrors.actions)
           keyFailure=nil; bar.start(); assert(bar.enabled)
@@ -137,4 +139,23 @@ class ActionTests(unittest.TestCase):
           assert(widgets['AardwolfToolbox.actionBar.navigate'] and north.hidden)
           assert(c.set('actions','enabled',false)); assert(borderBottom==vh)
           assert(c.set('actions','enabled',true)); assert(borderBottom==vh+AardwolfToolbox.ui.metrics().height+8)
+        ''')
+
+    def test_ability_mouse_and_shortcut_share_fresh_resolution(self):
+        self.lua.execute('''
+          local available=true
+          AardwolfToolbox.abilities.resolve=function(record)
+            if not available then return nil,'Stale catalog' end
+            return 'cast 54 '..record.arguments
+          end
+          local r=action('ability','obsolete command','F8')
+          r.ability_mode='specific';r.ability_id=54;r.arguments='self'
+          assert(c.set('actions','buttons',{r})); ready()
+          assert(bar.activate('ability') and sent[#sent]=='cast 54 self')
+          for _,key in pairs(keys) do key.fn() end
+          assert(sent[#sent]=='cast 54 self')
+          available=false;local n=#sent
+          assert(not bar.activate('ability'))
+          for _,key in pairs(keys) do key.fn() end
+          assert(#sent==n and #aliasSent==0)
         ''')

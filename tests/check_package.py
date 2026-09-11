@@ -6,7 +6,7 @@ from xml.etree import ElementTree as ET
 import zipfile
 
 from lupa.lua51 import LuaRuntime
-from lua_support import install_json
+from lua_support import install_json, install_sqlite
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,9 +17,10 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua",
+                "abilities.lua", "ability-capture.lua", "ability-store.lua", "ability-model.lua", "ability-fields.lua", "ability-picker.lua", "query-coordinator.lua",
                 "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "spells.lua", "spellup.lua", "action-bar.lua", "navigation.lua", "shortcuts.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","spells","spellup","action-bar","navigation","shortcuts")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("abilities","ability-capture","ability-store","ability-model","ability-fields","ability-picker","query-coordinator","incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","spells","spellup","action-bar","navigation","shortcuts")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
@@ -37,6 +38,7 @@ class PackageTests(unittest.TestCase):
         self.lua.execute((ROOT / "tests/ascii_api.lua").read_text())
         self.lua.execute((ROOT / "tests/consider_api.lua").read_text())
         install_json(self.lua)
+        self.addCleanup(install_sqlite(self.lua))
         self.lua.globals().config_source = self.config_source
         self.lua.globals().mapper_source = self.mapper_source
         self.lua.globals().vitals_source = self.vitals_source

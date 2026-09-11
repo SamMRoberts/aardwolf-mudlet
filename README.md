@@ -308,4 +308,8 @@ See [ASCII map behavior and configuration](docs/ascii-map.md).
 
 ## Action and navigation bar (0.15.0)
 
-Configure paged command/alias buttons and optional shortcuts in `aardwolf-config → Action bar`. The compass places North above, South below, West left and East right, with Up/Down alongside. Doors and Other exits send explicit single actions. [Action bar guide](docs/action-bar.md). Settings now use format 2 with an automatic version-1 backup; older package versions cannot read format 2.
+Configure paged command/alias buttons and optional shortcuts in `aardwolf-config → Action bar`. The compass places North above, South below, West left and East right, with Up/Down alongside. Doors and Other exits send explicit single actions. [Action bar guide](docs/action-bar.md). Settings use format 3 with automatic backups when upgrading versions 1 or 2; older package versions cannot read format 3.
+
+### Ability catalog and smart buttons (0.17.0)
+
+Choose learned abilities in the existing button editor, or bind a button to the highest-required-level learned ability of a chosen role/type and compatible targeting behavior. The catalog is stored per character in SQLite. See the [ability guide](docs/abilities.md) for filters, local corrections, supported skill commands, freshness rules, and the API. Refreshes are informational; all ability buttons remain manual.

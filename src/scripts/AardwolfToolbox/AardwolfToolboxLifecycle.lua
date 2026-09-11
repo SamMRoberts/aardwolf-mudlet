@@ -131,8 +131,10 @@ local function initialize()
     description="Full-width player progression, gold, and loose inventory above the console and sidebar.",
     settings=utilitySettings,apply=AardwolfToolbox.utilityBar.configure})
 
-  AardwolfToolbox.spells=resource("spells").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags)
-  AardwolfToolbox.spellup=resource("spellup").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.spells)
+  AardwolfToolbox.abilityStore=resource("ability-store").new(_G)
+  AardwolfToolbox.queries=resource("query-coordinator").new(_G)
+  AardwolfToolbox.spells=resource("spells").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries)
+  AardwolfToolbox.spellup=resource("spellup").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.spells,AardwolfToolbox.queries)
   AardwolfToolbox.utilityBar.bindSpellups(AardwolfToolbox.spells,AardwolfToolbox.spellup,function() AardwolfToolbox.openBuffs() end)
   config.registerFeature({id="spellups",label="Spellups",description="Track buffs and recoveries. Optional spellup learned retry starts batches only while standing outside combat. Pause stops new batches; already queued server casts may continue.",settings={
     {key="enabled",type="boolean",default=true,label="Enable spell tracking"},
@@ -164,16 +166,20 @@ local function initialize()
     {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="combat",label="Combat"},{value="buffs",label="Buffs"}}},
   },validate=function(values) return values.map_percent+values.dashboard_percent<=80,"Map and dashboard shares must leave at least 20% for chat." end,apply=AardwolfToolbox.dashboard.configure})
 
+  local AbilityFields=resource("ability-fields")
+  AardwolfToolbox.abilities=resource("abilities").new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
+    AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries,resource("ability-capture"),resource("ability-model"),AardwolfToolbox.spellup)
+  config.registerFeature(AbilityFields.definition(AardwolfToolbox.abilities.configure))
   local Shortcuts=resource("shortcuts")
   local Actions=resource("action-bar")
   AardwolfToolbox.actionBar=Actions.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.borders,AardwolfToolbox.ui,
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened end)
+    end,function() return AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened end,AardwolfToolbox.abilities)
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
-  config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure))
+  config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
 
 end
 
@@ -201,6 +207,9 @@ function AardwolfToolbox.stop()
   if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
   if AardwolfToolbox.spellup then AardwolfToolbox.spellup.stop() end
   if AardwolfToolbox.spells then AardwolfToolbox.spells.stop() end
+  if AardwolfToolbox.abilities then AardwolfToolbox.abilities.stop() end
+  if AardwolfToolbox.abilityStore then AardwolfToolbox.abilityStore.destroy() end
+  if AardwolfToolbox.queries then AardwolfToolbox.queries.destroy() end
   if AardwolfToolbox.gmcp then AardwolfToolbox.gmcp.stop() end
   if AardwolfToolbox.ascii then AardwolfToolbox.ascii.stop() end
   if AardwolfToolbox.tags then AardwolfToolbox.tags.stop() end
@@ -223,7 +232,7 @@ function AardwolfToolbox.openSettings()
       local key=id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
       local component=AardwolfToolbox[key]
       return AardwolfToolbox.config.runtimeErrors[id] or (component and component.last) or "Settings ready"
-    end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end)
+    end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end,AardwolfToolbox.abilities,resource("ability-picker"))
   end
   AardwolfToolbox.settingsWindow.open()
 end

@@ -10,12 +10,14 @@ local function escape(value)
     :gsub('"', "&quot;"):gsub("'", "&#39;"))
 end
 local STYLE = "QLabel { background-color: #202b39; color: #eef3fa; border: 0; padding: 5px; qproperty-wordWrap: true; }"
-local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px solid #526b86; border-radius: 4px; padding: 5px; } QLabel:hover { background-color: #46627f; }"
+local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px solid #526b86; border-radius: 4px; padding: 5px; qproperty-wordWrap: true; } QLabel:hover { background-color: #46627f; }"
 
-function Window.new(api, config, runtimeStatus, ui, resetLayout)
+function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, picker)
   local self = {opened = false}
   local root, body, message, status, navigation, timer, draft, revision, selected
   local recordSelection={}
+  local pickerViews={}
+  local renderedSection
   local editors, generation, serial, bodyGeneration = {}, 0, 0, 0
   local contentWidgets, contentWidth, contentHeight = {}, nil, nil
   local function label(parent, suffix, text, x, y, width, height, callback)
@@ -61,10 +63,18 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
     bodyGeneration = bodyGeneration + 1
     local currentBody = bodyGeneration
     editors, contentWidgets, contentWidth = {}, {}, nil
-    if body then body:delete(); body = nil end
+    local oldChildren={}
+    if body and renderedSection==selected then
+      -- Keep the native scroll box and its scroll position while changing picker
+      -- filters. Add the replacement controls before deleting the old contents.
+      for _,child in pairs(body.windowList or body.children or {}) do oldChildren[#oldChildren+1]=child end
+    else
+      if body then body:delete(); body=nil end
+    end
     if not selected then return end
-    body = api.Geyser.ScrollBox:new({name = PREFIX .. "body", x = 155, y = 60,
-      width = "-8px", height = "-108px"}, root)
+    if not body then body = api.Geyser.ScrollBox:new({name = PREFIX .. "body", x = 155, y = 60,
+      width = "-8px", height = "-108px"}, root) end
+    renderedSection=selected
     local feature = config.features[selected]
     local controlHeight=ui and ui.metrics().height or 32
     local y = 0
@@ -79,7 +89,8 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
         feedback(text); render()
       end); y=y+48
     end
-    local function field(setting,target)
+    local field
+    field=function(setting,target)
       local key = setting.key
       label(body, "field", setting.label, 0, y, "100%", controlHeight); y = y + controlHeight+2
       if setting.description then
@@ -99,7 +110,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
           list[#list+1]=record; recordSelection[key]=record.id; redraw()
         end
         if not setting.fixed then
-          label(body,"addrecord","Add button",4,y,"-8px",controlHeight,function() add() end); y=y+controlHeight+8
+          label(body,"addrecord",selected=="actions" and "Add button" or selected=="abilities" and "Add correction" or "Add record",4,y,"-8px",controlHeight,function() add() end); y=y+controlHeight+8
         end
         for index,record in ipairs(list) do
           local button=label(body,"record",(recordSelection[key]==record.id and "▾ " or "▸ ")..record.label,4,y,"-8px",controlHeight,function()
@@ -107,8 +118,30 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
           end)
           y=y+controlHeight+4
           if recordSelection[key]==record.id then
+            local function abilityPicker()
+            if selected=="actions" and key=="buttons" and picker and abilities then
+              pickerViews[record.id]=pickerViews[record.id] or {}
+              picker.render(abilities,record,draft.abilities.corrections,pickerViews[record.id],{
+                capture=capture,redraw=render,feedback=feedback,field=field,
+                selectCorrections=function() selected="abilities" end,
+                button=function(text,fn)
+                  local height=ui and math.max(controlHeight,math.ceil(ui.measure(text)/math.max(100,root:get_width()-235))*ui.metrics().line+12) or controlHeight*2
+                  label(body,"ability",text,4,y,"-8px",height,function()
+                    if currentBody==bodyGeneration then fn() end
+                  end); y=y+height+4
+                end,
+                text=function(text)
+                  local height=ui and math.max(controlHeight,math.ceil(ui.measure(text)/math.max(100,root:get_width()-235))*ui.metrics().line+12) or controlHeight*2
+                  label(body,"abilityinfo",text,4,y,"-8px",height); y=y+height+4
+                end,
+              })
+            end
+            end
             for _,f in ipairs(setting.fields) do
-              if not (setting.fixed and f.key=="label") then field(f,record) end
+              if f.key=="command" then abilityPicker() end
+              if not (setting.fixed and f.key=="label") and not (selected=="actions" and key=="buttons" and f.abilityField) then
+                if not (selected=="actions" and key=="buttons" and record.ability_mode and record.ability_mode~="manual" and (f.key=="command" or f.key=="mode")) then field(f,record) end
+              end
             end
             if not setting.fixed then
               for _,action in ipairs({"Duplicate","Delete","Move up","Move down"}) do
@@ -163,7 +196,13 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
       end
       y = y + controlHeight+16
     end
+    if selected=="abilities" and abilities then
+      label(body,"refreshcatalog","Refresh catalog",4,y,"-8px",controlHeight,function()
+        local _,text=abilities.refresh(); feedback(text)
+      end); y=y+controlHeight+8
+    end
     for _,setting in ipairs(feature.settings) do field(setting,draft[selected]) end
+    for _,child in ipairs(oldChildren) do child:delete() end
     fitContents()
   end
 
@@ -201,11 +240,13 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
   end
   function self.close()
     self.opened = false; generation = generation + 1
+    if abilities then api.deleteNamedEventHandler(PREFIX,"catalog") end
     api.raiseEvent("AardwolfToolbox.settings.visibility")
     if timer then api.killTimer(timer); timer = nil end
     if root then root:delete(); root = nil end
     body, message, status, navigation, draft, selected = nil, nil, nil, nil, nil, nil
     editors, contentWidgets, contentWidth = {}, {}, nil
+    pickerViews={}
   end
   self.destroy = self.close
   local function tick(current)
@@ -239,6 +280,12 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout)
         adjLabelstyle = "background-color: #202b39; border: 1px solid #526b86;",
         padding = 8}, nil)
       self.opened = true
+      if abilities then
+        local current=generation
+        assert(api.registerNamedEventHandler(PREFIX,"catalog","AardwolfToolbox.abilities.updated",function()
+          if self.opened and generation==current and (selected=="actions" or selected=="abilities") then capture(); render(); refreshStatus() end
+        end),"Cannot register catalog editor updates")
+      end
       api.raiseEvent("AardwolfToolbox.settings.visibility")
       -- Use event coordinates: the global mouse query can lag on multi-monitor desktops.
       -- Owning these interactions also excludes docking and shared-border changes.

@@ -90,7 +90,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     local lines,colors={},{}
     local function add(text,color) lines[#lines+1]=text; colors[#lines]=color end
     if view=="buffs" and spells and spellup then
-      local snapshot=spells.snapshot(); local state=spellup.status()
+      local snapshot=spells.snapshot(false); local state=spellup.status()
       add("Auto refresh: "..state.last)
       add(snapshot.last,snapshot.fresh and "#bbc8d4" or "#ffcc80")
       if #snapshot.active==0 then add(snapshot.fresh and "No active effects reported" or "Waiting for spell data") end

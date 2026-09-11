@@ -22,3 +22,49 @@ def install_json(lua):
         'to_string': lambda value: json.dumps(plain(value), allow_nan=False),
         'to_value': lambda text: table(json.loads(text)),
     })
+
+
+def install_sqlite(lua):
+    """LuaSQL-shaped bridge over real SQLite, isolated to this Lua runtime."""
+    import sqlite3
+
+    connections = {}
+
+    def environment():
+        def connect(_env, path):
+            # Keep the in-memory database across API close/reopen cycles.
+            if path not in connections:
+                connections[path] = sqlite3.connect(":memory:", isolation_level=None)
+            connection = connections[path]
+
+            def execute(_connection, sql):
+                try:
+                    cursor = connection.execute(sql)
+                    if cursor.description is None:
+                        return cursor.rowcount
+                    names = [column[0] for column in cursor.description]
+
+                    def fetch(_cursor, table, _mode):
+                        row = cursor.fetchone()
+                        if row is None:
+                            return None
+                        for name, value in zip(names, row):
+                            table[name] = value
+                        return table
+
+                    return lua.table_from({"fetch": fetch, "close": lambda _cursor: cursor.close() or True})
+                except sqlite3.Error as error:
+                    return None, str(error)
+
+            return lua.table_from({"execute": execute, "close": lambda _connection: True})
+
+        return lua.table_from({"connect": connect, "close": lambda _env: True})
+
+    lua.globals().luasql = lua.table_from({"sqlite3": environment})
+
+    def cleanup():
+        for connection in connections.values():
+            connection.close()
+        connections.clear()
+
+    return cleanup

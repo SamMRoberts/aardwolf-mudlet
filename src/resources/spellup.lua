@@ -3,7 +3,7 @@ local Controller={}
 local OWNER="AardwolfToolbox.spellup"
 local COMMAND="spellup learned retry"
 local REASONS={[1]="Lost concentration (server retry)",[2]="Already affected",[3]="Recovery active",[4]="Not enough mana",[5]="No-cast room",[6]="Cannot concentrate",[8]="Spell not known",[9]="Invalid target",[10]="Resting or sitting",[11]="Spell disabled",[12]="Not enough moves"}
-function Controller.new(api,cache,spells)
+function Controller.new(api,cache,spells,queries)
   local self={enabled=false,last="Off"}
   local options={auto_refresh=false,min_interval=30}
   local handlers={}
@@ -13,7 +13,7 @@ function Controller.new(api,cache,spells)
   local function copySet(t) local r={}; for k,v in pairs(t or {}) do r[k]=v end; return r end
   local function activeSet()
     local r={}
-    for _,e in ipairs(spells.snapshot().active) do
+    for _,e in ipairs(spells.snapshot(false).active) do
       local spell=spells.get(e.id)
       if spell and spell.spellup and not e.awaiting then r[e.id]=true end
     end
@@ -28,6 +28,7 @@ function Controller.new(api,cache,spells)
   local function gate()
     if not self.enabled or not spells.enabled then return "Tracking is disabled" end
     if not cache.enabled or not select(3,api.getConnectionInfo()) then return "Disconnected" end
+    if queries and queries.owner() then return "Waiting for ability data collection" end
     if not spells.isFresh() then return "Waiting for data" end
     if cache.get("char.status.state")~=3 or cache.get("char.status.pos")~="Standing" then return "Waiting for standing, command-ready character outside combat" end
   end
@@ -53,7 +54,7 @@ function Controller.new(api,cache,spells)
   function self.coverage()
     if not spells.isFresh() then return {known=false} end
     local active=activeSet(); local count,total=0,0
-    for _,e in ipairs(spells.snapshot().active) do
+    for _,e in ipairs(spells.snapshot(false).active) do
       if baseline and baseline[e.id] and e.awaiting then return {known=false,reason="Buff expiry awaiting server confirmation"} end
     end
     if not baseline then return {known=false,reason="Waiting for a confirmed spellup",active=0,total=0} end
@@ -147,6 +148,7 @@ function Controller.new(api,cache,spells)
       local function on(name,event,fn)
         handlers[#handlers+1]=name; assert(api.registerNamedEventHandler(OWNER,name,event,fn),"Cannot register spellup handler")
       end
+      on("queries","AardwolfToolbox.queries.available",schedule)
       on("outgoing","sysDataSendRequest",function(_,command)
         if inflight or type(command)~="string" or not cache.enabled or not select(3,api.getConnectionInfo()) then return end
         local words={}; for word in command:lower():gmatch("%S+") do words[#words+1]=word end
@@ -184,7 +186,8 @@ function Controller.new(api,cache,spells)
         if not inflight then return end
         observed=true; targets=targets or activeSet()
         local found
-        for id,spell in pairs(spells.snapshot().catalog) do
+        for _,spell in ipairs(spells.findByName(name)) do
+          local id=spell.id
           if spell.name==name then
             if found then unknown=true end
             found=id

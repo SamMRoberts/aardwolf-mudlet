@@ -139,3 +139,7 @@ unchanged. An existing different backup blocks migration rather than overwriting
 it. Unknown feature/settings values remain stored. Older packages cannot read
 format 2; restore the backup only when deliberately downgrading (later preferences
 will be lost).
+
+## Ability selections (format 3)
+
+Action records include `ability_mode` (`manual`, `specific`, `highest`), `ability_id`, `ability_role`, `ability_type`, `ability_kind`, `ability_targeting`, and `arguments`. Default new records from the registered field definitions. Versions 1/2 gain only the new ability fields; existing commands, IDs, and shortcuts remain intact. The original settings bytes are backed up before the first version-3 write. Type corrections are ordinary bounded records under `abilities.corrections` and participate in the same draft transaction. See [ability catalog](abilities.md).

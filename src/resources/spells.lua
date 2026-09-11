@@ -15,10 +15,11 @@ local REQUESTS={
   {kind="active",header="spellheaders",args="affected noprompt",command="slist affected noprompt"},
   {kind="recoveries",header="recoveries",args="recoveries noprompt",command="slist recoveries noprompt"},
 }
-function Spells.new(api,cache,incoming,tags)
+function Spells.new(api,cache,incoming,tags,store,queries)
   local self={enabled=false,last="Disabled"}
   local options={automatic_setup=true}
   local catalog,active,recoveries,classification={},{},{},{}
+  local catalogAvailable=false
   local handlers,events={},{}
   local frame,request,timeout,notifyTimer,pulseTimer
   local pending,syncIndex,fresh,monitoring,retried,halted=false,nil,false,false,false,false
@@ -41,12 +42,20 @@ function Spells.new(api,cache,incoming,tags)
       if self.enabled then drive() end
     end)
   end
-  local function cancel()
+  local function cancel(retainOwnership)
     if timeout then api.killTimer(timeout); timeout=nil end
     frame=nil; request=nil
+    if queries and not retainOwnership then queries.release(OWNER) end
   end
   local function changed() emit("updated") end
-  local function name(id) return catalog[id] and catalog[id].name or "Spell #"..id end
+  local function catalogRow(id)
+    if store then return catalogAvailable and store.get("spells",id) or nil end
+    return catalog[id]
+  end
+  local function name(id)
+    local r=catalogRow(id) or active[id] and active[id].details
+    return r and r.name or "Spell #"..id
+  end
   local function applyDelta(e)
     local id=e.id
     local target=(e.kind=="affon" and active or e.kind=="recon" and recoveries)
@@ -95,6 +104,12 @@ function Spells.new(api,cache,incoming,tags)
       if not pending then return end
       pending=false; syncIndex=1; fresh=false
     end
+    if store then
+      local base=cache.get("char.base")
+      if not base or not base.name then return end
+      store.select(base.name)
+    end
+    if queries and not queries.acquire(OWNER) then return end
     request=REQUESTS[syncIndex]
     self.last="Synchronizing "..request.kind
     armTimeout()
@@ -110,13 +125,14 @@ function Spells.new(api,cache,incoming,tags)
     return "ignore"
   end
   local function commit(f)
-    if f.kind=="catalog" then catalog=f.rows
+    if f.kind=="catalog" then
+      if store then store.replace({spells=f.rows}); catalogAvailable=true else catalog=f.rows end
     elseif f.kind=="classification" then classification={}; for id in pairs(f.rows) do classification[id]=true end
     elseif f.kind=="active" then
       local previous=active; active={}
       for id,r in pairs(f.rows) do
-        if r.duration>0 then active[id]={id=id,reported=f.at,duration=r.duration,expires=f.at+r.duration} end
-        if not catalog[id] then catalog[id]=r end
+        if r.duration>0 then active[id]={id=id,reported=f.at,duration=r.duration,expires=f.at+r.duration,details=copy(r)} end
+        if not store and not catalog[id] then catalog[id]=r end
       end
       -- Deltas win over the snapshot, including effects applied during collection.
       for _,e in ipairs(f.deltas) do applyDelta(e) end
@@ -159,6 +175,7 @@ function Spells.new(api,cache,incoming,tags)
       else applyDelta(e) end
       changed(); return true,true,"AardwolfToolbox.tags"
     end
+    if queries and queries.owner() and queries.owner()~=OWNER and not frame then return false end
     local header,args=text:match("^{(spellheaders)([^}]*)}$")
     if not header then header,args=text:match("^{(recoveries)([^}]*)}$") end
     if header and args~="" and not args:match("^%s") then header=nil end
@@ -175,8 +192,9 @@ function Spells.new(api,cache,incoming,tags)
         local f=frame; frame=nil
         commit(f)
         if f.expected then
-          cancel(); syncIndex=syncIndex+1
+          cancel(true); syncIndex=syncIndex+1
           if syncIndex>#REQUESTS then
+            if queries then queries.release(OWNER) end
             syncIndex=nil; fresh=true; self.last="Tracking spells and recoveries"; emit("synced")
           end
         elseif request then armTimeout()
@@ -199,7 +217,7 @@ function Spells.new(api,cache,incoming,tags)
         local label,target,duration,pct,recovery,kind
         id,label,target,duration,pct,recovery,kind=text:match("^(%d+),([^,]+),(%d+),(%d+),(%d+),(%-?%d+),(%d+)$")
         id=integer(id); target=integer(target); duration=integer(duration); pct=integer(pct); recovery=integer(recovery,-1); kind=integer(kind)
-        if id and target and target<=5 and duration and pct and pct<=100 and recovery and (kind==1 or kind==2) then
+        if id and target and target<=5 and duration and pct and recovery and (kind==1 or kind==2) then
           r={id=id,name=label,target=target,duration=duration,practice=pct,recovery=recovery,type=kind}
         end
       end
@@ -208,12 +226,19 @@ function Spells.new(api,cache,incoming,tags)
     return true,true,"AardwolfToolbox.tags"
   end
   function self.get(id)
-    id=tonumber(id)
-    if not id or not (catalog[id] or active[id]) then return nil end
-    local r=copy(catalog[id] or {id=id,name=name(id)})
+    id=integer(id)
+    if not id then return nil end
+    local row=catalogRow(id) or active[id] and active[id].details
+    if not row and not active[id] then return nil end
+    local r=copy(row or {id=id,name=name(id)})
     r.active=copy(active[id]); r.spellup=classification[id] or false; return r
   end
-  function self.snapshot()
+  function self.findByName(label)
+    if store then return catalogAvailable and store.rows("spells",label) or {} end
+    local rows={}; for _,r in pairs(catalog) do if r.name==label then rows[#rows+1]=copy(r) end end
+    return rows
+  end
+  function self.snapshot(includeCatalog)
     local effects={}
     for id,e in pairs(active) do
       local r=copy(e); r.name=name(id); r.spellup=classification[id] or false
@@ -221,11 +246,17 @@ function Spells.new(api,cache,incoming,tags)
       effects[#effects+1]=r
     end
     table.sort(effects,function(a,b) if a.expires==b.expires then return a.name<b.name end; return a.expires<b.expires end)
-    return {session=session,fresh=fresh,monitoring=monitoring,last=self.last,catalog=copy(catalog),active=effects,recoveries=copy(recoveries)}
+    local rows={}
+    if includeCatalog~=false then
+      if store then
+        if catalogAvailable then for _,r in ipairs(store.rows("spells")) do rows[r.id]=r end end
+      else rows=copy(catalog) end
+    end
+    return {session=session,fresh=fresh,monitoring=monitoring,last=self.last,catalog=rows,active=effects,recoveries=copy(recoveries)}
   end
   function self.isFresh() return self.enabled and connected() and fresh and (monitoring or not options.automatic_setup) end
   local function reset()
-    cancel(); catalog,active,recoveries,classification={},{},{},{}
+    cancel(); catalog,active,recoveries,classification={},{},{},{}; catalogAvailable=false
     pending=options.automatic_setup; syncIndex=nil; fresh=false; monitoring=false; retried=false; halted=false; progression=nil
     session=session+1; self.last="Waiting for fresh character data"; emit("reset"); changed()
   end
@@ -250,20 +281,23 @@ function Spells.new(api,cache,incoming,tags)
     for _,n in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,n) end; handlers={}
     if pulseTimer then api.killTimer(pulseTimer); pulseTimer=nil end
     if notifyTimer then api.killTimer(notifyTimer); notifyTimer=nil end
-    events={}; catalog,active,recoveries,classification={},{},{},{}
+    events={}; catalog,active,recoveries,classification={},{},{},{}; catalogAvailable=false
     pending=false; syncIndex=nil; fresh=false; monitoring=false; self.last="Disabled"
     api.raiseEvent(OWNER..".reset",nil,session)
     if api.gmod then api.gmod.disableModule(OWNER,"Char") end
+    if store then store.close(OWNER) end
   end
   self.destroy=self.stop
   function self.start()
     if self.enabled then return true end
     local ok,err=pcall(function()
+      if store then assert(store.open(OWNER)) end
       self.enabled=true; reset()
       incoming.add(OWNER,19,receive,function(err) self.stop(); self.last="Stopped: "..tostring(err) end)
       local function on(name,event,fn)
         handlers[#handlers+1]=name; assert(api.registerNamedEventHandler(OWNER,name,event,fn),"Cannot register spell handler")
       end
+      on("queries","AardwolfToolbox.queries.available",drive)
       on("reset","AardwolfToolbox.gmcp.cleared",reset)
       on("disconnect","sysDisconnectionEvent",reset)
       on("data","AardwolfToolbox.gmcp.updated",function(_,path)
