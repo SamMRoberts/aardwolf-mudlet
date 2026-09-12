@@ -229,6 +229,26 @@ class MobTests(unittest.TestCase):
           assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
         """)
 
+    def test_attack_omits_only_leading_articles_and_preserves_number_and_name(self):
+        self.service()
+        self.lua.execute("""
+          room(12); pulse()
+          scan({'a bat','a bat','the caretaker','The Élan <red> & friends','A giant bat',
+            'theatre guard','aardvark','Keeper of the gate','an owl'})
+          local s=m.snapshot()
+          local expected={'kill 1.bat','kill 2.bat','kill 1.caretaker','kill 1.Élan <red> & friends',
+            'kill 1.giant bat','kill 1.theatre guard','kill 1.aardvark','kill 1.Keeper of the gate','kill 1.an owl'}
+          for i,command in ipairs(expected) do
+            local count=#sent
+            assert(m.attack(s.rows[i].id,s.revision))
+            assert(sent[#sent]==command and #sent==count+1)
+            assert(m.snapshot().rows[i].name==s.rows[i].name)
+          end
+          assert(m.attack(s.rows[2].id,s.revision))
+          status({state=8,enemy='a bat',enemypct=50})
+          assert(m.snapshot().rows[2].target and not m.snapshot().rows[1].target)
+        """)
+
     def test_nearby_snapshot_is_separate_atomic_and_cleared_on_room_change(self):
         self.service()
         self.lua.execute("""
@@ -339,12 +359,18 @@ class MobUITests(unittest.TestCase):
           local pane=MobPane.new(_G,t.ui,t.borders,function() end,function() end,function() error('Nearby attack') end,function() end)
           pane.configure(values)
           local s={rows={},nearby={fresh=true,updated=100,sections={{direction='North',distance=2,heading='2 North from here',entries={{name='Élan <red> & friends'},{name='Élan <red> & friends'}}}}}}
+          s.nearby.sections[2]={direction='South',heading='South from here',entries={{name='a snake'}}}
           pane.update(s,'Visible mobs · current visit')
           local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
           local first=widgets['AardwolfToolbox.mobs.scanRow2']; local second=widgets['AardwolfToolbox.mobs.scanRow3']
           assert(not scan.hidden and scan.height<=160 and header.height>=32)
           assert(first.text:find('&lt;red&gt;') and first.text:find('&amp;') and second.text==first.text)
           assert(first.renderedFontSize>=11 and not first.doubleClickCallback and not first.callback)
+          local north=widgets['AardwolfToolbox.mobs.scanRow1']; local south=widgets['AardwolfToolbox.mobs.scanRow4']
+          assert(north.text:find('#80dfff') and south.text:find('#9fe3a8'))
+          assert(north.style:find('border%-top: 1px') and south.y>=second.y+second.height+6)
+          values.colors=false; pane.configure(values)
+          assert(not north.text:find('#80dfff') and north.style:find('border%-top: 1px'))
           local body=widgets['AardwolfToolbox.mobs.body']; local oldHeight=body.height
           header.callback(); assert(scan.hidden and body.height>oldHeight)
           header.callback(); assert(not scan.hidden)

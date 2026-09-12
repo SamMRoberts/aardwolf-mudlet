@@ -319,8 +319,9 @@ Choose learned abilities in the existing button editor, or bind a button to the 
 A dedicated left pane tracks visible room mobs as individual rows, the current
 GMCP target, confirmed kills, and recently observed attackers. Configure refresh,
 colors, symbols, and optional pulsing in `aardwolf-config → Room mobs`. Double-click
-a living row to attack with `kill <number>.<full mob name>`. Duplicate combat targets default to the first match; numbered `kill` targets select the corresponding row. Compact Refresh/Settings buttons share the title row (0.18.4).
+a living row to attack with `kill <number>.<mob name>`. Duplicate combat targets default to the first match; numbered `kill` targets select the corresponding row. Compact Refresh/Settings buttons share the title row (0.18.4).
 Version **0.18.5** adds a compact, collapsible nearby **Scan** inset with direction/distance headings and individual names. Refresh requests `scan`; disable **Include nearby scan results** in Room mobs settings to return to `scan here`. Nearby rows are read-only.
+Version **0.18.6** omits leading `a`/`the` from Room mobs double-click commands and adds colored direction headers and separators to nearby scans.
 
 [Controls, data limitations, and validation](docs/room-mobs.md).
 

@@ -1,4 +1,4 @@
-# Room mobs — 0.18.5
+# Room mobs — 0.18.6
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -25,9 +25,12 @@ Every mob is displayed individually in scan order. Identical living names receiv
 server targeting keywords or persistent mob IDs. Each row keeps its own flags.
 Rows stay in place during combat instead of jumping under the pointer.
 
-**Double-click** a living mob to send one literal `kill <number>.<full mob name>`
-command, such as `kill 2.a snake`. The number counts living entries of that same
-name in scan order, not every row in the panel. Flags are excluded from the name.
+**Double-click** a living mob to send one literal `kill <number>.<mob name>`
+command, such as `kill 2.snake`. The number counts living entries of that same
+name in scan order, not every row in the panel. Flags and a leading `a` or `the` (case-insensitive, whole word only) are excluded
+from the command name. The displayed name stays unchanged. For example, `a bat`
+sends `kill 1.bat`, its second duplicate sends `kill 2.bat`, and `the caretaker`
+sends `kill 1.caretaker`.
 This starts an attack and preserves command-input text. It requires a connected,
 command-ready or fighting character and a complete current-room scan. A changed
 list between clicks cancels the action. Dead or unclassified rows cannot attack.
@@ -48,7 +51,10 @@ each state; compact ↻ Refresh and ⚙ Settings buttons share the title row and
 ### Nearby scan
 
 A compact **Scan** inset below the current-room roster shows nearby occupants in
-server order, under direction headings and reported distance numbers. Duplicate
+server order, under colored direction headers and reported distance numbers.
+Headers have a contrasting background, a separator line, and spacing between
+sections. Direction colors respect **Use status colors**; separators remain
+visible when colors are disabled. Duplicate
 names remain separate lines; flags and names are rendered literally. Hover a
 heading to read the original location wording. No distance is invented when the
 server omits one. The parser follows the existing
@@ -134,7 +140,7 @@ stale double clicks, command-input isolation, readiness, capture limits, setting
 fonts, and teardown. `tests/native_mobs.lua` is restricted to the disconnected
 AardwolfToolboxSettingsTest profile and intercepts all command dispatch.
 
-Version 0.18.5 uses local Lua/package tests only. The updated scan inset has not
+Version 0.18.6 uses local Lua/package tests only. The updated scan inset has not
 been installed, rendered, or exercised against live server output; Mudlet was not
 controlled, as requested.
 

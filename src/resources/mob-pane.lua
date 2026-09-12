@@ -1,6 +1,7 @@
 -- Dedicated roster: stable scan order, separate selection and combat evidence.
 local Pane={}
 local OWNER='AardwolfToolbox.mobs'
+local scanColors={North='#80dfff',South='#9fe3a8',East='#ffda85',West='#d4b0ff',Up='#9bbcff',Down='#ffad99'}
 function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
   local self={}; local root,body,heading,status,button,optionsButton,summary,hint,clearButton
   local scanHeading,scanBody; local scanLabels={}; local scanExpanded=true
@@ -49,7 +50,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       scanHeading:setToolTip(scan.updated and ((not scan.fresh and 'Stale. ' or '')..'Last scan '..math.max(0,math.floor(api.getEpoch()-scan.updated))..' seconds ago. Nearby entries cannot be attacked from this list.') or 'Refresh to scan nearby rooms. Click to collapse or expand.')
       local lines={}
       for _,section in ipairs(scan.sections) do
-        lines[#lines+1]={text=section.direction..(section.distance and ' · '..section.distance or ''),header=true,tooltip=section.heading}
+        lines[#lines+1]={text=section.direction..(section.distance and ' · '..section.distance or ''),header=true,direction=section.direction,tooltip=section.heading}
         for _,entry in ipairs(section.entries) do lines[#lines+1]={text=entry.name} end
         if #section.entries==0 then lines[#lines+1]={text='No visible occupants'} end
       end
@@ -58,15 +59,19 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       for i,line in ipairs(lines) do
         local widget=scanLabels[i]
         if not widget then widget=label('scanRow'..i,scanBody); scanLabels[i]=widget end
-        local signature=table.concat({width,small.font,small.size,tostring(line.header),line.text},'|')
+        local color=line.header and (options.colors and scanColors[line.direction] or '#d8e3eb') or '#d8e3eb'
+        local signature=table.concat({width,small.font,small.size,tostring(line.header),line.text,color},'|')
         if widget.signature~=signature then
-          widget.rowHeight=math.max(small.line+6,math.ceil(ui.measure(line.text,'secondary')/math.max(40,width-40))*small.line+6)
+          local padding=line.header and 12 or 6
+          widget.rowHeight=math.max(small.line+padding,math.ceil(ui.measure(line.text,'secondary')/math.max(40,width-48))*small.line+padding)
           ui.apply(widget,'secondary')
-          widget:setStyleSheet('QLabel { background: transparent; color: '..(line.header and '#a9c9dd' or '#d8e3eb')..'; padding: 3px; qproperty-wordWrap: true; }')
-          widget:echo(line.header and '<b>'..ui.escape(line.text)..'</b>' or ui.escape(line.text))
+          local surface=line.header and 'background: #213343; border-top: 1px solid #496274; border-left: 3px solid '..color..'; padding: 5px;' or 'background: transparent; padding: 3px;'
+          widget:setStyleSheet('QLabel { '..surface..' color: '..color..'; qproperty-wordWrap: true; }')
+          widget:echo(line.header and '<b><span style="color:'..color..'">'..ui.escape(line.text)..'</span></b>' or ui.escape(line.text))
           widget:resize(width-30,widget.rowHeight); widget.signature=signature
         end
         widget:setToolTip(ui.escape(line.tooltip or line.text))
+        if line.header and i>1 then y=y+6 end
         widget:move(8,y); widget:show(); y=y+widget.rowHeight
       end
       for i=#lines+1,#scanLabels do scanLabels[i]:hide() end
