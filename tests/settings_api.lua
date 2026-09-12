@@ -56,6 +56,7 @@ function getMainWindowSize() return 1200,800 end
 function Widget:setCursor(cursor) self.cursor=cursor end
 function Widget:setStyleSheet(text) self.style = text end
 function Widget:setClickCallback(fn) self.callback = fn end
+function Widget:setDoubleClickCallback(fn) self.doubleClickCallback = fn end
 function Widget:setMoveCallback(fn) self.moveCallback = fn end
 function Widget:setReleaseCallback(fn) self.releaseCallback = fn end
 function Widget:get_x() return self.x end

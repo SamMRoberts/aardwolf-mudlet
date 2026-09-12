@@ -1,4 +1,4 @@
--- Serializes Toolbox's informational spell/ability requests, not gameplay actions.
+-- Serializes Toolbox's informational requests, not gameplay actions.
 local Coordinator={}
 function Coordinator.new(api)
   local self={}; local owner,timer

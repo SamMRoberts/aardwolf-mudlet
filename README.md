@@ -313,3 +313,11 @@ Configure paged command/alias buttons and optional shortcuts in `aardwolf-config
 ### Ability catalog and smart buttons (0.17.0)
 
 Choose learned abilities in the existing button editor, or bind a button to the highest-required-level learned ability of a chosen role/type and compatible targeting behavior. The catalog is stored per character in SQLite. See the [ability guide](docs/abilities.md) for filters, local corrections, supported skill commands, freshness rules, and the API. Refreshes are informational; all ability buttons remain manual.
+
+### Room mob tracker (0.18.1)
+
+A dedicated left pane tracks visible room mobs as individual rows, the current
+GMCP target, confirmed kills, and recently observed attackers. Configure refresh,
+colors, symbols, and optional pulsing in `aardwolf-config → Room mobs`. Double-click
+a living row to select a local Toolbox target without attacking.
+[Controls, data limitations, and validation](docs/room-mobs.md).

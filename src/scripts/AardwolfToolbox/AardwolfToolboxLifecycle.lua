@@ -170,6 +170,14 @@ local function initialize()
   AardwolfToolbox.abilities=resource("abilities").new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
     AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries,resource("ability-capture"),resource("ability-model"),AardwolfToolbox.spellup)
   config.registerFeature(AbilityFields.definition(AardwolfToolbox.abilities.configure))
+  local Mobs=resource("mobs")
+  AardwolfToolbox.mobs=Mobs.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,
+    AardwolfToolbox.queries,AardwolfToolbox.spellup,resource("mob-state"),resource("mob-protocol"),resource("mob-pane"),
+    AardwolfToolbox.ui,AardwolfToolbox.borders,function()
+      AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("mobs")
+    end)
+  config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure))
+
   local Shortcuts=resource("shortcuts")
   local Actions=resource("action-bar")
   AardwolfToolbox.actionBar=Actions.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.borders,AardwolfToolbox.ui,
@@ -205,6 +213,7 @@ function AardwolfToolbox.stop()
   if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
   if AardwolfToolbox.help then AardwolfToolbox.help.stop() end
   if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
+  if AardwolfToolbox.mobs then AardwolfToolbox.mobs.stop() end
   if AardwolfToolbox.spellup then AardwolfToolbox.spellup.stop() end
   if AardwolfToolbox.spells then AardwolfToolbox.spells.stop() end
   if AardwolfToolbox.abilities then AardwolfToolbox.abilities.stop() end

@@ -48,13 +48,13 @@ class ASCIITests(unittest.TestCase):
           for _,edge in ipairs({'bottom','left','right','top','floating'}) do
             assert(c.set('ascii','dock',edge)); assert(a.enabled and AardwolfToolbox.vitals.enabled)
           end
-          assert(borderBottom==vh+bh and borderLeft==0 and borderRight==300 and borderTop==AardwolfToolbox.ui.metrics().height)
+          assert(borderBottom==vh+bh and borderLeft==c.get("mobs","width") and borderRight==300 and borderTop==AardwolfToolbox.ui.metrics().height)
           assert(c.set('ascii','dock','bottom')); assert(borderBottom==vh+bh+c.get("ascii","height"))
           assert(widgets['AardwolfToolbox.vitals.root'].y==800-vh)
           assert(c.set('ascii','enabled',false)); assert(borderBottom==vh+bh)
           a.open(); c.set('ascii','dock','right'); borderRight=75
           c.set('ascii','enabled',false); assert(borderRight==75 and borderBottom==vh+bh)
-          AardwolfToolbox.stop(); assert(borderBottom==0 and borderRight==75 and count(widgets)==0)
+          AardwolfToolbox.stop(); assert(borderBottom==0 and borderLeft==0 and borderRight==75 and count(widgets)==0)
         ''')
 
     def test_drag_atomic_stale_lock_and_failure(self):
