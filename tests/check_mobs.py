@@ -21,10 +21,30 @@ class MobTests(unittest.TestCase):
           assert(s.rows[1].flags=='(Hidden)' and s.rows[2].flags=='')
           s.rows[1].name='mutated'; assert(state.snapshot(12).rows[1].name=='a rat')
           state.enemy('a rat',true,50); s=state.snapshot(12)
-          assert(not s.rows[1].target and s.rows[1].possibleTarget and s.rows[2].possibleTarget)
+          assert(s.rows[1].target and not s.rows[2].target and not s.rows[2].possibleTarget)
           assert(state.kill('a rat')); s=state.snapshot(12)
-          assert(s.rows[1].killed==1 and s.rows[1].uncertainDeath and s.rows[2].alive==1)
+          assert(s.rows[1].killed==1 and not s.rows[1].uncertainDeath and s.rows[2].alive==1)
         ''')
+
+    def test_numbered_target_intent_and_death_follow_the_selected_row(self):
+        self.lua.execute("""
+          state.observe({{name='a snake',count=4}})
+          state.command('kill 4.snake'); state.enemy('a snake',true,90)
+          local s=state.snapshot(12); assert(s.rows[4].target and not s.rows[1].target)
+          state.enemy('a snake',true,80); assert(state.snapshot(12).rows[4].target)
+          state.kill('a snake'); s=state.snapshot(12)
+          assert(s.rows[4].killed==1 and s.rows[1].alive==1 and not s.rows[4].uncertainDeath)
+          state.enemy('',false); state.command('k 2.snake'); state.enemy('a snake',true,60)
+          assert(state.snapshot(12).rows[2].target)
+          state.enemy('',false); state.command('kill snake'); state.enemy('a snake',true,50)
+          assert(state.snapshot(12).rows[1].target)
+          state.enemy('',false); state.command('kill 3.snake'); now=111
+          state.enemy('a snake',true,40); assert(state.snapshot(12).rows[1].target)
+          state.enemy('',false); state.command('get 3.snake'); state.enemy('a snake',true,30)
+          assert(state.snapshot(12).rows[1].target)
+          state.clear('13'); state.observe({{name='a snake',count=4}})
+          state.enemy('a snake',true,10); assert(state.snapshot(12).rows[1].target)
+        """)
 
     def test_disappearance_does_not_prove_death_and_repopulation(self):
         self.lua.execute('''          state.observe({{name='a rat',count=2}}); state.observe({})
@@ -147,7 +167,7 @@ class MobTests(unittest.TestCase):
           room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan here')
           scan({'a rat','a rat'}); assert(m.snapshot().fresh and m.snapshot().rows[1].alive==1 and #m.snapshot().rows==2)
           status({state=8,enemy='a rat',enemypct=30}); status({enemypct=0})
-          assert(m.snapshot().rows[1].possibleTarget and m.snapshot().rows[1].health==nil)
+          assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==0)
           receive("A rat's bite hits you."); assert(m.snapshot().rows[1].possibleAttacker)
           receive('A rat is DEAD!!'); assert(m.snapshot().rows[1].killed==1)
           m.start(); assert(calls==1)
@@ -166,6 +186,27 @@ class MobTests(unittest.TestCase):
           room(13); assert(not m.select(s.rows[2].id,s.revision))
           online=false; assert(not m.select(s.rows[1].id,s.revision)); assert(#sent==count)
         ''')
+
+    def test_double_click_attack_command_and_outgoing_numbered_target(self):
+        self.service()
+        self.lua.execute("""
+          room(12); pulse(); scan({'Élan <red> & friends','Élan <red> & friends'})
+          local s=m.snapshot(); local count=#sent
+          assert(m.attack(s.rows[2].id,s.revision))
+          assert(#sent==count+1 and sent[#sent]=='kill 2.Élan <red> & friends')
+          status({state=8,enemy='Élan <red> & friends',enemypct=70})
+          assert(m.snapshot().rows[2].target and not m.snapshot().rows[1].target)
+          status({state=3,enemy=''})
+          handlers.sysDataSendRequest('', 'kill 1.Élan <red> & friends')
+          status({state=8,enemy='Élan <red> & friends'})
+          assert(m.snapshot().rows[1].target)
+          count=#sent; cache.values['char.status.state']=6
+          assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
+          cache.values['char.status.state']=3; online=false
+          assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
+          online=true; room(13)
+          assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
+        """)
 
     def test_readiness_room_change_and_timeout(self):
         self.service()

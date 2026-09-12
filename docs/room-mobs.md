@@ -1,4 +1,4 @@
-# Room mobs — 0.18.1
+# Room mobs — 0.18.4
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -7,7 +7,7 @@ disconnected, displaying a waiting state. Disable it explicitly in
 `aardwolf-config → Room mobs` to reclaim the space.
 
 This is a room-visit tracker of what the game reveals, not a way to see hidden
-creatures. It does not attack, target, cast, move, open doors, or execute names.
+creatures. Tracking never attacks automatically. Double-clicking a living row explicitly sends the manual kill command described below.
 
 ## Indicators and refresh
 
@@ -25,26 +25,25 @@ Every mob is displayed individually in scan order. Identical living names receiv
 server targeting keywords or persistent mob IDs. Each row keeps its own flags.
 Rows stay in place during combat instead of jumping under the pointer.
 
-**Double-click** a living mob to select it as the local Toolbox target. The footer
-shows the selection; **Clear** removes it. This preserves command-input text and
-sends no gameplay command. Selection is separate from **Fighting**, which comes
-from GMCP. Aardwolf's ranged `target` command does not normally work in the same
-room, so the pane does not use that command or start an attack. Selection requires
-a connected, command-ready or fighting character and a complete current-room
-scan. A refreshed scan, room change, disconnect, or ambiguous duplicate death
-clears selection. A list change between the two clicks cancels selection.
+**Double-click** a living mob to send one literal `kill <number>.<full mob name>`
+command, such as `kill 2.a snake`. The number counts living entries of that same
+name in scan order, not every row in the panel. Flags are excluded from the name.
+This starts an attack and preserves command-input text. It requires a connected,
+command-ready or fighting character and a complete current-room scan. A changed
+list between clicks cancels the action. Dead or unclassified rows cannot attack.
 
-Name-only combat reports cannot distinguish identical mobs. Such rows show
-**Possible opponent** or **Possible attacker** rather than asserting that all are
-fighting. A confirmed duplicate death marks one separate row **Killed · duplicate
-identity unknown**; it does not claim which physical instance died. A GMCP
-opponent absent from the scan is explicitly unclassified and cannot be selected,
-since GMCP does not establish that it is a mob rather than a player.
+GMCP combat updates mark the first living matching name as **Fighting** by default.
+Outgoing `kill` / `k` commands, including keyword targets such as `2.snake`, select
+the corresponding observation when matching combat data arrives within ten seconds.
+The chosen row remains stable through partial updates and receives matching death
+reports. This is an ordering heuristic, not a server-provided instance identity.
+Other command forms fall back to the first matching mob. Incoming name-only attacker
+reports remain ambiguous for duplicates and show **Possible attacker**.
 
 The roster uses a count summary, readable names, restrained status-colored card
 edges, optional flags, a selected-row highlight, and a fixed selection footer.
 Confirmed kills remain separate entries. Color-independent text labels explain
-each state; Refresh and Settings stay accessible above the scrolling list.
+each state; compact ↻ Refresh and ⚙ Settings buttons share the title row and have tooltips.
 
 The pane refreshes on room entry and after combat by default. **Refresh** requests
 one new snapshot. Optional periodic refresh is off by default; set an interval
@@ -90,12 +89,11 @@ Do not interpret this pane as an authoritative list of every possible attacker.
 `AardwolfToolbox.mobs.snapshot()` returns a defensive copy of room freshness,
 observation time, scan revision, and individual rows. Each row has a local ID,
 name, flags, ordinal among identical living names, living/killed/missing state,
-selection, target/health, and recent attacker evidence. `possibleTarget` and
-`possibleAttacker` distinguish ambiguous duplicate matches. Updates raise the
+selection, target/health, and recent attacker evidence. `target` identifies the chosen combat row; `possibleAttacker` marks ambiguous incoming attacks. Updates raise the
 profile-local `AardwolfToolbox.mobs.updated` event after incoming processing.
 `mobs.refresh()` requests a guarded refresh. `mobs.select(id, revision)` selects
 a current living observation, `mobs.selected()` returns a defensive copy of the
-selection, and `mobs.clearSelection()` clears it. No selection API sends commands. Start, configure, stop, and destroy
+selection, and `mobs.clearSelection()` clears it. The selection APIs remain local. `mobs.attack(id, revision)` performs the guarded manual kill command used by double-click. Start, configure, stop, and destroy
 are repeatable and remove owned handlers, timers, widgets, and border claims.
 
 ## Verification status

@@ -18,7 +18,7 @@ function State.name(text)
 end
 function State.new(clock)
   local self={room=nil,rows={},fresh=false,revision=0}
-  local serial=0; local attacks={}
+  local serial=0; local attacks={}; local intent; local targetId
   local function create(name,flags)
     serial=serial+1
     return {id=serial,name=name,flags=flags or '',alive=1,killed=0,missing=0}
@@ -30,7 +30,7 @@ function State.new(clock)
   end
   function self.clear(room)
     self.room=room; self.rows={}; self.fresh=false; self.updated=nil; self.target=nil; self.combat=false
-    self.selected=nil; self.health=nil; attacks={}; self.revision=self.revision+1
+    self.selected=nil; self.health=nil; attacks={}; intent=nil; targetId=nil; self.revision=self.revision+1
   end
   function self.observe(entries)
     local nextRows,counts={},{}
@@ -53,11 +53,37 @@ function State.new(clock)
     end
     table.sort(history,function(a,b) return a.id>b.id end)
     for i=1,math.min(#history,512) do nextRows[#nextRows+1]=history[i] end
-    self.rows=nextRows; self.selected=nil; self.fresh=true; self.updated=clock(); self.revision=self.revision+1
+    self.rows=nextRows; intent=nil; targetId=nil; self.selected=nil; self.fresh=true; self.updated=clock(); self.revision=self.revision+1
+  end
+  -- Outgoing kill targets are hints: GMCP must still confirm combat and name.
+  function self.command(command)
+    if not self.fresh or type(command)~='string' or command:find('[%z\1-\31\127]') then return end
+    local verb,target=command:match('^%s*(%S+)%s+(.-)%s*$')
+    if not verb then return end
+    if verb:lower()~='kill' and verb:lower()~='k' then return end
+    intent=nil
+    local ordinal,keyword=target:match('^(%d+)%.(.+)$')
+    ordinal=tonumber(ordinal) or 1; keyword=(keyword or target):lower()
+    if keyword=='' or ordinal<1 or ordinal>512 then return end
+    local candidates=living(keyword)
+    if #candidates==0 then
+      for _,r in ipairs(self.rows) do
+        local matches=true
+        for wanted in keyword:gmatch('%S+') do
+          local found=false
+          for word in r.name:lower():gmatch('%S+') do if word:sub(1,#wanted)==wanted then found=true; break end end
+          if not found then matches=false; break end
+        end
+        if matches and r.alive>0 and not r.unclassified then candidates[#candidates+1]=r end
+      end
+    end
+    local row=candidates[ordinal]
+    if row then intent={id=row.id,name=row.name:lower(),time=clock()} end
   end
   function self.enemy(name,combat,pct)
+    if self.combat and combat~=true then intent=nil end
     self.combat=combat==true; self.target=nil; self.health=nil
-    if not self.combat then attacks={}; return end
+    if not self.combat then attacks={}; targetId=nil; return end
     name=State.name(name)
     if name then
       self.target=name:lower()
@@ -66,6 +92,14 @@ function State.new(clock)
       if #found==0 and not dead and #self.rows<1024 then
         local r=create(name); r.unclassified=true; self.rows[#self.rows+1]=r
       end
+      found=living(self.target)
+      local chosen
+      if intent and clock()-intent.time<=10 and intent.name==self.target then
+        for _,r in ipairs(found) do if r.id==intent.id then chosen=r; break end end
+        intent=nil
+      end
+      if not chosen then for _,r in ipairs(found) do if r.id==targetId then chosen=r; break end end end
+      chosen=chosen or found[1]; targetId=chosen and chosen.id
       if type(pct)=='number' and pct==pct and pct>=0 and pct<=100 then self.health=pct end
     end
   end
@@ -77,11 +111,14 @@ function State.new(clock)
   function self.kill(name)
     name=State.name(name); local key=name and name:lower(); local candidates=key and living(key) or {}
     if #candidates==0 then return false end
-    local r=candidates[1]; r.alive=0; r.killed=1; r.uncertainDeath=#candidates>1
-    -- Name-only combat text cannot identify which duplicate died or is attacking.
+    local r=candidates[1]
+    for _,candidate in ipairs(candidates) do if candidate.id==targetId then r=candidate; break end end
+    r.alive=0; r.killed=1; r.uncertainDeath=#candidates>1 and r.id~=targetId
+    if intent and intent.id==r.id then intent=nil end
+    -- Retain the chosen observation; incoming attackers remain name-only evidence.
     attacks[key]=nil
     for _,candidate in ipairs(candidates) do if self.selected==candidate.id then self.selected=nil end end
-    if #candidates==1 and self.target==key then self.target=nil; self.health=nil end
+    if r.id==targetId then targetId=nil; self.target=nil; self.health=nil end
     return true
   end
   function self.select(id,revision)
@@ -100,7 +137,7 @@ function State.new(clock)
       if r.alive>0 then ordinals[key]=(ordinals[key] or 0)+1; r.ordinal=ordinals[key]; r.duplicates=count end
       local target=self.combat and key==self.target and r.alive>0
       local attacking=self.combat and r.alive>0 and attacks[key]~=nil and clock()-attacks[key]<attackWindow
-      r.target=target and count==1; r.possibleTarget=target and count>1
+      r.target=target and r.id==targetId; r.possibleTarget=false
       r.health=r.target and self.health or nil
       r.attacking=attacking and count==1; r.possibleAttacker=attacking and count>1
       r.selected=self.selected==r.id

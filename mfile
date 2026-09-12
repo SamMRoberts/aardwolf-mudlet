@@ -2,6 +2,6 @@
   "package": "AardwolfToolbox",
   "title": "Aardwolf Toolbox",
   "description": "Readable shared typography, tabbed maps and gameplay dashboard, utility bar, bottom Vitals, auto-mapper, passive capture, and persistent settings for Mudlet 5.0.1.",
-  "version": "0.18.3",
+  "version": "0.18.4",
   "author": "SamMRoberts"
 }

@@ -18,18 +18,18 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     local width=math.max(1,root:get_width()); local m=ui.metrics(); local small=ui.metrics('secondary'); local h=m.height
     local present,killed=0,0; local selected
     for _,r in ipairs(latest.rows) do present=present+r.alive; killed=killed+r.killed; if r.selected then selected=r end end
-    styled(heading,'<b>ROOM MOBS</b>','#edf3fa'); heading:move(4,4); heading:resize(width-8,h)
+    local control=math.max(32,h); local controlsY=4
+    styled(heading,'<b>Room mobs</b>','#edf3fa'); heading:move(4,4); heading:resize(width-2*control-16,control)
+    ui.style(button,true); button:echo('<center>↻</center>'); button:move(width-2*control-8,controlsY); button:resize(control,control)
+    ui.style(optionsButton,true); optionsButton:echo('<center>⚙</center>'); optionsButton:move(width-control-4,controlsY); optionsButton:resize(control,control)
     styled(summary,ui.escape(present..' present  ·  '..killed..' killed'),'#aebfce','secondary')
-    summary:move(4,h+2); summary:resize(width-8,small.height)
-    local controlsY=h+small.height+4
-    ui.style(button,true); button:echo('<center>Refresh</center>'); button:move(8,controlsY); button:resize((width-24)/2,h)
-    ui.style(optionsButton,true); optionsButton:echo('<center>Settings</center>'); optionsButton:move(width/2+4,controlsY); optionsButton:resize((width-24)/2,h)
+    summary:move(4,control+4); summary:resize(width-8,small.height)
     local text=message
     if latest.fresh and latest.updated and message=='Visible mobs · current visit' then text='Updated '..math.max(0,math.floor(api.getEpoch()-latest.updated))..'s ago · current room' end
     styled(status,ui.escape(text),latest.fresh and '#9fbcad' or '#d6bb88','secondary')
     local sh=math.max(small.height,math.ceil(ui.measure(text,'secondary')/math.max(60,width-24))*small.line+12)
-    status:move(4,controlsY+h); status:resize(width-8,sh)
-    local footer=selected and 'Selected: '..selected.name or 'Double-click a mob to select'
+    status:move(4,control+small.height+4); status:resize(width-8,sh)
+    local footer=selected and 'Selected: '..selected.name or 'Double-click a mob to attack'
     local footerWidth=selected and width-76 or width-16
     local fh=math.max(h,math.ceil(ui.measure(footer,'secondary')/math.max(60,footerWidth-12))*small.line+12)
     styled(hint,ui.escape(footer),selected and '#80cfff' or '#b9c8d6','secondary')
@@ -37,7 +37,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     ui.style(clearButton,true); clearButton:echo('<center>Clear</center>')
     clearButton:move(width-64,math.max(0,root:get_height()-fh-4)); clearButton:resize(60,fh)
     if selected then clearButton:show() else clearButton:hide() end
-    local bodyY=controlsY+h+sh+4
+    local bodyY=control+small.height+sh+8
     body:move(0,bodyY); body:resize(width,math.max(1,root:get_height()-bodyY-fh-8))
     local entries={}
     for _,r in ipairs(latest.rows) do
@@ -113,8 +113,8 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       root=api.Geyser.Container:new({name=OWNER..'.pane',x=0,y=0,width=260,height=400})
       local background=label('background',root); background:resize('100%','100%'); background:setStyleSheet('background: #0e1720;')
       heading=label('heading',root); summary=label('summary',root); status=label('status',root); hint=label('hint',root)
-      button=label('refresh',root); button:setClickCallback(refresh)
-      optionsButton=label('settings',root); optionsButton:setClickCallback(settings)
+      button=label('refresh',root); button:setClickCallback(refresh); button:setToolTip('Refresh room mobs')
+      optionsButton=label('settings',root); optionsButton:setClickCallback(settings); optionsButton:setToolTip('Room mob settings')
       clearButton=label('clear',root); clearButton:setClickCallback(clearSelection)
       body=api.Geyser.ScrollBox:new({name=OWNER..'.body',x=0,y=100,width='100%',height='-100px'},root)
     end

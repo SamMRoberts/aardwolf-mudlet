@@ -2,7 +2,7 @@
 local Mobs={}
 local OWNER='AardwolfToolbox.mobs'
 function Mobs.definition(apply)
-  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh uses scan here while command-ready. Every mob has its own row. Double-click selects a local Toolbox target without attacking; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
+  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh uses scan here while command-ready. Every mob has its own row. Double-click attacks with kill <ordinal>.<full mob name>; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
     {key='enabled',label='Enable room mob pane',type='boolean',default=true},
     {key='automatic_setup',label='Automatically enable scan tags',type='boolean',default=true},
     {key='on_entry',label='Refresh when entering a room',type='boolean',default=true},
@@ -35,7 +35,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local model=State.new(api.getEpoch)
   local timer,timeout,notifyTimer,frame,pending,owned,setup,lastRequest,lastRoom=nil,nil,nil,nil,false,false,false,-math.huge,nil
   local generation=0; local ownSend=false; local failedRefresh=false; local status={}
-  local view=Pane.new(api,ui,borders,function() self.refresh() end,settings,function(id,revision) return self.select(id,revision) end,function() self.clearSelection() end)
+  local view=Pane.new(api,ui,borders,function() self.refresh() end,settings,function(id,revision) return self.attack(id,revision) end,function() self.clearSelection() end)
   local function connected() return cache.enabled and select(3,api.getConnectionInfo())==true end
   local function ready() return connected() and cache.get('char.status.state')==3 and cache.get('char.status.pos')=='Standing' and not spellup.status().inflight end
   local function update()
@@ -67,6 +67,19 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     local ok,reason=model.select(id,revision)
     if not ok then self.last=reason end
     update(); return ok,reason
+  end
+  function self.attack(id,revision)
+    local ok,reason=self.select(id,revision)
+    if not ok then return false,reason end
+    local row=self.selected()
+    if not row then return false,'Room target unavailable' end
+    local command='kill '..row.ordinal..'.'..row.name
+    local sent,result,err=pcall(api.send,command,true)
+    if not sent or result==false or err then
+      self.last='Attack command could not be sent'; update(); return false,self.last
+    end
+    model.command(command)
+    self.last='Attack requested: '..row.ordinal..'.'..row.name; update(); return true
   end
   function self.clearSelection()
     if not self.enabled then return false end
@@ -182,6 +195,8 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       on('sysWindowResizeEvent',view.layout)
       on('AardwolfToolbox.ui.changed',view.layout)
       on('sysDataSendRequest',function(_,command)
+        local state=cache.get('char.status.state')
+        if connected() and (state==3 or state==8) then model.command(command) end
         if owned and not ownSend and type(command)=='string' and (command=='scan' or command:match('^scan%s')) then fail('Another scan interrupted refresh') end
       end)
       api.gmod.enableModule(OWNER,'Char'); api.gmod.enableModule(OWNER,'Room')
