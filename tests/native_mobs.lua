@@ -19,7 +19,7 @@ getConnectionInfo=function() return 'offline.fixture',0,true end
 sendGMCP=function() return true end
 send=function(command)
  n.commands[#n.commands+1]=command
- if command=='scan here' then
+ if command=='scan' or command=='scan here' then
   tempTimer(0.05,function()
    for _,line in ipairs({'{scan}','Right here you see:','     - (Hidden) a rat','     - a rat','     - a bat','     - Élan <red> & friends','     - (Player) Sam','{/scan}'}) do feedTriggers('\27[32m'..line..'\27[0m\n') end
    gmcp.char.status={state=8,pos='Fighting',enemy='a rat',enemypct=48};raiseEvent('gmcp.char','gmcp.char.status')

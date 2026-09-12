@@ -3,6 +3,7 @@ local Pane={}
 local OWNER='AardwolfToolbox.mobs'
 function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
   local self={}; local root,body,heading,status,button,optionsButton,summary,hint,clearButton
+  local scanHeading,scanBody; local scanLabels={}; local scanExpanded=true
   local labels={}; local options={}; local latest={rows={}}
   local message='Waiting for room data'; local phase=false; local generation=0
   local function label(name,parent)
@@ -38,7 +39,46 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     clearButton:move(width-64,math.max(0,root:get_height()-fh-4)); clearButton:resize(60,fh)
     if selected then clearButton:show() else clearButton:hide() end
     local bodyY=control+small.height+sh+8
-    body:move(0,bodyY); body:resize(width,math.max(1,root:get_height()-bodyY-fh-8))
+    local available=math.max(1,root:get_height()-bodyY-fh-8)
+    local scanHeight=0
+    if options.nearby then
+      local scan=latest.nearby or {fresh=false,sections={}}; local count=0
+      for _,section in ipairs(scan.sections) do count=count+#section.entries end
+      scanHeading:show(); ui.style(scanHeading,true)
+      scanHeading:echo(ui.escape((scanExpanded and '▾ ' or '▸ ')..'Scan · '..(scan.fresh and count or scan.updated and 'stale' or '--')))
+      scanHeading:setToolTip(scan.updated and ((not scan.fresh and 'Stale. ' or '')..'Last scan '..math.max(0,math.floor(api.getEpoch()-scan.updated))..' seconds ago. Nearby entries cannot be attacked from this list.') or 'Refresh to scan nearby rooms. Click to collapse or expand.')
+      local lines={}
+      for _,section in ipairs(scan.sections) do
+        lines[#lines+1]={text=section.direction..(section.distance and ' · '..section.distance or ''),header=true,tooltip=section.heading}
+        for _,entry in ipairs(section.entries) do lines[#lines+1]={text=entry.name} end
+        if #section.entries==0 then lines[#lines+1]={text='No visible occupants'} end
+      end
+      if #lines==0 then lines[1]={text=scan.fresh and 'No nearby mobs reported' or 'Waiting for scan'} end
+      local y=0
+      for i,line in ipairs(lines) do
+        local widget=scanLabels[i]
+        if not widget then widget=label('scanRow'..i,scanBody); scanLabels[i]=widget end
+        local signature=table.concat({width,small.font,small.size,tostring(line.header),line.text},'|')
+        if widget.signature~=signature then
+          widget.rowHeight=math.max(small.line+6,math.ceil(ui.measure(line.text,'secondary')/math.max(40,width-40))*small.line+6)
+          ui.apply(widget,'secondary')
+          widget:setStyleSheet('QLabel { background: transparent; color: '..(line.header and '#a9c9dd' or '#d8e3eb')..'; padding: 3px; qproperty-wordWrap: true; }')
+          widget:echo(line.header and '<b>'..ui.escape(line.text)..'</b>' or ui.escape(line.text))
+          widget:resize(width-30,widget.rowHeight); widget.signature=signature
+        end
+        widget:setToolTip(ui.escape(line.tooltip or line.text))
+        widget:move(8,y); widget:show(); y=y+widget.rowHeight
+      end
+      for i=#lines+1,#scanLabels do scanLabels[i]:hide() end
+      -- Preserve most of the room roster; nearby results scroll in a bounded inset.
+      local contentHeight=scanExpanded and math.min(y,160,math.max(0,available*0.35-control)) or 0
+      scanHeight=math.min(available,control+contentHeight+4)
+      local scanY=bodyY+available-scanHeight
+      scanHeading:move(8,scanY); scanHeading:resize(width-16,control)
+      scanBody:move(0,scanY+control); scanBody:resize(width,math.max(1,contentHeight))
+      if scanExpanded and contentHeight>0 then scanBody:show() else scanBody:hide() end
+    else scanHeading:hide(); scanBody:hide() end
+    body:move(0,bodyY); body:resize(width,math.max(1,available-scanHeight))
     local entries={}
     for _,r in ipairs(latest.rows) do
       if r.alive>0 or options.show_killed and r.killed>0 or options.show_missing and r.missing>0 then
@@ -116,6 +156,14 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       button=label('refresh',root); button:setClickCallback(refresh); button:setToolTip('Refresh room mobs')
       optionsButton=label('settings',root); optionsButton:setClickCallback(settings); optionsButton:setToolTip('Room mob settings')
       clearButton=label('clear',root); clearButton:setClickCallback(clearSelection)
+      scanHeading=label('scanHeading',root)
+      local epoch=generation
+      scanHeading:setClickCallback(function(event)
+        if not root or generation~=epoch then return end
+        if type(event)=='table' and event.button and event.button~='LeftButton' then return end
+        scanExpanded=not scanExpanded; render()
+      end)
+      scanBody=api.Geyser.ScrollBox:new({name=OWNER..'.scanBody',x=0,y=0,width='100%',height=1},root)
       body=api.Geyser.ScrollBox:new({name=OWNER..'.body',x=0,y=100,width='100%',height='-100px'},root)
     end
     self.layout()
@@ -123,7 +171,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
   function self.destroy()
     generation=generation+1
     if root then root:delete(); root=nil end
-    labels={}; borders.release(OWNER)
+    labels={}; scanLabels={}; scanExpanded=true; borders.release(OWNER)
   end
   return self
 end

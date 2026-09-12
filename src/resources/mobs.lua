@@ -2,9 +2,10 @@
 local Mobs={}
 local OWNER='AardwolfToolbox.mobs'
 function Mobs.definition(apply)
-  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh uses scan here while command-ready. Every mob has its own row. Double-click attacks with kill <ordinal>.<full mob name>; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
+  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh includes nearby scan results while command-ready. Every mob has its own row. Double-click attacks with kill <ordinal>.<full mob name>; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
     {key='enabled',label='Enable room mob pane',type='boolean',default=true},
     {key='automatic_setup',label='Automatically enable scan tags',type='boolean',default=true},
+    {key='nearby',label='Include nearby scan results',type='boolean',default=true},
     {key='on_entry',label='Refresh when entering a room',type='boolean',default=true},
     {key='after_combat',label='Refresh after combat ends',type='boolean',default=true},
     {key='interval',label='Periodic refresh (seconds; 0 disables)',type='number',default=0,min=0,max=300,integer=true},
@@ -32,6 +33,11 @@ end
 function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings)
   local self={enabled=false,last='Disabled'}
   local options,handlers={},{}
+  local nearby={fresh=false,sections={}}; local requestFull=false
+  local function copy(value)
+    if type(value)~='table' then return value end
+    local result={}; for k,v in pairs(value) do result[k]=copy(v) end; return result
+  end
   local model=State.new(api.getEpoch)
   local timer,timeout,notifyTimer,frame,pending,owned,setup,lastRequest,lastRoom=nil,nil,nil,nil,false,false,false,-math.huge,nil
   local generation=0; local ownSend=false; local failedRefresh=false; local status={}
@@ -39,7 +45,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local function connected() return cache.enabled and select(3,api.getConnectionInfo())==true end
   local function ready() return connected() and cache.get('char.status.state')==3 and cache.get('char.status.pos')=='Standing' and not spellup.status().inflight end
   local function update()
-    view.update(model.snapshot(options.attack_window or 12),self.last)
+    view.update(self.snapshot(),self.last)
     if notifyTimer then return end
     local current=generation
     notifyTimer=api.tempTimer(0,function()
@@ -53,13 +59,16 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   end
   local function fail(reason)
     cancel(); pending=false; failedRefresh=true; model.fresh=false; model.selected=nil
+    nearby.fresh=false
     self.last=reason..'; Refresh to retry'; update()
   end
   local function reset()
     generation=generation+1; cancel(); pending=false; setup=false; lastRoom=nil; failedRefresh=false
-    status={}; model.clear(nil); self.last='Waiting for fresh room data'; update()
+    status={}; nearby={fresh=false,sections={}}; model.clear(nil); self.last='Waiting for fresh room data'; update()
   end
-  function self.snapshot() return model.snapshot(options.attack_window or 12) end
+  function self.snapshot()
+    local result=model.snapshot(options.attack_window or 12); result.nearby=copy(nearby); return result
+  end
   function self.select(id,revision)
     if not self.enabled or not connected() or not model.room then return false,'Room targeting unavailable' end
     local state=cache.get('char.status.state')
@@ -103,10 +112,11 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if not ok or result==false or err then fail('Could not enable scan tags'); return end
       setup=true
     end
+    requestFull=options.nearby==true
     owned=true; pending=false; lastRequest=api.getEpoch(); self.last='Refreshing room mobs'
     local current=generation
     timeout=api.tempTimer(10,function() timeout=nil; if current==generation then fail('Room scan timed out') end end)
-    ownSend=true; local ok,result,err=pcall(api.send,'scan here',false); ownSend=false
+    ownSend=true; local ok,result,err=pcall(api.send,requestFull and 'scan' or 'scan here',false); ownSend=false
     if not ok or result==false or err then fail('Room scan request failed') end
     update()
   end
@@ -116,19 +126,29 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if text:match('^%s*{scan}%s*$') then
       if frame then fail('Interrupted room scan'); return false end
       if not owned then return false end
-      frame={capture=Protocol.scan(),room=model.room,events={}}
+      frame={capture=Protocol.scan(),room=model.room,events={},full=requestFull}
       return true,true,'AardwolfToolbox.tags'
     end
     if frame then
       if text:match('^%s*{/scan}%s*$') then
         local saved=frame
-        if not saved.capture.seen then fail('No current-room section in scan'); return true,true,'AardwolfToolbox.tags' end
-        local ok,err=pcall(model.observe,saved.capture.entries)
+        if not saved.capture.valid or not saved.full and not saved.capture.seen then
+          fail('No recognized scan section'); return true,true,'AardwolfToolbox.tags'
+        end
+        if saved.room~=model.room then cancel(); return true,true,'AardwolfToolbox.tags' end
+        if saved.capture.seen then
+          local ok,err=pcall(model.observe,saved.capture.entries)
+          if not ok then fail(tostring(err)); return true,true,'AardwolfToolbox.tags' end
+        else
+          -- A directional-only scan cannot establish current-room membership.
+          model.fresh=false; model.selected=nil
+        end
+        nearby=saved.full and {fresh=true,updated=api.getEpoch(),sections=copy(saved.capture.sections)} or {fresh=false,sections={}}
         frame=nil; cancel()
-        if not ok then fail(tostring(err)); return true,true,'AardwolfToolbox.tags' end
-        if saved.room~=model.room then return true,true,'AardwolfToolbox.tags' end
         for _,event in ipairs(saved.events) do model[event[1]](event[2]) end
-        failedRefresh=false; self.last='Visible mobs · current visit'; update()
+        failedRefresh=false
+        self.last=saved.capture.seen and 'Visible mobs · current visit' or 'Nearby scan updated; current room not reported'
+        update()
         return true,true,'AardwolfToolbox.tags'
       end
       local ok,claimed=pcall(frame.capture.line,text)
@@ -158,7 +178,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       local room=cache.get(path)
       local key=type(room)=='table' and type(room.num)=='number' and room.num>0 and room.num<2147483648 and room.num%1==0 and tostring(room.num) or nil
       if key~=lastRoom or key==nil then
-        cancel(); lastRoom=key; model.clear(key); status={}; failedRefresh=false
+        cancel(); lastRoom=key; nearby={fresh=false,sections={}}; model.clear(key); status={}; failedRefresh=false
         self.last=key and 'Waiting for room scan' or 'Room identity unavailable'
         pending=key~=nil and options.on_entry
       end
@@ -180,7 +200,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end; handlers={}
     incoming.remove(OWNER)
     if api.gmod then for _,m in ipairs({'Char','Room'}) do api.gmod.disableModule(OWNER,m) end end
-    model.clear(nil); pending=false; setup=false; lastRoom=nil; view.destroy(); self.last='Disabled'
+    model.clear(nil); nearby={fresh=false,sections={}}; pending=false; setup=false; lastRoom=nil; view.destroy(); self.last='Disabled'
   end
   self.destroy=self.stop
   function self.start()
@@ -207,6 +227,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     return true
   end
   function self.configure(values)
+    if values.nearby~=options.nearby then nearby={fresh=false,sections={}} end
     options={}; for k,v in pairs(values) do options[k]=v end
     if not options.enabled then self.stop(); return true end
     if self.enabled then

@@ -94,6 +94,27 @@ class MobTests(unittest.TestCase):
           assert(not pcall(s.line,'     - a rat'))
         ''')
 
+    def test_nearby_scan_sections_duplicates_empty_and_bounds(self):
+        self.lua.execute("""
+          local s=Protocol.scan()
+          s.line('Right here you see:'); s.line('     - a rat')
+          s.line('North from here you see:'); s.line('     - a snake'); s.line('     - a snake')
+          s.line('2 East from here you see:'); s.line('     - (Hidden) Élan <red> & friends')
+          s.line('Up from here you see:')
+          assert(#s.entries==1 and #s.sections==3 and #s.sections[1].entries==2)
+          assert(s.sections[1].direction=='North' and s.sections[1].distance==nil)
+          assert(s.sections[2].distance==2 and s.sections[2].entries[1].name=='(Hidden) Élan <red> & friends')
+          assert(#s.sections[3].entries==0 and s.valid and s.seen)
+          s=Protocol.scan(); assert(not pcall(s.line,'     - orphan'))
+          s=Protocol.scan(); s.line('North from here you see:')
+          assert(not pcall(s.line,'     - '..string.rep('x',513)))
+          s=Protocol.scan(); s.line('North from here you see:')
+          for i=1,512 do s.line('     - a rat') end
+          assert(not pcall(s.line,'     - overflow'))
+          s=Protocol.scan(); s.line('Right here you see:')
+          assert(not pcall(s.line,'Somewhere from here you see:'))
+        """)
+
     def test_only_known_name_bearing_combat_messages(self):
         self.lua.execute('''
           state.observe({{name='a rat'}}); local rows=state.snapshot(12).rows
@@ -164,7 +185,7 @@ class MobTests(unittest.TestCase):
     def test_owned_scan_refresh_and_disconnect_cleanup(self):
         self.service()
         self.lua.execute('''
-          room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan here')
+          room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan')
           scan({'a rat','a rat'}); assert(m.snapshot().fresh and m.snapshot().rows[1].alive==1 and #m.snapshot().rows==2)
           status({state=8,enemy='a rat',enemypct=30}); status({enemypct=0})
           assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==0)
@@ -206,6 +227,29 @@ class MobTests(unittest.TestCase):
           assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
           online=true; room(13)
           assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
+        """)
+
+    def test_nearby_snapshot_is_separate_atomic_and_cleared_on_room_change(self):
+        self.service()
+        self.lua.execute("""
+          room(12); pulse()
+          receive('{scan}'); receive('Right here you see:'); receive('     - a rat')
+          receive('North from here you see:'); receive('     - a snake'); receive('     - a snake'); receive('{/scan}')
+          local s=m.snapshot(); assert(#s.rows==1 and s.nearby.fresh and #s.nearby.sections[1].entries==2)
+          s.nearby.sections[1].entries[1].name='mutation'
+          assert(m.snapshot().nearby.sections[1].entries[1].name=='a snake')
+          assert(not receive('A snake is DEAD!!')); assert(m.snapshot().rows[1].alive==1)
+          now=110; assert(m.refresh()); pulse(); receive('{scan}'); receive('North from here you see:')
+          assert(m.snapshot().nearby.sections[1].entries[1].name=='a snake')
+          pulse(); assert(not m.snapshot().nearby.fresh and #m.snapshot().nearby.sections==1)
+          now=120; assert(m.refresh()); pulse(); receive('{scan}'); receive('East from here you see:'); receive('     - a bat'); receive('{/scan}')
+          s=m.snapshot(); assert(s.nearby.fresh and not s.fresh and s.nearby.sections[1].direction=='East')
+          assert(not m.attack(s.rows[1].id,s.revision))
+          room(13); assert(#m.snapshot().nearby.sections==0 and not m.snapshot().nearby.fresh)
+          options.nearby=false; assert(m.configure(options)); assert(m.refresh()); now=130; pulse()
+          assert(sent[#sent]=='scan here'); scan({'a frog'})
+          assert(m.snapshot().fresh and not m.snapshot().nearby.fresh)
+          m.stop(); assert(#m.snapshot().nearby.sections==0)
         """)
 
     def test_readiness_room_change_and_timeout(self):
@@ -285,6 +329,29 @@ class MobUITests(unittest.TestCase):
           local old=first.doubleClickCallback; first.callback({button='LeftButton'}); pane.destroy(); old({button='LeftButton'})
           assert(#selected==1 and not widgets['AardwolfToolbox.mobs.pane'])
         ''')
+
+    def test_compact_scan_inset_collapse_escape_and_cleanup(self):
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
+            self.lua.globals().MobPane=self.lua.execute(z.read('mob-pane.lua').decode())
+        self.lua.execute("""
+          local t=AardwolfToolbox; assert(t.config.set('mobs','enabled',false))
+          local values=t.config.draft().mobs
+          local pane=MobPane.new(_G,t.ui,t.borders,function() end,function() end,function() error('Nearby attack') end,function() end)
+          pane.configure(values)
+          local s={rows={},nearby={fresh=true,updated=100,sections={{direction='North',distance=2,heading='2 North from here',entries={{name='Élan <red> & friends'},{name='Élan <red> & friends'}}}}}}
+          pane.update(s,'Visible mobs · current visit')
+          local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
+          local first=widgets['AardwolfToolbox.mobs.scanRow2']; local second=widgets['AardwolfToolbox.mobs.scanRow3']
+          assert(not scan.hidden and scan.height<=160 and header.height>=32)
+          assert(first.text:find('&lt;red&gt;') and first.text:find('&amp;') and second.text==first.text)
+          assert(first.renderedFontSize>=11 and not first.doubleClickCallback and not first.callback)
+          local body=widgets['AardwolfToolbox.mobs.body']; local oldHeight=body.height
+          header.callback(); assert(scan.hidden and body.height>oldHeight)
+          header.callback(); assert(not scan.hidden)
+          local n=count(widgets); pane.update(s,'Visible mobs · current visit',true); assert(count(widgets)==n)
+          values.nearby=false; pane.configure(values); assert(scan.hidden and header.hidden)
+          local old=header.callback; pane.destroy(); old(); assert(not widgets['AardwolfToolbox.mobs.scanBody'])
+        """)
 
     def test_ascii_help_precedence_and_one_dispatcher(self):
         self.lua.execute('''

@@ -1,4 +1,4 @@
-# Room mobs — 0.18.4
+# Room mobs — 0.18.5
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -45,6 +45,33 @@ edges, optional flags, a selected-row highlight, and a fixed selection footer.
 Confirmed kills remain separate entries. Color-independent text labels explain
 each state; compact ↻ Refresh and ⚙ Settings buttons share the title row and have tooltips.
 
+### Nearby scan
+
+A compact **Scan** inset below the current-room roster shows nearby occupants in
+server order, under direction headings and reported distance numbers. Duplicate
+names remain separate lines; flags and names are rendered literally. Hover a
+heading to read the original location wording. No distance is invented when the
+server omits one. The parser follows the existing
+[Aardwolf scan-client header grammar](https://www.mushclient.com/forum/threads/9783.html).
+
+Click the inset header to collapse or expand it. Its content scrolls independently,
+uses the shared readable font, and occupies at most 160 pixels; at smaller sizes
+it takes approximately one third of the available list area. Nearby entries are
+read-only and never become local kill targets or acquire local combat markers.
+The main roster retains its existing double-click behavior.
+
+**Include nearby scan results** is enabled by default in `aardwolf-config → Room
+mobs`. Refresh and existing automatic refreshes then request `scan`. Turning it off
+hides the inset, clears nearby data, and returns future refreshes to `scan here`.
+Changing the setting itself sends no command. The collapse state lasts for the
+current pane lifetime; the enable preference persists normally.
+
+Only complete, recognized responses replace nearby data. A failed refresh keeps
+the last results labeled **stale**. Changing rooms or disconnecting clears them.
+A scan that reports only nearby rooms does not establish current-room membership:
+nearby results update, but the local list becomes stale and cannot launch attacks
+until a scan reports the current room again.
+
 The pane refreshes on room entry and after combat by default. **Refresh** requests
 one new snapshot. Optional periodic refresh is off by default; set an interval
 of 10–300 seconds to enable it. Requests wait for a fresh room identity, standing
@@ -53,7 +80,7 @@ sent during combat, sleep, AFK, running, or paging/editing. A failed scan pauses
 periodic refresh until manual Refresh or the next room/combat transition.
 
 Automatic setup sends `tags scan on` once per connection; snapshots use exactly
-`scan here`. Disable setup if another component manages tags. Tags are left enabled
+`scan` with nearby results enabled, or `scan here` otherwise. Disable setup if another component manages tags. Tags are left enabled
 on teardown so other consumers keep their access. The feature does not change
 spam/damage modes, paging preferences, or detection abilities.
 
@@ -66,7 +93,7 @@ accept `#RRGGBB`; use Appearance for typography.
 ## Data and lifecycle boundaries
 
 Only a complete Toolbox-requested tagged scan replaces the list. Requests time out
-after ten seconds; scans are limited to 1,024 lines, 256 KiB, and 512 occupants.
+after ten seconds; scans are limited to 1,024 lines, 256 KiB, 32 nearby sections, and 512 occupants across all sections.
 At most 512 current occupants and 512 history rows are retained, evicting older
 absent history before current occupants. Data stays in memory for the current visit; only preferences
 persist. Room identities must be positive server room numbers. Unidentifiable
@@ -87,7 +114,10 @@ can be established. A current target is not automatically called an attacker.
 Do not interpret this pane as an authoritative list of every possible attacker.
 
 `AardwolfToolbox.mobs.snapshot()` returns a defensive copy of room freshness,
-observation time, scan revision, and individual rows. Each row has a local ID,
+observation time, scan revision, and individual rows. Its `nearby` field contains
+`fresh`, `updated`, and ordered `sections`; each section has `heading`, `direction`,
+optional `distance`, and individual `entries` containing `name`. Nearby data has no
+combat identity or attack action. Each row has a local ID,
 name, flags, ordinal among identical living names, living/killed/missing state,
 selection, target/health, and recent attacker evidence. `target` identifies the chosen combat row; `possibleAttacker` marks ambiguous incoming attacks. Updates raise the
 profile-local `AardwolfToolbox.mobs.updated` event after incoming processing.
@@ -104,7 +134,11 @@ stale double clicks, command-input isolation, readiness, capture limits, setting
 fonts, and teardown. `tests/native_mobs.lua` is restricted to the disconnected
 AardwolfToolboxSettingsTest profile and intercepts all command dispatch.
 
-Native replay verified the individual card layout and combat/kill presentation.
+Version 0.18.5 uses local Lua/package tests only. The updated scan inset has not
+been installed, rendered, or exercised against live server output; Mudlet was not
+controlled, as requested.
+
+Earlier native replay verified the individual card layout and combat/kill presentation.
 Final mouse-gesture acceptance and installation are pending after macOS locked
 during testing. The previous live informational scan verified the tagged format
 with six occupants, including three identical frog names. Live death/damage
