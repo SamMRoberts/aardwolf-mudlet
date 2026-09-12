@@ -176,7 +176,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     if options.nearby then
       local scanMinimum=ch+8+(scanExpanded and math.min(scanContent,math.max(small.line+6,available*0.4-ch)) or 0)
       roomHeight=math.min(y+4,math.max(ch,available-scanMinimum))
-      if not scanExpanded then roomHeight=available-ch-8 end
+      if not scanExpanded then roomHeight=math.min(y+4,available-ch-8) end
       roomHeight=math.max(1,roomHeight)
       local scanY=bodyY+roomHeight+4
       geometry(scanHeading,8,scanY,width-16,ch)

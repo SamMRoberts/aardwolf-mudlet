@@ -157,15 +157,19 @@ stale double clicks, command-input isolation, readiness, capture limits, setting
 fonts, and teardown. `tests/native_mobs.lua` is restricted to the disconnected
 AardwolfToolboxSettingsTest profile and intercepts all command dispatch.
 
-Version 0.18.8 uses local Lua/package tests only. The updated scan inset has not
-been installed, rendered, or exercised against live server output; Mudlet was not
-controlled, as requested.
+Version 0.18.9 passed all 207 package tests, the Muddler build, and archive
+inspection. Native checks in the disconnected disposable profile verified
+compact cards, Unicode and literal markup, duplicate target/attacker presentation,
+long names, adaptive scan placement, anchored collapse/expand, and independent
+scrolling with a crowded roster. A physical double-click on the second rat
+recorded `kill 2.rat` in an intercepted local command log. Reinstall and repeated
+startup completed without activation errors.
 
-Earlier native replay verified the individual card layout and combat/kill presentation.
-Final mouse-gesture acceptance and installation are pending after macOS locked
-during testing. The previous live informational scan verified the tagged format
-with six occupants, including three identical frog names. Live death/damage
-indicators remain unverified; no combat was initiated for testing.
+The same package is installed in Aardwolf after a full profile/map backup.
+All 1,387 rooms, feature preferences, existing map/chat widgets, and border
+reservations passed preservation checks after the layout settled. Aardwolf was
+disconnected during this upgrade, so fresh live scan and combat behavior remain
+unverified. No test movement or combat commands were sent in the player profile.
 
 ## Sources
 

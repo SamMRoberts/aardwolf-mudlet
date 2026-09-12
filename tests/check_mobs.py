@@ -402,7 +402,7 @@ class MobUITests(unittest.TestCase):
           values.colors=false; pane.configure(values)
           assert(not north.text:find('#80dfff') and north.style:find('border%-top: 1px'))
           local body=widgets['AardwolfToolbox.mobs.body']; local oldHeight=body.height
-          header.callback(); assert(scan.hidden and body.height>oldHeight)
+          header.callback(); assert(scan.hidden and body.height>=oldHeight)
           header.callback(); assert(not scan.hidden)
           local n=count(widgets); pane.update(s,'Visible mobs · current visit',true); assert(count(widgets)==n)
           values.nearby=false; pane.configure(values); assert(scan.hidden and header.hidden)
@@ -425,6 +425,9 @@ class MobUITests(unittest.TestCase):
           assert(not row.text:find('In room') and row.height>=32)
           assert(body.height<=row.height+16 and header.y==body.y+body.height+4)
           assert(scan.height>200 and widgets['AardwolfToolbox.mobs.status'].hidden)
+          local scanY=header.y
+          header.callback(); assert(scan.hidden and header.y==scanY,'Collapsing a short roster moved the scan heading')
+          header.callback(); assert(not scan.hidden and header.y==scanY)
           local measures,mutations=0,0; local old=t.ui.measure
           t.ui.measure=function(...) measures=measures+1; return old(...) end
           for name,w in pairs(widgets) do
