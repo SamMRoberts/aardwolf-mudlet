@@ -393,7 +393,7 @@ class MobUITests(unittest.TestCase):
           pane.update(s,'Visible mobs · current visit')
           local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
           local first=widgets['AardwolfToolbox.mobs.scanRow2']; local second=widgets['AardwolfToolbox.mobs.scanRow3']
-          assert(not scan.hidden and scan.height<=160 and header.height>=32)
+          assert(not scan.hidden and scan.height>160 and header.height>=32)
           assert(first.text:find('&lt;red&gt;') and first.text:find('&amp;') and second.text==first.text)
           assert(first.renderedFontSize>=11 and not first.doubleClickCallback and not first.callback)
           local north=widgets['AardwolfToolbox.mobs.scanRow1']; local south=widgets['AardwolfToolbox.mobs.scanRow4']
@@ -407,6 +407,41 @@ class MobUITests(unittest.TestCase):
           local n=count(widgets); pane.update(s,'Visible mobs · current visit',true); assert(count(widgets)==n)
           values.nearby=false; pane.configure(values); assert(scan.hidden and header.hidden)
           local old=header.callback; pane.destroy(); old(); assert(not widgets['AardwolfToolbox.mobs.scanBody'])
+        """)
+
+    def test_idle_refresh_is_cached_and_scan_follows_short_roster(self):
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
+            self.lua.globals().MobPane=self.lua.execute(z.read('mob-pane.lua').decode())
+        self.lua.execute("""
+          local t=AardwolfToolbox; assert(t.config.set('mobs','enabled',false))
+          local values=t.config.draft().mobs
+          local pane=MobPane.new(_G,t.ui,t.borders,function() end,function() end,function() end,function() end)
+          pane.configure(values)
+          local s={fresh=true,updated=0,revision=1,rows={{id=1,name='Claire',flags='',alive=1,killed=0,missing=0}},
+            nearby={fresh=true,updated=0,sections={{direction='East',heading='East from here',entries={{name='The receptionist'}}}}}}
+          pane.update(s,'Visible mobs · current visit')
+          local row=widgets['AardwolfToolbox.mobs.row1']; local body=widgets['AardwolfToolbox.mobs.body']
+          local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
+          assert(not row.text:find('In room') and row.height>=32)
+          assert(body.height<=row.height+16 and header.y==body.y+body.height+4)
+          assert(scan.height>200 and widgets['AardwolfToolbox.mobs.status'].hidden)
+          local measures,mutations=0,0; local old=t.ui.measure
+          t.ui.measure=function(...) measures=measures+1; return old(...) end
+          for name,w in pairs(widgets) do
+            if name:find('AardwolfToolbox.mobs.',1,true)==1 then
+              for _,method in ipairs({'echo','setStyleSheet','move','resize','show','hide','setToolTip'}) do
+                local original=w[method]; w[method]=function(self,...) mutations=mutations+1; return original(self,...) end
+              end
+            end
+          end
+          pane.update(s,'Visible mobs · current visit',true)
+          assert(measures==0 and mutations==0,'Unchanged refresh touched native widgets')
+          s.rows[1].attacking=true; values.blink=true; pane.configure(values)
+          measures=0; pane.update(s,'Visible mobs · current visit',true)
+          assert(measures==0,'Flashing recomputed row measurements')
+          s.rows={}; s.nearby.sections={}; pane.update(s,'Visible mobs · current visit')
+          assert(not widgets['AardwolfToolbox.mobs.scanRow2'])
+          t.ui.measure=old; pane.destroy()
         """)
 
     def test_ascii_help_precedence_and_one_dispatcher(self):

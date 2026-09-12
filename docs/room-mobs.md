@@ -1,4 +1,4 @@
-# Room mobs — 0.18.8
+# Room mobs — 0.18.9
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -47,8 +47,12 @@ target, or the first living matching name in scan order. The normal attacker
 color and optional flashing apply to that row. This is a best-match heuristic;
 identical mobs do not have server-provided instance IDs.
 
-The roster uses a count summary, readable names, restrained status-colored card
-edges, optional flags, a selected-row highlight, and a fixed selection footer.
+The roster combines counts and freshness into a compact summary, with readable
+names, restrained status-colored card edges, optional flags, a selected-row
+highlight, and a fixed selection footer. Ordinary rows omit the redundant
+“In room” line; combat and historical states retain explicit labels. Long flags
+are shortened visually, with the complete name, flags, and attack command in the
+row tooltip. Diagnostic messages have a compact row and a full-text tooltip.
 Confirmed kills remain separate entries. Color-independent text labels explain
 each state; compact ↻ Refresh and ⚙ Settings buttons share the title row and have tooltips.
 
@@ -65,8 +69,10 @@ server omits one. The parser follows the existing
 [Aardwolf scan-client header grammar](https://www.mushclient.com/forum/threads/9783.html).
 
 Click the inset header to collapse or expand it. Its content scrolls independently,
-uses the shared readable font, and occupies at most 160 pixels; at smaller sizes
-it takes approximately one third of the available list area. Nearby entries are
+uses the shared readable font, and follows directly after a short room roster.
+It expands into the remaining panel space instead of staying pinned at the bottom.
+With long lists, current-room mobs and nearby scans have separate scroll areas;
+approximately 40% of the available list space remains available to scans. Nearby entries are
 read-only and never become local kill targets or acquire local combat markers.
 The main roster retains its existing double-click behavior.
 
@@ -136,6 +142,12 @@ profile-local `AardwolfToolbox.mobs.updated` event after incoming processing.
 a current living observation, `mobs.selected()` returns a defensive copy of the
 selection, and `mobs.clearSelection()` clears it. The selection APIs remain local. `mobs.attack(id, revision)` performs the guarded manual kill command used by double-click. Start, configure, stop, and destroy
 are repeatable and remove owned handlers, timers, widgets, and border claims.
+
+Rendering reuses existing widgets. Unchanged refreshes skip text measurement,
+font application, styling, geometry updates, and label redraws. Freshness labels
+advance in ten-second steps; attacker flashing changes only presentation, without
+remeasuring cards. Surplus rows are deleted when lists shrink so obsolete widgets
+do not retain scroll space or callbacks.
 
 ## Verification status
 

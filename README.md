@@ -324,6 +324,7 @@ Version **0.18.5** adds a compact, collapsible nearby **Scan** inset with direct
 Version **0.18.6** omits leading `a`/`the` from Room mobs double-click commands and adds colored direction headers and separators to nearby scans.
 Version **0.18.7** marks the most likely attacker among duplicate names, preferring the current opponent and otherwise the first living match. Attacker colors and optional flashing apply to that row.
 Version **0.18.8** uses only the mob index and last word for double-click attacks, such as `kill 2.bat`, while preserving full names in the roster.
+Version **0.18.9** compacts Room mobs cards and status chrome, places nearby scans directly beneath short rosters, and avoids redundant widget updates during refreshes and flashing.
 
 [Controls, data limitations, and validation](docs/room-mobs.md).
 
