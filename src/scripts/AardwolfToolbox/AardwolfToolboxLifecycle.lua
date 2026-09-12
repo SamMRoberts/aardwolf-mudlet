@@ -98,6 +98,9 @@ local function initialize()
       {key="height",type="number",default=330,min=100,max=16384,integer=true,label="Height (pixels)"},
     },apply=AardwolfToolbox.ascii.configure})
 
+  local Cleanup=resource("console-cleanup")
+  AardwolfToolbox.consoleCleanup=Cleanup.new(_G,AardwolfToolbox.incoming)
+  config.registerFeature(Cleanup.definition(AardwolfToolbox.consoleCleanup.configure))
   AardwolfToolbox.consider = resource("consider").new(_G,AardwolfToolbox.incoming)
   config.registerFeature({id="consider",label="Consider",
     description="Replace consider messages with clear difficulty labels and relative level ranges.",settings={
@@ -212,6 +215,7 @@ function AardwolfToolbox.stop()
   if AardwolfToolbox.utilityBar then AardwolfToolbox.utilityBar.stop() end
   if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
   if AardwolfToolbox.help then AardwolfToolbox.help.stop() end
+  if AardwolfToolbox.consoleCleanup then AardwolfToolbox.consoleCleanup.stop() end
   if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
   if AardwolfToolbox.mobs then AardwolfToolbox.mobs.stop() end
   if AardwolfToolbox.spellup then AardwolfToolbox.spellup.stop() end

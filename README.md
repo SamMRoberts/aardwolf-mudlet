@@ -321,3 +321,11 @@ GMCP target, confirmed kills, and recently observed attackers. Configure refresh
 colors, symbols, and optional pulsing in `aardwolf-config → Room mobs`. Double-click
 a living row to select a local Toolbox target without attacking.
 [Controls, data limitations, and validation](docs/room-mobs.md).
+
+### Console cleanup (0.18.2)
+
+Blank game lines and repeated identical standard Aardwolf prompts are hidden by
+default. Changed prompts and ordinary messages remain visible. Configure each
+filter independently in `aardwolf-config → Console cleanup`. Captured help,
+ASCII maps, and game-tag blocks retain their spacing. Existing scrollback is not
+rewritten. See [console cleanup](docs/console-cleanup.md).
