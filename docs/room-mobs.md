@@ -1,4 +1,4 @@
-# Room mobs — 0.18.6
+# Room mobs — 0.18.8
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -25,12 +25,13 @@ Every mob is displayed individually in scan order. Identical living names receiv
 server targeting keywords or persistent mob IDs. Each row keeps its own flags.
 Rows stay in place during combat instead of jumping under the pointer.
 
-**Double-click** a living mob to send one literal `kill <number>.<mob name>`
+**Double-click** a living mob to send one literal `kill <number>.<last word>`
 command, such as `kill 2.snake`. The number counts living entries of that same
-name in scan order, not every row in the panel. Flags and a leading `a` or `the` (case-insensitive, whole word only) are excluded
-from the command name. The displayed name stays unchanged. For example, `a bat`
-sends `kill 1.bat`, its second duplicate sends `kill 2.bat`, and `the caretaker`
-sends `kill 1.caretaker`.
+name in scan order, not every row in the panel. Only the last whitespace-separated
+word of the mob name is used in the command. The displayed name stays unchanged.
+For example, `a tiny bat` sends `kill 1.bat`, its second duplicate sends
+`kill 2.bat`, and `the caretaker` sends `kill 1.caretaker`. The last word's case,
+Unicode, and punctuation are preserved.
 This starts an attack and preserves command-input text. It requires a connected,
 command-ready or fighting character and a complete current-room scan. A changed
 list between clicks cancels the action. Dead or unclassified rows cannot attack.
@@ -41,7 +42,10 @@ the corresponding observation when matching combat data arrives within ten secon
 The chosen row remains stable through partial updates and receives matching death
 reports. This is an ordering heuristic, not a server-provided instance identity.
 Other command forms fall back to the first matching mob. Incoming name-only attacker
-reports remain ambiguous for duplicates and show **Possible attacker**.
+reports mark one likely row as **Attacking you**: the matching current combat
+target, or the first living matching name in scan order. The normal attacker
+color and optional flashing apply to that row. This is a best-match heuristic;
+identical mobs do not have server-provided instance IDs.
 
 The roster uses a count summary, readable names, restrained status-colored card
 edges, optional flags, a selected-row highlight, and a fixed selection footer.
@@ -125,7 +129,8 @@ observation time, scan revision, and individual rows. Its `nearby` field contain
 optional `distance`, and individual `entries` containing `name`. Nearby data has no
 combat identity or attack action. Each row has a local ID,
 name, flags, ordinal among identical living names, living/killed/missing state,
-selection, target/health, and recent attacker evidence. `target` identifies the chosen combat row; `possibleAttacker` marks ambiguous incoming attacks. Updates raise the
+selection, target/health, and recent attacker evidence. `target` identifies the chosen combat row; `attacking` identifies the most likely attacker for each reported name.
+The compatibility field `possibleAttacker` is always false. Updates raise the
 profile-local `AardwolfToolbox.mobs.updated` event after incoming processing.
 `mobs.refresh()` requests a guarded refresh. `mobs.select(id, revision)` selects
 a current living observation, `mobs.selected()` returns a defensive copy of the
@@ -140,7 +145,7 @@ stale double clicks, command-input isolation, readiness, capture limits, setting
 fonts, and teardown. `tests/native_mobs.lua` is restricted to the disconnected
 AardwolfToolboxSettingsTest profile and intercepts all command dispatch.
 
-Version 0.18.6 uses local Lua/package tests only. The updated scan inset has not
+Version 0.18.8 uses local Lua/package tests only. The updated scan inset has not
 been installed, rendered, or exercised against live server output; Mudlet was not
 controlled, as requested.
 

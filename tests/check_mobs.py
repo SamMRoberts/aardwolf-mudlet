@@ -66,13 +66,33 @@ class MobTests(unittest.TestCase):
           assert(not state.attack('a rat'))
         ''')
 
+    def test_duplicate_attackers_prefer_target_then_first_living_match(self):
+        self.lua.execute("""
+          state.observe({{name='a snake',count=3},{name='a bat',count=2}})
+          state.command('kill 2.snake'); state.enemy('a snake',true,70)
+          assert(not state.snapshot(12).rows[2].attacking)
+          assert(state.attack('a snake') and state.attack('a bat'))
+          local s=state.snapshot(12)
+          assert(not s.rows[1].attacking and s.rows[2].attacking and not s.rows[3].attacking)
+          assert(s.rows[4].attacking and not s.rows[5].attacking)
+          for _,r in ipairs(s.rows) do assert(not r.possibleAttacker) end
+          state.kill('a snake'); s=state.snapshot(12)
+          assert(s.rows[2].killed==1 and not s.rows[2].attacking and not s.rows[1].attacking)
+          state.enemy('a snake',true,60); state.attack('a snake')
+          assert(state.snapshot(12).rows[1].attacking)
+          now=113; for _,r in ipairs(state.snapshot(12).rows) do assert(not r.attacking) end
+          state.attack('a snake'); state.enemy('',false)
+          for _,r in ipairs(state.snapshot(12).rows) do assert(not r.attacking) end
+          state.clear('13'); assert(#state.snapshot(12).rows==0)
+        """)
+
     def test_selection_scan_order_and_stale_ids(self):
         self.lua.execute('''          state.observe({{name='a frog'},{name='a frog'},{name='a bat'}})
           local s=state.snapshot(12); local id,revision=s.rows[2].id,s.revision
           assert(state.select(id,revision)); assert(state.snapshot(12).rows[2].selected)
           state.enemy('a bat',true,70); assert(state.snapshot(12).rows[2].id==id)
           assert(state.attack('a frog')); s=state.snapshot(12)
-          assert(s.rows[1].possibleAttacker and s.rows[2].possibleAttacker and not s.rows[1].attacking)
+          assert(s.rows[1].attacking and not s.rows[2].attacking and not s.rows[1].possibleAttacker)
           state.observe({{name='a frog'},{name='a frog'}})
           assert(not state.select(id,revision) and not state.snapshot(12).rows[2].selected)
           s=state.snapshot(12); assert(state.select(s.rows[2].id,s.revision))
@@ -189,7 +209,7 @@ class MobTests(unittest.TestCase):
           scan({'a rat','a rat'}); assert(m.snapshot().fresh and m.snapshot().rows[1].alive==1 and #m.snapshot().rows==2)
           status({state=8,enemy='a rat',enemypct=30}); status({enemypct=0})
           assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==0)
-          receive("A rat's bite hits you."); assert(m.snapshot().rows[1].possibleAttacker)
+          receive("A rat's bite hits you."); assert(m.snapshot().rows[1].attacking and not m.snapshot().rows[2].attacking)
           receive('A rat is DEAD!!'); assert(m.snapshot().rows[1].killed==1)
           m.start(); assert(calls==1)
           handlers['sysDisconnectionEvent'](); assert(#m.snapshot().rows==0)
@@ -214,7 +234,7 @@ class MobTests(unittest.TestCase):
           room(12); pulse(); scan({'Élan <red> & friends','Élan <red> & friends'})
           local s=m.snapshot(); local count=#sent
           assert(m.attack(s.rows[2].id,s.revision))
-          assert(#sent==count+1 and sent[#sent]=='kill 2.Élan <red> & friends')
+          assert(#sent==count+1 and sent[#sent]=='kill 2.friends')
           status({state=8,enemy='Élan <red> & friends',enemypct=70})
           assert(m.snapshot().rows[2].target and not m.snapshot().rows[1].target)
           status({state=3,enemy=''})
@@ -229,15 +249,15 @@ class MobTests(unittest.TestCase):
           assert(not m.attack(s.rows[2].id,s.revision) and #sent==count)
         """)
 
-    def test_attack_omits_only_leading_articles_and_preserves_number_and_name(self):
+    def test_attack_uses_last_word_and_preserves_number_and_display_name(self):
         self.service()
         self.lua.execute("""
           room(12); pulse()
-          scan({'a bat','a bat','the caretaker','The Élan <red> & friends','A giant bat',
-            'theatre guard','aardvark','Keeper of the gate','an owl'})
+          scan({'a tiny bat','a tiny bat','the caretaker','The Élan <red> & friends','A giant bat',
+            'theatre guard','aardvark','Keeper of the gate','an owl','the warrior Élan','a <red>','a guard!'})
           local s=m.snapshot()
-          local expected={'kill 1.bat','kill 2.bat','kill 1.caretaker','kill 1.Élan <red> & friends',
-            'kill 1.giant bat','kill 1.theatre guard','kill 1.aardvark','kill 1.Keeper of the gate','kill 1.an owl'}
+          local expected={'kill 1.bat','kill 2.bat','kill 1.caretaker','kill 1.friends',
+            'kill 1.bat','kill 1.guard','kill 1.aardvark','kill 1.gate','kill 1.owl','kill 1.Élan','kill 1.<red>','kill 1.guard!'}
           for i,command in ipairs(expected) do
             local count=#sent
             assert(m.attack(s.rows[i].id,s.revision))
@@ -245,7 +265,7 @@ class MobTests(unittest.TestCase):
             assert(m.snapshot().rows[i].name==s.rows[i].name)
           end
           assert(m.attack(s.rows[2].id,s.revision))
-          status({state=8,enemy='a bat',enemypct=50})
+          status({state=8,enemy='a tiny bat',enemypct=50})
           assert(m.snapshot().rows[2].target and not m.snapshot().rows[1].target)
         """)
 
@@ -338,6 +358,16 @@ class MobUITests(unittest.TestCase):
           local first=widgets['AardwolfToolbox.mobs.row1']; local second=widgets['AardwolfToolbox.mobs.row2']
           assert(second.text:find('&lt;red&gt;') and second.text:find('&amp;'))
           assert(first.text:find('#1') and first.renderedFontSize==12)
+          values.blink=true; pane.configure(values); snapshot.rows[2].attacking=true
+          pane.update(snapshot,'Visible mobs · current visit',true)
+          assert(second.text:find('Attacking you') and not second.text:find('Possible attacker'))
+          assert(second.style:find(values.attacker_color,1,true) and second.style:find('#463322',1,true))
+          assert(not first.style:find('#463322',1,true))
+          pane.update(snapshot,'Visible mobs · current visit',true)
+          assert(not second.style:find('#463322',1,true))
+          values.blink=false; pane.configure(values); pane.update(snapshot,'Visible mobs · current visit',true)
+          assert(not second.style:find('#463322',1,true))
+
           first.callback({button='LeftButton'}); assert(#selected==0)
           first.doubleClickCallback({button='LeftButton'}); assert(#selected==1 and selected[1].id==10)
           first.callback({button='LeftButton'}); snapshot.revision=5; snapshot.rows[1].id=20

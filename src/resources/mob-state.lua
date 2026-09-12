@@ -130,8 +130,14 @@ function State.new(clock)
   end
   function self.snapshot(attackWindow)
     local result={room=self.room,fresh=self.fresh,updated=self.updated,revision=self.revision,rows={},combat=self.combat}
-    local counts,ordinals={},{}
-    for _,r in ipairs(self.rows) do if r.alive>0 then local k=r.name:lower(); counts[k]=(counts[k] or 0)+1 end end
+    local counts,ordinals,likelyAttackers={},{},{}
+    for _,r in ipairs(self.rows) do
+      if r.alive>0 then
+        local key=r.name:lower(); counts[key]=(counts[key] or 0)+1
+        -- Prefer the current opponent; otherwise use the first living observation.
+        if not likelyAttackers[key] or r.id==targetId then likelyAttackers[key]=r.id end
+      end
+    end
     for _,stored in ipairs(self.rows) do
       local r=copy(stored); local key=r.name:lower(); local count=counts[key] or 0
       if r.alive>0 then ordinals[key]=(ordinals[key] or 0)+1; r.ordinal=ordinals[key]; r.duplicates=count end
@@ -139,7 +145,7 @@ function State.new(clock)
       local attacking=self.combat and r.alive>0 and attacks[key]~=nil and clock()-attacks[key]<attackWindow
       r.target=target and r.id==targetId; r.possibleTarget=false
       r.health=r.target and self.health or nil
-      r.attacking=attacking and count==1; r.possibleAttacker=attacking and count>1
+      r.attacking=attacking and r.id==likelyAttackers[key]; r.possibleAttacker=false
       r.selected=self.selected==r.id
       result.rows[#result.rows+1]=r
     end

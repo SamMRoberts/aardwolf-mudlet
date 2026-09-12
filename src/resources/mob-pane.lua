@@ -92,7 +92,6 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
         if r.target and options.target then badges[#badges+1]='Fighting'..(r.health and ' · '..r.health..'%' or ''); color=options.target_color; symbol=symbol..'◎ ' end
         if r.possibleTarget and options.target then badges[#badges+1]='Possible opponent'; symbol=symbol..'◎? ' end
         if r.attacking and options.attackers then badges[#badges+1]='Attacking you'; color=options.attacker_color; symbol=symbol..'⚔ ' end
-        if r.possibleAttacker and options.attackers then badges[#badges+1]='Possible attacker'; symbol=symbol..'⚔? ' end
         if r.killed>0 then badges[#badges+1]=r.uncertainDeath and 'Killed · duplicate identity unknown' or 'Killed'; color=options.killed_color; symbol='† ' end
         if r.missing>0 then badges[#badges+1]='No longer seen'; color='#93a4b4'; symbol='? ' end
         if r.unclassified then badges[#badges+1]='Opponent · type unknown' end

@@ -2,7 +2,7 @@
 local Mobs={}
 local OWNER='AardwolfToolbox.mobs'
 function Mobs.definition(apply)
-  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh includes nearby scan results while command-ready. Every mob has its own row. Double-click attacks with kill <ordinal>.<mob name>, omitting a leading a or the; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
+  return {id='mobs',label='Room mobs',description='Always-visible room list. Refresh includes nearby scan results while command-ready. Every mob has its own row. Double-click attacks with kill <ordinal>.<last word of mob name>; unseen mobs are not presumed dead. Attacker markers mean recently observed incoming attacks.',settings={
     {key='enabled',label='Enable room mob pane',type='boolean',default=true},
     {key='automatic_setup',label='Automatically enable scan tags',type='boolean',default=true},
     {key='nearby',label='Include nearby scan results',type='boolean',default=true},
@@ -82,9 +82,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if not ok then return false,reason end
     local row=self.selected()
     if not row then return false,'Room target unavailable' end
-    local name=row.name
-    local article,rest=name:match('^(%S+)%s+(.+)$')
-    if article and (article:lower()=='a' or article:lower()=='the') then name=rest end
+    local name=row.name:match('%S+$')
     local command='kill '..row.ordinal..'.'..name
     local sent,result,err=pcall(api.send,command,true)
     if not sent or result==false or err then
