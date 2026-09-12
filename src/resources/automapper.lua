@@ -4,6 +4,7 @@ local OWNER = "AardwolfToolbox.mapper"
 local KEY = "AardwolfToolbox:"
 -- Local display palette, independent of Aardwolf's configurable ASCII colors.
 local TERRAIN_COLORS = {
+  shop = {255, 153, 51},
   inside = {180, 164, 140}, city = {170, 180, 190}, field = {144, 190, 90},
   forest = {46, 139, 87}, hills = {150, 130, 75}, mountain = {135, 125, 115},
   water = {65, 150, 220}, waternoswim = {35, 90, 175}, underwater = {30, 105, 140},
