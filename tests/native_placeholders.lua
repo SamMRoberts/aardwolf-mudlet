@@ -76,8 +76,8 @@ for _,v in ipairs({{900000002,0,2,0},{900000003,2,0,0},{900000004,0,-2,0},
 end
 f.checks.geometry=true; f.checks.oneHop=true
 packet(900000001,{n=900000002,e=-1,s=900000004,w=900000005,u=900000009,d=900000007})
--- Existing known east topology is retained for an unknown maze observation.
-assert(getRoomExits(id(900000001)).east==id(900000003))
+-- An unknown destination replaces only the unchanged owned link with a stub.
+assert(not getRoomExits(id(900000001)).east and stub(id(900000001),'east'))
 assert(stub(id(900000001),'up') and id(900000009)==-1)
 packet(900000002,{s=900000001,e=-1})
 assert(stub(id(900000002),'east'))

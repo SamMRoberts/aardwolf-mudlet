@@ -245,7 +245,7 @@ class MapperTests(unittest.TestCase):
           packet(101, {n = 103})
           assert(rooms[localID(101)].exits.north == localID(103))
           packet(101, {n = -1})
-          assert(rooms[localID(101)].exits.north == localID(103))
+          assert(not rooms[localID(101)].exits.north and rooms[localID(101)].stubs.north)
           packet(101, {})
           assert(rooms[localID(101)].exits.north == nil)
         ''')

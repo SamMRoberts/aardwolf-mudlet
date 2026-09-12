@@ -336,8 +336,8 @@ function Mapper.new(api, preferences)
 
   local function link(from, num, direction, target)
     if not owned(from, num) then error("Exit source ownership changed", 0) end
-    if target == false then return end
-    local to = target and resolve(target)
+    local to
+    if target then to = resolve(target) end
     if to and api.getRoomUserData(to, KEY .. "ready") ~= "1" then return end
     if not editableExit(from, direction) then return end
     local current = api.getRoomExits(from)[direction[2]]
@@ -348,7 +348,7 @@ function Mapper.new(api, preferences)
         "Cannot record exit ownership")
       if to then self.linked = self.linked + 1 end
     end
-    if not target then setStub(from, direction, false) end
+    if target == nil then setStub(from, direction, false) end
   end
 
   local function terrainEnvironment(terrain)
@@ -472,7 +472,10 @@ function Mapper.new(api, preferences)
             if not to and preferences("unexplored_rooms") then setStub(id, direction, true) end
           end
         elseif target == false then
-          if not api.getRoomExits(id)[direction[2]] and preferences("unexplored_rooms") then
+          -- An unknown destination is not evidence that the old destination still
+          -- applies. Remove only an unchanged owned link, retaining existing stubs.
+          link(id, room.num, direction, false)
+          if preferences("unexplored_rooms") then
             setStub(id, direction, true)
           end
         else

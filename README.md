@@ -324,6 +324,10 @@ Version **0.18.5** adds a compact, collapsible nearby **Scan** inset with direct
 Version **0.18.6** omits leading `a`/`the` from Room mobs double-click commands and adds colored direction headers and separators to nearby scans.
 Version **0.18.7** marks the most likely attacker among duplicate names, preferring the current opponent and otherwise the first living match. Attacker colors and optional flashing apply to that row.
 Version **0.18.8** uses only the mob index and last word for double-click attacks, such as `kill 2.bat`, while preserving full names in the roster.
+Version **0.19.2** replaces stale Toolbox-owned exit connections with stubs when fresh GMCP reports an unknown destination. Manual exits remain protected. Known destinations are resolved by server ID, even when their saved positions are not adjacent.
+
+Version **0.19.1** adds a visible blue-gray border around the floating help window, with the text console inset so it cannot cover the frame.
+
 Version **0.19.0** adds observed consider ranges and threat colors to individual Room mobs cards, sharing the console formatter's rating logic. Flags before entire consider sentences now match correctly. Toggle the rating line in **Room mobs → Show observed consider ratings**; no automatic consider commands are sent.
 
 Version **0.18.9** compacts Room mobs cards and status chrome, places nearby scans directly beneath short rosters, and avoids redundant widget updates during refreshes and flashing.

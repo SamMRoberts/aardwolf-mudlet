@@ -42,9 +42,10 @@ function Help.new(api,incoming,ui)
     root=api.Adjustable.Container:new({name=OWNER..".window",titleText="Help",
       x=math.min(80,math.max(0,w-width)),y=math.min(80,math.max(0,h-height)),
       width=width,height=height,autoSave=false,autoLoad=false,
-      adjLabelstyle="background-color: #151a20; border: 1px solid #39434d;",
+      adjLabelstyle="background-color: #151a20; border: 2px solid #7e9bb5;",
       buttonstyle="background-color: #151a20; color: #cbd4dd; border: none;"})
-    console=api.Geyser.MiniConsole:new({name=OWNER..".console",x=0,y=0,width="100%",height="100%",
+    -- Keep the console inside the outer frame instead of painting over its edges.
+    console=api.Geyser.MiniConsole:new({name=OWNER..".console",x=2,y=0,width="100%-4",height="100%-2",
       autoWrap=true,scrollBar=true,scrolling=false,fontSize=options.font_size},root)
     if ui then ui.apply(console,"reading"); ui.chrome(root) else console:setFont("Menlo"); console:setFontSize(options.font_size) end
     console:setColor(0,0,0,255); console:setBufferSize(5000,100)

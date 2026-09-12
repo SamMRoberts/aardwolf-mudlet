@@ -65,6 +65,33 @@ class PlaceholderTests(unittest.TestCase):
           assert(mapper.conflicts>=2)
         ''')
 
+    def test_unknown_destination_clears_old_owned_link_without_recreating_it(self):
+        self.check('''
+          packet(101,{e=102}); local from=localID(101); local to=localID(102)
+          packet(101,{e=-1})
+          assert(not rooms[from].exits.east and rooms[from].stubs.east)
+          assert(rooms[from].data['AardwolfToolbox:linked:e']=='')
+          mapper.stop(); mapper=factory.new(_G); mapper.start(); packet(102,{})
+          assert(not rooms[from].exits.east and rooms[from].stubs.east)
+          packet(101,{e=102}); assert(rooms[from].exits.east==to)
+          mapper.stop(); mapper=factory.new(_G,function(key) return key~='unexplored_rooms' end); mapper.start()
+          packet(101,{e='?'})
+          assert(not rooms[from].exits.east and not rooms[from].stubs.east)
+          packet(101,{e=102}); rooms[from].exits.east=from
+          packet(101,{e=-1}); assert(rooms[from].exits.east==from and mapper.conflicts>0)
+        ''')
+
+    def test_reported_exit_uses_identity_even_when_destination_is_offset(self):
+        self.check('''
+          packet(15490,{})
+          local hut=localID(15490); setRoomCoordinates(hut,0,2,0)
+          packet(15516,{e=15490})
+          local shore=localID(15516); setRoomCoordinates(shore,-2,4,0)
+          packet(15516,{e=15490})
+          assert(rooms[shore].exits.east==hut and not rooms[shore].exits.south)
+          assert(rooms[hut].x==0 and rooms[hut].y==2 and count(rooms)==2)
+        ''')
+
     def test_incoming_link_resolves_owned_stub_after_restart(self):
         self.check('''
           packet(101,{n=102}); packet(101,{n=103})
