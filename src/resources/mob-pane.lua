@@ -117,6 +117,8 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     for _,r in ipairs(latest.rows) do
       if r.alive>0 or options.show_killed and r.killed>0 or options.show_missing and r.missing>0 then
         local badges={}; local symbol=''; local color='#7592a6'
+        local rating=options.consider and r.consider
+        if rating then color=rating.color end
         if r.selected then badges[#badges+1]='Selected'; color=options.target_color; symbol='› ' end
         if r.target and options.target then badges[#badges+1]='Fighting'..(r.health and ' · '..r.health..'%' or ''); color=options.target_color; symbol=symbol..'◎ ' end
         if r.attacking and options.attackers then badges[#badges+1]='Attacking you'; color=options.attacker_color; symbol=symbol..'⚔ ' end
@@ -125,7 +127,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
         if r.unclassified then badges[#badges+1]='Opponent · type unknown' end
         local name=r.name..(r.duplicates and r.duplicates>1 and '  #'..r.ordinal or '')
         local title=(options.symbols and symbol or '')..name
-        entries[#entries+1]={row=r,title=title,detail=table.concat(badges,' · '),color=options.colors and color or '#bac8d5'}
+        entries[#entries+1]={row=r,title=title,detail=table.concat(badges,' · '),rating=rating,color=options.colors and color or '#bac8d5'}
       end
     end
     if #entries==0 then entries[1]={title=latest.fresh and 'No visible mobs' or 'Waiting for room scan',detail=latest.fresh and 'Refresh to check this room again.' or 'The list appears after a complete scan.',color='#9dafbf'} end
@@ -153,6 +155,11 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       if r and r.attacking and options.attackers and options.blink and phase then bg='#463322' end
 
       local lines={entry.title}; local html='<b>'..ui.escape(entry.title)..'</b>'
+      if entry.rating then
+        local text=entry.rating.label..' · '..entry.rating.range
+        lines[#lines+1]=text
+        html=html..'<br><span style="color:'..(options.colors and entry.rating.color or '#bac8d5')..'">'..ui.escape(text)..'</span>'
+      end
       if entry.detail~='' then lines[#lines+1]=entry.detail; html=html..'<br><span style="color:'..entry.color..'">'..ui.escape(entry.detail)..'</span>' end
       if r and options.flags and r.flags~='' then
         local flagsKey=r.flags..'|'..width..'|'..m.font..m.size
@@ -166,7 +173,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       end
       paint(card,html,r and r.killed>0 and '#acbac6' or '#edf3f8',nil,'QLabel { background: '..bg..'; color: #edf3f8; border: 1px solid #2b3d4b; border-left: 3px solid '..entry.color..'; border-radius: 4px; padding: 5px; qproperty-wordWrap: true; } QLabel:hover { border-color: #7a9db8; background: #263a4a; }')
       if r then
-        tip(card,ui.escape(r.name..(r.flags~='' and '\n'..r.flags or '')..(r.alive>0 and not r.unclassified and '\nDouble-click: kill '..(r.ordinal or 1)..'.'..r.name:match('%S+$') or '\n'..entry.detail)))
+        tip(card,ui.escape(r.name..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\nDouble-click: kill '..(r.ordinal or 1)..'.'..r.name:match('%S+$') or '\n'..entry.detail)))
       end
       geometry(card,8,y,math.max(1,width-30),card.rowHeight); visible(card,true); y=y+card.rowHeight+4
       card.entry=r and r.alive>0 and not r.unclassified and {id=r.id,revision=latest.revision} or nil

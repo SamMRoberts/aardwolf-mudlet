@@ -23,20 +23,36 @@ for _,rating in ipairs(ratings) do
   rating.pattern = rating.pattern:gsub("fighting them", function() return "fighting (%a+)" end)
 end
 
-local function displayMob(mob)
-  local tags, name = {}, mob
+-- Flags precede the whole sentence in live output, even for "You would...".
+local function splitFlags(text)
+  local flags={}
   while true do
-    local tag, rest = name:match("^(%b())%s+(.+)$")
-    if not tag then break end
-    tags[#tags+1]=tag
-    name=rest
+    local flag,rest=text:match("^(%b())%s+(.+)$")
+    if not flag then break end
+    flags[#flags+1]=flag; text=rest
   end
-  if #tags==0 then return mob end
-  return table.concat(tags," ").." | "..name
+  return text,table.concat(flags," ")
+end
+
+-- Pure shared parser: consumers receive independent rating values, not registry tables.
+function Consider.parse(text)
+  if type(text)~="string" then return end
+  local sentence,prefix=splitFlags(text:match("^%s*(.-)%s*$"))
+  for id,rating in ipairs(ratings) do
+    local mob,pronoun=sentence:match(rating.pattern)
+    if mob and mob:find("%S") and (not pronoun or pronouns[pronoun]) then
+      local name,flags=splitFlags(mob)
+      if not name:find("%S") then return end
+      flags=prefix~="" and (prefix..(flags~="" and " "..flags or "")) or flags
+      local rgb={unpack(rating[4])}
+      return {id=id,name=name,flags=flags,label=rating[2],range=rating[3],rgb=rgb,
+        color=string.format("#%02X%02X%02X",unpack(rgb))}
+    end
+  end
 end
 
 function Consider.new(api, incoming)
-  local self = {enabled=false, last="Disabled"}
+  local self = {enabled=false, last="Disabled", parse=Consider.parse}
   local options = {enabled=true, colors=true}
   function self.stop()
     incoming.remove(OWNER)
@@ -49,31 +65,29 @@ function Consider.new(api, incoming)
   end
   local function receive(text)
     if not self.enabled or type(text)~="string" then return end
-    local trimmed=text:match("^%s*(.-)%s*$")
-    for _,rating in ipairs(ratings) do
-      local mob,pronoun=trimmed:match(rating.pattern)
-      if mob and mob:find("%S") and (not pronoun or pronouns[pronoun]) then
-        local replacement=displayMob(mob).." | "..rating[2].." | "..rating[3]
-        local ok,err=pcall(function()
+    local rating=Consider.parse(text)
+    if rating then
+      local mob=rating.flags~="" and rating.flags.." | "..rating.name or rating.name
+      local replacement=mob.." | "..rating.label.." | "..rating.range
+      local ok,err=pcall(function()
+        api.selectCurrentLine()
+        -- Never splice into a different line if native selection is refused.
+        assert(api.getSelection()==text,"Cannot select complete consider line")
+        local result,message=api.replace(replacement,true)
+        assert(result~=false and message==nil,message or "Cannot replace consider line")
+        if options.colors then
           api.selectCurrentLine()
-          -- Never splice into a different line if native selection is refused.
-          assert(api.getSelection()==text,"Cannot select complete consider line")
-          local result,message=api.replace(replacement,true)
-          assert(result~=false and message==nil,message or "Cannot replace consider line")
-          if options.colors then
-            api.selectCurrentLine()
-            api.setFgColor(unpack(rating[4]))
-          end
-        end)
-        -- Do not let selection or local output formatting leak into later output.
-        local deselected,deselectError=pcall(api.deselect)
-        local reset,resetError=pcall(api.resetFormat)
-        if not ok then error(err,0) end
-        if not deselected then error(deselectError,0) end
-        if not reset then error(resetError,0) end
-        self.last="Formatting consider ratings"
-        return true,false -- replaced in place; the dispatcher must not gag it
-      end
+          api.setFgColor(unpack(rating.rgb))
+        end
+      end)
+      -- Do not let selection or local output formatting leak into later output.
+      local deselected,deselectError=pcall(api.deselect)
+      local reset,resetError=pcall(api.resetFormat)
+      if not ok then error(err,0) end
+      if not deselected then error(deselectError,0) end
+      if not reset then error(resetError,0) end
+      self.last="Formatting consider ratings"
+      return true,false -- replaced in place; the dispatcher must not gag it
     end
   end
   function self.start()

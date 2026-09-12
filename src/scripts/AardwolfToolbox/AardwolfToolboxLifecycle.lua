@@ -178,7 +178,7 @@ local function initialize()
     AardwolfToolbox.queries,AardwolfToolbox.spellup,resource("mob-state"),resource("mob-protocol"),resource("mob-pane"),
     AardwolfToolbox.ui,AardwolfToolbox.borders,function()
       AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("mobs")
-    end)
+    end,AardwolfToolbox.consider)
   config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure))
 
   local Shortcuts=resource("shortcuts")

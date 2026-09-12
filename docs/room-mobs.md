@@ -1,4 +1,4 @@
-# Room mobs — 0.18.9
+# Room mobs — 0.19.0
 
 The **Room mobs** pane stays on the left beside the console, independently of the
 right dashboard and its tabs. It reserves console space and uses shared Appearance
@@ -149,7 +149,33 @@ advance in ten-second steps; attacker flashing changes only presentation, withou
 remeasuring cards. Surplus rows are deleted when lists shrink so obsolete widgets
 do not retain scroll space or callbacks.
 
+## Consider ranges and threat colors
+
+Observed consider messages add a compact difficulty and relative-level line to
+matching current-room cards, using the console formatter's shared parser and
+colors. For example, `Dangerous · +10–15 lvls`. No rating is guessed for an
+unconsidered mob, and no automatic consider command is sent.
+
+**Room mobs → Show observed consider ratings** controls the extra line.
+**Use status colors** also controls threat colors. Target/attacker/killed borders
+retain their precedence while the rating text keeps its difficulty color. Console
+Consider settings remain independent of the pane.
+
+Names and flags associate responses with individual rows. A `con` / `consider`
+batch uses matching scan order for duplicates; an explicit command such as
+`con 2.frog` associates the response with that matching occurrence. This is
+name/order evidence, not a server instance ID. Same-room refreshes retain ratings
+only when the matching name/flags population count is unchanged. Room changes,
+disconnect, disable, and observed player-level changes clear ratings. Nearby
+scan entries do not borrow ratings from same-named current-room mobs.
+
 ## Verification status
+
+Version 0.19.0 passed 210 package tests, Muddler build/archive inspection, and
+offline native consider/pane integration checks. It is installed in Aardwolf
+after a full backup, with all 1,387 rooms, existing preferences, map/chat widgets,
+and border reservations preserved. Fresh live scan rows were observed after
+installation; new live consider ratings remain pending the next consider output.
 
 Automated checks cover individual duplicates, scan order, flags, Unicode/markup
 escaping, separate selected/combat targets, ambiguous evidence, retained kills,

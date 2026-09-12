@@ -10,7 +10,7 @@ class MobTests(unittest.TestCase):
     def setUp(self):
         self.lua=LuaRuntime(unpack_returned_tuples=True)
         with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
-            for name,var in [('mob-state','State'),('mob-protocol','Protocol'),('mobs','Mobs')]:
+            for name,var in [('mob-state','State'),('mob-protocol','Protocol'),('mobs','Mobs'),('consider','Consider')]:
                 self.lua.globals()[var]=self.lua.execute(z.read(name+'.lua').decode())
         self.lua.execute('now=100; function clock() return now end; state=State.new(clock); state.clear("12")')
 
@@ -191,7 +191,7 @@ class MobTests(unittest.TestCase):
           spellup={status=function() return {inflight=false} end}
           Pane={new=function() return {configure=function() end,destroy=function() end,layout=function() end,update=function(s,m) displayed=s; message=m end} end}
           options={}; for _,s in ipairs(Mobs.definition(function() end).settings) do options[s.key]=s.default end
-          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end)
+          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end,Consider)
           assert(m.configure(options))
           function room(id) cache.values['room.info']={num=id}; handlers['AardwolfToolbox.gmcp.updated']('', 'room.info') end
           function status(data) cache.values['char.status']=data; handlers['AardwolfToolbox.gmcp.updated']('', 'char.status') end
@@ -214,6 +214,35 @@ class MobTests(unittest.TestCase):
           m.start(); assert(calls==1)
           handlers['sysDisconnectionEvent'](); assert(#m.snapshot().rows==0)
           m.stop(); m.stop(); assert(next(handlers)==nil and next(timers)==nil)
+        ''')
+
+    def test_consider_ranges_duplicates_rescan_level_and_room_scope(self):
+        self.service()
+        self.lua.execute('''
+          room(12); pulse(); scan({'(Flying) A frog','(Flying) A frog','A bat'})
+          receive('(Flying) You would stomp A frog into the ground.')
+          receive('(Flying) A frog would crush you like a bug!')
+          local rows=m.snapshot().rows
+          assert(rows[1].consider.label=='Trivial' and rows[2].consider.label=='Crushing')
+          assert(not rows[3].consider)
+          rows[1].consider.label='changed'; assert(m.snapshot().rows[1].consider.label=='Trivial')
+          handlers['sysDataSendRequest']('', 'con 2.frog')
+          receive('(Flying) A frog should be a fair fight!')
+          assert(m.snapshot().rows[2].consider.label=='Fair fight')
+          handlers['sysDataSendRequest']('', 'consider frog')
+          receive('(Flying) A frog snickers nervously.')
+          assert(m.snapshot().rows[1].consider.label=='Tough')
+          now=now+4; assert(m.refresh()); pulse(); scan({'(Flying) A frog','(Flying) A frog','A bat'})
+          assert(m.snapshot().rows[1].consider.label=='Tough')
+          cache.values['char.status.level']=100; status({level=100})
+          cache.values['char.status.level']=101; status({level=101})
+          assert(not m.snapshot().rows[1].consider and not m.snapshot().rows[2].consider)
+          receive('(Flying) You would stomp A frog into the ground.')
+          now=now+4; assert(m.refresh()); pulse(); scan({'(Flying) A frog','A bat'})
+          assert(not m.snapshot().rows[1].consider,'Changed duplicate count retained an uncertain rating')
+          room(13); assert(#m.snapshot().rows==0)
+          receive('A bat snickers nervously.'); assert(#m.snapshot().rows==0)
+          m.stop()
         ''')
 
     def test_guarded_local_selection_never_sends_commands(self):
@@ -326,6 +355,28 @@ class MobUITests(unittest.TestCase):
         self.addCleanup(self.package.doCleanups)
         self.lua=self.package.lua
         self.lua.execute('AardwolfToolbox.start()')
+
+    def test_consider_card_shares_rating_and_preserves_combat_colors(self):
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
+            self.lua.globals().MobPane=self.lua.execute(z.read('mob-pane.lua').decode())
+        self.lua.execute('''
+          local t=AardwolfToolbox; assert(t.config.set('mobs','enabled',false))
+          local values=t.config.draft().mobs
+          local pane=MobPane.new(_G,t.ui,t.borders,function() end,function() end,function() end,function() end)
+          pane.configure(values)
+          local r={id=1,name='A bat',flags='(Flying)',alive=1,killed=0,missing=0,
+            consider=t.consider.parse('(Flying) A bat would crush you like a bug!')}
+          local s={fresh=true,revision=1,rows={r}}
+          pane.update(s,'Visible mobs · current visit')
+          local card=widgets['AardwolfToolbox.mobs.row1']
+          assert(card.text:find('Crushing · +21–30 lvls',1,true) and card.css:find('#FF6666',1,true))
+          r.attacking=true; pane.update(s,'Visible mobs · current visit')
+          assert(card.css:find(values.attacker_color,1,true) and card.text:find('#FF6666',1,true))
+          values.colors=false; pane.configure(values)
+          assert(card.text:find('Crushing',1,true) and not card.text:find('#FF6666',1,true))
+          values.consider=false; pane.configure(values); assert(not card.text:find('Crushing',1,true))
+          pane.destroy()
+        ''')
 
     def test_fonts_layout_preferences_and_cleanup(self):
         self.lua.execute('''

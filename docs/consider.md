@@ -1,6 +1,6 @@
 # Consider ratings
 
-AardwolfToolbox 0.8.2 replaces Aardwolf's 13 consider messages with a compact line:
+AardwolfToolbox 0.19.0 replaces Aardwolf's 13 consider messages with a compact line:
 
 `(Hidden) (Golden Aura) | Some singing mice | Hard | +5–9 lvls`
 
@@ -49,6 +49,16 @@ Unicode; they are never interpreted as HTML, color markup, links, or Lua.
 Mob placeholders use wildcard captures, not the literal word `MOB`. The Hard
 rating accepts the live pronouns `him`, `her`, `it`, and `them`; status prefixes
 such as `(Hidden) (Golden Aura)` are retained in the separate tags field.
+Flags may precede the **entire sentence**, including `(Flying) You would stomp
+A robin into the ground.` They can also appear directly before the mob name.
+The shared native trigger remains `^.*$`; the anchored Lua sentence patterns
+capture names with `(.+)`, not literal `MOB` text.
+
+`AardwolfToolbox.consider.parse(line)` returns an independent table with `id`,
+`name`, `flags`, `label`, `range`, `rgb`, and `color`, or `nil` for an unmatched
+line. It performs no rendering and works when console formatting is disabled.
+Room mobs uses this same parser and rating table; changing a rating updates both
+presentations.
 
 The line is replaced in place without adding or deleting newlines. Normal console
 wrapping still applies to long names. Difficulty colors preserve the sentence's
@@ -75,3 +85,8 @@ shared dispatcher. `tests/native_consider.lua` requires the disconnected
 foreground/background colors, surrounding output, literal names, and capture
 priority. Never replay fixtures in a player profile. Live acceptance uses naturally
 arriving consider messages only.
+
+Version 0.19.0 passed 210 package tests and native offline checks of all 13
+flag-prefixed sentences, foreground/background preservation, literal names,
+output ordering, and capture priority. `tests/native_mob_consider.lua` adds
+intercepted-transport checks of room-card integration and duplicate ratings.

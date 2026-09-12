@@ -19,6 +19,8 @@ end
 function State.new(clock)
   local self={room=nil,rows={},fresh=false,revision=0}
   local serial=0; local attacks={}; local intent; local targetId
+  local considerIntent,considerCursor,playerLevel=nil,{},nil
+  local function identity(row) return row.name:lower()..'\n'..row.flags:lower() end
   local function create(name,flags)
     serial=serial+1
     return {id=serial,name=name,flags=flags or '',alive=1,killed=0,missing=0}
@@ -31,6 +33,7 @@ function State.new(clock)
   function self.clear(room)
     self.room=room; self.rows={}; self.fresh=false; self.updated=nil; self.target=nil; self.combat=false
     self.selected=nil; self.health=nil; attacks={}; intent=nil; targetId=nil; self.revision=self.revision+1
+    considerIntent=nil; considerCursor={}; playerLevel=nil
   end
   function self.observe(entries)
     local nextRows,counts={},{}
@@ -43,6 +46,20 @@ function State.new(clock)
         local key=name:lower(); counts[key]=(counts[key] or 0)+n
       end
     end
+    -- Carry observations only across an unchanged same-name/flags population.
+    -- A changed count cannot establish which duplicate retained its rating.
+    local oldGroups,newGroups={},{}
+    for _,r in ipairs(self.rows) do
+      if r.alive>0 then local key=identity(r); oldGroups[key]=oldGroups[key] or {}; table.insert(oldGroups[key],r) end
+    end
+    for _,r in ipairs(nextRows) do
+      local key=identity(r); newGroups[key]=newGroups[key] or {}; table.insert(newGroups[key],r)
+    end
+    for key,group in pairs(newGroups) do
+      local old=oldGroups[key]
+      if old and #old==#group then for i,r in ipairs(group) do r.consider=copy(old[i].consider) end end
+    end
+    considerCursor={}; considerIntent=nil
     -- Keep confirmed kills and unmatched observations. A missing row is not a death.
     local history={}
     for _,old in ipairs(self.rows) do
@@ -58,8 +75,17 @@ function State.new(clock)
   -- Outgoing kill targets are hints: GMCP must still confirm combat and name.
   function self.command(command)
     if not self.fresh or type(command)~='string' or command:find('[%z\1-\31\127]') then return end
-    local verb,target=command:match('^%s*(%S+)%s+(.-)%s*$')
+    local verb,target=command:match('^%s*(%S+)%s*(.-)%s*$')
     if not verb then return end
+    local lower=verb:lower()
+    if lower=='con' or lower=='consider' then
+      considerCursor={}; considerIntent=nil
+      if target~='' and target:lower()~='all' then
+        local n,keyword=target:match('^(%d+)%.(.+)$')
+        considerIntent={ordinal=tonumber(n) or 1,keyword=(keyword or target):lower(),time=clock()}
+      end
+      return
+    end
     if verb:lower()~='kill' and verb:lower()~='k' then return end
     intent=nil
     local ordinal,keyword=target:match('^(%d+)%.(.+)$')
@@ -79,6 +105,52 @@ function State.new(clock)
     end
     local row=candidates[ordinal]
     if row then intent={id=row.id,name=row.name:lower(),time=clock()} end
+  end
+  function self.clearConsider()
+    for _,r in ipairs(self.rows) do r.consider=nil end
+    considerCursor={}; considerIntent=nil
+  end
+  function self.level(level)
+    if type(level)~='number' or level~=level then return end
+    if playerLevel and playerLevel~=level then self.clearConsider() end
+    playerLevel=level
+  end
+  function self.consider(rating)
+    if not self.fresh or not self.room then return false end
+    local name,flags=State.name(rating.name)
+    if not name then return false end
+    flags=rating.flags or flags
+    if flags:lower():find('(player)',1,true) then return false end
+    local candidates=living(name:lower()); local matching={}
+    for _,r in ipairs(candidates) do
+      if r.flags:lower()==flags:lower() then matching[#matching+1]=r end
+    end
+    if #matching>0 then candidates=matching end
+    if #candidates==0 then return false end
+    local key=name:lower()..'\n'..flags:lower(); local ordinal
+    if considerIntent and clock()-considerIntent.time<=10 then
+      -- The outgoing keyword may match several different names; use room order.
+      local found={}
+      for _,r in ipairs(self.rows) do
+        local matches=r.alive>0 and not r.unclassified
+        for word in considerIntent.keyword:gmatch('%S+') do
+          local hit=false
+          for part in r.name:lower():gmatch('%S+') do if part:sub(1,#word)==word then hit=true end end
+          matches=matches and hit
+        end
+        if matches then found[#found+1]=r end
+      end
+      local chosen=found[considerIntent.ordinal]; considerIntent=nil
+      if not chosen or chosen.name:lower()~=name:lower() then return false end
+      chosen.consider=copy(rating); return true
+    end
+    -- A consider-all response follows scan order for otherwise identical names.
+    local cursor=considerCursor[key]
+    ordinal=cursor and clock()-cursor.time<=2 and cursor.next or 1
+    if ordinal>#candidates then ordinal=1 end
+    candidates[ordinal].consider=copy(rating)
+    considerCursor[key]={next=ordinal+1,time=clock()}
+    return true
   end
   function self.enemy(name,combat,pct)
     if self.combat and combat~=true then intent=nil end

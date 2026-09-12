@@ -34,6 +34,20 @@ class ConsiderTests(unittest.TestCase):
                     self.assertEqual(tuple(last['bg'].values()),(10,20,30))
         self.lua.execute('assert(gagCount==0 and #visible==39 and #replacements==39 and not selectedLine and formatResets==39)')
 
+    def test_flags_before_every_sentence_share_parser_and_literal_names(self):
+        for template, label, relative, rgb in CASES:
+            text = " (Hidden) (Golden Aura) " + template.format(mob="Éowyn <red> & friends") + "  "
+            self.lua.globals().incoming(text)
+            last = self.lua.eval('replacements[#replacements]')
+            self.assertEqual(last['text'], f'(Hidden) (Golden Aura) | Éowyn <red> & friends | {label} | {relative}')
+            parsed = self.lua.globals().consider.parse(text)
+            self.assertEqual(parsed['name'], 'Éowyn <red> & friends')
+            self.assertEqual(parsed['label'], label)
+            self.assertEqual(tuple(parsed['rgb'].values()), rgb)
+            parsed['rgb'][1] = 0
+            self.assertEqual(self.lua.globals().consider.parse(text)['rgb'][1], rgb[0])
+        self.lua.execute("assert(not consider.parse('(Flying) You would stomp <mob> into the ground.   -20 and below'))")
+
     def test_unmatched_and_help_rows(self):
         messages=['ordinary output','a goblin snickers nervously!', 'a goblin would crush you like a bug! trailing',
                   ' should be a fair fight!', 'You would stomp  into the ground.',

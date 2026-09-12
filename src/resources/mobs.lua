@@ -16,6 +16,8 @@ function Mobs.definition(apply)
     {key='show_killed',label='Retain confirmed kills until leaving',type='boolean',default=true},
     {key='show_missing',label='Show mobs no longer seen',type='boolean',default=false},
     {key='flags',label='Show mob flags and auras',type='boolean',default=true},
+    {key='consider',label='Show observed consider ratings',type='boolean',default=true,
+      description='Relative level ranges from consider output. Threat colors follow Use status colors; no automatic consider commands are sent.'},
     {key='symbols',label='Show indicator symbols',type='boolean',default=true},
     {key='colors',label='Use status colors',type='boolean',default=true},
     {key='blink',label='Pulse observed attacker backgrounds',type='boolean',default=false},
@@ -30,7 +32,7 @@ function Mobs.definition(apply)
     return true
   end,apply=apply}
 end
-function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings)
+function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings,consider)
   local self={enabled=false,last='Disabled'}
   local options,handlers={},{}
   local nearby={fresh=false,sections={}}; local requestFull=false
@@ -157,6 +159,16 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if claimed then return true,true,'AardwolfToolbox.tags' end
     end
     if tags.isCapturing and tags.isCapturing() and not frame then return false end
+    local rating=consider.parse(text)
+    if rating then
+      model.consider(rating)
+      if frame then
+        frame.events[#frame.events+1]={'consider',rating}
+        if #frame.events>512 then fail('Too many interleaved room events') end
+      end
+      update()
+      return false -- The same snapshot must still reach the console formatter.
+    end
     local event,name=Protocol.combat(text,model.snapshot(options.attack_window).rows)
     if event then
       model[event](name)
@@ -180,10 +192,14 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       local key=type(room)=='table' and type(room.num)=='number' and room.num>0 and room.num<2147483648 and room.num%1==0 and tostring(room.num) or nil
       if key~=lastRoom or key==nil then
         cancel(); lastRoom=key; nearby={fresh=false,sections={}}; model.clear(key); status={}; failedRefresh=false
+        model.level(cache.get('char.status.level') or cache.get('char.base.level'))
         self.last=key and 'Waiting for room scan' or 'Room identity unavailable'
         pending=key~=nil and options.on_entry
       end
-    elseif path=='char.status' then
+    elseif path=='char.base' or path=='char.status' then
+      local level=cache.get(path..'.level')
+      model.level(level)
+      if path~='char.status' then update(); return end
       local s=cache.get(path) or {}
       local wasFighting=status.state==8
       for _,key in ipairs({'state','enemy','enemypct'}) do if s[key]~=nil then status[key]=s[key] end end

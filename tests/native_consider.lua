@@ -1,5 +1,7 @@
 assert(getProfileName()=="AardwolfToolboxSettingsTest" and not select(3,getConnectionInfo()),"Disposable offline profile required")
 local config=AardwolfToolbox.config
+local preferences=config.draft()
+assert(config.set('tags','enabled',true)); assert(config.set('ascii','enabled',true))
 assert(config.set("consider","enabled",true)); assert(config.set("consider","colors",true))
 local cases={
   {"You would stomp MOB into the ground.", "Trivial", "≤−20 lvls", {176,176,176}},
@@ -47,6 +49,13 @@ local ok,err=pcall(function()
  local after=findLast("CONSIDER_AFTER"); assert(after==first+14)
  local fg,bg=colorAt(after); assert(fg=="40,50,60" and bg=="10,20,30","Colors leaked into following server output")
  assert(seen==15,"Other trigger missed input")
+ for i,case in ipairs(cases) do
+   local mob="flagged mob "..i
+   feedTriggers("\27[38;2;40;50;60;48;2;10;20;30m(Hidden) (Flying) "..case[1]:gsub("MOB",mob).."\n")
+   local index=findLast("(Hidden) (Flying) | "..mob.." | "..case[2].." | "..case[3])
+   local fg,bg=colorAt(index)
+   assert(fg==table.concat(case[4],",") and bg=="10,20,30","Wrong flagged rating colors")
+ end
  for _,example in ipairs({{"(Golden Aura) Cinderella","her","(Golden Aura) | Cinderella"},
    {"(Hidden) (Golden Aura) Some singing mice","it","(Hidden) (Golden Aura) | Some singing mice"},{"a knight","him","a knight"},{"some guards","them","some guards"}}) do
    feedTriggers("\27[38;2;40;50;60;48;2;10;20;30m"..example[1].." chuckles at the thought of you fighting "..example[2]..".\n")
@@ -77,4 +86,9 @@ local ok,err=pcall(function()
  assert(records[#records-1].line=="a tagged goblin snickers nervously.")
 end)
 killTrigger(observer); deselect(); resetFormat(); moveCursorEnd()
+for _,feature in ipairs({'consider','tags','ascii'}) do
+  for _,key in ipairs(feature=='consider' and {'enabled','colors'} or {'enabled'}) do
+    assert(config.set(feature,key,preferences[feature][key]))
+  end
+end
 echo("CONSIDER_NATIVE "..tostring(ok).." "..tostring(err).."\n")
