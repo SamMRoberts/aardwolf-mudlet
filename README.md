@@ -1,7 +1,13 @@
-# AardwolfToolbox 0.24.0-dev.10
+# AardwolfToolbox 0.24.0-dev.11
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
+
+**Local progression history** is now available through **Tools → Open history**.
+Recording starts **off**; enable it in **aardwolf-config → Local history**. Browse
+observed progression per character, configure retention, export JSON, or clear a
+character's records. See [history controls](docs/history.md). This candidate is
+repository-tested only; native control and installation are awaiting approval.
 
 **Clan** and **Newbie** now have dedicated chat tabs and optional external windows.
 Open them through **Views**, or set their placement in **aardwolf-config → Dashboard

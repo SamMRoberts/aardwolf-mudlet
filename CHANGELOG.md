@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.0-dev.11 — opt-in progression history
+
+- Add fresh observed progression tracking, disabled by default, with separate
+  per-profile SQLite storage partitioned by character. Never infer earlier gains.
+- Add transactional age/count/text retention, bounded disk-backed pages, local
+  JSON export and character-specific clear confirmation. Preserve history on uninstall.
+- Add profile/external History views through Tools and Views, shared settings,
+  defensive APIs and sanitized health status. No gameplay or monitoring requests.
+- Native acceptance and installation remain gated on user approval.
+
 ## 0.24.0-dev.10 — Clan and Newbie chat
 
 - Add dedicated Clan (`clantalk`) and Newbie (`newbie`) views with tab overflow,

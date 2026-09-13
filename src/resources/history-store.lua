@@ -1,11 +1,12 @@
 -- Bounded progression history. Connections and cursors never outlive an operation.
 local Store={}
+local function normalize(value) return (value:gsub('[A-Z]',function(c) return string.char(c:byte()+32) end)) end
 local function quote(value)
-  assert(type(value)=='string' and #value<=128 and value~='' and not value:find('[%c]'),'Invalid history character')
-  return "'"..value:lower():gsub("'","''").."'"
+  assert(type(value)=='string' and #value<=128 and value~='' and not value:find('[%z\1-\31\127]'),'Invalid history character')
+  return "'"..normalize(value):gsub("'","''").."'"
 end
 function Store.new(api)
-  local self={path=api.getMudletHomeDir()..'/AardwolfToolbox-history.sqlite3'}
+  local self={identity=normalize,path=api.getMudletHomeDir()..'/AardwolfToolbox-history.sqlite3'}
   local env,connection
   local limits={days=30,max_entries=1000,max_kib=2048}
   local function query(sql)
@@ -89,14 +90,23 @@ function Store.new(api)
     return run(function() return transaction(function()
       prune()
       local characters=query('SELECT character,COUNT(*) AS count FROM progression GROUP BY character ORDER BY character')
-      local chosen=character and character:lower() or (characters[1] and characters[1].character)
+      local chosen=character and normalize(character) or (characters[1] and characters[1].character)
       if not chosen then return {characters=characters,rows={},total=0,page=1,pages=1} end
       identity=identity or quote(chosen)
       local total=tonumber(query('SELECT COUNT(*) AS count FROM progression WHERE character='..identity)[1].count)
       local pages=math.max(1,math.ceil(total/25));page=math.min(page,pages)
       local result={character=chosen,characters=characters,total=total,page=page,pages=pages,rows={}}
       for _,row in ipairs(query('SELECT id,data FROM progression WHERE character='..identity..' ORDER BY id DESC'..(all and '' or ' LIMIT 25 OFFSET '..((page-1)*25)))) do
-        local entry=api.yajl.to_value(row.data);assert(type(entry)=='table','Invalid saved history record');entry.id=tonumber(row.id)
+        local entry=api.yajl.to_value(row.data)
+        assert(type(entry)=='table' and (entry.kind=='snapshot' or entry.kind=='change') and type(entry.observed)=='number'
+          and entry.observed>=0 and entry.observed%1==0 and type(entry.values)=='table' and type(entry.changes)=='table','Invalid saved history record')
+        assert(#entry.changes<=6,'Invalid saved history changes')
+        for _,change in ipairs(entry.changes) do
+          assert(type(change)=='table' and type(change.field)=='string' and #change.field<=16
+            and type(change.after)=='number' and change.after>=0 and change.after%1==0
+            and (change.before==nil or type(change.before)=='number' and change.before>=0 and change.before%1==0),'Invalid saved history change')
+        end
+        entry.id=tonumber(row.id)
         result.rows[#result.rows+1]=entry
       end
       return result

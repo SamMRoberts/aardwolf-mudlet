@@ -1,9 +1,11 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.10**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.11**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
+This progression-history candidate is repository-tested only; native control and
+installation await approval. Earlier candidates have partial offline acceptance.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -132,12 +134,13 @@ disconnected test profile. See [preference transfers](preferences-transfer.md).
 The notification center is implemented and contract-tested. Offline native filters,
 paging, scrolling, unread counts, external close/reopen/reflow and lifecycle checks
 passed. External mouse interaction and audio remain unverified. It uses existing
-events and defaults to quiet presentation. Optional per-character history with
-retention remains separate.
+events and defaults to quiet presentation. Opt-in local progression history now includes transactional SQLite storage,
+retention, paging, export and clear. Native history acceptance is pending; see
+[history](history.md).
 
-Implement opt-in history with retention,
-export/clear, keyboard improvements and larger-list
-virtualization. Preserve current mob row identity, heuristic duplicate tracking,
+Remaining history categories are quest rewards, explicit observed kills and chat,
+each separately opt-in. Keyboard improvements and larger-list virtualization
+remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 
 ## Acceptance and release gate
@@ -171,6 +174,6 @@ player profile:
 7. Record unobserved live quest/group states and multi-monitor behavior separately.
 
 Before any later player-profile installation, back up package, profile,
-preferences, database and native map. This development candidate is installed
-only in the backed-up offline test profile; none of the 1.0 completion gates
-are waived.
+preferences, database and native map. This development candidate is built
+in the repository; the offline profile still has the earlier dev.10 candidate.
+None of the 1.0 completion gates are waived.

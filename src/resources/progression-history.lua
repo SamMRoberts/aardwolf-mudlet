@@ -21,15 +21,18 @@ function History.new(api,cache,store)
   local function updated() self.revision=self.revision+1;api.raiseEvent('AardwolfToolbox.history.updated') end
   local function reset()
     known,previous,character,statusLevel={},nil,nil,false
-    self.last=self.enabled and 'Waiting for fresh character data' or 'Recording off';updated()
+    if not paused then self.last=self.enabled and 'Waiting for fresh character data' or 'Recording off' end;updated()
   end
   local function record(path)
     if not self.enabled or paused or not cache.enabled then return end
     local value=cache.get(path);if type(value)~='table' then return end
     local base=path=='char' and value.base or path=='char.base' and value
     local status=path=='char' and value.status or path=='char.status' and value
-    if type(base)=='table' and type(base.name)=='string' and base.name~='' and #base.name<=128 and not base.name:find('[%c]') then
-      local identity=base.name:lower()
+    if type(base)=='table' and base.name~=nil and (type(base.name)~='string' or base.name=='' or #base.name>128 or base.name:find('[%z\1-\31\127]')) then
+      reset();return
+    end
+    if type(base)=='table' and type(base.name)=='string' and base.name~='' and #base.name<=128 and not base.name:find('[%z\1-\31\127]') then
+      local identity=store.identity(base.name)
       if character and character~=identity then known,previous,statusLevel={},nil,false end
       character=identity
     end
@@ -44,7 +47,8 @@ function History.new(api,cache,store)
     end
     if #changes==0 then return end
     local entry={observed=math.floor(api.getEpoch()),kind=previous and 'change' or 'snapshot',values=copy(known),changes=changes}
-    local ok,why=store.append(character,entry)
+    local called,ok,why=pcall(store.append,character,entry)
+    if not called then why=ok;ok=nil end
     if not ok then
       paused=true;self.last='History recording paused: '..tostring(why);api.echo('Aardwolf '..self.last..'\n');updated();return
     end

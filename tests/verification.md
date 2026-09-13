@@ -1,3 +1,32 @@
+# 0.24.0-dev.11 progression history candidate — 2026-09-13
+
+- **391 tests passed** after the pinned Muddler build. The 58-entry archive passed
+  CRC/XML and source consistency checks. Existing mob benchmarks passed
+  (99.9% ordinary-line reduction at 200 mobs).
+- Package SHA256: `8442ae0b5e11f4adef1197b0165e68f6a9bca14aae5e9542098b33707eca75c4`.
+- Eleven new tests cover opt-in/no cached replay, partial and missing values,
+  status/base level precedence, duplicates, character/session changes, retained
+  defensive copies, transactional rollback, retention, unsupported databases,
+  export/readback failures, stale clear confirmation, cleanup and compact layouts.
+- SQLite tests use the existing LuaSQL-shaped bridge over real isolated SQLite;
+  file exports use checked mock files. Native LuaSQL close/flush behavior and
+  Geyser interactions are separate acceptance requirements.
+- History keys explicitly fold ASCII letters without changing UTF-8 bytes.
+  The UTF-8 history test disables the unrelated older ability collector because
+  its existing locale-dependent character validation rejects some non-ASCII
+  names; that separate validator was not changed in this history step.
+- History starts disabled. No Mudlet control, installation, player-profile writes,
+  gameplay commands or synthetic native replay occurred during this work.
+  The earlier dev.10 package remains installed in the offline test profile.
+- Prepared `tests/native_history.lua` and [history documentation](../docs/history.md).
+  Native control must first receive the user's approval, then back up the
+  disconnected test profile including its settings, databases and native map.
+- Native history rendering, mouse/keyboard behavior, external-window placement,
+  native database/export operations and naturally arriving progression remain
+  unverified. Quest, kill and chat history are still deferred roadmap categories.
+
+---
+
 # 0.24.0-dev.10 Clan/Newbie chat — 2026-09-13
 
 - **380 tests passed** after the Muddler build. Archive CRC/XML and source consistency

@@ -195,3 +195,11 @@ Keep source state authoritative, include captured session IDs for delayed work,
 and never attach executable commands or callbacks to notices. Category and alert
 preferences live in the shared Notifications section. Notification records stay
 in session memory and are excluded from preference and diagnostic exports.
+
+## Persistent history consumers
+
+Local history is separately opt-in and is not part of notification storage.
+See [progression storage and API](history.md). Preserve per-character identity,
+bounded retention, transactional writes and explicit export/clear actions.
+Future categories require their own registered opt-in and verified source semantics;
+do not add raw protocol payloads or logs to progression observations.

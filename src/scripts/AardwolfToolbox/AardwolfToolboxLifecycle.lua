@@ -272,13 +272,25 @@ local function initialize()
     return AardwolfToolbox.notificationPane.configure(values)
   end))
 
+  local History=resource("progression-history")
+  own("historyStore",resource("history-store").new(_G),{"config"})
+  own("history",History.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.historyStore),{"gmcp","historyStore"},"stop")
+  own("historyPane",resource("history-pane").new(_G,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.history,function()
+    AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select("history")
+  end),{"history","ui","views"},"stop")
+  config.registerFeature(History.definition(function(values)
+    local ok,why=AardwolfToolbox.history.configure(values)
+    if not ok then AardwolfToolbox.historyPane.stop();return false,why end
+    return AardwolfToolbox.historyPane.configure()
+  end))
+
   local Launcher=resource("launcher")
   local launcher=own("launcher",Launcher.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.utilityBar,function(feature)
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select(feature)
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications"}) do
+  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications","history"}) do
     local view=id
     launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
@@ -409,6 +421,7 @@ function AardwolfToolbox.health()
   if AardwolfToolbox.mobs then result.mobs=AardwolfToolbox.mobs.status() end
   if AardwolfToolbox.dashboardData then result.dashboard=AardwolfToolbox.dashboardData.status() end
   if AardwolfToolbox.notifications then result.notifications=AardwolfToolbox.notifications.status() end
+  if AardwolfToolbox.history then result.history=AardwolfToolbox.history.status() end
   return result
 end
 
