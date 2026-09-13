@@ -22,8 +22,8 @@ function Incoming.new(api)
     consumers[owner]=nil; order()
     if not next(consumers) and trigger then api.killTrigger(trigger); trigger=nil end
   end
-  function self.add(owner, priority, receive, failed, processed)
-    consumers[owner]={priority=priority,receive=receive,failed=failed,processed=processed}
+  function self.add(owner, priority, receive, failed, processed, queryOutput)
+    consumers[owner]={priority=priority,receive=receive,failed=failed,processed=processed,queryOutput=queryOutput==true}
     order()
     if trigger then return end
     local ok,err=pcall(function()
@@ -37,11 +37,11 @@ function Incoming.new(api)
           active=previous
           for _,fn in ipairs(deferred) do pcall(fn) end
         end
-        local function completed(hidden,owner)
+        local function completed(hidden,owner,queryOutput)
           for _,entry in ipairs(ordered) do
             local consumer=entry.consumer
             if consumers[entry.name]==consumer and consumer.processed then
-              local ok,err=pcall(consumer.processed,text,hidden,owner)
+              local ok,err=pcall(consumer.processed,text,hidden,owner,queryOutput==true)
               if not ok then self.remove(entry.name); consumer.failed(err) end
             end
           end
@@ -55,7 +55,7 @@ function Incoming.new(api)
               -- A machine-readable consumer can forward the same snapshot to the
               -- generic tag archive, without allowing ordinary formatters to claim it.
               if suppress then api.deleteLine() end
-              completed(suppress==true,entry.name)
+              completed(suppress==true,entry.name,consumer.queryOutput)
               local observer=forward and consumers[forward]
               if observer then
                 local observed,err=pcall(observer.receive,text,context)

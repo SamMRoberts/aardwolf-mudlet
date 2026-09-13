@@ -1,8 +1,19 @@
-# Console cleanup — 0.18.2
+# Console cleanup
 
 `aardwolf-config → Console cleanup` provides three enabled-by-default switches:
 Enable console cleanup, Hide blank and whitespace-only lines, and Hide repeated
-identical standard prompts. Preferences use the shared configuration service.
+identical standard prompts. Preferences use the shared configuration service. The 0.24 candidate also adds
+**Cleanup mode**, defaulting to **Compact output** to preserve existing behavior:
+
+- **Off:** leave subsequent console lines untouched by this filter.
+- **Captured queries:** clean at most 16 adjacent blank lines within two seconds
+  of hidden Toolbox query/monitoring output; optionally remove the next identical
+  standard prompt. Visible content or a prompt ends that gap. Ordinary blank
+  lines, repeated player prompts, and spacing after ASCII/help remain visible.
+- **Compact output:** apply the existing blank-line and repeated-prompt switches
+  to all ordinary incoming output.
+
+The enable switch and two individual filters remain independent and persistent.
 
 Blank means empty or entirely whitespace in Mudlet's plain-text incoming line.
 ANSI colors do not prevent matching. The repeated-prompt filter recognizes the
@@ -25,15 +36,17 @@ state. Disable/uninstall restores subsequent original output. No timers, command
 GMCP subscriptions, widgets, or additional preference files are introduced.
 
 The dispatcher's optional fifth `add` argument is a processed-line callback:
-`processed(text, hidden, claimingOwner)`. It receives the original snapshot after
+`processed(text, hidden, claimingOwner, queryOutput)`. It receives the original snapshot after
 the claiming consumer and gag decision, before any archive forwarding. It can
 observe earlier visible claims without competing for ownership. It must not gag
 or rewrite the line. Callback failures remove that consumer and invoke its failure
-handler.
+handler. An optional sixth `add` argument marks a query/monitoring consumer.
+Only its hidden claims open a query-cleanup gap; generic tags and formatted
+ASCII/help do not. Existing five-argument consumers remain compatible.
 
 ## Verification
 
-The complete 199-test package suite and archive inspection passed. Native offline
+Historical 0.18.2 acceptance: the complete 199-test package suite and archive inspection passed. Native offline
 ANSI replay removed 16 blank lines and seven repeated prompts in the reported
 sequence, preserved distinct output and map-frame spacing, and confirmed another
 trigger still received every line. Version 0.18.2 was installed in Aardwolf after
@@ -41,3 +54,6 @@ a full profile/package/settings/map backup; all 1,034 native rooms, prior featur
 preferences, map/chat widgets, and border reservations were preserved. The final
 passive live-observation window was interrupted by macOS locking, so live prompt
 suppression remains unobserved rather than being claimed from offline tests.
+
+The new cleanup modes have package regression coverage; native acceptance is
+pending. See [current verification](../tests/verification.md).

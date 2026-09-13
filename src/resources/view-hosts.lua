@@ -158,6 +158,7 @@ function Views.new(api,config,ui,settings)
     local function add(text,fn) list[#list+1]={text,fn} end
     if id then
       add("Open "..title(id),function() self.open(id) end)
+      if entries[id] and entries[id].search then add('Search chat',entries[id].search) end
       add(self.mode(id)=="floating" and "Return to sidebar" or "Float outside Mudlet",function() self.setMode(id,self.mode(id)=="floating" and "tabbed" or "floating") end)
       if self.mode(id)=="floating" then add("Reset window placement",function() self.resetPlacement(id) end) end
     else
@@ -165,7 +166,8 @@ function Views.new(api,config,ui,settings)
         local e=entries[key]
         if e then
           local count=e.unread and e.unread() or 0
-          add(title(key)..(self.mode(key)=="floating" and " ↗" or "")..(count>0 and " · "..count.." unread" or ""),function() self.open(key) end)
+          local mentions=e.mentions and e.mentions() or 0
+          add(title(key)..(self.mode(key)=="floating" and " ↗" or "")..(count>0 and " · "..count.." unread" or "")..(mentions>0 and ' · '..mentions..' mentions !' or ''),function() self.open(key) end)
           add("  "..(self.mode(key)=="floating" and "Return " or "Float ")..title(key),function() self.setMode(key,self.mode(key)=="floating" and "tabbed" or "floating") end)
           if self.mode(key)=="floating" then add("  Reset "..title(key).." placement",function() self.resetPlacement(key) end) end
         end

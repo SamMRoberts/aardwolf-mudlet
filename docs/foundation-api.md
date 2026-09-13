@@ -37,8 +37,8 @@ local handle = AardwolfToolbox.queries.request("MyFeature", {
 -- collector parser; boundary(line) must identify its exact ending marker.
 ```
 
-No Lua is evaluated from incoming text. `acquire/release` remain supported while
-for existing extensions. Built-in collectors now use requests. Manual actions
+No Lua is evaluated from incoming text. `acquire/release` remain supported for
+existing extensions. Built-in collectors now use requests. Manual actions
 bypass this informational queue.
 `handle.detach(reason)` keeps the old response exclusive after removing a
 collector. Its exact `boundary(line)` predicate runs through the shared incoming
@@ -80,3 +80,15 @@ Register that setting as a choice supporting `tabbed` and `floating` before
 registering the view. Mode shortcuts use config.set through views.setMode.
 Call `views.unregister(id)` before destroying feature-owned root widgets.
 The host reparents content; it never mirrors chat buffers or data producers.
+
+
+`incoming.add(owner, priority, receive, failed, processed, queryOutput)` accepts
+an optional boolean sixth argument for query/monitoring producers. The processed
+callback receives it as a fourth argument after suppression. Only hidden claims
+open the captured-query console-cleanup window; ASCII/help/generic tag consumers
+must not set it.
+
+`dashboard.searchChat("all" | "tells" | "channels")` opens local native-buffer
+search. `dashboard.isEditing()` participates in shared shortcut suspension.
+A registered chat view may provide a `search()` callback and `mentions()` count
+for the shared Views menu. Neither API adds message capture or persisted history.

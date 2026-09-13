@@ -14,7 +14,7 @@ Map tabs switch the single native graphical mapper and the single captured ASCII
 
 Below 1,000 profile pixels, the sidebar can collapse using **Sidebar** in the utility bar. This button and Settings stay outside overflow. With the utility bar disabled, the sidebar stays visible. Reset layout restores panel placement and shares; it preserves feature preferences, native map data, and chat history. Disabling the dashboard restores the starter's original layout functions and section geometry.
 
-Reservation provenance lives in the existing settings JSON. A matching saved Toolbox reservation is recovered rather than counted again as external space. The initial 0.13 migration resets legacy top/bottom external margins to zero once, preserving active claims. Subsequent startups do not repeat it. Back up a player profile before upgrading.
+Reservation provenance lives in the existing settings JSON. A matching saved Toolbox reservation is recovered rather than counted again as external space. The 0.24 candidate removes the automatic first-start legacy margin reset. External margins remain untouched unless the user explicitly chooses Reset layout, which first backs up settings and reservation provenance. Back up a player profile before upgrading.
 
 ## Gameplay data
 
@@ -111,6 +111,38 @@ Unsupported starter APIs produce an activation diagnostic and preserve the
 original pane. No starter package files are edited.
 
 Standalone chat consumes fresh `comm.channel` updates once, uses literal native
-ANSI color rendering, and supports optional timestamps/channel exclusions. Raw
-Aardwolf color codes, native migration/rendering acceptance, chat search/mentions,
-and the rest of the 0.25 workflow remain outstanding. See `roadmap-status.md`.
+color rendering, and supports optional timestamps/channel exclusions. Native
+migration/rendering acceptance and the rest of the 0.25 workflow remain
+outstanding. See `roadmap-status.md`.
+
+
+## Chat search, colors and mentions
+
+Use the chat view menu (⋮ or right-click its tab) → **Search chat**. Type a literal,
+case-sensitive phrase and press Enter. Search reads the same All/Tells/Channels
+buffer, including borrowed starter scrollback. Results are newest first, limited
+to 100 matches within the most recent 10,000 lines / 1 MiB examined. Click a result
+to scroll the original console to it; if that line has changed or been trimmed,
+search again. Close or Escape discards search results without clearing chat.
+Search typing stays local and suspends Toolbox action shortcuts. Hidden/changed
+chat tabs close the search; results are never saved or automatically refreshed.
+Unicode is matched literally; this is not locale-aware case folding.
+
+Under **Sidebar and setup**, choose the incoming chat format that matches the
+server: **ANSI / plain text** (default) or **Raw Aardwolf colors**. This local
+preference sends no server configuration. Raw mode understands the documented
+`@r`/`@R` color family, `@x000`–`@x255`, `@@` and `@-`. Unsupported codes, including
+`@x256` (server-selected random color) and `$C` (unknown channel default), remain
+literal. ANSI mode never interprets `@` text, preserving email addresses. Native
+foreground/background setters render colors; message content is never HTML,
+links or executable code. See Aardwolf's [colors](https://www.aardwolf.com/wiki/index.php/Help/Colors)
+and [xterm notation](https://www.aardwolf.com/wiki/index.php/Help/Xterm).
+
+Toolbox chat can mark unread messages mentioning the current character name or
+comma-separated **Additional mention words** with a quiet **!** badge. A mention
+is a literal whole-word match; ASCII letters ignore case, while Unicode letters
+retain case. Messages reported as sent by the player are excluded. Tab tooltips
+and the Views menu show counts; selecting a sidebar tab or Latest / Mark read
+clears them. No sound, blinking, message recoloring or second capture pipeline is
+added. These capture options apply to Toolbox-owned chat; compatibility mode
+continues using the starter's capture preferences.

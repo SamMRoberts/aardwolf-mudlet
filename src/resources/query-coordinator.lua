@@ -171,7 +171,7 @@ function Coordinator.new(api)
             return true,true,forward
           end
           return false
-        end,function() dispatcher=nil end)
+        end,function() dispatcher=nil end,nil,true)
       end
       on('ready','AardwolfToolbox.gmcp.updated',function() self.poke() end)
       on('reset','AardwolfToolbox.gmcp.cleared',function()

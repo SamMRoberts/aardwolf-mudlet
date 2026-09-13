@@ -4,13 +4,22 @@ local OWNER="AardwolfToolbox.dashboard"
 local function number(value)
   return type(value)=="number" and value==value and math.abs(value)<math.huge and string.format("%.0f",value) or "--"
 end
-function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell)
+function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell,ChatSearch)
   local self={enabled=false,last="Disabled"}
   local options,adapter,timer,refreshTimer,drag
   local root,mapTabs,mapHost,body,playerHost,split1,split2,widthHandle,tabStrip
   local tabs,rows,handlers={},{},{}
   local hosts,chatHosts={},{}
   local panels=Panels.new(api,config,cache,data,ui,spells,spellup,views)
+  local search=ChatSearch and ChatSearch.new(api,ui)
+  local searchView
+  function self.isEditing() return search and search.isEditing() or false end
+  function self.searchChat(id)
+    if not search or not adapter or not chatHosts[id] then return false,'Chat is unavailable' end
+    local ok,reason=views.open(id);if not ok then return false,reason end
+    searchView=id
+    return search.open(chatHosts[id],adapter.base.chats[id])
+  end
   local chatFirst=1
   local DASH={"player","quest","group","buffs"}
   local CHAT={"all","tells","channels"}
@@ -168,10 +177,12 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       local console=base.chats[id]
       console:changeContainer(host)
       assert(views.register(id,{root=host,home=home,chat=true,unread=function() return (base.unread or {})[id] or 0 end,
+        mentions=function() return (base.mentions or {})[id] or 0 end,
+        search=function() return self.searchChat(id) end,
         select=function() base.selectChatTab(id) end}))
       local latest=label("latest."..id,host,"Latest / Mark read",function()
         if console.scrollTo then console:scrollTo() end
-        base.unread[id]=0; base.refreshChatTabs()
+        base.unread[id]=0; if base.mentions then base.mentions[id]=0 end; base.refreshChatTabs()
       end)
       local menu=label("chatMenu."..id,host,"⋮",function() views.menu(id) end)
       tabs["latest."..id]=latest; tabs["chatMenu."..id]=menu
@@ -185,11 +196,17 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   local function chatFonts(base)
     local h=ui.metrics().height; local width=base.sections.chat.Inside:get_width()
     local available={}
+    local chatLabels={}
     local tabSpace=width-h*2
     for _,id in ipairs(CHAT) do if docked(id) then available[#available+1]=id end end
     if not docked(base.activeChatTab) then base.activeChatTab=available[1] end
     local tabWidth=0
-    for _,id in ipairs(available) do tabWidth=tabWidth+math.max(64,ui.measure(id)+30) end
+    for _,id in ipairs(available) do
+      local count=(base.unread or {})[id] or 0
+      local mentions=(base.mentions or {})[id] or 0
+      chatLabels[id]=id:sub(1,1):upper()..id:sub(2)..(count>0 and ' · '..math.min(99,count) or '')..(mentions>0 and ' !' or '')
+      tabWidth=tabWidth+math.max(64,ui.measure(chatLabels[id])+16)
+    end
     local overflow=tabWidth>tabSpace
     if #available>0 then chatFirst=math.max(1,math.min(chatFirst,#available)) end
     if not overflow then chatFirst=1 end
@@ -199,7 +216,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if not tabs.chatLatest then
       tabs.chatLatest=label("chatLatest",base.sections.chat.Inside,"↓",function()
         local key=base.activeChatTab; local console=key and base.chats[key]
-        if console then console:scrollTo(); base.unread[key]=0; chatFonts(base) end
+        if console then console:scrollTo(); base.unread[key]=0; if base.mentions then base.mentions[key]=0 end; chatFonts(base) end
       end)
       tabs.chatLatest:setToolTip("Latest / Mark read")
       tabs.chatViews=label("chatViews",base.sections.chat.Inside,"⋮",function() views.menu(base.activeChatTab) end)
@@ -225,12 +242,17 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
         local b=base.chatTabLabels[id]
         b:setClickCallback(function(event) if event and event.button=="RightButton" then views.menu(id) else base.selectChatTab(id) end end)
         local position; for i,key in ipairs(available) do if key==id then position=i end end
-        local bw=math.max(64,ui.measure(id)+30)
+        local bw=math.max(64,ui.measure(chatLabels[id] or id)+16)
         if position and position>=chatFirst and x+bw<=tabSpace-(overflow and h or 0) then
           local count=(base.unread or {})[id] or 0
-          ui.style(b,true,active); b:move(x,0); b:resize(bw,h); b:echo(id:sub(1,1):upper()..id:sub(2)..(count>0 and " · "..math.min(99,count) or "")); b:show(); x=x+bw
+          local mentions=(base.mentions or {})[id] or 0
+          ui.style(b,true,active); b:move(x,0); b:resize(bw,h); b:echo(chatLabels[id]); b:setToolTip(count..' unread · '..mentions..' mentions'); b:show(); x=x+bw
         else b:hide() end
       end
+    end
+    if search then
+      if search.isEditing() and not views.visible(searchView) then search.close() end
+      search.layout()
     end
   end
   layout=function()
@@ -300,6 +322,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if not ok then error(err,0) end
   end
   local function restore()
+    if search then search.stop() end
     if not adapter then return end
     local a=adapter; adapter=nil
     if a.base.AardwolfToolboxDashboard==self then a.base.AardwolfToolboxDashboard=nil end
@@ -378,10 +401,13 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       a.selectChat=function(key)
         if not base.chats[key] then return end
         if views.mode(key)=="floating" then views.open(key); return end
-        base.activeChatTab=key; base.unread[key]=0; chatFonts(base)
+        base.activeChatTab=key; base.unread[key]=0; if base.mentions then base.mentions[key]=0 end; chatFonts(base)
       end
-      a.noteChat=function(key)
-        if views.mode(key)=="floating" or key~=base.activeChatTab or base.container.hidden then base.unread[key]=(base.unread[key] or 0)+1 end
+      a.noteChat=function(key,mention)
+        if views.mode(key)=="floating" or key~=base.activeChatTab or base.container.hidden then
+          base.unread[key]=(base.unread[key] or 0)+1
+          if mention then base.mentions=base.mentions or {};base.mentions[key]=(base.mentions[key] or 0)+1 end
+        end
         if root then chatFonts(base) end
       end
       base.selectChatTab=a.selectChat; base.noteChatActivity=a.noteChat

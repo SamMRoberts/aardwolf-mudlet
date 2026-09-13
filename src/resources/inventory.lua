@@ -296,7 +296,7 @@ function Inventory.new(api,cache,incoming,queries,readiness,Items)
     if self.enabled then return true end
     local ok,reason=pcall(function()
       self.enabled=true; reset()
-      incoming.add(OWNER,18,receive,function(err) self.stop(); self.last='Stopped: '..tostring(err) end)
+      incoming.add(OWNER,18,receive,function(err) self.stop(); self.last='Stopped: '..tostring(err) end,nil,true)
       local function on(name,event,fn)
         handlers[#handlers+1]=name
         assert(api.registerNamedEventHandler(OWNER,name,event,fn),'Cannot register inventory handler')

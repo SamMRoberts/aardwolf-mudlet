@@ -194,7 +194,7 @@ local function initialize()
   own("dashboardData",resource("dashboard-data").new(_G,AardwolfToolbox.gmcp),{"gmcp"},"stop")
   own("dashboard",resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
     AardwolfToolbox.dashboardData,AardwolfToolbox.ui,AardwolfToolbox.borders,
-    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell),{"gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
+    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell,resource("chat-search")),{"gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
   config.registerFeature({id="dashboard",label="Dashboard and layout",description="Tabbed maps and gameplay views above chat. Drag the dividers to resize. Reset layout restores placement without clearing data.",settings={
     {key="enabled",type="boolean",default=true,label="Enable tabbed sidebar"},
     {key="automatic_data",type="boolean",default=true,label="Automatic GMCP data setup"},
@@ -232,7 +232,7 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))

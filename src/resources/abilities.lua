@@ -381,11 +381,11 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local opened,message=store.open(OWNER); assert(opened,message)
       local meta=store.get('ability_metadata',0) or {}; count=meta.count or 0; updated=meta.updated
       self.enabled=true; reset()
-      incoming.add(OWNER,18,receive,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end)
+      incoming.add(OWNER,18,receive,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end,nil,true)
       incoming.add(OWNER..'.syntax',14,function(line)
         if self.enabled and connected() and request and request.query.kind=='syntax' then return captureLine(line) end
         return false
-      end,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end)
+      end,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end,nil,true)
       local function on(event,fn)
         handlers[#handlers+1]=event; assert(api.registerNamedEventHandler(OWNER,event,event,fn),'Cannot register ability handler')
       end

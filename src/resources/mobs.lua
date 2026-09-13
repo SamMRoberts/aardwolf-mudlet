@@ -435,7 +435,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if self.enabled then return true end
     local ok,err=pcall(function()
       self.enabled=true;view.configure(options);reset()
-      incoming.add(OWNER,17,receive,function(message) self.stop();self.last='Stopped: '..tostring(message);api.echo('Aardwolf mobs: '..self.last..'\n') end)
+      incoming.add(OWNER,17,receive,function(message) self.stop();self.last='Stopped: '..tostring(message);api.echo('Aardwolf mobs: '..self.last..'\n') end,nil,true)
       local function on(event,fn) handlers[#handlers+1]=event;assert(api.registerNamedEventHandler(OWNER,event,event,fn)) end
       on('AardwolfToolbox.gmcp.updated',gmcp);on('AardwolfToolbox.gmcp.cleared',reset);on('sysDisconnectionEvent',reset)
       on('AardwolfToolbox.queries.available',schedule);on('AardwolfToolbox.spellup.updated',schedule)

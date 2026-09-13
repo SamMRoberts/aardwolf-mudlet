@@ -1,7 +1,14 @@
-# AardwolfToolbox 0.24.0-dev.2
+# AardwolfToolbox 0.24.0-dev.3
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
+
+This candidate adds chat search from each chat view menu, quiet mention badges,
+explicit raw Aardwolf chat-color decoding, and **Off / Captured queries / Compact
+output** cleanup modes. See [chat controls](docs/ui-dashboard.md#chat-search-colors-and-mentions)
+and [console cleanup](docs/console-cleanup.md). Native validation is pending:
+computer-control attempts timed out before a profile could be inspected. Test in
+a disconnected disposable profile before upgrading a player profile.
 
 New controls are in **aardwolf-config → Sidebar and setup** and **Diagnostics**.
 The settings search field filters sections and their setting descriptions when

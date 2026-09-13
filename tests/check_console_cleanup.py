@@ -74,4 +74,36 @@ class CleanupTests(unittest.TestCase):
           triggerFailure=false
         ''')
 
+    def test_query_mode_only_cleans_bounded_gaps_after_hidden_query_output(self):
+        self.lua.execute('''
+          assert(c.set('console_cleanup','mode','queries'))
+          local now=1000;getEpoch=function() return now end
+          AardwolfToolbox.incoming.add('test.query',18,function(line)
+            if line=='query record' then return true,true end
+          end,error,nil,true)
+          incoming('');incoming(prompt);incoming(prompt);assert(#visible==3)
+          incoming('query record');incoming('');incoming('  ');incoming(prompt);assert(#visible==3)
+          incoming('');assert(#visible==4)
+          incoming('query record');incoming('Visible response');incoming('');assert(#visible==6)
+          incoming('query record');now=1003;incoming('');assert(#visible==7)
+          incoming('query record');for i=1,17 do incoming('') end;assert(#visible==8)
+          incoming('query record');fire('sysDisconnectionEvent');incoming('');assert(#visible==9)
+          assert(c.set('console_cleanup','mode','off'));incoming('');incoming(prompt);incoming(prompt);assert(#visible==12)
+        ''')
+
+    def test_query_mode_keeps_manual_tags_map_and_help_spacing_outside_capture(self):
+        self.lua.execute('''
+          assert(c.set('console_cleanup','mode','queries'))
+          incoming('{unknown}record');incoming('');assert(#visible==1)
+          incoming('<MAPSTART>');incoming('');incoming('Map title');incoming('<MAPEND>');incoming('')
+          assert(#visible==2)
+          incoming('{help}');incoming('{helpbody}');incoming('');incoming('{/helpbody}');incoming('{/help}');incoming('')
+          assert(#visible==3)
+          assert(c.set('tags','suppress',false))
+          incoming('{unknown}record');incoming('');assert(#visible==5)
+          AardwolfToolbox.incoming.add('test.query',18,function(line) if line=='query record' then return true,true end end,error,nil,true)
+          incoming('query record');incoming('<MAPSTART>');incoming('map');incoming('<MAPEND>');incoming('')
+          assert(#visible==6)
+        ''')
+
 if __name__=='__main__': unittest.main()

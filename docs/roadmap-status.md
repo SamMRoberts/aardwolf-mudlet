@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.2**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.3**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no live installation or native acceptance has been performed for it.
 
@@ -34,8 +34,12 @@ and no live installation or native acceptance has been performed for it.
 - Standalone map/dashboard/chat shell for fresh profiles; reversible migration
   of an existing supported starter sidebar's widgets and chat routing.
 - Literal ANSI chat rendering using native foreground/background setters,
-  timestamps, channel exclusion preferences, and retained existing dashboard
-  unread/tab controls. Raw Aardwolf color notation remains to be supported.
+  timestamps, channel exclusions, explicit raw Aardwolf color decoding, and quiet
+  mention counts alongside unread badges. Unsupported raw codes remain literal.
+- Local chat search reads the existing native buffer on demand, with bounded
+  results and stale-line checks; no second capture/history pipeline.
+- Off / Captured queries / Compact output cleanup modes preserve existing
+  preferences. Query gaps are bounded by time and line count.
 - Shared-settings search and extensible registered view placement.
 - Reproducible build/check entrypoint, pinned toolchain, archive/source checks,
   and a macOS CI workflow. CI execution itself remains unverified here.
@@ -50,9 +54,11 @@ reply formats; requested setup is not reported as confirmed observation. Broad
 collector tests cover contention, obsolete responses, failure and cleanup.
 Verify actual native migration, reload/replacement, external-window ownership,
 input focus, chat scrollback, delayed starter construction and startup order.
-Finish chat search/mentions, the utility command menu, onboarding walkthrough,
-console-cleanup presets, and raw-color support. These are not represented as
-completed by the current sidebar candidate.
+Finish the utility command menu and onboarding walkthrough. Native chat search,
+focus, scrollback, colors and badges still require acceptance. Two attempts to
+inspect Mudlet on 2026-09-13 timed out before returning profile state; no profile
+was controlled or changed. Native testing in the disconnected profile is now
+authorized but could not run through the unavailable control connection.
 
 ### Inventory/equipment and ability browser (0.26)
 
@@ -89,7 +95,7 @@ Use `python3 tools/check.py` for the real Muddler build, archive validation,
 Lua 5.1 suite and ordinary-line benchmark. Mocks do not establish native Geyser
 geometry or live transport correctness.
 
-For later authorized native work, use `tests/native_foundation.lua` in the
+For the authorized disconnected-profile native work, use `tests/native_foundation.lua` in the
 **disconnected AardwolfToolboxSettingsTest profile only**. Perform the manual
 checks below; the fixture intercepts command dispatch and must never run in a
 player profile:
@@ -98,7 +104,9 @@ player profile:
    no blank reservation bands; navigation above Vitals; TNL far right.
 2. Settings search: type without changing the main input; Enter filters locally.
    Apply/Cancel and stale drafts retain their established behavior.
-3. Float each view, close/reopen, return to sidebar, resize and scroll; inspect
+3. Run `tests/native_chat.lua` after the foundation fixture. Check color formats,
+   Search chat (literal/case-sensitive), stale results, mentions and Mark read.
+   Float each view, close/reopen, return to sidebar, resize and scroll; inspect
    focus and font sizes at 1280×800, 1920×1080, narrow and Retina layouts.
 4. In a separate disposable starter profile, migrate explicitly and return to
    compatibility mode. Verify the same chat buffers/native mapper survive;

@@ -356,7 +356,7 @@ function Spells.new(api,cache,incoming,tags,store,queries)
     local ok,err=pcall(function()
       if store then assert(store.open(OWNER)) end
       self.enabled=true; reset()
-      incoming.add(OWNER,19,receive,function(err) self.stop(); self.last="Stopped: "..tostring(err) end)
+      incoming.add(OWNER,19,receive,function(err) self.stop(); self.last="Stopped: "..tostring(err) end,nil,true)
       local function on(name,event,fn)
         handlers[#handlers+1]=name; assert(api.registerNamedEventHandler(OWNER,name,event,fn),"Cannot register spell handler")
       end

@@ -6,7 +6,10 @@ function Shell.definition(apply)
   return {id='shell',label='Sidebar and setup',description='Automatic keeps an existing starter UI and supplies a complete sidebar on fresh profiles. Toolbox mode moves existing chat buffers and the mapper after a layout backup.',settings={
     {key='mode',type='choice',default='automatic',label='Sidebar owner',options={{value='automatic',label='Automatic'},{value='legacy',label='Starter compatibility'},{value='toolbox',label='Toolbox standalone'}}},
     {key='timestamps',type='boolean',default=false,label='Chat timestamps'},
+    {key='chat_colors',type='choice',default='ansi',label='Incoming chat color format',description='Match the server GMCP format. ANSI preserves literal @ characters; Raw decodes Aardwolf @ color codes. This does not change server preferences.',options={{value='ansi',label='ANSI / plain text'},{value='raw',label='Raw Aardwolf colors'}}},
     {key='hidden_channels',type='text',default='',maxLength=1024,label='Hidden chat channels (comma separated)'},
+    {key='mentions',type='boolean',default=true,label='Mark chat mentions',description='Show a quiet ! badge when unread chat mentions your character or a configured word. Message colors remain unchanged.'},
+    {key='mention_words',type='text',default='',maxLength=512,label='Additional mention words (comma separated)'},
   },apply=apply}
 end
 function Shell.new(api,config,cache,ui,Text)
@@ -54,7 +57,7 @@ function Shell.new(api,config,cache,ui,Text)
       assert(config.setMetadata('sidebarMigrationBackup',{settings=draft,width=starter.container.width,height=starter.container.height,x=starter.container.x,y=starter.container.y}))
     end
     local ok,err=pcall(function()
-      base={sections={},chats={},chatTabLabels={},unread={},activeChatTab='all',toolboxOwned=true}
+      base={sections={},chats={},chatTabLabels={},unread={},mentions={},activeChatTab='all',toolboxOwned=true}
       base.container=section('root')
       for _,key in ipairs({'map','chat'}) do base.sections[key]=section(key,base.container.Inside) end
       if starter then
@@ -88,9 +91,12 @@ function Shell.new(api,config,cache,ui,Text)
       end
       function base.layoutDock() end
       function base.refreshChatTabs() end
-      function base.selectChatTab(id) base.activeChatTab=id;base.unread[id]=0;base.refreshChatTabs() end
-      function base.noteChatActivity(id)
-        if id~=base.activeChatTab then base.unread[id]=(base.unread[id] or 0)+1 end
+      function base.selectChatTab(id) base.activeChatTab=id;base.unread[id]=0;base.mentions[id]=0;base.refreshChatTabs() end
+      function base.noteChatActivity(id,mention)
+        if id~=base.activeChatTab then
+          base.unread[id]=(base.unread[id] or 0)+1
+          if mention then base.mentions[id]=(base.mentions[id] or 0)+1 end
+        end
         base.refreshChatTabs()
       end
       self.enabled=true
@@ -105,7 +111,28 @@ function Shell.new(api,config,cache,ui,Text)
         end
         local text=(options.timestamps and os.date('[%H:%M] ') or '')..message.msg..'\n'
         local family=channel:find('tell',1,true) and 'tells' or 'channels'
-        for _,id in ipairs({'all',family}) do Text.write(api,base.chats[id],text);base.noteChatActivity(id) end
+        local mention=false
+        if options.mentions then
+          local character=cache.get('char.base.name')
+          if type(character)~='string' then character='' end
+          if character=='' or tostring(message.player or ''):lower()~=character:lower() then
+            local plain=Text.plain(message.msg,options.chat_colors):lower()
+            for word in (character..','..(options.mention_words or '')):gmatch('[^,]+') do
+              word=word:match('^%s*(.-)%s*$'):lower()
+              if word~='' then
+                local at=1
+                while at<=#plain do
+                  local first,last=plain:find(word,at,true);if not first then break end
+                  local before,after=plain:sub(first-1,first-1),plain:sub(last+1,last+1)
+                  if not before:find('[%w_\128-\255]') and not after:find('[%w_\128-\255]') then mention=true;break end
+                  at=last+1
+                end
+              end
+              if mention then break end
+            end
+          end
+        end
+        for _,id in ipairs({'all',family}) do Text.write(api,base.chats[id],text,options.chat_colors);base.noteChatActivity(id,mention) end
       end),'Cannot register chat handler')
       api.gmod.enableModule(OWNER,'Comm')
       self.last='Toolbox sidebar; waiting for fresh channel messages'
