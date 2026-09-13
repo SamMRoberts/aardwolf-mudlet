@@ -264,6 +264,87 @@ class AbilityTests(unittest.TestCase):
           assert(abilities.last:find('timed out') and abilities.get(54))
         ''')
 
+    def test_status_level_refresh_uses_current_level_and_coalesces_base_catchup(self):
+        self.service()
+        self.lua.execute('''
+          cache.values['char.status.level']=127
+          syncAbilities()
+          button.ability_type='bash'; button.ability_kind='skill'
+          local old=abilities.resolve(button); assert(old)
+          local n=#commands
+          cache.values['char.status.state']=8
+          update('char.status.level',128,'char.status'); advance(0.2)
+          assert(not abilities.status().fresh and abilities.status().pending)
+          assert(abilities.resolve(button)==old and #commands==n)
+          -- The base producer still reports 127; repeated packets must not
+          -- undo the status update or restart the pending collection.
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base')
+          update('char.status.state',3,'char.status'); advance(0.2)
+          assert(commands[#commands]=='slist learned noprompt' and #commands==n+1)
+          cache.values['char.base'].level=128; cache.values['char.base.level']=128
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base'); advance(0.2)
+          syncAbilities()
+          assert(#commands==n+27 and store.get('ability_metadata',0).level==128)
+          assert(abilities.status().fresh)
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.status'); advance(1)
+          assert(#commands==n+27)
+          abilities.stop(); queries.destroy(); assert(next(timers)==nil)
+        ''')
+
+    def test_level_changes_during_capture_drain_then_refresh_once(self):
+        self.service()
+        self.lua.execute('''
+          feed('{spellheaders learned noprompt}')
+          update('char.status.level',128,'char.status')
+          update('char.status.level',129,'char.status')
+          assert(#commands==1 and abilities.status().busy)
+          -- Finish the already owned response, then its remaining queries.
+          local lines=fixtures['slist learned noprompt']
+          for i=2,#lines do feed(lines[i]) end
+          advance(0.2)
+          for i=2,27 do reply(commands[#commands]) end
+          assert(#commands==28 and commands[28]=='slist learned noprompt')
+          assert(not abilities.status().fresh)
+          syncAbilities(); assert(#commands==54 and abilities.status().fresh)
+          assert(store.get('ability_metadata',0).level==129)
+        ''')
+
+    def test_stale_failed_catalog_remains_usable_but_identity_and_level_are_required(self):
+        self.service()
+        self.lua.execute('''
+          syncAbilities(); button.ability_type='bash'; button.ability_kind='skill'
+          local expected=abilities.resolve(button); assert(expected)
+          abilities.refresh(); advance(0.2)
+          assert(abilities.resolve(button)==expected)
+          advance(11); assert(not abilities.status().fresh)
+          assert(abilities.resolve(button)==expected)
+          connected=false; raiseEvent('sysDisconnectionEvent')
+          assert(not abilities.resolve(button))
+          cache.values['char.base']=nil; cache.values['char.base.level']=nil
+          cache.values['char.status.level']=nil; connected=true
+          assert(not abilities.resolve(button))
+          cache.values['char.base']={name='Other',level=127}
+          cache.values['char.base.level']=127
+          assert(not abilities.resolve(button),'Never execute another character catalog')
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base')
+          assert(store.character()=='other' and not abilities.resolve(button))
+        ''')
+
+    def test_automatic_refresh_preference_and_invalid_level_packets(self):
+        self.service()
+        self.lua.execute('''
+          syncAbilities(); local n=#commands
+          abilities.configure({enabled=true,automatic_refresh=false,corrections={}})
+          update('char.status.level',128,'char.status'); advance(1)
+          assert(#commands==n and not abilities.status().fresh)
+          abilities.configure({enabled=true,automatic_refresh=true,corrections={}})
+          advance(0.2); syncAbilities(); n=#commands
+          for _,value in ipairs({0,-1,1.5,'invalid',math.huge}) do
+            update('char.status.level',value,'char.status'); advance(0.2)
+          end
+          assert(#commands==n and abilities.status().fresh)
+        ''')
+
     def test_readiness_pause_progression_corrections_and_no_casts(self):
         self.service()
         self.lua.execute('''
@@ -330,7 +411,7 @@ class AbilityTests(unittest.TestCase):
           local before=#commands;local command,selected=abilities.preview(b)
           assert(command=='stomp 2.bat' and selected.id==452 and #commands==before)
           b.ability_mode='specific';b.ability_id=452;assert(abilities.preview(b)=='stomp 2.bat')
-          assert(not abilities.resolve(b),'Changed progression must still require synchronization')
+          assert(abilities.resolve(b)=='stomp 2.bat','Stale progression must allow a saved eligible ability')
           cache.values['char.base.level']=127;assert(not abilities.preview(b))
           b.ability_mode='highest';assert(abilities.preview(b)=='uppercut 2.bat')
           cache.values['char.base.level']=146

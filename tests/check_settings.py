@@ -153,7 +153,7 @@ class SettingsTests(unittest.TestCase):
           follow,color=true,true; terrainPacket(101,"forest")
           local env=getRoomEnv(id); assert(centered==id and env>=1000)
           color=false; terrainPacket(101,"water"); assert(getRoomEnv(id)==env)
-          color=true; setRoomEnv(id,99); terrainPacket(101,"water"); assert(getRoomEnv(id)==99)
+          color=true; setRoomEnv(id,99); terrainPacket(101,"water"); assert(environmentColors[getRoomEnv(id)][3]==220)
           mapper.stop()
         ''')
 

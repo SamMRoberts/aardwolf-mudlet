@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.22.0
+# AardwolfToolbox 0.23.0
 
 AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
 player dashboards, room-mob tracking, configurable action buttons, and shared
@@ -47,7 +47,7 @@ Toolbox mapping. Existing foreign map rooms are not automatically adopted.
 
 | Feature | What it provides |
 | --- | --- |
-| **Auto-mapper** | Maps fresh GMCP room observations, follows your position, colors terrain, and previews unexplored exits with gray **?** rooms or exit stubs. Preserves manual map edits. See [mapping behavior](#mapping-behavior-and-preservation). |
+| **Auto-mapper** | Maps fresh GMCP room observations, follows your position, colors terrain, and previews unexplored exits with gray **?** rooms or exit stubs. Uses game room IDs and authoritative reported fields. See [mapping behavior](#mapping-behavior-and-preservation). |
 | **Graphical and ASCII maps** | Switch map tabs or pop out the ASCII pane. Captured ASCII frames retain spacing and colors and are hidden from the game console. [Map and layout guide](docs/ui-dashboard.md). |
 | **Player dashboard** | Compact identity, total/base attributes, combat rolls, and conditions; base attributes are italic. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
 | **Quest and Group dashboards** | Quest state, target/location, approximate timer, and local map lookup; group membership, presence, and resource readings. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
@@ -227,89 +227,61 @@ Use **aardwolf-config → GMCP data** to toggle caching. See the
 
 ## Mapping behavior and preservation
 
-The producer is Aardwolf's lowercase `gmcp.room.info` event. Room numbers are
-positive integers; names accept `name` or the legacy `brief` field. A complete
-record needs a name, zone, and exits table. Private rooms (`num = -1`), malformed
-records, and incomplete updates leave the map and displayed marker unchanged.
-Unknown maze destinations and custom exits are not guessed.
+**Version 0.23.0 uses the game room number as the native Mudlet room ID.** For
+example, GMCP `room.info.num = 1400` creates or updates Mudlet room **1400**, and
+`exits.e = 1023` points east to room **1023**. Coordinates never identify rooms.
 
-### Terrain colors
+Fresh, valid `gmcp.room.info` is authoritative for reported room names, zones,
+terrain, and north/east/south/west/up/down exits. These observations replace stale
+or manually changed values in Toolbox-owned rooms. Removed standard exits are
+cleared; maze exits with unknown destinations become stubs when previews are
+enabled. Custom exits, annotations, symbols, and unrelated rooms remain intact.
+Private/invalid IDs and incomplete room packets do not change the map.
 
-Fresh room updates capture `terrain` (or legacy `sector` when `terrain` is absent)
-in room metadata as `AardwolfToolbox:terrain`. The mapper assigns a local terrain
-palette through Mudlet environments: forests green, fields light green, water
-blue, deserts sandy yellow, ice pale cyan, mountains brown-gray, cities gray,
-and volcanoes orange-red. Other supported types include inside, hills, air,
-underwater, waternoswim, quicksand, underground, roads, rivers, caves, dungeons,
-and swamps. Unknown names are retained and displayed in neutral gray. This is
-the Toolbox palette, not a copy of Aardwolf's configurable ASCII-map colors.
+Continental coordinates place the room at GMCP X and inverted Y, with Z zero
+unless explicitly reported. These positions are updated on each visit, including
+after a manual move. Indoor `coord.x/y` describe the area's world location, so they
+are stored as metadata while the mapper retains its inferred interior layout.
+The complete bounded packet, details, and additional reported fields are saved
+in room user data. See [authoritative mapping and migration](docs/mapper-authority.md)
+for the metadata keys and coordinate contract.
 
-Terrain changes update the room color when it still matches the mapper's last
-assignment. A manual environment override is preserved. Existing Toolbox rooms
-with an unassigned/default environment gain colors on their next valid visit;
-there is no bulk recoloring. Missing, empty, or malformed terrain leaves the
-previous terrain and color unchanged. Palette IDs are allocated outside Mudlet's
-reserved ranges and avoid existing environments and custom colors. Palette
-bindings and terrain metadata persist with the map, including across uninstall;
-customized palette RGB values are preserved on reuse.
+### Existing maps and ID migration
 
-New rooms get allocated Mudlet IDs, persistent `AardwolfToolbox:aardwolf:vnum:`
-hashes, and ownership metadata. Areas use the server zone name alone, such as `academy` or `boot`.
-Previously generated prefixed areas are renamed in place when visited, provided
-the plain name is available. Manually renamed and foreign areas are preserved;
-name collisions stop mapping rather than merging areas. Revisited rooms retain their names, areas,
-coordinates, and user annotations. Foreign numeric room IDs, earlier importer
-hashes, or conflicting ownership stop mapping with a diagnostic; this package
-neither adopts nor replaces an existing Aardwolf map automatically.
+On the first fresh room update after upgrading, Toolbox checks its existing IDs.
+If necessary, it saves a native binary backup, exports the current map, and
+renumbers verified Toolbox rooms together with incoming/outgoing connections,
+special exits, player-room references, and owned link metadata. Areas, map labels,
+room notes, custom line data, locks, and other saved native properties are retained.
+A conflicting foreign ID or incomplete identity stops migration with a diagnostic.
+It never deletes a foreign room to free an ID. Native migration files are limited
+to 64 MiB; import/readback failures attempt to restore the binary backup.
 
-Continental rooms (`coord.cont = 1`) use server x/y with y inverted for Mudlet.
-Inside areas, layout follows the previous room's reported exit when available.
-Disconnected rooms start at the origin; overlapping newly visited rooms use a free
-position on the same level.
-This is an inferred layout, not a reproduction of Aardwolf's ASCII map. Existing
-positions are never rearranged, and no reverse exits are inferred.
+The old local IDs change during migration. Update any external scripts that saved
+those numeric IDs; Toolbox's game-number hashes remain stable. No live map is
+modified by building the package—migration runs inside Mudlet after installation
+and a fresh room observation. Keep the reported backup until you have checked it.
 
-Observed n/e/s/w/u/d destinations are stored in room metadata, so pending links
-can resolve after a profile restart. A changed or removed exit is updated only
-when its current value still matches this mapper's last write. Manual changes
-and deletions are preserved and counted as conflicts. An unresolved destination
-is never used as a room ID. Unknown maze destinations preserve existing topology.
-Each event adds at most one visited room and six unexplored placeholders, and processes
-at most 60 incoming references;
-excess references are counted as deferred and resolve when their source is revisited.
-The six metadata searches run synchronously in Mudlet and may cost more on large maps.
+### Terrain and unexplored rooms
 
-### Unexplored rooms (0.16.0)
+Terrain coloring is configurable under **Auto-mapper → Color rooms by terrain**.
+When enabled, fresh reported terrain determines the room environment, including
+replacing a saved manual environment assignment. Shops are orange, forests green,
+water blue, deserts sandy yellow, and unknown or empty terrain neutral gray.
+Disabling coloring retains existing colors while recording terrain. Shared custom
+palette RGB values are preserved.
 
-**Auto-mapper → Create unexplored room placeholders** starts enabled. Each fresh
-room update creates gray **?** neighbors with empty names for reported n/e/s/w/u/d
-destinations not yet mapped. These are one-hop previews, not recursively generated
-rooms. No room details, reverse exits, or special exits are guessed. Horizontal
-previews stay on the current floor (two-unit area spacing, one-unit continent
-spacing); only up/down changes Z. An unknown destination or occupied preview
-position is shown as a directional exit stub instead.
+**Create unexplored room placeholders** starts enabled. Each update previews at
+most six reported unmapped destinations as gray **?** rooms using their game IDs.
+Placeholders have no guessed names, terrain, or reverse exits. An unknown
+identity or occupied preview position uses an exit stub instead. Entering a
+placeholder fills in that same game ID with observed data. Turning previews off
+stops new previews; existing ones remain and are completed on entry.
 
-Entering a placeholder fills in the same room ID and preserves incoming links.
-The area and display position are provisional until entry; fresh destination data
-can confirm a different area or continent position. Manual names, placements,
-symbols, colors, annotations, exits, and stubs are preserved. Conflicts are reported
-without moving saved rooms; conflicting destination identities do not prevent other
-safe neighbors from being discovered. Existing visited rooms are never downgraded.
-
-Turning the setting off stops creating previews; existing placeholders remain and
-are completed when visited. Disabling mapping stops updates entirely. Placeholders
-persist in the native map across reloads and uninstall; removed exits do not delete
-their old destinations. A gray **?** is a destination reported by the server, not
-proof it is reachable; the feature never issues movement commands. Mapper status
-includes `placeholders`, `promoted`, `stubs`, and deferred/conflict counts.
-
-Before the first map write per mapper instance, a checked binary backup is saved
-as `AardwolfToolbox-before-<timestamp>-<suffix>.dat` in the profile directory.
-Backup failure stops mapping. The snapshot and learned map are retained on
-uninstall. Mudlet's normal map saving controls persistence; the package does not
-replace, load, or clear maps. A partial native API failure stops mapping and reports
-it. Incomplete rooms remain marked for inspection rather than being deleted or
-silently duplicated. Consult the backup before manually repairing partial records.
+Before map writes, the mapper saves a checked binary backup named
+`AardwolfToolbox-before-<timestamp>-<suffix>.dat` in the profile directory. Backup
+failure stops mapping. Native map data and backups survive uninstall; use Mudlet's
+normal map saving to persist your latest exploration.
 
 ## Lifecycle
 

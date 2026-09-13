@@ -5,6 +5,10 @@ local function copy(v)
   if type(v)~='table' then return v end
   local r={}; for k,x in pairs(v) do r[k]=copy(x) end; return r
 end
+local function validLevel(value)
+  value=tonumber(value)
+  if value and value==value and value>0 and value<math.huge and value%1==0 then return value end
+end
 local function fingerprint(b)
   return table.concat({tostring(b.name),tostring(b.level),tostring(b.classes),tostring(b.class),
     tostring(b.subclass),tostring(b.tier),tostring(b.remorts),tostring(b.redos)},':')
@@ -38,11 +42,23 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   local count,updated=0,nil
   local ownSend=false
   local dirty=false
+  local observedStamp,currentLevel,baseLevel,statusLevel
   local drive,fail
   local function connected() return cache.enabled and select(3,api.getConnectionInfo()) end
   local function ready()
     return self.enabled and connected() and cache.get('char.status.state')==3 and cache.get('char.status.pos')=='Standing'
       and not (spellup and spellup.status().inflight)
+  end
+  local function characterData()
+    local b=copy(cache.get('char.base') or {})
+    local base=validLevel(cache.get('char.base.level')) or validLevel(b.level)
+    local status=validLevel(cache.get('char.status.level'))
+    -- Each producer can lag behind the other. An unchanged old level must not
+    -- undo a newer observation from the other GMCP packet.
+    if base and base~=baseLevel then baseLevel=base; currentLevel=base end
+    if status and status~=statusLevel then statusLevel=status; currentLevel=status end
+    b.level=currentLevel
+    return b
   end
   local function notify(event)
     if notifyTimer then api.killTimer(notifyTimer) end
@@ -100,7 +116,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   end
   function self.preview(button,corrections)
     local meta=store.get('ability_metadata',0) or {}
-    local level=tonumber(cache.get('char.base.level')) or meta.level
+    local level=characterData().level or meta.level
     local candidates
     if button.ability_mode=='specific' then
       local r=store.get('abilities',tonumber(button.ability_id) or 0)
@@ -110,13 +126,17 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   end
   function self.resolve(button)
     if not self.enabled then return nil,'Ability catalog disabled' end
-    if not connected() or not fresh then return nil,'Catalog is stale; refresh before using this ability' end
-    local b=cache.get('char.base') or {}
-    if not b.name or b.name:lower()~=identity or fingerprint(b)~=stamp then return nil,'Character catalog needs synchronization' end
+    if not connected() then return nil,'Disconnected; waiting for fresh character data' end
+    local b=characterData()
+    if type(b.name)~='string' or b.name:lower()~=store.character() or not b.level then
+      return nil,'Waiting for fresh character identity and level'
+    end
+    -- Staleness is advisory. Keep the last committed same-character catalog
+    -- usable while collecting its replacement, without relaxing eligibility.
     return self.preview(button)
   end
   function self.status()
-    return {enabled=self.enabled,fresh=fresh and connected() or false,busy=queue~=nil,pending=pending,
+    return {enabled=self.enabled,fresh=fresh and connected() and stamp==fingerprint(characterData()) or false,busy=queue~=nil,pending=pending,
       character=store.character(),count=count,updated=updated,last=self.last,session=session}
   end
   function self.refresh()
@@ -177,7 +197,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
         if r.learned and r.available then n=n+1 end
       end
       local at=api.getEpoch()
-      store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=tonumber(cache.get('char.base.level')),updated=at,count=n,fingerprint=stamp}}})
+      store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=characterData().level,updated=at,count=n,fingerprint=stamp}}})
       cancel(); count=n; updated=at; fresh=true; self.last='Ready · '..n..' available learned abilities'; notify()
       if dirty then dirty=false; self.refresh() end
     else queries.release(OWNER); schedule() end
@@ -185,11 +205,11 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   drive=function()
     if not pending and not queue or request then return end
     if not ready() then self.last='Refresh paused; waiting for standing, command-ready character'; return end
-    local b=cache.get('char.base')
-    if not b or type(b.name)~='string' or not tonumber(b.level) then return end
+    local b=characterData()
+    if type(b.name)~='string' or not b.level then return end
     if not queries.acquire(OWNER,40,ready) then self.last='Waiting for spell tracker synchronization'; return end
     if not queue then
-      store.select(b.name); identity=b.name:lower(); stamp=fingerprint(b); staged={}; pending=false; fresh=false
+      store.select(b.name); identity=b.name:lower(); stamp=fingerprint(b); observedStamp=stamp; staged={}; pending=false; fresh=false
       queue={{kind='learned',command='slist learned noprompt'}}; index=1
       for _,filter in ipairs({'','combat','resist','healing','str','dex','con','int','wis','luck','passive','area','spellup'}) do
         for _,kind in ipairs({'spell','skill'}) do
@@ -239,6 +259,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   end
   local function reset()
     session=session+1; cancel(); dirty=false; fresh=false; identity=nil; stamp=nil; pending=options.automatic_refresh
+    observedStamp=nil; currentLevel=nil; baseLevel=nil; statusLevel=nil
     self.last='Saved catalog available offline; waiting for fresh character data'; notify('reset')
   end
   function self.stop()
@@ -271,15 +292,26 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       on('AardwolfToolbox.gmcp.cleared',reset)
       on('sysDisconnectionEvent',reset)
       on('AardwolfToolbox.gmcp.updated',function(_,path)
-        if path=='char.base' then
-          local b=cache.get(path)
-          if b and b.name then
-            local nextStamp=fingerprint(b)
-            if stamp and stamp~=nextStamp then reset() end
-            if store.character()~=b.name:lower() then
-              store.select(b.name)
+        if path=='char' or path=='char.base' or path=='char.status'
+            or (type(path)=='string' and (path:match('^char%.base%.') or path=='char.status.level')) then
+          local raw=cache.get('char.base') or {}
+          if type(raw.name)=='string' and raw.name~='' then
+            if store.character()~=raw.name:lower() then
+              reset(); store.select(raw.name)
               local meta=store.get('ability_metadata',0) or {}; count=meta.count or 0; updated=meta.updated
             end
+            local b=characterData(); local nextStamp=fingerprint(b)
+            if observedStamp and observedStamp~=nextStamp then
+              fresh=false
+              if queue then
+                -- Drain the owned response sequence before requesting a fresh
+                -- snapshot; do not let its tail enter the next request.
+                dirty=options.automatic_refresh
+                self.last='Character progression changed; catalog refresh pending'; notify()
+              elseif options.automatic_refresh then self.refresh()
+              else self.last='Stale: character progression changed; automatic refresh disabled'; notify() end
+            end
+            observedStamp=nextStamp
           end
         end
         if path=='char.status' then

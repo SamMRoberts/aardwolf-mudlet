@@ -25,10 +25,10 @@ local function initialize()
     apply=AardwolfToolbox.gmcp.configure})
   AardwolfToolbox.mapper = resource("automapper").new(_G, function(key)
     return config.get("mapper", key)
-  end)
+  end, resource("mapper-identity"))
   config.registerFeature({
     id = "mapper", label = "Auto-mapper",
-    description = "Discover rooms and connect known exits from Aardwolf room updates.",
+    description = "Use game room numbers and authoritative GMCP room fields. Legacy Toolbox maps are backed up and renumbered on the next fresh room update.",
     settings = {
       {key = "enabled", type = "boolean", default = true, label = "Enable mapping",
         description = "Record rooms and exits. Turning this off releases the mapper's listeners."},

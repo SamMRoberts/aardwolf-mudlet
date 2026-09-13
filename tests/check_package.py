@@ -16,11 +16,11 @@ class PackageTests(unittest.TestCase):
     def setUp(self):
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.assertEqual(set(archive.namelist()), {
-                "AardwolfToolbox.xml", "config.lua", "automapper.lua",
+                "AardwolfToolbox.xml", "config.lua", "automapper.lua", "mapper-identity.lua",
                 "console-cleanup.lua", "mobs.lua", "mob-state.lua", "mob-protocol.lua", "mob-pane.lua", "mob-actions.lua", "abilities.lua", "ability-capture.lua", "ability-store.lua", "ability-model.lua", "ability-fields.lua", "ability-picker.lua", "query-coordinator.lua",
                 "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "view-hosts.lua", "dashboard-panels.lua", "spells.lua", "spellup.lua", "action-bar.lua", "navigation.lua", "shortcuts.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("console-cleanup","mobs","mob-state","mob-protocol","mob-pane","mob-actions","abilities","ability-capture","ability-store","ability-model","ability-fields","ability-picker","query-coordinator","incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","view-hosts","dashboard-panels","spells","spellup","action-bar","navigation","shortcuts")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("mapper-identity","console-cleanup","mobs","mob-state","mob-protocol","mob-pane","mob-actions","abilities","ability-capture","ability-store","ability-model","ability-fields","ability-picker","query-coordinator","incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","view-hosts","dashboard-panels","spells","spellup","action-bar","navigation","shortcuts")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()

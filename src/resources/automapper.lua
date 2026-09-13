@@ -37,6 +37,26 @@ local function roomNumber(value)
   return number and string.format("%.0f", number)
 end
 
+local function snapshotValue(value, depth, budget)
+  budget.items = budget.items + 1
+  if budget.items > 512 or depth > 8 then error("room.info exceeds metadata limits", 0) end
+  if type(value) == "table" then
+    local result = {}
+    for key, item in pairs(value) do
+      if type(key) ~= "string" or #key > 128 then error("Invalid room.info metadata key", 0) end
+      result[key] = snapshotValue(item, depth + 1, budget)
+    end
+    return result
+  end
+  if type(value) == "string" then
+    budget.bytes = budget.bytes + #value
+    if budget.bytes > 65536 then error("room.info exceeds text limit", 0) end
+  elseif type(value) == "number" then
+    if value ~= value or value == math.huge or value == -math.huge then error("Invalid room.info number", 0) end
+  elseif type(value) ~= "boolean" then error("Invalid room.info metadata value", 0) end
+  return value
+end
+
 local function normalize(data)
   if type(data) ~= "table" then return nil, "Missing room.info" end
   local num = roomNumber(data.num)
@@ -47,12 +67,14 @@ local function normalize(data)
       or type(data.exits) ~= "table" then
     return nil, "Incomplete room.info (name, zone, or exits)"
   end
-  local room = {num = num, name = name, zone = data.zone, exits = {}}
+  local ok, observed = pcall(snapshotValue, data, 0, {items = 0, bytes = 0})
+  if not ok then return nil, observed end
+  local room = {num = num, name = name, zone = data.zone, exits = {}, observed = observed}
   local terrain = data.terrain
   if terrain == nil then terrain = data.sector end
   if type(terrain) == "string" and #terrain <= 128 and not terrain:find("[%c]") then
     terrain = terrain:match("^%s*(.-)%s*$"):lower()
-    if terrain ~= "" then room.terrain = terrain end
+    room.terrain = terrain
   end
   for _, direction in ipairs(DIRECTIONS) do
     -- Unknown maze destinations can be shown as stubs, never invented identities.
@@ -68,18 +90,21 @@ local function normalize(data)
     local x = integer(coord.x, 0, 1000000)
     local y = integer(coord.y, 0, 1000000)
     if not continent or not x or not y then return nil, "Invalid continent coordinates" end
-    room.continent, room.x, room.y = continent, x, -y
+    local z = coord.z == nil and 0 or integer(coord.z, -1000000, 1000000)
+    if not z then return nil, "Invalid continent Z coordinate" end
+    room.continent, room.x, room.y, room.z = continent, x, -y, z
   end
   return room
 end
 
-function Mapper.new(api, preferences)
+function Mapper.new(api, preferences, identityMigration)
   preferences = preferences or function() return true end
   local self = {enabled = false, added = 0, reused = 0, skipped = 0,
     conflicts = 0, failed = 0, linked = 0, deferred = 0, placeholders = 0,
-    promoted = 0, stubs = 0, last = "Waiting for room.info"}
+    promoted = 0, stubs = 0, migrated = 0, last = "Waiting for room.info"}
   local previous, snapshot, lastPacket
-  local promote, placeholderEnvironment
+  local identityChecked, applying, queuedPacket = false, false, false
+  local promote, placeholderEnvironment, updateRoom
   local hashPrefix = "AardwolfToolbox:aardwolf:vnum:"
 
   local function note(message)
@@ -116,6 +141,7 @@ function Mapper.new(api, preferences)
     local id = api.getRoomIDbyHash(hashPrefix .. num)
     if id == -1 then return nil end
     if not id or not owned(id, num) then error("Room identity conflict for " .. num, 0) end
+    if id ~= tonumber(num) then error("Legacy room IDs require migration before mapping", 0) end
     return id
   end
 
@@ -168,7 +194,8 @@ function Mapper.new(api, preferences)
   end
 
   local function position(room, area)
-    local x, y, z = room.x or 0, room.y or 0, 0
+    if room.continent ~= nil then return room.x, room.y, room.z or 0 end
+    local x, y, z = 0, 0, 0
     if room.continent == nil and previous and owned(previous.id, previous.num)
         and api.getRoomArea(previous.id) == area then
       local px, py, pz = api.getRoomCoordinates(previous.id)
@@ -218,9 +245,9 @@ function Mapper.new(api, preferences)
   end
 
   local function createRoom(room, area, x, y, z, placeholder)
-    local id = api.createRoomID()
+    local id = tonumber(room.num)
     if not integer(id, 1, 2147483647) or api.getRoomName(id) ~= nil
-        or api.getRoomHashByID(id) ~= nil then error("Cannot allocate a clean room ID", 0) end
+        or api.getRoomHashByID(id) ~= nil then error("Game room number is occupied; cannot create room", 0) end
     required(api.addRoom(id), "Cannot create room")
     required(api.setRoomUserData(id, KEY .. "owner", OWNER), "Cannot mark room ownership")
     required(api.setRoomUserData(id, KEY .. "vnum", room.num), "Cannot mark room identity")
@@ -262,8 +289,6 @@ function Mapper.new(api, preferences)
       end
       if api.getRoomUserData(id, KEY .. "discovery") == "unexplored" then
         promote(id, room)
-      else
-        renameLegacyArea(room, api.getAreaTable(), api.getRoomArea(id))
       end
       self.reused = self.reused + 1
       return id
@@ -399,20 +424,20 @@ function Mapper.new(api, preferences)
       area, x, y, z, true), true
   end
 
-  local function link(from, num, direction, target)
+  local function link(from, num, direction, target, authoritative)
     if not owned(from, num) then error("Exit source ownership changed", 0) end
     local to
     if target then to = resolve(target) end
     if to and api.getRoomUserData(to, KEY .. "ready") ~= "1" then return end
-    if not editableExit(from, direction) then return end
+    if not authoritative and not editableExit(from, direction) then return end
     local current = api.getRoomExits(from)[direction[2]]
     if to then setStub(from, direction, false) end
     if current ~= to then
       required(api.setExit(from, to or -1, direction[1]), "Cannot update exit")
-      required(api.setRoomUserData(from, KEY .. "linked:" .. direction[1], to and tostring(to) or ""),
-        "Cannot record exit ownership")
       if to then self.linked = self.linked + 1 end
     end
+    required(api.setRoomUserData(from, KEY .. "linked:" .. direction[1], to and tostring(to) or ""),
+      "Cannot record observed exit destination")
     if target == nil then setStub(from, direction, false) end
   end
 
@@ -453,55 +478,47 @@ function Mapper.new(api, preferences)
   placeholderEnvironment = function() return terrainEnvironment("unknown") end
 
   promote = function(id, room)
-    local function saved(key) return tonumber(api.getRoomUserData(id, KEY .. key)) end
-    local x, y, z = api.getRoomCoordinates(id)
-    local area = api.getRoomArea(id)
-    local originalAreaName = api.getRoomUserData(id, KEY .. "provisional-area-name")
-    local ownArea = area == saved("provisional-area") and api.getAreaTable()[originalAreaName] == area
-    local ownPosition = x == saved("provisional-x") and y == saved("provisional-y")
-      and z == saved("provisional-z")
-    local targetArea = ownArea and ownPosition and areaFor(room) or area
-    local nx, ny, nz = x, y, z
-    if ownPosition and ownArea then
-      if room.continent ~= nil then
-        nx, ny, nz = room.x, room.y, 0
-      elseif targetArea ~= area then
-        nx, ny, nz = position(room, targetArea)
-      end
-      local occupied = api.getRoomsByPosition(targetArea, nx, ny, nz)
-      if type(occupied) ~= "table" then error("Cannot inspect promoted room placement", 0) end
-      for _, other in pairs(occupied) do
-        if other ~= id then
-          conflict("Placeholder " .. room.num .. " confirmed position is occupied; placement retained")
-          targetArea, nx, ny, nz = area, x, y, z
-          break
-        end
-      end
-    elseif not ownPosition then
-      -- A manual placement also protects its area context.
-      targetArea = area
-      conflict("Placeholder " .. room.num .. " manual placement retained")
-    end
-    if not ownArea then conflict("Placeholder " .. room.num .. " manual area retained") end
     required(api.setRoomUserData(id, KEY .. "ready", "0"), "Cannot begin placeholder promotion")
-    if api.getRoomName(id) == "" then required(api.setRoomName(id, room.name), "Cannot name visited room") end
-    if targetArea ~= area then required(api.setRoomArea(id, targetArea), "Cannot confirm room area") end
-    if nx ~= x or ny ~= y or nz ~= z then
-      required(api.setRoomCoordinates(id, nx, ny, nz), "Cannot confirm room coordinates")
-    end
-    if ownPosition and ownArea then recordPlacement(id, targetArea, nx, ny, nz) end
+    updateRoom(id, room)
     if api.getRoomChar(id) == "?" then required(api.setRoomChar(id, ""), "Cannot clear placeholder symbol") end
-    local environment = saved("placeholder-env")
-    if api.getRoomEnv(id) == environment then
+    if api.getRoomEnv(id) == tonumber(api.getRoomUserData(id, KEY .. "placeholder-env")) then
       required(api.setRoomEnv(id, -1), "Cannot clear placeholder color")
-    else
-      -- Even a manual default/zero color must remain protected from terrain coloring.
-      required(api.setRoomUserData(id, KEY .. "terrain-env", tostring(environment)), "Cannot preserve manual color")
     end
-    required(api.setRoomUserData(id, KEY .. "zone", room.zone), "Cannot confirm room zone")
     required(api.setRoomUserData(id, KEY .. "discovery", "visited"), "Cannot confirm discovery")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish placeholder promotion")
     self.promoted = self.promoted + 1
+  end
+
+  updateRoom = function(id, room)
+    local area = areaFor(room)
+    local oldArea = api.getRoomArea(id)
+    local x, y, z = api.getRoomCoordinates(id)
+    local nx, ny, nz = x, y, z
+    if room.continent ~= nil then nx, ny, nz = room.x, room.y, room.z or 0
+    elseif oldArea ~= area then nx, ny, nz = position(room, area) end
+    if api.getRoomName(id) ~= room.name then required(api.setRoomName(id, room.name), "Cannot update room name") end
+    if oldArea ~= area then required(api.setRoomArea(id, area), "Cannot update room zone") end
+    if x ~= nx or y ~= ny or z ~= nz then
+      required(api.setRoomCoordinates(id, nx, ny, nz), "Cannot update reported room coordinates")
+      recordPlacement(id, area, nx, ny, nz)
+    end
+    required(api.setRoomUserData(id, KEY .. "zone", room.zone), "Cannot record room zone")
+    -- Full bounded packet plus searchable fields. Indoor coord.x/y describe
+    -- the area's location on the continent, not each interior room's layout.
+    required(api.setRoomUserData(id, KEY .. "gmcp", api.yajl.to_string(room.observed)), "Cannot store room.info")
+    for key, value in pairs(room.observed) do
+      if type(value) ~= "table" then
+        required(api.setRoomUserData(id, KEY .. "gmcp:" .. key, tostring(value)), "Cannot store room field " .. key)
+      end
+    end
+    if type(room.observed.details) == "string" then
+      required(api.setRoomUserData(id, KEY .. "details", room.observed.details), "Cannot store room details")
+    end
+    for key, value in pairs(type(room.observed.coord) == "table" and room.observed.coord or {}) do
+      if type(value) ~= "table" then
+        required(api.setRoomUserData(id, KEY .. "coord:" .. key, tostring(value)), "Cannot store coordinate metadata")
+      end
+    end
   end
 
   local function colorRoom(id, terrain)
@@ -509,11 +526,6 @@ function Mapper.new(api, preferences)
     required(api.setRoomUserData(id, KEY .. "terrain", terrain), "Cannot record room terrain")
     if not preferences("terrain_colors") then return end
     local current = api.getRoomEnv(id)
-    local previousEnv = tonumber(api.getRoomUserData(id, KEY .. "terrain-env"))
-    if (previousEnv and current ~= previousEnv)
-        or (not previousEnv and current ~= -1 and current ~= 0) then
-      return -- Preserve a manual environment assignment, including on older rooms.
-    end
     local environment = terrainEnvironment(terrain)
     if current ~= environment then
       required(api.setRoomEnv(id, environment), "Cannot color room terrain")
@@ -523,29 +535,40 @@ function Mapper.new(api, preferences)
   end
 
   local function apply(room)
+    if not identityChecked and identityMigration and next(identityMigration.plan(api)) then
+      snapshot = nil -- Migration rollback must use this map, not an older session backup.
+    end
     backup()
+    if not identityChecked then
+      if identityMigration then self.migrated = self.migrated + identityMigration.run(api, snapshot) end
+      identityChecked = true
+    end
+    if not self.enabled then return end
     local id = ensureRoom(room)
+    updateRoom(id, room)
     colorRoom(id, room.terrain)
     for _, direction in ipairs(DIRECTIONS) do
       local target = room.exits[direction[1]]
       required(api.setRoomUserData(id, KEY .. "exit:" .. direction[1], target or ""),
         "Cannot record observed exit")
-      if editableExit(id, direction) then
+      do
         if target then
           local to, safe = discover(room, id, direction, target)
           if safe then
-            link(id, room.num, direction, target)
+            link(id, room.num, direction, target, true)
             if not to and preferences("unexplored_rooms") then setStub(id, direction, true) end
+          else
+            link(id, room.num, direction, false, true)
+            if preferences("unexplored_rooms") then setStub(id, direction, true) end
           end
         elseif target == false then
-          -- An unknown destination is not evidence that the old destination still
-          -- applies. Remove only an unchanged owned link, retaining existing stubs.
-          link(id, room.num, direction, false)
+          -- A fresh unknown destination invalidates a previously saved link.
+          link(id, room.num, direction, false, true)
           if preferences("unexplored_rooms") then
             setStub(id, direction, true)
           end
         else
-          link(id, room.num, direction, nil)
+          link(id, room.num, direction, nil, true)
         end
       end
     end
@@ -581,6 +604,7 @@ function Mapper.new(api, preferences)
 
   function self.receive()
     if not self.enabled then return end
+    if applying then queuedPacket = true; return end
     if hasCompetingMapper() then
       self.stop()
       reportCompetingMapper()
@@ -598,12 +622,15 @@ function Mapper.new(api, preferences)
       note(reason)
       return
     end
+    applying = true
     local ok, message = pcall(apply, room)
+    applying = false
     if not ok then
       self.failed = self.failed + 1
       self.stop()
       note(tostring(message) .. "; mapper stopped (aardwolf-map on to retry)")
     end
+    if queuedPacket then queuedPacket = false; self.receive() end
   end
 
   function self.reset()
@@ -632,6 +659,7 @@ function Mapper.new(api, preferences)
     end
     if self.enabled then return end
     self.reset()
+    identityChecked = false
     local ok, message = pcall(function()
       required(api.registerNamedEventHandler(OWNER, "room", "gmcp.room.info", self.receive), "Cannot register room handler")
       required(api.registerNamedEventHandler(OWNER, "disconnect", "sysDisconnectionEvent", self.reset), "Cannot register disconnect handler")
@@ -652,9 +680,9 @@ function Mapper.new(api, preferences)
   end
 
   function self.status()
-    api.echo(string.format("Aardwolf mapper: %s; added=%d reused=%d skipped=%d conflicts=%d failed=%d linked=%d deferred=%d placeholders=%d promoted=%d stubs=%d\n%s\n",
+    api.echo(string.format("Aardwolf mapper: %s; added=%d reused=%d skipped=%d conflicts=%d failed=%d linked=%d deferred=%d placeholders=%d promoted=%d stubs=%d migrated=%d\n%s\n",
       self.enabled and "on" or "off", self.added, self.reused, self.skipped,
-      self.conflicts, self.failed, self.linked, self.deferred, self.placeholders, self.promoted, self.stubs, self.last))
+      self.conflicts, self.failed, self.linked, self.deferred, self.placeholders, self.promoted, self.stubs, self.migrated, self.last))
     if self.backup then api.echo("Backup: " .. self.backup .. "\n") end
   end
 

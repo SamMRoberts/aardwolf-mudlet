@@ -141,6 +141,31 @@ class ActionTests(unittest.TestCase):
           assert(c.set('actions','enabled',true)); assert(borderBottom==vh+AardwolfToolbox.ui.metrics().height+8)
         ''')
 
+    def test_stale_ability_color_tooltip_mouse_and_shortcut_remain_usable(self):
+        self.lua.execute('''
+          local fresh=false
+          AardwolfToolbox.abilities.resolve=function() return 'stomp 2.bat' end
+          AardwolfToolbox.abilities.status=function() return {fresh=fresh} end
+          local r=action('best','', 'F8'); r.ability_mode='highest'
+          r.ability_role='damage'; r.ability_type='bash'; r.ability_kind='skill'
+          r.ability_targeting='single'
+          assert(c.set('actions','buttons',{r,action('manual','look')})); ready()
+          local card=widgets['AardwolfToolbox.actionBar.action_best']
+          local manual=widgets['AardwolfToolbox.actionBar.action_manual']
+          assert(card.style:find('#59451f') and card.tooltip:find('Catalog stale'))
+          assert(not manual.style:find('#59451f'))
+          local n=#sent; card.callback()
+          assert(#sent==n+1 and sent[#sent]=='stomp 2.bat')
+          for _,key in pairs(keys) do key.fn() end
+          assert(#sent==n+2 and sent[#sent]=='stomp 2.bat')
+          fresh=true; fire('AardwolfToolbox.abilities.updated')
+          assert(card==widgets['AardwolfToolbox.actionBar.action_best'])
+          assert(not card.style:find('#59451f') and not card.tooltip:find('Catalog stale'))
+          fresh=false; r.enabled=false; assert(c.set('actions','buttons',{r}))
+          assert(not card.style:find('#59451f')); n=#sent; card.callback(); assert(#sent==n)
+          assert(not commandLineChanged)
+        ''')
+
     def test_ability_mouse_and_shortcut_share_fresh_resolution(self):
         self.lua.execute('''
           local available=true

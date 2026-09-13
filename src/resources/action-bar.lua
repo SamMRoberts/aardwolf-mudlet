@@ -249,6 +249,11 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,
       if abilities and r.ability_mode and r.ability_mode~="manual" then
         local command,reason=abilities.resolve(r)
         detail=command or "Unavailable: "..tostring(reason)
+        local stale=command~=nil and not abilities.status().fresh
+        if stale then
+          detail=detail.."\nCatalog stale — using saved ability; a refresh may select a newer ability."
+          b:setStyleSheet("QLabel { background:#59451f; color:#fff0c2; border:1px solid #d6a64e; border-radius:3px; padding:3px; } QLabel:hover { background:#70582a; }")
+        end
       end
       b:setToolTip(escape(r.label.." "..Shortcut.signature(r).."\n"..detail.."\n"..r.tooltip))
       if not r.enabled then b:setStyleSheet("QLabel { background:#20252b; color:#aeb8c2; border:1px solid #415366; }") end

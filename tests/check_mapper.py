@@ -4,6 +4,7 @@ import unittest
 import zipfile
 
 from lupa.lua51 import LuaRuntime
+from lua_support import install_json
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -11,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class MapperTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime()
+        install_json(self.lua)
         self.lua.execute((ROOT / "tests/mapper_api.lua").read_text())
         with zipfile.ZipFile(ROOT / "build/AardwolfToolbox.mpackage") as archive:
             self.source = archive.read("automapper.lua").decode()
@@ -91,7 +93,7 @@ class MapperTests(unittest.TestCase):
           packet(101, {s = 102}, "academy")
           assert(areas.academy == area and count(areas) == 1)
           assert(not areas["Aardwolf Toolbox / zone:academy"])
-          assert(room.area == area and room.x == 77 and room.name == "My room")
+          assert(room.area == area and room.x == 77 and room.name == "Room 101")
           assert(room.exits.south == localID(102) and count(rooms) == 2)
           assert(backupCount == 2 and backupWrites == before)
           packet(103, {}, "academy"); assert(rooms[localID(103)].area == area)
@@ -105,18 +107,17 @@ class MapperTests(unittest.TestCase):
           assert(areas.mesolar == area and count(areas) == 1)
         ''')
 
-    def test_area_rename_preserves_manual_names_and_stops_on_collision(self):
+    def test_room_zone_updates_but_foreign_area_collision_is_preserved(self):
         self.check('''
           packet(101, {}, "academy")
-          local area = areas.academy
-          setAreaName(area, "My academy"); packet(101, {}, "academy")
-          assert(areas["My academy"] == area and not areas.academy)
-          setAreaName(area, "Aardwolf Toolbox / zone:academy")
-          local foreign = addAreaName("academy")
-          packet(101, {}, "academy")
-          assert(not mapper.enabled and areas.academy == foreign)
-          assert(areas["Aardwolf Toolbox / zone:academy"] == area)
-          assert(rooms[localID(101)].area == area)
+          local old = areas.academy
+          setAreaName(old, "My academy"); packet(101, {}, "academy")
+          assert(areas["My academy"] == old and areas.academy ~= old)
+          assert(rooms[101].area == areas.academy)
+          local foreign = addAreaName("foreign")
+          packet(101, {}, "foreign")
+          assert(not mapper.enabled and areas.foreign == foreign)
+          assert(rooms[101].area == areas.academy)
         ''')
 
     def test_foreign_numeric_room_is_untouched(self):
@@ -164,14 +165,14 @@ class MapperTests(unittest.TestCase):
           assert(room.z==0 and room.x==0 and room.y==2)
         ''')
 
-    def test_continent_coordinates_and_manual_layout_preserved(self):
+    def test_continent_coordinates_and_name_follow_gmcp(self):
         self.check('''
           packet(101, {}, "a", {cont = 1, id = 0, x = 37, y = 19})
           local id = localID(101)
           assert(rooms[id].x == 37 and rooms[id].y == -19)
           rooms[id].x, rooms[id].name = 99, "My note"
           packet(101, {}, "a", {cont = 1, id = 0, x = 38, y = 20})
-          assert(rooms[id].x == 99 and rooms[id].name == "My note")
+          assert(rooms[id].x == 38 and rooms[id].y == -20 and rooms[id].name == "Room 101")
           packet(102, {}, "inside", {cont = 0, id = 0, x = 37, y = 19})
           assert(rooms[localID(102)].x == 0)
           assert(rooms[localID(102)].area ~= rooms[id].area)
@@ -250,12 +251,12 @@ class MapperTests(unittest.TestCase):
           assert(rooms[localID(101)].exits.north == nil)
         ''')
 
-    def test_manual_deletion_is_not_recreated(self):
+    def test_fresh_gmcp_restores_reported_exit_after_manual_deletion(self):
         self.check('''
           packet(101, {n = 102}); packet(102)
           rooms[localID(101)].exits.north = nil
           packet(101, {n = 102})
-          assert(rooms[localID(101)].exits.north == nil and mapper.conflicts == 1)
+          assert(rooms[101].exits.north == 102 and mapper.conflicts == 0)
         ''')
 
     def test_pending_exits_survive_instance_restart(self):
@@ -320,11 +321,13 @@ class MapperTests(unittest.TestCase):
     def test_missing_invalid_and_unknown_terrain(self):
         self.check('''
           terrainPacket(101, "forest"); local env = getRoomEnv(localID(101))
-          terrainPacket(101, nil); terrainPacket(101, {}); terrainPacket(101, "")
+          terrainPacket(101, nil); terrainPacket(101, {})
           terrainPacket(101, string.char(27) .. "forest")
           terrainPacket(101, string.rep("x", 129))
           assert(getRoomEnv(localID(101)) == env)
           assert(getRoomUserData(localID(101), "AardwolfToolbox:terrain") == "forest")
+          terrainPacket(101, ""); assert(getRoomUserData(101, "AardwolfToolbox:terrain") == "")
+          assert(environmentColors[getRoomEnv(101)][1] == 145)
           terrainPacket(102, "crystal palace")
           assert(environmentColors[getRoomEnv(localID(102))][1] == 145)
           assert(getRoomUserData(localID(102), "AardwolfToolbox:terrain") == "crystal palace")
@@ -332,15 +335,15 @@ class MapperTests(unittest.TestCase):
           assert(environmentColors[getRoomEnv(localID(103))][1] == 225)
         ''')
 
-    def test_terrain_preserves_manual_overrides_and_upgrades_old_rooms(self):
+    def test_reported_terrain_overrides_saved_environment(self):
         self.check('''
           packet(101); terrainPacket(101, "forest")
           assert(getRoomEnv(localID(101)) >= 1000)
           setRoomEnv(localID(101), 77); terrainPacket(101, "water")
-          assert(getRoomEnv(localID(101)) == 77)
+          assert(environmentColors[getRoomEnv(101)][3] == 220)
           assert(getRoomUserData(localID(101), "AardwolfToolbox:terrain") == "water")
           packet(102); setRoomEnv(localID(102), 78); terrainPacket(102, "forest")
-          assert(getRoomEnv(localID(102)) == 78)
+          assert(environmentColors[getRoomEnv(102)][2] == 139)
         ''')
 
     def test_terrain_palette_survives_restart_and_preserves_shared_colors(self):

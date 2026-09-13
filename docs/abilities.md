@@ -19,7 +19,12 @@ The picker shows the exact command preview. Optional target/arguments are sent a
 one literal line. Buttons and shortcuts remain manual; refreshing, learning, or
 editing never executes an ability. Passive abilities, forgotten abilities,
 unpracticed abilities, unknown levels, and unsupported commands cannot be chosen
-by automatic selection. Stale data blocks activation until refreshed.
+by automatic selection. A stale catalog does not block an otherwise eligible
+saved ability for the current character. Its action button turns amber and its
+tooltip explains that a refresh may select a newer ability. This applies to mouse
+activation and shortcuts. The normal button color returns after synchronization;
+disabled buttons retain their disabled styling. A failed refresh retains the last
+committed catalog, so it may temporarily select an older learned ability.
 
 Spells with supported targeting use `cast <number> [arguments]`. Verified skill
 commands currently cover Bash, Kick, Trip, Stun, Sap, Scalp, Assault, Uppercut,
@@ -31,8 +36,9 @@ names.
 Version **0.21.1** adds verified `stomp [target]` command metadata for skill #452.
 Previously saved catalogs receive the command mapping when read, so an existing
 row does not require another catalog collection just to repair its preview.
-Fresh collection also saves this mapping. Execution still requires fresh session
-eligibility; offline browsing does not make stale abilities executable. Stomp's
+Fresh collection also saves this mapping. Execution still requires a connected,
+command-ready character with current identity and level; offline browsing does
+not permit execution. Stomp's
 level, learned status, Bash membership, and unknown cost remain server facts,
 not values inferred from the command mapping.
 
@@ -43,6 +49,14 @@ catalog** requests information while standing, command-ready, and outside an
 outstanding spellup batch. Collection pauses between requests during combat and
 other non-ready states. A pager/editor interrupts collection; Toolbox never
 advances it. There is no periodic catalog polling.
+
+With automatic refresh enabled, a level change reported in either `char.status`
+or `char.base` queues collection, including when the other packet still carries
+the old level. Duplicate updates coalesce. Changes during collection finish the
+owned response sequence before a replacement refresh; combat or other non-ready
+states defer requests until ready. Class and other progression changes continue
+to invalidate the catalog. Disabling automatic refresh preserves manual Refresh
+and the amber stale-data warning.
 
 The service joins `slist learned noprompt` identities with current `spells` and
 `skills` listings. Aardwolf's live `slist learned` includes 1% entries and some
