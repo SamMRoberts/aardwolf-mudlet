@@ -1,3 +1,20 @@
+# 0.24.0-dev.12 ability listing refresh fix — 2026-09-13
+
+- Reproduced the user's `Level 0  : Catalysis 0%` failure in the old parser and
+  through a catalog refresh. Level-zero rows now parse without changing the
+  learned/executable eligibility rules; whitespace-only lines remain unclaimed.
+- **394 tests passed** after the pinned Muddler build, including three new
+  regressions for whitespace, zero-level skill/spell/filter rows and successful
+  refresh with an unlearned zero-level skill. Archive CRC/XML/source consistency
+  and existing mob benchmarks passed.
+- The Catalysis listing row is user-reported; its test learned-list number,
+  spell variants and continuation rows are synthetic, not live observations.
+- Package SHA256: `6c001a7620b699990cd3ace7ceee975bbe63d983571b6190eb8f8550fc124404`.
+- No Mudlet control, installation, player-profile changes or gameplay commands.
+  Native refresh acceptance remains pending authorization.
+
+---
+
 # 0.24.0-dev.11 progression history candidate — 2026-09-13
 
 - **391 tests passed** after the pinned Muddler build. The 58-entry archive passed

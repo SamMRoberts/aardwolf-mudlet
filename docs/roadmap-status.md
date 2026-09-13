@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.11**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.12**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).

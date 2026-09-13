@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.24.0-dev.12 — ability listing refresh fix
+
+- Accept server-reported level-zero listing rows, including `Catalysis 0%`,
+  instead of aborting catalog refresh. Keep learned/executable eligibility checks.
+- Leave whitespace-only listing lines outside capture rather than parsing them
+  as malformed ability rows. Preserve the existing catalog on real capture failures.
+- No Mudlet control or installation; native acceptance remains pending.
+
 ## 0.24.0-dev.11 — opt-in progression history
 
 - Add fresh observed progression tracking, disabled by default, with separate

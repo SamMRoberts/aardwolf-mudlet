@@ -140,8 +140,12 @@ function Capture.new(query)
     end
     if text==FOOTER then finished=true; bounded(line); return true,true end
     if text:match('^%-[%-%s]+$') or text:match('^You have %d+ abilities forgotten%.$') then bounded(line); return true end
+    -- Indented blank output is not a continuation row.
+    if text=='' then return false end
     local l,rest=line:match('^Level%s+(%d+)%s*:%s+(.*)$')
-    if l then level=integer(l,1) end
+    -- The server can include unlearned abilities at level zero (e.g. 0%).
+    -- Preserve that value; learned/executable eligibility is checked separately.
+    if l then level=integer(l,0) end
     rest=rest or line:match('^           (.*)$')
     if not rest then return false end
     bounded(line)

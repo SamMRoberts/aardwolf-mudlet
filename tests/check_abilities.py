@@ -259,6 +259,61 @@ class AbilityTests(unittest.TestCase):
                     self.assertTrue(claimed, line)
                 self.assertTrue(done)
 
+    def test_listing_ignores_whitespace_only_lines(self):
+        self.lua.execute('''
+          local c=Capture.new({kind='skill',filter=''})
+          assert(c.receive('           Skill name                 Learned'))
+          assert(c.receive('Level 1  : Dodge                         100%'))
+          for _,line in ipairs({'',string.rep(' ',11),string.rep(' ',50)}) do
+            assert(c.receive(line)==false)
+          end
+          assert(c.receive('           Exotic                         85%'))
+          local claimed,done=c.receive("To see all skills/spells for your class, use 'allspells <class>'")
+          assert(claimed and done and c.rows.dodge.level==1 and c.rows.exotic.level==1)
+        ''')
+
+    def test_level_zero_listing_rows_keep_their_reported_values(self):
+        # First row reported by the user on 2026-09-13. Spell/filter variants
+        # below are synthetic extensions of the existing observed grammar.
+        self.lua.execute('''
+          local c=Capture.new({kind='skill',filter=''})
+          assert(c.receive('           Skill name                 Learned'))
+          assert(c.receive('Level 0  : Catalysis                       0%'))
+          assert(c.rows.catalysis.level==0 and c.rows.catalysis.practice==0)
+          assert(c.receive('           Another ability                 0%'))
+          assert(c.rows['another ability'].level==0)
+          assert(c.receive('Level 1  : Dodge                         100%'))
+          assert(c.rows.dodge.level==1)
+          for _,kind in ipairs({'skill','spell'}) do
+            for _,filter in ipairs({'','combat'}) do
+              c=Capture.new({kind=kind,filter=filter})
+              local header=kind=='spell' and 'Spell name  Mana  Learned  Spell#' or 'Skill name  Learned'
+              assert(c.receive(header..(filter=='combat' and '  Damage' or '')))
+              local row=kind=='spell' and 'Level 0  : Example  0  0%  9999' or 'Level 0  : Example  0%'
+              assert(c.receive(row..(filter=='combat' and '  Bash' or '')))
+              local r=c.rows[kind=='spell' and 9999 or 'example']
+              assert(r.level==0 and r.practice==0)
+              if kind=='spell' then assert(r.cost==0) end
+            end
+          end
+        ''')
+
+    def test_refresh_with_level_zero_unlearned_skill_commits(self):
+        self.service()
+        self.lua.execute('''
+          -- Synthetic learned-list identity; do not assert an unobserved server ID.
+          table.insert(fixtures['slist learned noprompt'],2,'9999,catalysis,0,0,0,-1,2')
+          table.insert(fixtures.skills,3,'Level 0  : Catalysis                       0%')
+          syncAbilities()
+          assert(abilities.status().fresh and not abilities.status().busy)
+          local r=abilities.get(9999)
+          assert(r.level==0 and r.practice==0 and not r.learned)
+          local command,reason=abilities.resolve({ability_mode='specific',ability_id=9999,arguments=''})
+          assert(not command and reason)
+          assert(abilities.get(54).cost==35)
+          abilities.stop(); queries.destroy()
+        ''')
+
     def test_service_refresh_disk_resolution_and_disconnect(self):
         self.service()
         self.lua.execute('''

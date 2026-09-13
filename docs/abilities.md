@@ -109,6 +109,11 @@ queries are hidden. Other output remains visible. ASCII and help keep precedence
 and Game tags can still receive the tagged learned list. Spell tracking and
 catalog collection share one query coordinator.
 
+Level-zero listing rows (for example, `Level 0 : Catalysis 0%`) are accepted
+without aborting refresh. A listed ability is not necessarily learned: zero
+practice remains unlearned and cannot be used by ability buttons. Blank lines
+within listings are not parsed as ability records.
+
 Version **0.23.2** fixes refreshes being cancelled when spell tracking sends its
 own coordinated query between catalog responses. Level-up and manual refreshes
 now keep their staged rows while yielding, then resume at the next request.
