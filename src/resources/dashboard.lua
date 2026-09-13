@@ -329,7 +329,10 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if a.base.createMapper==a.createMapper then a.base.createMapper=a.originalCreate end
     if a.base.layoutDock==a.layout then a.base.layoutDock=a.original end
     if a.base.refreshChatTabs==a.chat then a.base.refreshChatTabs=a.originalChat end
-    views.stop(); panels.stop()
+    views.closeMenu()
+    for id in pairs(hosts) do views.unregister(id) end
+    for id in pairs(chatHosts) do views.unregister(id) end
+    panels.stop()
     for _,id in ipairs(CHAT) do
       if a.base.chats[id] then a.base.chats[id]:changeContainer(a.base.sections.chat.Inside) end
       if chatHosts[id] then chatHosts[id]:delete() end

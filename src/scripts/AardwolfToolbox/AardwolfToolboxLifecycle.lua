@@ -232,10 +232,54 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) or (AardwolfToolbox.launcher and AardwolfToolbox.launcher.isEditing()) or (AardwolfToolbox.browser and AardwolfToolbox.browser.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
+
+
+  local Browser=resource("workspace-browser")
+  own("browser",Browser.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.inventory,
+    AardwolfToolbox.abilities,AardwolfToolbox.readiness,resource("console-text"),function(feature)
+      AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select(feature)
+    end),{"config","ui","views","inventory","abilities","readiness"},"stop")
+  config.registerFeature(Browser.definition(AardwolfToolbox.browser.configure))
+
+  local Launcher=resource("launcher")
+  local launcher=own("launcher",Launcher.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.utilityBar,function(feature)
+    AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select(feature)
+  end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
+  config.registerFeature(Launcher.definition(launcher.configure))
+  launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
+  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities"}) do
+    local view=id
+    launcher.register({id="view."..view,label="Open "..view,description="Open the existing sidebar or floating view",available=function()
+      return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
+    end,callback=function() return AardwolfToolbox.views.open(view) end})
+  end
+  for _,id in ipairs(config.order) do
+    local feature=id
+    launcher.register({id="settings."..feature,label="Settings: "..config.features[feature].label,
+      description=config.features[feature].description,callback=function()
+        AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select(feature)
+      end})
+  end
+  for _,entry in ipairs({
+    {"mobs","Refresh current-room mobs","mobs","refresh"},
+    {"nearby","Refresh Nearby scan","mobs","refreshNearby"},
+    {"ratings","Rate current-room mobs","mobs","rateRoom"},
+    {"abilities","Refresh learned abilities","abilities","refresh"},
+    {"buffs","Sync buffs and recoveries","spellup","sync"},
+    {"inventory","Refresh carried inventory","inventory","refresh","carried"},
+    {"equipment","Refresh equipment","inventory","refresh","equipped"},
+    {"quest","Refresh quest status","dashboardData","requestQuest"},
+  }) do
+    local request=entry
+    launcher.register({id="refresh."..request[1],label=request[2],policy="information",
+      description="Manual informational request; unavailable until fresh login readiness",
+      available=function() return AardwolfToolbox[request[3]].enabled,"Feature is disabled" end,
+      callback=function() return AardwolfToolbox[request[3]][request[4]](request[5]) end})
+  end
 
 end
 

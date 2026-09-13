@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.3**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.4**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no live installation or native acceptance has been performed for it.
 
@@ -41,6 +41,12 @@ and no live installation or native acceptance has been performed for it.
 - Off / Captured queries / Compact output cleanup modes preserve existing
   preferences. Query gaps are bounded by time and line count.
 - Shared-settings search and extensible registered view placement.
+- Searchable Tools menu with guarded informational actions and a resumable,
+  offline setup walkthrough. Completing it writes only local completion metadata.
+- Inventory/equipment/ability workspace with bounded pages, literal details,
+  catalog verification and smart-button resolution, local search, and independent
+  floating views. Hidden views avoid catalog reads; closing releases row widgets.
+  Dashboard teardown now unregisters only its own views.
 - Reproducible build/check entrypoint, pinned toolchain, archive/source checks,
   and a macOS CI workflow. CI execution itself remains unverified here.
 
@@ -54,11 +60,11 @@ reply formats; requested setup is not reported as confirmed observation. Broad
 collector tests cover contention, obsolete responses, failure and cleanup.
 Verify actual native migration, reload/replacement, external-window ownership,
 input focus, chat scrollback, delayed starter construction and startup order.
-Finish the utility command menu and onboarding walkthrough. Native chat search,
-focus, scrollback, colors and badges still require acceptance. Two attempts to
-inspect Mudlet on 2026-09-13 timed out before returning profile state; no profile
-was controlled or changed. Native testing in the disconnected profile is now
-authorized but could not run through the unavailable control connection.
+Native chat search, workspace focus, scrollback, colors and badges still require
+acceptance. The control tool returned the connected window during the latest
+attempt. Only window-selection attempts were made; no commands or fixtures were
+sent. Control stopped when the requested offline window could not be selected.
+Testing remains restricted to the disconnected AardwolfToolboxSettingsTest profile.
 
 ### Inventory/equipment and ability browser (0.26)
 
@@ -68,11 +74,12 @@ monitoring deltas. Failed snapshots preserve observations and replay valid
 intervening movement updates. Player-issued listings stay visible; owned
 responses are suppressed. The utility count API remains compatible.
 
-Still implement item views, equipment/container manual actions with verified
-syntax, comparisons, and the dedicated ability browser. Equipment, container and
-detail collection is currently on demand through the shared service API; no
-new automatic collection preferences or gameplay actions ship in this candidate.
-See [item service](item-service.md).
+The new workspace provides item/ability views, observed detail records, local
+search and smart-button resolution. Equipment, container and detail collection
+remain on demand through guarded Refresh, Contents and Inspect controls.
+Still implement verified wear/remove/container-transfer actions and equipment
+comparisons. No item-changing or ability-execution controls ship in this view.
+See [workspace](workspace.md) and [item service](item-service.md).
 
 ### Journal and navigation workspace (0.27)
 
@@ -108,12 +115,16 @@ player profile:
    Search chat (literal/case-sensitive), stale results, mentions and Mark read.
    Float each view, close/reopen, return to sidebar, resize and scroll; inspect
    focus and font sizes at 1280×800, 1920×1080, narrow and Retina layouts.
-4. In a separate disposable starter profile, migrate explicitly and return to
+4. Run `tests/native_workspace.lua` after foundation setup. Check Tools search,
+   walkthrough navigation, workspace paging/details/search, external windows and
+   return-to-workspace behavior. Refresh/Inspect remain blocked while offline.
+   Restore workspace overrides before foundation dispatch interceptors.
+5. In a separate disposable starter profile, migrate explicitly and return to
    compatibility mode. Verify the same chat buffers/native mapper survive;
    check all starter callbacks are restored after teardown.
-5. Stop/start/recompile/uninstall/reinstall. Check native widget, timer, key and
+6. Stop/start/recompile/uninstall/reinstall. Check native widget, timer, key and
    handler cleanup, external border preservation, and original map data.
-6. Record unobserved live quest/group states and multi-monitor behavior separately.
+7. Record unobserved live quest/group states and multi-monitor behavior separately.
 
 Before any later player-profile installation, back up package, profile,
 preferences, database and native map. This development candidate has not been

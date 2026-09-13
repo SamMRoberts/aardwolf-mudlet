@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.24.0-dev.4 — discovery and workspace candidate
+
+- Add a searchable Tools menu for local views, shared settings and existing
+  informational refreshes. Enter filters locally; callbacks recheck readiness.
+- Add a resumable offline setup walkthrough with checked completion metadata.
+- Add paged Inventory, Equipment and Abilities workspace views, literal observed
+  details, local search, command-verification information and smart-button
+  resolution. Refresh, Inspect and Contents request information only.
+- Support independent external placement through the shared view registry.
+  Dashboard teardown now unregisters only its own views, preserving workspace
+  windows and their placement.
+- Add bounded list widgets, hidden-view lazy reads, stale callbacks and selection
+  guards, escaped text/tooltips, shared fonts and offline acceptance fixtures.
+
+Validation: 325 Lua 5.1/package tests, Muddler build, 49-entry archive/source
+checks and the existing 10/50/200/512-mob benchmark passed. Native workspace,
+focus and window interaction remain unverified. The control tool selected the
+connected window; no commands/fixtures were sent and no package was installed.
+All further native control is restricted to the disconnected test profile.
+
+
 ## 0.24.0-dev.3 — chat and cleanup candidate
 
 - Add local, bounded, literal chat search to the view menu. Search uses existing

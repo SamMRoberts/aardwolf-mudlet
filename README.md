@@ -1,14 +1,19 @@
-# AardwolfToolbox 0.24.0-dev.3
+# AardwolfToolbox 0.24.0-dev.4
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-This candidate adds chat search from each chat view menu, quiet mention badges,
-explicit raw Aardwolf chat-color decoding, and **Off / Captured queries / Compact
-output** cleanup modes. See [chat controls](docs/ui-dashboard.md#chat-search-colors-and-mentions)
-and [console cleanup](docs/console-cleanup.md). Native validation is pending:
-computer-control attempts timed out before a profile could be inspected. Test in
-a disconnected disposable profile before upgrading a player profile.
+This candidate adds a searchable **Tools** utility menu, an offline setup
+walkthrough, and an **Inventory / Equipment / Abilities** workspace. Open these
+from Tools or Views. Workspace tabs can float independently, and browsing does
+not execute an ability or change equipment. See [workspace controls](docs/workspace.md).
+Native validation remains pending: use the disconnected disposable profile
+before upgrading a player profile.
+
+Chat search, quiet mention badges, raw Aardwolf chat colors and
+**Off / Captured queries / Compact output** cleanup are also included.
+See [chat controls](docs/ui-dashboard.md#chat-search-colors-and-mentions)
+and [console cleanup](docs/console-cleanup.md).
 
 New controls are in **aardwolf-config → Sidebar and setup** and **Diagnostics**.
 The settings search field filters sections and their setting descriptions when
@@ -20,7 +25,8 @@ This candidate moves inventory, abilities, spell snapshots, room scans, and
 consider batches onto the shared request broker. Progression changes cancel
 unsent obsolete catalog work and drain the active response before refreshing.
 The item service now retains bounded, session-only item records and observed
-equipment/container data; dedicated item views remain part of the next milestone.
+equipment/container data. The workspace displays these observations; verified
+item-changing actions and equipment comparisons remain future work.
 
 Automatic sidebar ownership retains an installed starter UI; on fresh profiles,
 Toolbox supplies its own map/dashboard/chat shell. Explicit Toolbox mode moves
@@ -84,6 +90,8 @@ Toolbox mapping. Existing foreign map rooms are not automatically adopted.
 | **Room mobs and Nearby scans** | Individual mob rows, observed consider ranges, target/attacker/kill indicators, and compact nearby scans. Configurable double-click actions and right-click command/alias menus. [Room mobs guide](docs/room-mobs.md). |
 | **Action and navigation bar** | Paged command/alias buttons, optional keybindings, a directional compass, door controls, and known special exits. [Action bar guide](docs/action-bar.md). |
 | **Ability catalog and smart buttons** | Locally stored learned skills/spells, filters and type corrections, and buttons for a specific ability or the highest-required-level eligible ability of a type. [Ability guide](docs/abilities.md). |
+| **Inventory and ability workspace** | Search observed inventory/equipment and learned abilities; inspect captured details, command verification and smart-button selections. Workspace tabs can float independently. [Workspace guide](docs/workspace.md). |
+| **Tools and setup** | Search local views, settings and guarded refreshes; follow the resumable offline setup walkthrough. [Guide](docs/workspace.md). |
 | **Top utility bar** | Level, total levels, tier, remorts, worth, gold, inventory count, status indicators, Settings, and Views access. [Utility bar guide](docs/utility-bar.md). |
 | **Bottom Vitals** | HP, Mana, Moves, target health, and TNL in one row above the command input, with TNL at the far right. |
 | **Consider formatting** | Compact difficulty labels, relative-level ranges, and threat colors using shared ratings with Room mobs. [Consider guide](docs/consider.md). |

@@ -1,3 +1,27 @@
+# 0.24.0-dev.4 roadmap candidate — 2026-09-13
+
+- Real Muddler 1.1.0 build with Java 17.0.16+8; Python 3.14.6 / Lupa 2.6:
+  **325 tests passed** against the rebuilt package.
+- Archive: **49 entries**, CRC/XML checks passed and resources match source.
+- Ordinary-line benchmark, 2,000 lines at 10/50/200/512 mobs: indexed path
+  0.89–0.97 ms; 200-mob reduction 99.9%. This excludes native rendering.
+- New coverage: local utility filtering/callbacks, offline readiness, walkthrough
+  completion failures, workspace search/paging, stored zero/unknown values,
+  item inspection guards, smart-button resolution, hidden-view reads, unchanged
+  inventory rendering, floating/return ownership and lifecycle cleanup.
+- Discovered and fixed dashboard teardown clearing unrelated registered views;
+  existing dashboard, ASCII, migration and geometry tests pass unchanged.
+- `tests/native_workspace.lua` adds reversible synthetic read-API overrides for
+  the disconnected test profile. No database writes or fake login readiness.
+- Native control selected the connected window during selection attempts; no
+  commands, fixtures or installation were sent there. Native work stopped and
+  remains pending until the offline profile is accessible. No profile, map,
+  settings or database files were changed by this work.
+- The complete roadmap, native focus/rendering/migration and live behavior are
+  not claimed complete. See `docs/roadmap-status.md` and `docs/workspace.md`.
+
+---
+
 # 0.24.0-dev.3 roadmap candidate — 2026-09-13
 
 - Local Muddler 1.1.0 build succeeded on macOS with Java 17.0.16+8.

@@ -1,0 +1,121 @@
+"""On-demand workspace views; no item/ability execution is provided here."""
+import unittest
+import check_package
+
+
+class WorkspaceBrowserTests(unittest.TestCase):
+    def setUp(self):
+        harness = check_package.PackageTests()
+        harness.setUp()
+        self.addCleanup(harness.doCleanups)
+        self.lua = harness.lua
+        self.lua.execute('''
+          assert(AardwolfToolbox.start());t=AardwolfToolbox;b=t.browser
+          assert(b.enabled,b.last)
+          function send() error('Unexpected gameplay dispatch') end
+          function expandAlias() error('Unexpected alias dispatch') end
+          t.abilityStore.select('Fixture')
+          function ability(id,name)
+            return {id=id,name=name or ('Ability '..id),kind='spell',level=50,learned=true,practice=100,
+              cost=0,resource='mana',targeting='single',memberships={{role='damage',type='fire'}}}
+          end
+          t.abilityStore.replace({abilities={[10]=ability(10,'Éowyn <blue>'),[20]=ability(20,'Unknown cost')},ability_metadata={[0]={level=100}}})
+          local r=t.abilityStore.get('abilities',20);r.cost=nil;t.abilityStore.put('abilities',20,r)
+          local Items=assert(loadstring(sources['item-state']))();items=Items.new()
+          local bag=assert(Items.parse('42,MG,@Ra <bag>,60,11,0,-1,-1'))
+          assert(items.replace('carried',{['42']=bag}))
+          t.inventory.get=items.get;t.inventory.list=items.list
+          t.inventory.status=function() local s=items.status();s.enabled=true;return s end
+        ''')
+
+    def test_stored_abilities_details_zero_unknown_and_search(self):
+        self.lua.execute('''
+          assert(b.open('abilities'));assert(b.isEditing())
+          local input=widgets['AardwolfToolbox.browser.abilities.search'];input.action('Éowyn')
+          local row=widgets['AardwolfToolbox.browser.abilities.row.1']
+          assert(row.text:find('&lt;blue&gt;',1,true) and row.text:find('0 mana',1,true))
+          row.callback();local detail=widgets['AardwolfToolbox.browser.abilities.detail'].text
+          assert(detail:find('cast 10',1,true) and detail:find('damage / fire',1,true))
+          input.action('Unknown cost');widgets['AardwolfToolbox.browser.abilities.row.1'].callback()
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text:find('Cost -- mana',1,true))
+          input.action('fire');assert(widgets['AardwolfToolbox.browser.abilities.row.2'])
+          assert(widgets['AardwolfToolbox.browser.abilities.feedback'].text:find('stale'))
+        ''')
+
+    def test_items_literal_details_freshness_and_guarded_inspection(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
+          assert(widgets['AardwolfToolbox.browser.inventory.detail'].text:find('a &lt;bag&gt;',1,true))
+          widgets['AardwolfToolbox.browser.inventory.inspect'].callback()
+          assert(widgets['AardwolfToolbox.browser.inventory.feedback'].text:find('Disconnected'))
+          t.readiness.check=function() return true end
+          local calls=0;t.inventory.refresh=function(kind,id) calls=calls+1;assert(kind=='details' and id=='42');return true end
+          widgets['AardwolfToolbox.browser.inventory.inspect'].callback();assert(calls==1)
+          items.invalidate('carried');widgets['AardwolfToolbox.browser.inventory.inspect'].callback();assert(calls==1)
+          assert(items.replace('carried',{}));widgets['AardwolfToolbox.browser.inventory.inspect'].callback();assert(calls==1)
+        ''')
+
+    def test_paging_bounded_widgets_stale_clicks_and_hidden_loading(self):
+        self.lua.execute('''
+          local rows={};for i=1,100 do rows[i]=ability(i) end;t.abilityStore.replace({abilities=rows})
+          local list=t.abilities.list;local reads=0;t.abilities.list=function(...) reads=reads+1;return list(...) end
+          fire('AardwolfToolbox.abilities.updated');assert(reads==0)
+          assert(b.open('abilities'));assert(reads==1)
+          assert(widgets['AardwolfToolbox.browser.abilities.row.24'] and not widgets['AardwolfToolbox.browser.abilities.row.25'])
+          local click=widgets['AardwolfToolbox.browser.abilities.row.1'].callback
+          widgets['AardwolfToolbox.browser.abilities.next'].callback();click()
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text=='Select a row for details.')
+          b.close();assert(not widgets['AardwolfToolbox.browser.abilities.row.1'])
+          reads=0;fire('AardwolfToolbox.abilities.updated');assert(reads==0)
+        ''')
+
+    def test_views_float_return_settings_and_cleanup(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));local content=widgets['AardwolfToolbox.browser.inventory']
+          assert(t.views.setMode('inventory','floating'));assert(content.parent~=widgets['AardwolfToolbox.browser.inventory.home'])
+          t.views.menu('inventory');assert(widgetContaining('Return to workspace'))
+          assert(t.views.setMode('inventory','tabbed'));assert(content.parent==widgets['AardwolfToolbox.browser.inventory.home'])
+          assert(b.isEditing() and not widgets['AardwolfToolbox.browser'].hidden)
+          t.views.menu('inventory');widgetContaining('Settings').callback();assert(t.settingsWindow.opened)
+          assert(t.config.set('browser','enabled',false));assert(not b.enabled and not t.views.available('inventory'))
+          assert(t.config.set('browser','enabled',true));assert(b.open('equipment'))
+          t.stop();assert(count(widgets)==0);assert(t.start());assert(b.open('inventory'));t.stop();assert(count(widgets)==0)
+        ''')
+
+    def test_dashboard_toggle_preserves_workspace_and_failed_reads_recover(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));assert(t.views.setMode('inventory','floating'))
+          local content=widgets['AardwolfToolbox.browser.inventory'];local parent=content.parent
+          assert(t.config.set('dashboard','enabled',false));assert(t.views.available('inventory'))
+          assert(content.parent==parent and not parent.deleted)
+          assert(t.config.set('dashboard','enabled',true));assert(content.parent==parent)
+          local list=t.abilities.list;t.abilities.list=function() error('Database unavailable') end
+          assert(b.open('abilities'))
+          assert(widgets['AardwolfToolbox.browser.abilities.feedback'].text:find('Database unavailable'))
+          t.abilities.list=list;widgets['AardwolfToolbox.browser.abilities.search'].action('')
+          assert(widgets['AardwolfToolbox.browser.abilities.row.1'])
+        ''')
+
+    def test_smart_button_resolution_is_visible_without_dispatch(self):
+        self.lua.execute('''
+          local button={}
+          for _,setting in ipairs(t.config.features.actions.settings) do
+            if setting.key=='buttons' then for _,field in ipairs(setting.fields) do button[field.key]=field.default end end
+          end
+          button.id='fixture';button.label='Fire button';button.ability_mode='highest'
+          button.ability_role='damage';button.ability_type='fire';button.ability_kind='both';button.ability_targeting='single'
+          assert(t.config.set('actions','buttons',{button}))
+          assert(b.open('abilities'));widgets['AardwolfToolbox.browser.abilities.search'].action('Éowyn')
+          widgets['AardwolfToolbox.browser.abilities.row.1'].callback()
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text:find('Selected by button: Fire button',1,true))
+        ''')
+
+    def test_unchanged_inventory_events_and_geometry_do_not_render_rows(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));local row=widgets['AardwolfToolbox.browser.inventory.row.1']
+          local calls=0;row.echo=function() calls=calls+1 end
+          fire('AardwolfToolbox.inventory.updated');fire('sysWindowResizeEvent')
+          assert(calls==0 and widgets[row.name]==row)
+          items.invalidate('carried');fire('AardwolfToolbox.inventory.updated')
+          assert(widgets[row.name]~=row and widgets[row.name].text:find('Stale'))
+        ''')

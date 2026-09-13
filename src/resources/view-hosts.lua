@@ -159,7 +159,7 @@ function Views.new(api,config,ui,settings)
     if id then
       add("Open "..title(id),function() self.open(id) end)
       if entries[id] and entries[id].search then add('Search chat',entries[id].search) end
-      add(self.mode(id)=="floating" and "Return to sidebar" or "Float outside Mudlet",function() self.setMode(id,self.mode(id)=="floating" and "tabbed" or "floating") end)
+      add(self.mode(id)=="floating" and ("Return to "..(entries[id] and entries[id].homeLabel or "sidebar")) or "Float outside Mudlet",function() self.setMode(id,self.mode(id)=="floating" and "tabbed" or "floating") end)
       if self.mode(id)=="floating" then add("Reset window placement",function() self.resetPlacement(id) end) end
     else
       for _,key in ipairs(order) do
@@ -173,7 +173,7 @@ function Views.new(api,config,ui,settings)
         end
       end
     end
-    add("Settings",settings); add("Close",function() end)
+    add("Settings",id and entries[id] and entries[id].settings or settings); add("Close",function() end)
     local mx,my=w-340,40
     if api.getMousePosition then mx,my=api.getMousePosition() end
     local mh=math.min(h-60,#list*row)
@@ -194,7 +194,8 @@ function Views.new(api,config,ui,settings)
     self.closeMenu()
     local entry=entries[id];if not entry then return end
     if entry.parent~=entry.home then moveContent(entry.root,entry.home) end
-    if windows[id] then windows[id]:delete();windows[id]=nil end
+    if windows[id] then captureGeometry(true);windows[id]:delete();windows[id]=nil end
+    if not next(windows) and geometryTimer then api.killTimer(geometryTimer);geometryTimer=nil end
     entries[id]=nil
     local builtin=false;for _,key in ipairs(IDS) do if id==key then builtin=true end end
     if not builtin then for i,key in ipairs(order) do if id==key then table.remove(order,i);break end end end
