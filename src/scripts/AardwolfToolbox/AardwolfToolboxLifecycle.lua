@@ -238,11 +238,12 @@ local function initialize()
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
 
 
+  own("itemActions",resource("item-actions").new(AardwolfToolbox.inventory,AardwolfToolbox.readiness,resource("item-state")),{"inventory","readiness"},"stop")
   local Browser=resource("workspace-browser")
   own("browser",Browser.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.inventory,
     AardwolfToolbox.abilities,AardwolfToolbox.readiness,resource("console-text"),function(feature)
       AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select(feature)
-    end),{"config","ui","views","inventory","abilities","readiness"},"stop")
+    end,AardwolfToolbox.itemActions),{"config","ui","views","inventory","abilities","readiness","itemActions"},"stop")
   config.registerFeature(Browser.definition(AardwolfToolbox.browser.configure))
 
   local Launcher=resource("launcher")

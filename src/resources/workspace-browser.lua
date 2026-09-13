@@ -1,20 +1,22 @@
--- On-demand catalog/item views. Browsing never dispatches an ability or item action.
+-- On-demand observations, with explicit guarded single-item actions.
 local Browser={}
 local OWNER='AardwolfToolbox.browser'
 local IDS={'inventory','equipment','abilities'}
 local LABELS={inventory='Inventory',equipment='Equipment',abilities='Abilities'}
 local PAGE=24
 function Browser.definition(apply)
-  local settings={{key='enabled',type='boolean',default=true,label='Enable inventory and ability workspace'}}
+  local settings={{key='enabled',type='boolean',default=true,label='Enable inventory and ability workspace'},
+    {key='item_actions',type='boolean',default=true,label='Enable manual item actions',description='Wear, remove, get or put one observed item by its object ID. Actions never queue or repeat.'}}
   for _,id in ipairs(IDS) do settings[#settings+1]={key=id,type='choice',default='tabbed',label=LABELS[id]..' placement',options={
     {value='tabbed',label='Workspace tab'},{value='floating',label='External window'}}} end
   return {id='browser',label='Inventory and ability workspace',description='Browse observed items and locally stored learned abilities. Refresh and Inspect request information only. Unobserved container contents and missing fields remain unknown.',settings=settings,apply=apply}
 end
-function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,openSettings)
+function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,openSettings,itemActions)
   local self={enabled=false,last='Disabled'}
   local root,header,closeButton,active,escapeKey
   local entries,tabs,handlers={}, {}, {}
   local epoch,building=0,false
+  local menu,menuKey,menuEpoch=nil,nil,0
   local layout,render,selectView
   local function label(name,parent,text,callback)
     local w=api.Geyser.Label:new({name=OWNER..'.'..name,x=0,y=0,width='100%',height=32},parent)
@@ -25,6 +27,11 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   local function itemName(row) return row.name and Text.plain(row.name,'raw') or ('Item #'..row.id) end
   local function status(id) return id=='abilities' and abilities.status() or inventory.status() end
   local function message(e,text) e.feedback:echo(ui.escape(text)) end
+  function self.closeMenu()
+    menuEpoch=menuEpoch+1
+    if menuKey then api.killKey(menuKey);menuKey=nil end
+    if menu then menu:delete();menu=nil end
+  end
   local function visible(id) return self.enabled and not building and views.available(id) and (views.mode(id)=='floating' or active==id) and views.visible(id) end
   local function clearRows(e)
     for _,w in ipairs(e.rows) do w:delete() end;e.rows={}
@@ -70,6 +77,77 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     local text=table.concat(lines,'<br>')
     if e.detailText~=text then e.detail:echo(text);e.detailText=text end
     e.detail:resize('100%',math.max(ui.metrics().line*#lines+12,e.details:get_height()))
+  end
+  local function choose(e,title,options,page)
+    self.closeMenu();page=page or 1
+    local token=menuEpoch;local h=ui.metrics().height
+    local w,height=e.root:get_width(),e.root:get_height()
+    menu=api.Geyser.Container:new({name=OWNER..'.menu',x=0,y=0,width='100%',height='100%'},e.root)
+    local bg=label('menu.background',menu,'');bg:resize('100%','100%');ui.style(bg)
+    local header=label('menu.title',menu,ui.fit(title,math.max(1,w-80)));header:resize('100%-80',h)
+    local close=label('menu.close',menu,'Close',self.closeMenu);close:move(w-80,0);close:resize(80,h)
+    local body=api.Geyser.ScrollBox:new({name=OWNER..'.menu.body',x=0,y=h,width='100%',height=math.max(h,height-2*h)},menu)
+    for index=(page-1)*PAGE+1,math.min(page*PAGE,#options) do
+      local option=options[index]
+      local button=label('menu.row.'..index,body,ui.fit(option.label,math.max(1,w-16)),function()
+        if token~=menuEpoch or not visible(e.id) then return end
+        self.closeMenu();option.run()
+      end)
+      button:move(0,(index-(page-1)*PAGE-1)*h);button:resize('100%',h)
+      button:setToolTip(ui.escape(option.tooltip or option.label))
+    end
+    local pages=math.max(1,math.ceil(#options/PAGE))
+    for i,entry in ipairs({{'‹ Previous',math.max(1,page-1)},{page..' / '..pages,page},{'Next ›',math.min(pages,page+1)}}) do
+      local button=label('menu.page.'..i,menu,entry[1],function() if token==menuEpoch then choose(e,title,options,entry[2]) end end)
+      button:move((i-1)*w/3,height-h);button:resize(w/3,h)
+    end
+    if not escapeKey then
+      menuKey=api.tempKey(api.mudlet.key.Escape,self.closeMenu)
+      if not menuKey then self.closeMenu();message(e,'Cannot register menu dismissal');return end
+    end
+    menu:raiseAll()
+  end
+  local function itemMenu(e,comparison)
+    if not itemActions then return end
+    local context,why=itemActions.context(e.selected)
+    if not context then message(e,why);return end
+    local selected=inventory.get(context.id);local options={}
+    local function add(action,title,target)
+      local command=itemActions.preview(context,action,target)
+      if not command then return end
+      options[#options+1]={label=title..' · '..command,tooltip=command,run=function()
+        local ok,reason=itemActions.activate(context,action,target)
+        message(e,ok and ('Sent '..command..'; waiting for server observation.') or reason)
+      end}
+    end
+    if comparison then
+      for _,other in ipairs(inventory.list('equipped')) do
+        if other.id~=selected.id then
+          local otherId=other.id
+          options[#options+1]={label=itemName(other)..' · #'..otherId,run=function()
+            local report,reason=itemActions.compare(context,otherId)
+            if not report then message(e,reason);return end
+            local lines={ui.escape(itemName(report.left)..' / '..itemName(report.right)),
+              'Selected / compared / difference',report.detailsFresh and 'Observed item details' or 'Inspect both items for fresh detailed values.'}
+            for _,r in ipairs(report.rows) do
+              lines[#lines+1]=ui.escape(r.label..': '..value(r.left)..' / '..value(r.right)..' / '..(r.delta and string.format('%+g',r.delta) or '--'))
+            end
+            lines[#lines+1]='Missing values are unknown. No slot compatibility or best-item ranking is inferred.'
+            e.detailText=table.concat(lines,'<br>');e.detail:echo(e.detailText)
+            e.detail:resize('100%',math.max(ui.metrics().line*#lines+12,e.details:get_height()))
+          end}
+        end
+      end
+    else
+      add('wear','Wear');add('remove','Remove');add('get','Get from container')
+      if selected.location=='carried' then
+        for _,bag in ipairs(inventory.list('carried')) do
+          if bag.type==11 and bag.id~=selected.id then add('put','Put in '..itemName(bag),bag.id) end
+        end
+      end
+    end
+    if #options==0 then message(e,comparison and 'No other equipped item observed. Refresh equipment first.' or 'No available item actions. Check settings and refresh item locations.');return end
+    choose(e,(comparison and 'Compare: ' or 'Actions: ')..itemName(selected),options)
   end
   local function request(e,kind)
     local ok,why=readiness.check('information')
@@ -138,9 +216,14 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     for i,button in ipairs(controls) do
       ui.style(button,true);button:move((i-1)*w/5,row);button:resize(w/5,row)
     end
-    local bodyHeight=math.max(row*2,h-row*4)
-    e.list:move(4,row*2);e.list:resize('100%-8',math.floor(bodyHeight*.55))
-    e.details:move(4,row*2+math.floor(bodyHeight*.55));e.details:resize('100%-8',math.ceil(bodyHeight*.45))
+    local top=row*2
+    if e.actions then
+      for i,button in ipairs({e.actions,e.compare}) do ui.style(button,true);button:move((i-1)*w/2,top);button:resize(w/2,row) end
+      top=top+row
+    end
+    local bodyHeight=math.max(row*2,h-top-row*2)
+    e.list:move(4,top);e.list:resize('100%-8',math.floor(bodyHeight*.55))
+    e.details:move(4,top+math.floor(bodyHeight*.55));e.details:resize('100%-8',math.ceil(bodyHeight*.45))
     ui.style(e.detail);e.feedback:move(4,h-row*2);e.feedback:resize('100%-8',row);ui.style(e.feedback)
     for i,button in ipairs({e.previous,e.pageLabel,e.next}) do
       ui.style(button,i~=2);button:move((i-1)*w/3,h-row);button:resize(w/3,row)
@@ -161,6 +244,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     end
   end
   function self.close()
+    self.closeMenu()
     active=nil
     if root then root:hide() end
     for _,id in ipairs(IDS) do
@@ -173,11 +257,14 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     if escapeKey then api.killKey(escapeKey);escapeKey=nil end
   end
   selectView=function(id)
+    self.closeMenu()
     active=id;root:show();root:raiseAll()
     for key,e in pairs(entries) do
       if views.mode(key)=='tabbed' then if key==id then e.root:show() else e.root:hide();clearRows(e);e.dirty=true end end
     end
-    if not escapeKey and api.tempKey and api.mudlet and api.mudlet.key then escapeKey=api.tempKey(api.mudlet.key.Escape,self.close) end
+    if not escapeKey and api.tempKey and api.mudlet and api.mudlet.key then
+      escapeKey=api.tempKey(api.mudlet.key.Escape,function() if menu then self.closeMenu() else self.close() end end)
+    end
     layout();local e=entries[id];if e.dirty then render(e) end
   end
   function self.open(id)
@@ -193,6 +280,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     return false
   end
   function self.stop()
+    if itemActions then itemActions.stop() end
     self.enabled=false;building=false;epoch=epoch+1;self.close()
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end;handlers={}
     for _,id in ipairs(IDS) do if entries[id] then views.unregister(id) end end
@@ -200,6 +288,8 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   end
   self.destroy=self.stop
   function self.configure(values)
+    self.closeMenu()
+    if itemActions then itemActions.configure({enabled=values.enabled and values.item_actions}) end
     if not values.enabled then self.stop();return true end
     if self.enabled then
       local ok,why=views.configure()
@@ -243,6 +333,12 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
           e.scope=id=='equipment' and 'equipped' or 'carried';e.search='';e.input:print('');e.page=1;resetSelection(e);render(e)
         end))
         e.view=label(id..'.view',e.root,'View',click(function() views.menu(id) end))
+        if id~='abilities' then
+          e.actions=label(id..'.actions',e.root,'Item actions',click(function() itemMenu(e,false) end))
+          e.compare=label(id..'.compare',e.root,'Compare',click(function() itemMenu(e,true) end))
+          e.actions:setToolTip('Preview wear/remove or a single container transfer. Select a row first.')
+          e.compare:setToolTip('Compare recorded values with another equipped item. Never changes equipment.')
+        end
         e.list=api.Geyser.ScrollBox:new({name=OWNER..'.'..id..'.list',x=0,y=64,width='100%',height=250},e.root)
         e.details=api.Geyser.ScrollBox:new({name=OWNER..'.'..id..'.details',x=0,y=314,width='100%',height=180},e.root)
         e.detail=label(id..'.detail',e.details,'Select a row for details.')
@@ -255,10 +351,11 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         e.mode=views.mode(id)
       end
       root:hide()
-      for _,event in ipairs({'sysWindowResizeEvent','sysUserWindowResizeEvent','AardwolfToolbox.ui.changed','AardwolfToolbox.views.changed','AardwolfToolbox.inventory.updated','AardwolfToolbox.abilities.updated','AardwolfToolbox.abilities.reset'}) do
+      for _,event in ipairs({'sysWindowResizeEvent','sysUserWindowResizeEvent','sysDisconnectionEvent','AardwolfToolbox.gmcp.cleared','AardwolfToolbox.ui.changed','AardwolfToolbox.views.changed','AardwolfToolbox.inventory.updated','AardwolfToolbox.abilities.updated','AardwolfToolbox.abilities.reset'}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,function()
           if epoch~=owned then return end
+          if event~='AardwolfToolbox.abilities.updated' then self.closeMenu() end
           if event=='sysWindowResizeEvent' or event=='sysUserWindowResizeEvent' or event=='AardwolfToolbox.ui.changed' or event=='AardwolfToolbox.views.changed' then layout()
           else for id,e in pairs(entries) do
             if (id=='abilities')==(event~='AardwolfToolbox.inventory.updated') and (id=='abilities' or e.dataRevision~=inventory.status().revision) then e.dirty=true;if visible(id) then render(e) end end

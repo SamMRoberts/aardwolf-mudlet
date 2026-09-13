@@ -3,8 +3,8 @@
 `AardwolfToolbox.inventory` keeps session-only observed items while preserving
 its existing `count`, `request(manual)`, `configure`, `start`, `stop`, and `status`
 APIs. The utility bar's existing automatic inventory preference still owns
-activation. This is the data foundation for the planned item workspace; it does
-not yet add inventory/equipment windows or gameplay action buttons.
+activation. The [item workspace](workspace.md) consumes these observations;
+the separate `AardwolfToolbox.itemActions` service handles manual item actions.
 
 ## Data and requests
 
@@ -16,7 +16,7 @@ not yet add inventory/equipment windows or gameplay action buttons.
   `refresh("details", id)` request informational data. Containers/details require
   an observed, fresh item; container requests also require its reported type.
 - `status()` returns location freshness, queue/busy state, monitoring evidence,
-  revision and bounded counters. Updates use `AardwolfToolbox.inventory.updated`.
+  revision, active capture state and bounded counters. Updates use `AardwolfToolbox.inventory.updated`.
 
 Records preserve reported ID, flags, name (including raw color notation), level,
 type number, uniqueness, wear location and timer. Location is observed carried,
@@ -57,6 +57,21 @@ Each response is limited to 4,096 rows/events, 1 MiB and the broker's absolute
 records / 1 MiB of text, with bounded freshness metadata and at most 32 pending
 item requests. Lost containers remove their now-inaccessible observed contents.
 No item commands such as wear/remove/get/put are executed by this service.
+
+## Manual action and comparison API
+
+`itemActions.context(id)` returns a selection bound to the current item revision
+and component lifetime. `preview(context, action, containerId)` returns the exact
+single command or nil/reason. `activate(context, action, containerId)` rechecks
+the selection, item/container freshness, active capture and manual readiness,
+then sends once. Supported actions are `wear`, `remove`, `put` and `get`; Get uses
+the source container recorded on the item. No aliases, bulk actions, retries or
+optimistic inventory changes are performed. Settings are owned by `browser`.
+
+`compare(context, otherId)` returns independent item records and numeric rows
+with `label`, `left`, `right`, and `delta`. Missing operands produce no delta.
+Only fresh detail values are used; repeated stat names remain ambiguous.
+This API never dispatches commands and remains available when actions are disabled.
 
 Schemas are based on the official [Invdata/Eqdata](https://www.aardwolf.com/wiki/index.php/Help/Invdata),
 [Invmon](https://aardwolf.com/wiki/index.php/Help/Invmon), and

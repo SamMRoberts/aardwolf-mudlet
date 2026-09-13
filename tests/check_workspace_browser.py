@@ -1,4 +1,4 @@
-"""On-demand workspace views; no item/ability execution is provided here."""
+"""On-demand workspace views and explicit item actions, with intercepted dispatch."""
 import unittest
 import check_package
 
@@ -11,6 +11,9 @@ class WorkspaceBrowserTests(unittest.TestCase):
         self.lua = harness.lua
         self.lua.execute('''
           assert(AardwolfToolbox.start());t=AardwolfToolbox;b=t.browser
+          keys={};mudlet.key={Escape=16777216};local serial=0
+          function tempKey(key,callback) serial=serial+1;keys[serial]=callback;return serial end
+          function killKey(key) keys[key]=nil end
           assert(b.enabled,b.last)
           function send() error('Unexpected gameplay dispatch') end
           function expandAlias() error('Unexpected alias dispatch') end
@@ -21,7 +24,7 @@ class WorkspaceBrowserTests(unittest.TestCase):
           end
           t.abilityStore.replace({abilities={[10]=ability(10,'Éowyn <blue>'),[20]=ability(20,'Unknown cost')},ability_metadata={[0]={level=100}}})
           local r=t.abilityStore.get('abilities',20);r.cost=nil;t.abilityStore.put('abilities',20,r)
-          local Items=assert(loadstring(sources['item-state']))();items=Items.new()
+          Items=assert(loadstring(sources['item-state']))();items=Items.new()
           local bag=assert(Items.parse('42,MG,@Ra <bag>,60,11,0,-1,-1'))
           assert(items.replace('carried',{['42']=bag}))
           t.inventory.get=items.get;t.inventory.list=items.list
@@ -160,4 +163,64 @@ class WorkspaceBrowserTests(unittest.TestCase):
           assert(calls==0 and widgets[row.name]==row)
           items.invalidate('carried');fire('AardwolfToolbox.inventory.updated')
           assert(widgets[row.name]~=row and widgets[row.name].text:find('Stale'))
+        ''')
+
+    def test_manual_item_menu_previews_once_and_invalidates_callbacks(self):
+        self.lua.execute('''
+          sent={};function send(command) sent[#sent+1]=command end
+          t.readiness.check=function(policy) assert(policy=='manual');return true end
+          assert(b.open('inventory'));widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback()
+          local action=widgets['AardwolfToolbox.browser.menu.row.1'];local callback=action.callback
+          assert(action.text:find('wear 42',1,true) and #sent==0)
+          callback();assert(#sent==1 and sent[1]=='wear 42');callback();assert(#sent==1)
+          assert(items.get('42').location=='carried')
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback()
+          callback=widgets['AardwolfToolbox.browser.menu.row.1'].callback
+          items.clear();callback();assert(#sent==1)
+          assert(widgets['AardwolfToolbox.browser.inventory.feedback'].text:find('changed'))
+        ''')
+
+    def test_manual_actions_setting_and_lifecycle_are_shared(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback()
+          local stale=widgets['AardwolfToolbox.browser.menu.row.1'].callback
+          local draft,revision=t.config.draft();draft.browser.item_actions=false
+          assert(t.config.apply(draft,revision));assert(not t.itemActions.enabled)
+          assert(not widgets['AardwolfToolbox.browser.menu']);stale()
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback()
+          assert(not widgets['AardwolfToolbox.browser.menu'])
+          assert(t.config.set('browser','item_actions',true))
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback();assert(widgets['AardwolfToolbox.browser.menu'])
+          t.stop();assert(count(widgets)==0 and not t.itemActions.enabled)
+        ''')
+
+    def test_comparison_is_local_and_float_menu_is_parented(self):
+        self.lua.execute('''
+          assert(items.replace('equipped',{['43']=assert(Items.parse('43,,helmet,55,7,0,4,-1'))}))
+          assert(b.open('inventory'));widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
+          assert(t.views.setMode('inventory','floating'));assert(b.open('inventory'))
+          widgets['AardwolfToolbox.browser.inventory.compare'].callback()
+          local menu=widgets['AardwolfToolbox.browser.menu']
+          assert(menu.parent==widgets['AardwolfToolbox.browser.inventory'])
+          widgets['AardwolfToolbox.browser.menu.row.1'].callback()
+          local text=widgets['AardwolfToolbox.browser.inventory.detail'].text
+          assert(text:find('Level: 60 / 55 / +5',1,true))
+          assert(text:find('Inspect both',1,true))
+          assert(text:find('&lt;bag&gt;',1,true))
+        ''')
+
+    def test_many_container_choices_are_paged_and_escape_closes_only_menu(self):
+        self.lua.execute('''
+          local rows={}
+          for id=1,60 do rows[tostring(id)]=assert(Items.parse(id..',,bag '..id..',1,11,0,-1,-1')) end
+          assert(items.replace('carried',rows));assert(b.open('inventory'))
+          widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
+          widgets['AardwolfToolbox.browser.inventory.actions'].callback()
+          assert(widgets['AardwolfToolbox.browser.menu.row.24'] and not widgets['AardwolfToolbox.browser.menu.row.25'])
+          widgets['AardwolfToolbox.browser.menu.page.3'].callback()
+          assert(widgets['AardwolfToolbox.browser.menu.row.25'] and not widgets['AardwolfToolbox.browser.menu.row.1'])
+          assert(count(keys)==1);for _,callback in pairs(keys) do callback() end
+          assert(b.isEditing() and not widgets['AardwolfToolbox.browser.menu'])
         ''')

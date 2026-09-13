@@ -319,7 +319,7 @@ function Inventory.new(api,cache,incoming,queries,readiness,Items)
     for _ in pairs(operations) do queued=queued+1 end
     local counters={}; for k,v in pairs(diagnostics) do counters[k]=v end
     return {enabled=self.enabled,count=self.count,last=self.last,monitoring=monitoring or 'unavailable',
-      pending=not not pending or queued>0,busy=active~=nil,queued=queued,fresh=state.fresh,revision=state.revision,diagnostics=counters}
+      pending=not not pending or queued>0,busy=active~=nil,capturing=frame~=nil,queued=queued,fresh=state.fresh,revision=state.revision,diagnostics=counters}
   end
   return self
 end

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.24.0-dev.6 — manual inventory actions and comparisons
+
+- Add exact object-ID previews for single Wear/Remove/Get/Put operations in the
+  Inventory/Equipment workspace. Recheck current observations and manual
+  readiness; never queue, repeat, expand aliases or infer a successful transfer.
+- Provide a shared manual-action setting, paged item menus, stale callback
+  rejection and lifecycle cleanup independently of the bottom Action bar.
+- Compare recorded levels, value, weight and numeric stat modifiers locally.
+  Missing, stale or repeated detail values remain unknown; no equipment ranking.
+- Expand reversible native fixtures and command/menu regression tests.
+
+Validation: 338 tests, real Muddler build, archive/source inspection and mob
+benchmarks passed. Offline native previews, blocked activation, comparison and
+cleanup passed; player-profile execution and native Escape dismissal remain
+unverified. See tests/verification.md.
+
 ## 0.24.0-dev.5 — native workspace fixes
 
 - Guard workspace callbacks during construction and clean up partial widget

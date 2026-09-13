@@ -1,3 +1,28 @@
+# 0.24.0-dev.6 item-action candidate — 2026-09-13
+
+- **338 tests passed**, including exact single-command dispatch, decimal IDs,
+  changed/missing items, container safety, lifecycle/configuration invalidation,
+  bounded menu pages, literal comparisons and zero/unknown/repeated values.
+- Muddler 1.1.0 build, 50-entry archive/source inspection and the existing
+  10/50/200/512-mob benchmarks passed. Native rendering is not benchmarked.
+- Package SHA256: `c4a48fe1d9216b5e8e0f9211ec500129e4b0fcc2271b520a1b780cf9cd65278e`.
+- Backed up the disconnected test profile/package/settings/database and native
+  map in `backups/offline-items-20260913-151037/` before installing dev.6.
+- Native mouse checks: select spare helmet, open Item actions, see `wear 44`
+  and `put 44 42`, click Wear and observe the disconnected guard. Compare with
+  the equipped helmet and see Strength `0 / 2 / -2`. Close preserves workspace.
+  Command-input text stayed unchanged; no command reached the interceptors.
+- Injected Escape did not dismiss the menu; its callback is contract-tested,
+  but native keyboard behavior needs investigation. No Escape success is claimed.
+- Restored both fixture layers, verified zero intercepted dispatch, repeated
+  startup/teardown without leftover owned widgets or activation errors, and
+  byte-identical before/after native maps (8 rooms). Installed resources match source.
+- Real item transfers/wear/remove, live server variants, external menu mouse
+  behavior and the broader migration/size/Retina matrix remain unverified.
+  Regular Aardwolf was not controlled or installed into.
+
+---
+
 # 0.24.0-dev.5 native-fix candidate — 2026-09-13
 
 - Muddler 1.1.0, Java 17.0.16+8, Python 3.14.6 / Lupa 2.6:

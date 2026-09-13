@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.24.0-dev.5
+# AardwolfToolbox 0.24.0-dev.6
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
@@ -27,8 +27,11 @@ This candidate moves inventory, abilities, spell snapshots, room scans, and
 consider batches onto the shared request broker. Progression changes cancel
 unsent obsolete catalog work and drain the active response before refreshing.
 The item service now retains bounded, session-only item records and observed
-equipment/container data. The workspace displays these observations; verified
-item-changing actions and equipment comparisons remain future work.
+equipment/container data. The workspace now offers explicit single-item
+Wear/Remove and container transfers, with exact object-ID command previews.
+Comparisons show recorded levels, weight, value and supplied stat modifiers;
+missing values remain unknown. Configure **Manual item actions** under
+**Inventory and ability workspace**. These actions never queue or repeat.
 
 Automatic sidebar ownership retains an installed starter UI; on fresh profiles,
 Toolbox supplies its own map/dashboard/chat shell. Explicit Toolbox mode moves

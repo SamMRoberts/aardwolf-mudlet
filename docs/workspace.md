@@ -1,6 +1,6 @@
 # Tools, setup and the inventory/ability workspace
 
-Available in **0.24.0-dev.5**, a development candidate with partial native
+Available in **0.24.0-dev.6**, a development candidate with partial native
 acceptance recorded in [verification](../tests/verification.md).
 
 ## Find a feature
@@ -49,6 +49,18 @@ The workspace remains available when the sidebar dashboard is disabled.
   carried/equipped items and clears the local filter.
 - **Catalog / Buttons:** on the Abilities tab, open existing shared settings.
   Browsing makes no changes to saved buttons.
+- **Item actions:** select an Inventory/Equipment row, then open its action
+  list. Every entry includes its exact command. Wear/Remove operates on one
+  item; Put lists fresh, directly carried containers; Get retrieves one item
+  from its observed, directly carried container. Nested-container actions stay
+  unavailable until that container is carried directly. Names never become
+  commands: all targets use the complete object ID. The server decides whether
+  an item fits, is cursed or can be worn; Toolbox does not predict success.
+- **Compare:** select an item, then choose another observed equipped item.
+  Rows show selected value / compared value / difference. Only supplied numeric
+  fields are compared; omitted, invalid or repeated stat modifiers are unknown,
+  not zero. Inspect both items to obtain fresh details. Comparisons are local,
+  do not infer slot compatibility and never choose or equip a preferred item.
 
 Lists create at most 24 row widgets per page and read catalogs on demand. Hidden
 tabs do not load a catalog on update events. Closing workspace tabs releases
@@ -57,8 +69,18 @@ records; the item service retains its own bounded complete observation.
 
 Configure enablement and individual placement in **aardwolf-config → Inventory
 and ability workspace**. Catalog refresh preferences remain in **Ability catalog**;
-inventory monitoring remains in **Utility bar**. Wear/remove/transfer actions
-and equipment comparisons are not implemented in this candidate.
+inventory monitoring remains in **Utility bar**. **Enable manual item actions**
+can disable all item-changing workspace controls while retaining comparisons.
+Commands use the shared manual-readiness policy, bypass informational queues,
+and never alter command-input text. Item changes, reconnects, reconfiguration or
+teardown invalidate open selections; a snapshot in progress blocks dispatch.
+Server observations, rather than sent commands, update item locations.
+
+Syntax was verified against Aardwolf's [ObjectId](https://www.aardwolf.com/wiki/index.php/Help/ObjectId),
+[Wear](https://www.aardwolf.com/wiki/index.php/Help/Wear),
+[command guide](https://aardwolf.com/wiki/index.php/NewbieInfo/Commands), and
+[Containers](https://www.aardwolf.com/wiki/index.php/Help/Containers) references.
+This is documentation verification, not live execution acceptance.
 
 ## Extension API
 

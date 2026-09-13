@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.5**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.6**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 is recorded in tests/verification.md.
@@ -48,6 +48,9 @@ is recorded in tests/verification.md.
   catalog verification and smart-button resolution, local search, and independent
   floating views. Hidden views avoid catalog reads; closing releases row widgets.
   Dashboard teardown now unregisters only its own views.
+- Explicit item-ID Wear/Remove/Get/Put actions with previews, manual readiness,
+  stale-selection rejection, bounded menus and no optimistic state mutation.
+  Local comparisons show observed numeric values without inventing missing stats.
 - Reproducible build/check entrypoint, pinned toolchain, archive/source checks,
   and a macOS CI workflow. CI execution itself remains unverified here.
 
@@ -84,8 +87,14 @@ responses are suppressed. The utility count API remains compatible.
 The new workspace provides item/ability views, observed detail records, local
 search and smart-button resolution. Equipment, container and detail collection
 remain on demand through guarded Refresh, Contents and Inspect controls.
-Still implement verified wear/remove/container-transfer actions and equipment
-comparisons. No item-changing or ability-execution controls ship in this view.
+Wear/remove/container-transfer actions now use documented object-ID syntax;
+commands remain single, manual and guarded. Containers must be fresh and
+directly carried. Local comparisons cover levels, value, weight and unambiguous
+numeric stat modifiers from fresh details, with missing data left unknown.
+Native tests confirmed menus/previews, offline refusal, comparison rendering and
+Close; injected Escape did not dismiss the menu and needs keyboard investigation.
+Real item-command execution, container variants, full sizing and live detail
+format acceptance remain pending. No ability-execution controls ship here.
 See [workspace](workspace.md) and [item service](item-service.md).
 
 ### Journal and navigation workspace (0.27)
@@ -134,5 +143,6 @@ player profile:
 7. Record unobserved live quest/group states and multi-monitor behavior separately.
 
 Before any later player-profile installation, back up package, profile,
-preferences, database and native map. This development candidate has not been
-installed, and none of the 1.0 completion gates are waived.
+preferences, database and native map. This development candidate is installed
+only in the backed-up offline test profile; none of the 1.0 completion gates
+are waived.
