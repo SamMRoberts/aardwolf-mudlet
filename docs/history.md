@@ -185,4 +185,8 @@ category-only clear/export, literal quest/mob names, reported zero rewards, unkn
 kill credit, duplicate-identity tooltips, external
 placement, native cleanup and unchanged map data.
 The native history fixture injects a synthetic death-service event; it does not
-exercise native death parsing. The fixture restores preferences and deletes only its uniquely named test records.
+exercise native death parsing. After clearing its Kills category, run
+`tests/native_history_engine.lua` once to replay colored death lines through the
+native trigger engine with an isolated tracker. Its dispatch is blocked and no
+map data is changed. These synthetic checks are distinct from live acceptance.
+The history fixture restores preferences and deletes only its uniquely named test records.

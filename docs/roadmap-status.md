@@ -4,8 +4,8 @@ Current artifact: **0.24.0-dev.14**. This candidate contains the first foundatio
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This observed-kill-history candidate is repository-tested only; native control
-and installation await approval. The disconnected profile retains dev.13.
+This observed-kill-history candidate is installed in the backed-up disconnected
+test profile, with partial native UI acceptance and synthetic death-parser replay.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -146,8 +146,8 @@ the disconnected profile. External mouse interaction and live rewards remain
 unverified; see [history](history.md) and [acceptance details](../tests/verification.md).
 
 Observed kill history is now implemented with explicit opt-in, bounded event
-deduplication and category browsing/export/clear. Native death-history acceptance
-remains pending. Chat history is the remaining category, also requiring explicit opt-in. Keyboard improvements and larger-list virtualization
+deduplication and category browsing/export/clear. Native category controls, settings, lifecycle cleanup and synthetic death-parser
+replay passed in the disconnected profile; live ordering remains unverified. Chat history is the remaining category, also requiring explicit opt-in. Keyboard improvements and larger-list virtualization
 remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 
@@ -183,5 +183,5 @@ player profile:
 
 Before any later player-profile installation, back up package, profile,
 preferences, database and native map. This development candidate is built
-in the repository; the offline profile still has the earlier dev.13 candidate.
+in the repository; the offline profile has this dev.14 candidate.
 None of the 1.0 completion gates are waived.

@@ -9,8 +9,9 @@
   or reset. No second trigger, raw output logging or gameplay commands.
 - Reuse schema-2 bounded SQLite storage, character/category paging, checked JSON
   exports, clear confirmation, shared typography and external view placement.
-- Native control and installation await approval. Chat history and remaining
-  roadmap acceptance work are still pending.
+- Offline native death-parser replay, history controls, settings and lifecycle
+  checks passed with map preservation. Player-profile installation, live behavior,
+  chat history and remaining roadmap acceptance work are still pending.
 
 ## 0.24.0-dev.13 — optional quest reward history
 

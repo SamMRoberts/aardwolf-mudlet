@@ -7,8 +7,9 @@ completed 1.0 release. See [implementation status and remaining milestones](docs
 All three categories start **off**; enable them in **aardwolf-config → Local history**. Browse
 observed progression, reported quest rewards or explicit mob deaths per character, configure retention,
 export JSON, or clear only the selected category. See [history controls](docs/history.md).
-This candidate is repository-tested only; native control and installation await
-approval. The previous dev.13 candidate has partial offline acceptance; see [verification details](tests/verification.md).
+This candidate passed repository checks and partial native acceptance in the
+disconnected test profile, including synthetic death-parser replay. Live behavior
+and player-profile installation remain pending; see [verification details](tests/verification.md).
 
 **Clan** and **Newbie** now have dedicated chat tabs and optional external windows.
 Open them through **Views**, or set their placement in **aardwolf-config → Dashboard

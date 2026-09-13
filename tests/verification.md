@@ -15,24 +15,37 @@
 - Death syntax reuses the existing known-name `is DEAD!!` parser. New tests use
   synthetic lines/service events, not newly observed player-profile captures.
   Explicit death observations do not establish player kill credit.
-- No Mudlet control, installation, profile writes, map changes or gameplay
-  commands were performed in this implementation turn. The offline profile
-  retains dev.13. Native tests require renewed user approval and a profile,
-  package, settings, database and native-map backup first.
-- Authorized next acceptance checklist, **disconnected test profile only**:
-  1. Install the candidate and start `tests/native_foundation.lua` interception.
-  2. Run `tests/native_history.lua`. It creates 30 progression observations,
-     one quest reward and one synthetic death-service event for a unique character.
-  3. Check the Kills tab, literal name, observed location, unknown-credit and
-     uncertain-duplicate tooltip; switch categories and resize/scroll.
-  4. Export/clear only Kills; confirm progression and quest rewards remain intact.
-     Verify close/reopen, float/return, Apply/Cancel and startup/teardown cleanup.
-  5. Restore the history fixture before foundation interceptors; recording and
-     placement preferences must match the backup. Verify native map preservation.
-- This fixture does not prove native death parsing. Full trigger-engine replay,
-  native menu/mouse behavior and live death ordering remain unverified. Never
-  replay it in the player profile or test attacks automatically. Chat history and
-  the broader 1.0 acceptance gates remain unfinished.
+- After user approval, backed up and installed dev.14 **only** in the disconnected
+  AardwolfToolboxSettingsTest profile. Backup: `backups/offline-kill-history-20260913/`.
+  Package resources match source, archive and the installed copy. The Aardwolf
+  player profile was not controlled or modified.
+- Native history checks passed: Kills category, literal mob/location rendering,
+  JSON export, clear cancellation and category-only clear. The export contains
+  one fixture death; clearing Kills preserved 30 progression observations and
+  the quest reward. Export evidence remains in the backup directory.
+- Native `feedTriggers` replay through the shared incoming dispatcher passed:
+  an ANSI-colored known-mob death line created one record, a second same-name
+  death created a separate record, and a third was ignored. An isolated tracker
+  used the real parser, dispatcher and event path; its API blocked all command
+  dispatch and its room context did not touch the native map. The first fixture
+  attempt correctly blocked a startup informational GMCP request; initializing
+  the fixture offline before enabling its simulated connection resolved it.
+  The original tracker was restored after both attempts. Reproducible fixture:
+  `tests/native_history_engine.lua`, run once after the Kills-only clear.
+- External Float, native Close, reopen into the same window/content, programmatic
+  640×520 reflow and return to profile passed. Settings Cancel retained the kills
+  preference; Apply disabled it. External content mouse/keyboard interactions,
+  hover tooltips, the full size/Retina matrix and live death ordering remain
+  unverified. Parser replay was synthetic and does not prove live kill credit.
+- All fixture records and the profile export were removed; recording preferences
+  and history placement were restored. Native window-tree cleanup, stop/start
+  and repeated startup passed without runtime activation errors. Interceptors
+  observed only Core.Supports negotiation and were restored; no gameplay
+  commands or connection were sent.
+- Native map is byte-identical before/after: 8 rooms, 8,376 bytes; SHA256
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- Native validation required no product-code changes. Chat history and the broader
+  1.0 acceptance gates remain unfinished; player-profile installation remains pending.
 
 ---
 
