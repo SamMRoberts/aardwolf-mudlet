@@ -305,3 +305,82 @@ class AbilityTests(unittest.TestCase):
           assert(not abilities.status().busy and abilities.last:find('pager/editor'))
           local n=#commands; advance(30); assert(#commands==n)
         ''')
+
+    def test_stomp_saved_catalog_command_specific_highest_and_guards(self):
+        self.service()
+        self.lua.execute('''
+          syncAbilities()
+          -- Regression fixture mirrors the persisted #452 row: learned and
+          -- classified correctly, but older packages saved no command.
+          local stomp={id=452,name='stomp',kind='skill',level=137,learned=true,
+            practice=85,available=true,target=1,targeting='single',resource='unknown',
+            cost_known=false,recovery=-1,memberships={{role='damage',type='bash'}}}
+          local uppercut={id=447,name='uppercut',kind='skill',level=101,learned=true,
+            available=true,targeting='single',command='uppercut',memberships={{role='damage',type='bash'}}}
+          store.replace({abilities={[452]=stomp,[447]=uppercut},ability_metadata={[0]={level=146}}})
+          cache.values['char.base.level']=146;cache.values['char.base'].level=146
+          local original=store.get('abilities',452);assert(original.command==nil)
+          assert(abilities.get(452).command=='stomp' and abilities.get(452).cost==nil)
+          assert(abilities.get(452).targeting=='single')
+          local list=abilities.list({role='damage',type='bash',kind='skill'})
+          local found;for _,r in ipairs(list) do if r.id==452 then found=r end end
+          assert(found and found.command=='stomp');found.command='bad'
+          assert(abilities.get(452).command=='stomp' and store.get('abilities',452).command==nil)
+          local b={ability_mode='highest',ability_role='damage',ability_type='bash',ability_kind='skill',ability_targeting='single',arguments='2.bat'}
+          local before=#commands;local command,selected=abilities.preview(b)
+          assert(command=='stomp 2.bat' and selected.id==452 and #commands==before)
+          b.ability_mode='specific';b.ability_id=452;assert(abilities.preview(b)=='stomp 2.bat')
+          assert(not abilities.resolve(b),'Changed progression must still require synchronization')
+          cache.values['char.base.level']=127;assert(not abilities.preview(b))
+          b.ability_mode='highest';assert(abilities.preview(b)=='uppercut 2.bat')
+          cache.values['char.base.level']=146
+          stomp.passive=true;store.replace({abilities={[452]=stomp,[447]=uppercut}})
+          assert(abilities.preview(b)=='uppercut 2.bat');stomp.passive=nil
+          stomp.available=false;store.replace({abilities={[452]=stomp,[447]=uppercut}})
+          assert(abilities.preview(b)=='uppercut 2.bat');stomp.available=true
+          stomp.name='unverified skill';store.replace({abilities={[452]=stomp}})
+          assert(not abilities.get(452).command and not abilities.preview(b))
+          stomp.name='stomp';stomp.id=999;store.replace({abilities={[999]=stomp}})
+          assert(not abilities.get(999).command and not abilities.preview(b))
+          assert(#commands==before)
+        ''')
+
+    def test_stomp_refresh_persists_verified_command_and_resolves_fresh(self):
+        self.service()
+        self.lua.execute('''
+          -- Synthetic additions use the previously verified listing grammar;
+          -- these are not a new live capture.
+          table.insert(fixtures['slist learned noprompt'],#fixtures['slist learned noprompt'],'452,stomp,1,0,85,-1,2')
+          local function listing(key,text)
+            local rows=fixtures[key];table.insert(rows,#rows,text)
+          end
+          listing('skills','Level 137: stomp                          85%')
+          listing('skills combat','Level 137: stomp                          85%  Bash')
+          cache.values['char.base.level']=146;cache.values['char.base'].level=146
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base');advance(0.2)
+          syncAbilities();assert(store.get('abilities',452).command=='stomp')
+          local b={ability_mode='highest',ability_role='damage',ability_type='bash',ability_kind='skill',ability_targeting='single',arguments=''}
+          local n=#commands;local command,selected=abilities.resolve(b)
+          assert(command=='stomp' and selected.id==452 and #commands==n)
+        ''')
+
+    def test_highest_picker_candidates_do_not_change_selection_mode(self):
+        self.lua.execute('''
+          local buttons,texts={},{}
+          local stomp={id=452,name='stomp',kind='skill',level=137,command='stomp',targeting='single'}
+          local a={last='Saved catalog',list=function() return {stomp} end,
+            types=function() return {'bash'} end,preview=function() return 'stomp',stomp end}
+          local record={ability_mode='highest',ability_id=0,label='Best Bash',ability_role='damage',
+            ability_kind='skill',ability_targeting='single',ability_type='bash',arguments=''}
+          local control={capture=function() end,redraw=function() end,feedback=function(message) error(message) end,
+            field=function() end,selectCorrections=function() end,
+            button=function(text,fn) buttons[text]=fn end,text=function(text) texts[text]=true end}
+          Picker.render(a,record,{}, {},control)
+          assert(not buttons['stomp (#452) · Lv 137 · cost unknown'])
+          assert(texts['stomp (#452) · Lv 137 · cost unknown'])
+          assert(texts['Automatic choice: stomp (#452) · Lv 137'] and texts['Command preview: stomp'])
+          assert(record.ability_mode=='highest' and record.ability_id==0 and record.label=='Best Bash')
+          record.ability_mode='specific';Picker.render(a,record,{}, {},control)
+          buttons['stomp (#452) · Lv 137 · cost unknown']()
+          assert(record.ability_id==452 and record.ability_mode=='specific')
+        ''')

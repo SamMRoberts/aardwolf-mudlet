@@ -288,6 +288,7 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,
           handlers[#handlers+1]=event
           assert(api.registerNamedEventHandler(OWNER,event,event,fn),"Cannot register action bar handler")
         end
+        on("AardwolfToolbox.mobs.menu",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
         on("AardwolfToolbox.settings.visibility",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
         on("AardwolfToolbox.abilities.updated",render)
         on("AardwolfToolbox.abilities.reset",render)

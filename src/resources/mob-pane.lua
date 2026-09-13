@@ -2,10 +2,11 @@
 local Pane={}
 local OWNER='AardwolfToolbox.mobs'
 local scanColors={North='#80dfff',South='#9fe3a8',East='#ffda85',West='#d4b0ff',Up='#9bbcff',Down='#ffad99'}
-function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
+function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refreshNearby,rateRoom,actions)
   local self={}; local root,body,heading,status,button,optionsButton,summary,hint,clearButton
-  local scanHeading,scanBody; local scanLabels={}; local scanExpanded=true
-  local labels={}; local options={}; local latest={rows={}}
+  local scanHeading,scanBody,scanRefresh,rateButton; local scanLabels={}; local scanExpanded=false
+  local labels={}; local cardSerial=0; local options={}; local latest={rows={}}
+  local menu,menuToken; local menuKeys={};local menuGeneration=0
   local message='Waiting for room data'; local phase=false; local generation=0
   local function label(name,parent)
     return api.Geyser.Label:new({name=OWNER..'.'..name,x=0,y=0,width=1,height=1},parent)
@@ -34,6 +35,74 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
   local function control(widget,text,selected)
     paint(widget,text,'#e0eaf3',nil,'QLabel { background: '..(selected and '#263c4d' or '#192732')..'; border: 1px solid #304555; border-radius: 4px; padding: 4px; } QLabel:hover { background: #304b60; border-color: #80b8dc; }')
   end
+  function self.closeMenu()
+    menuGeneration=menuGeneration+1
+    for _,id in ipairs(menuKeys) do api.killKey(id) end;menuKeys={}
+    local opened=menu~=nil
+    if menu then menu:delete();menu=nil end
+    menuToken=nil
+    if opened and actions then actions.visibility(false) end
+  end
+  function self.validateMenu()
+    if menu and not actions.resolve(menuToken) then self.closeMenu() end
+  end
+  local function openMenu(token,card)
+    self.closeMenu()
+    if not actions or not options.context_menu then return end
+    local content,reason=actions.menu(token)
+    if not content then actions.feedback(reason);return end
+    local ok,err=pcall(function()
+      local w,h=api.getMainWindowSize();local metrics=ui.metrics()
+      local ch=math.max(32,metrics.height);local width=math.min(360,w)
+      local header=content.name..' · '..content.target
+      local hh=math.max(ch,math.ceil(ui.measure(header)/math.max(1,width-20))*metrics.line+12)
+      local height=math.min(h,math.max(ch*3,math.min(h*0.7,hh+(#content.items+2)*(ch+4)+12)))
+      -- ScrollBox child coordinates omit its viewport offset. Anchor at the
+      -- actual click position so scrolling the roster cannot misplace the menu.
+      local mx,my
+      if api.getMousePosition then mx,my=api.getMousePosition() end
+      local x=math.max(0,math.min(w-width,mx or root:get_x()+root:get_width()))
+      local y=math.max(0,math.min(h-height,my or root:get_y()))
+      menu=api.Geyser.ScrollBox:new({name=OWNER..'.menu',x=x,y=y,width=width,height=height})
+      menuToken=token;local epoch=menuGeneration;local buttons={}
+      local title=label('menuTitle',menu);ui.apply(title);title:move(4,4);title:resize(width-12,hh)
+      title:setStyleSheet('QLabel { background:#0e1720; color:#edf3fa; border:1px solid #607c90; padding:5px; qproperty-wordWrap:true; }')
+      title:echo(ui.escape(header));local top=hh+8
+      local function style()
+        for _,item in ipairs(buttons) do
+          item.widget:setStyleSheet('QLabel { background:#192732; color:#edf3fa; border:1px solid #415366; padding:4px; qproperty-wordWrap:true; } QLabel:hover, QLabel:focus { background:#304b60; border-color:#a4d8ff; }')
+        end
+      end
+      local function add(text,tooltip,fn)
+        local widget=label('menuItem'..(#buttons+1),menu);ui.apply(widget)
+        local rowHeight=math.max(ch,math.ceil(ui.measure(text)/math.max(1,width-28))*metrics.line+10)
+        widget:move(4,top);widget:resize(width-12,rowHeight);top=top+rowHeight+4
+        widget:echo(ui.escape(text));widget:setToolTip(ui.escape(tooltip))
+        local item={widget=widget,run=function()
+          if not menu or epoch~=menuGeneration then return end
+          self.closeMenu();fn()
+        end};buttons[#buttons+1]=item
+        widget:setClickCallback(function(event)
+          if type(event)=='table' and event.button and event.button~='LeftButton' then return end
+          item.run()
+        end)
+      end
+      for _,item in ipairs(content.items) do
+        local id=item.id
+        add(item.label,item.mode..': '..item.command,function() actions.activate(id,token) end)
+      end
+      add('Configure actions','Edit Room mob actions',settings)
+      add('Close','Close this menu',function() end)
+      local function bind(key,fn)
+        local code=assert(api.mudlet and api.mudlet.key[key],'Menu key unavailable: '..key)
+        local id=api.tempKey(0,code,function() if menu and epoch==menuGeneration then fn() end end)
+        assert(id and id~=-1,'Cannot register menu key');menuKeys[#menuKeys+1]=id
+      end
+      bind('Escape',self.closeMenu)
+      style();menu:show();menu:raiseAll();actions.visibility(true)
+    end)
+    if not ok then self.closeMenu();actions.feedback('Mob menu unavailable: '..tostring(err)) end
+  end
   local function render()
     if not root then return end
     local width=math.max(1,root:get_width()); local m=ui.metrics(); local small=ui.metrics('secondary'); local h=m.height
@@ -46,7 +115,8 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     end
     local ch=math.max(32,h)
     paint(heading,'<b>Room mobs</b>','#edf3fa')
-    geometry(heading,4,4,width-2*ch-16,ch)
+    geometry(heading,4,4,width-3*ch-20,ch)
+    if rateButton then control(rateButton,'<center>≋</center>'); geometry(rateButton,width-3*ch-12,4,ch,ch);tip(rateButton,'Rate room: consider all. '..(latest.ratings and latest.ratings.last or 'Verifies the completion marker for automatic ratings this session')) end
     control(button,'<center>↻</center>'); geometry(button,width-2*ch-8,4,ch,ch)
     control(optionsButton,'<center>⚙</center>'); geometry(optionsButton,width-ch-4,4,ch,ch)
     local age=latest.updated and math.max(0,math.floor((api.getEpoch()-latest.updated)/10)*10)
@@ -68,13 +138,13 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       geometry(status,4,bodyY,width-8,sh); tip(status,ui.escape(message)); visible(status,true)
       bodyY=bodyY+sh+4
     else visible(status,false) end
-    local footer=selected and ('Selected #'..(selected.ordinal or 1)..' · '..selected.name:match('%S+$')) or 'Double-click to attack'
+    local footer=selected and ('Selected #'..(selected.ordinal or 1)..' · '..selected.name:match('%S+$')) or (actions and actions.describe() or 'Double-click to attack')
     local footerWidth=selected and width-76 or width-16
     local footerKey=footer..'|'..footerWidth..'|'..small.size..small.font
     if hint.key~=footerKey then hint.fitText=ui.fit(footer,footerWidth-8,'secondary'); hint.key=footerKey end
     local fh=ch
     paint(hint,ui.escape(hint.fitText),selected and '#80cfff' or '#aabfce','secondary')
-    tip(hint,ui.escape(selected and ('Selected: '..selected.name..'. Double-click attacks; Clear only clears selection.') or 'Double-click a current-room mob to attack. Nearby scan entries are read-only.'))
+    tip(hint,ui.escape((selected and ('Selected: '..selected.name..'. ') or '')..(actions and actions.describe() or 'Double-click to attack')..'. Right-click for mob actions. Clear only clears selection. Nearby entries are read-only.'))
     geometry(hint,8,math.max(0,root:get_height()-fh-4),footerWidth,fh)
     control(clearButton,'<center>Clear</center>'); geometry(clearButton,width-64,math.max(0,root:get_height()-fh-4),60,fh)
     visible(clearButton,selected~=nil)
@@ -87,38 +157,41 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       control(scanHeading,ui.escape((scanExpanded and '▾ ' or '▸ ')..'Nearby · '..(scan.fresh and count or scan.updated and 'stale' or '--')),true)
       tip(scanHeading,scan.updated and ((not scan.fresh and 'Stale. ' or '')..'Last scan '..math.max(0,math.floor((api.getEpoch()-scan.updated)/10)*10)..' seconds ago. Nearby entries cannot be attacked from this list.') or 'Refresh to scan nearby rooms. Click to collapse or expand.')
       local lines={}
-      for _,section in ipairs(scan.sections) do
-        lines[#lines+1]={text=section.direction..(section.distance and ' · '..section.distance..' away' or ''),header=true,direction=section.direction,tooltip=section.heading}
-        for _,entry in ipairs(section.entries) do lines[#lines+1]={text=entry.name} end
-        if #section.entries==0 then lines[#lines+1]={text='No visible occupants'} end
-      end
-      if #lines==0 then lines[1]={text=scan.fresh and 'No nearby mobs reported' or 'Waiting for scan'} end
-      local y=0
-      for i,line in ipairs(lines) do
-        local widget=scanLabels[i]
-        if not widget then widget=label('scanRow'..i,scanBody); scanLabels[i]=widget end
-        local color=line.header and (options.colors and scanColors[line.direction] or '#d8e3eb') or '#d8e3eb'
-        local signature=table.concat({width,small.font,small.size,tostring(line.header),line.text,color},'|')
-        if widget.signature~=signature then
-          local padding=line.header and 10 or 6
-          widget.rowHeight=math.max(small.line+padding,math.ceil(ui.measure(line.text,'secondary')/math.max(40,width-48))*small.line+padding)
-          local surface=line.header and 'background: #213343; border-top: 1px solid #496274; border-left: 3px solid '..color..'; padding: 4px;' or 'background: #111c25; padding: 3px;'
-          paint(widget,line.header and '<b>'..ui.escape(line.text)..'</b>' or ui.escape(line.text),color,'secondary','QLabel { '..surface..' color: '..color..'; qproperty-wordWrap: true; }')
-          widget.signature=signature
+      if scanExpanded then
+        for _,section in ipairs(scan.sections) do
+          lines[#lines+1]={text=section.direction..(section.distance and ' · '..section.distance..' away' or ''),header=true,direction=section.direction,tooltip=section.heading}
+          for _,entry in ipairs(section.entries) do lines[#lines+1]={text=entry.name} end
+          if #section.entries==0 then lines[#lines+1]={text='No visible occupants'} end
         end
-        tip(widget,ui.escape(line.tooltip or line.text))
-        if line.header and i>1 then y=y+6 end
-        geometry(widget,8,y,width-30,widget.rowHeight); visible(widget,true); y=y+widget.rowHeight
+        if #lines==0 then lines[1]={text=scan.fresh and 'No nearby mobs reported' or 'Waiting for scan'} end
+        local y=0
+        for i,line in ipairs(lines) do
+          local widget=scanLabels[i]
+          if not widget then widget=label('scanRow'..i,scanBody); scanLabels[i]=widget end
+          local color=line.header and (options.colors and scanColors[line.direction] or '#d8e3eb') or '#d8e3eb'
+          local signature=table.concat({width,small.font,small.size,tostring(line.header),line.text,color},'|')
+          if widget.signature~=signature then
+            local padding=line.header and 10 or 6
+            widget.rowHeight=math.max(small.line+padding,math.ceil(ui.measure(line.text,'secondary')/math.max(40,width-48))*small.line+padding)
+            local surface=line.header and 'background: #213343; border-top: 1px solid #496274; border-left: 3px solid '..color..'; padding: 4px;' or 'background: #111c25; padding: 3px;'
+            paint(widget,line.header and '<b>'..ui.escape(line.text)..'</b>' or ui.escape(line.text),color,'secondary','QLabel { '..surface..' color: '..color..'; qproperty-wordWrap: true; }')
+            widget.signature=signature
+          end
+          tip(widget,ui.escape(line.tooltip or line.text))
+          if line.header and i>1 then y=y+6 end
+          geometry(widget,8,y,width-30,widget.rowHeight); visible(widget,true); y=y+widget.rowHeight
+        end
+        for i=#scanLabels,#lines+1,-1 do scanLabels[i]:delete(); scanLabels[i]=nil end
+        scanContent=y+4
       end
-      for i=#scanLabels,#lines+1,-1 do scanLabels[i]:delete(); scanLabels[i]=nil end
-      scanContent=y+4
-    else visible(scanHeading,false); visible(scanBody,false) end
+    else visible(scanHeading,false); visible(scanBody,false); if scanRefresh then visible(scanRefresh,false) end end
     local entries={}
     for _,r in ipairs(latest.rows) do
       if r.alive>0 or options.show_killed and r.killed>0 or options.show_missing and r.missing>0 then
         local badges={}; local symbol=''; local color='#7592a6'
         local rating=options.consider and r.consider
         if rating then color=rating.color end
+        if r.requested and not r.target then badges[#badges+1]='Attack requested'; symbol='› ' end
         if r.selected then badges[#badges+1]='Selected'; color=options.target_color; symbol='› ' end
         if r.target and options.target then badges[#badges+1]='Fighting'..(r.health and ' · '..r.health..'%' or ''); color=options.target_color; symbol=symbol..'◎ ' end
         if r.attacking and options.attackers then badges[#badges+1]='Attacking you'; color=options.attacker_color; symbol=symbol..'⚔ ' end
@@ -131,23 +204,32 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       end
     end
     if #entries==0 then entries[1]={title=latest.fresh and 'No visible mobs' or 'Waiting for room scan',detail=latest.fresh and 'Refresh to check this room again.' or 'The list appears after a complete scan.',color='#9dafbf'} end
-    local y=4
+    local y=4; local used={}
     for i,entry in ipairs(entries) do
-      local card=labels[i]
+      local key=entry.row and entry.row.id or 'empty'
+      used[key]=true
+      local card=labels[key]
       if not card then
-        card=label('row'..i,body); labels[i]=card
+        cardSerial=cardSerial+1; card=label('row'..cardSerial,body); labels[key]=card
         local widget=card; local epoch=generation
         widget:setClickCallback(function(event)
-          if type(event)=='table' and event.button~='LeftButton' then return end
+          if not root or epoch~=generation then return end
           local current=widget.entry
-          widget.press=current and {id=current.id,revision=current.revision} or nil
+          local token=current and (actions and actions.capture(current.id,current.revision) or {id=current.id,revision=current.revision})
+          if type(event)=='table' and event.button=='RightButton' then
+            widget.press=nil;self.closeMenu()
+            if token then openMenu(token,widget) end
+            return
+          end
+          if type(event)=='table' and event.button and event.button~='LeftButton' then return end
+          self.closeMenu();widget.press=token
         end)
         widget:setDoubleClickCallback(function(event)
           if not root or epoch~=generation then return end
           if type(event)=='table' and event.button and event.button~='LeftButton' then return end
           local current,press=widget.entry,widget.press; widget.press=nil
           if not current or not press or current.id~=press.id or current.revision~=press.revision then return end
-          selectMob(current.id,current.revision)
+          if actions then actions.doubleClick(press) else selectMob(current.id,current.revision) end
         end)
       end
       local r=entry.row
@@ -173,12 +255,14 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       end
       paint(card,html,r and r.killed>0 and '#acbac6' or '#edf3f8',nil,'QLabel { background: '..bg..'; color: #edf3f8; border: 1px solid #2b3d4b; border-left: 3px solid '..entry.color..'; border-radius: 4px; padding: 5px; qproperty-wordWrap: true; } QLabel:hover { border-color: #7a9db8; background: #263a4a; }')
       if r then
-        tip(card,ui.escape(r.name..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\nDouble-click: kill '..(r.ordinal or 1)..'.'..r.name:match('%S+$') or '\n'..entry.detail)))
+        tip(card,ui.escape(r.name..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\n'..(actions and actions.describe() or 'Double-click: kill')..' · '..(r.ordinal or 1)..'.'..r.name:match('%S+$')..(options.context_menu and '\nRight-click for actions' or '') or '\n'..entry.detail)))
       end
       geometry(card,8,y,math.max(1,width-30),card.rowHeight); visible(card,true); y=y+card.rowHeight+4
       card.entry=r and r.alive>0 and not r.unclassified and {id=r.id,revision=latest.revision} or nil
     end
-    for i=#labels,#entries+1,-1 do labels[i].entry=nil; labels[i].press=nil; labels[i]:delete(); labels[i]=nil end
+    for key,card in pairs(labels) do
+      if not used[key] then card.entry=nil; card.press=nil; card:delete(); labels[key]=nil end
+    end
     local roomHeight=available
     if options.nearby then
       local scanMinimum=ch+8+(scanExpanded and math.min(scanContent,math.max(small.line+6,available*0.4-ch)) or 0)
@@ -186,7 +270,8 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       if not scanExpanded then roomHeight=math.min(y+4,available-ch-8) end
       roomHeight=math.max(1,roomHeight)
       local scanY=bodyY+roomHeight+4
-      geometry(scanHeading,8,scanY,width-16,ch)
+      geometry(scanHeading,8,scanY,width-ch-20,ch)
+      if scanRefresh then control(scanRefresh,'<center>↻</center>');geometry(scanRefresh,width-ch-8,scanY,ch,ch);visible(scanRefresh,true) end
       local scanHeight=math.max(1,available-roomHeight-ch-8)
       geometry(scanBody,0,scanY+ch+4,width,scanHeight)
       visible(scanBody,scanExpanded and scanHeight>1)
@@ -194,6 +279,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     geometry(body,0,bodyY,width,roomHeight)
   end
   function self.layout()
+    self.closeMenu()
     if not root then return end
     local w=select(1,api.getMainWindowSize())
     local width=math.min(options.width or 260,math.max(160,w*0.25))
@@ -202,8 +288,9 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     end)
     local x,y,bw,bh=borders.box(OWNER); root:move(x,y); root:resize(bw,bh); root:show(); render()
   end
-  function self.update(snapshot,text,tick) latest=snapshot; message=text; if tick then phase=not phase end; render() end
+  function self.update(snapshot,text,tick) self.validateMenu();latest=snapshot; message=text; if tick then phase=not phase end; render() end
   function self.configure(values)
+    self.closeMenu()
     options=values
     if not root then
       generation=generation+1
@@ -212,6 +299,8 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
       heading=label('heading',root); summary=label('summary',root); status=label('status',root); hint=label('hint',root)
       button=label('refresh',root); button:setClickCallback(refresh); button:setToolTip('Refresh room mobs')
       optionsButton=label('settings',root); optionsButton:setClickCallback(settings); optionsButton:setToolTip('Room mob settings')
+      if rateRoom then rateButton=label('rate',root);rateButton:setClickCallback(rateRoom);rateButton:setToolTip('Rate room: consider all (also verifies completion for automatic ratings this session)') end
+      if refreshNearby then scanRefresh=label('scanRefresh',root);scanRefresh:setClickCallback(refreshNearby);scanRefresh:setToolTip('Refresh nearby rooms') end
       clearButton=label('clear',root); clearButton:setClickCallback(clearSelection)
       scanHeading=label('scanHeading',root)
       local epoch=generation
@@ -219,6 +308,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
         if not root or generation~=epoch then return end
         if type(event)=='table' and event.button and event.button~='LeftButton' then return end
         scanExpanded=not scanExpanded; render()
+        if scanExpanded and refreshNearby and not (latest.nearby and latest.nearby.fresh) then refreshNearby() end
       end)
       scanBody=api.Geyser.ScrollBox:new({name=OWNER..'.scanBody',x=0,y=0,width='100%',height=1},root)
       body=api.Geyser.ScrollBox:new({name=OWNER..'.body',x=0,y=100,width='100%',height='-100px'},root)
@@ -226,9 +316,10 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection)
     self.layout()
   end
   function self.destroy()
+    self.closeMenu()
     generation=generation+1
     if root then root:delete(); root=nil end
-    labels={}; scanLabels={}; scanExpanded=true; borders.release(OWNER)
+    labels={}; scanLabels={}; scanExpanded=false;cardSerial=0; borders.release(OWNER)
   end
   return self
 end

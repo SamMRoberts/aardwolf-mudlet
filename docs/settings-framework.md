@@ -143,3 +143,25 @@ will be lost).
 ## Ability selections (format 3)
 
 Action records include `ability_mode` (`manual`, `specific`, `highest`), `ability_id`, `ability_role`, `ability_type`, `ability_kind`, `ability_targeting`, and `arguments`. Default new records from the registered field definitions. Versions 1/2 gain only the new ability fields; existing commands, IDs, and shortcuts remain intact. The original settings bytes are backed up before the first version-3 write. Type corrections are ordinary bounded records under `abilities.corrections` and participate in the same draft transaction. See [ability catalog](abilities.md).
+
+
+## Record-reference selectors and previews (0.21.0)
+
+A text setting may specify `recordSource="items"` to select a stable ID from an
+ordered-record setting in the same feature. The editor derives labels and order
+from the current draft, including newly added records; IDs are not displayed.
+Optional `options` add reserved choices such as `{value="@disabled",label="Disabled"}`.
+Reserved values must not be valid record IDs. Source records provide `id`, `label`,
+and optionally `enabled`. Apply validates the reference after validating all
+records; deleting a referenced item requires selecting a replacement.
+`config.recordOptions(featureId, settingKey, featureDraft)` returns fresh option
+copies for editor use. This remains settings format 3.
+
+Text fields can supply `preview(value)`, returning display text or `nil, reason`.
+The shared editor shows the result and an **Update preview** control; preview
+callbacks must be bounded and side-effect-free. They never dispatch commands.
+Ordered lists can supply `addLabel` to name their Add control.
+
+Successful Apply publishes `AardwolfToolbox.settings.changed` with the new
+configuration revision after persistence and feature callbacks. Consumers can
+invalidate pending interactions even when another feature's settings changed.

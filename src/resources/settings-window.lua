@@ -110,7 +110,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
           list[#list+1]=record; recordSelection[key]=record.id; redraw()
         end
         if not setting.fixed then
-          label(body,"addrecord",selected=="actions" and "Add button" or selected=="abilities" and "Add correction" or "Add record",4,y,"-8px",controlHeight,function() add() end); y=y+controlHeight+8
+          label(body,"addrecord",setting.addLabel or (selected=="actions" and "Add button" or selected=="abilities" and "Add correction" or "Add record"),4,y,"-8px",controlHeight,function() add() end); y=y+controlHeight+8
         end
         for index,record in ipairs(list) do
           local button=label(body,"record",(recordSelection[key]==record.id and "▾ " or "▸ ")..record.label,4,y,"-8px",controlHeight,function()
@@ -165,6 +165,21 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
           button:echo(target[key] and "Enabled" or "Disabled")
           feedback("Unsaved changes")
         end)
+      elseif setting.recordSource then
+        local function choices() return config.recordOptions(selected,key,draft[selected]) end
+        local function display()
+          for _,option in ipairs(choices()) do if option.value==target[key] then return option.label..'  ▸' end end
+          return 'Action deleted — choose another  ▸'
+        end
+        local button
+        button=label(body,'reference',display(),4,y,'-8px',controlHeight,function()
+          if currentBody~=bodyGeneration then return end
+          capture()
+          local options=choices();local index=0
+          for i,option in ipairs(options) do if option.value==target[key] then index=i;break end end
+          if #options>0 then target[key]=options[index % #options+1].value end
+          button:echo(escape(display()));feedback('Unsaved changes')
+        end)
       elseif setting.type == "choice" then
         local function display()
           for _, option in ipairs(setting.options) do if option.value == target[key] then return option.label .. "  ▸" end end
@@ -195,6 +210,17 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
         contentWidgets[#contentWidgets + 1] = input
       end
       y = y + controlHeight+16
+      if setting.preview then
+        local function previewText()
+          local ok,text,reason=pcall(setting.preview,target[key])
+          return ok and (text and 'Preview: '..text or 'Preview: '..tostring(reason)) or 'Preview unavailable'
+        end
+        local preview=label(body,'preview',previewText(),4,y,'-8px',controlHeight*2);y=y+controlHeight*2+4
+        label(body,'previewrefresh','Update preview (does not execute)',4,y,'-8px',controlHeight,function()
+          if currentBody~=bodyGeneration then return end
+          capture();preview:echo(escape(previewText()))
+        end);y=y+controlHeight+12
+      end
     end
     if selected=="abilities" and abilities then
       label(body,"refreshcatalog","Refresh catalog",4,y,"-8px",controlHeight,function()

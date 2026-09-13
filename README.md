@@ -341,3 +341,22 @@ default. Changed prompts and ordinary messages remain visible. Configure each
 filter independently in `aardwolf-config → Console cleanup`. Captured help,
 ASCII maps, and game-tag blocks retain their spacing. Existing scrollback is not
 rewritten. See [console cleanup](docs/console-cleanup.md).
+
+Version **0.19.3** realigns an unchanged Toolbox-owned room when a fresh horizontal exit points diagonally to it, provided the expected position is empty and no aligned incident exit would be broken. Room identities and links are retained; manual placements, other floors, and blocked layouts are preserved. Existing destinations are never duplicated to make the map look adjacent.
+
+Version **0.20.0** makes Room mobs event-driven: stable rows, correct keyword ordinals, independent on-demand Nearby scans, and shared consider parsing. Use **≋ Rate room** once to verify completion each session before automatic once-per-visit ratings run. See [Room mobs](docs/room-mobs.md) for controls, diagnostics, and manual acceptance. The package artifact is built; this release has not been installed or tested through the Mudlet UI.
+
+
+Version **0.21.0** adds configurable Room mob double-click actions and right-click
+menus. Edit the shared action list under **aardwolf-config → Room mobs** using
+command/alias templates such as `kill {target}` or `cast 123 {target}`. Attack and
+Consider are included; Disable and Select only are available for double-click.
+See [controls and manual acceptance](docs/room-mobs.md). This artifact has not been
+installed or validated through native Mudlet interaction.
+
+
+Version **0.21.1** fixes Stomp (#452) being rejected as an unverified skill command.
+Existing saved catalog rows gain the verified command on read; the highest-level
+picker now shows candidates without switching the button to a specific ability.
+See [ability controls](docs/abilities.md). This artifact has not been installed;
+no live skills or spells were executed for verification.

@@ -4,13 +4,15 @@ local t=AardwolfToolbox
 if NativeMobConsider then NativeMobConsider.finish() end
 local function resource(name) return assert(loadfile(getMudletHomeDir()..'/AardwolfToolbox/'..name..'.lua'))() end
 local handlers,timers,commands={},{},{}
+local clock=getEpoch()
 local api=setmetatable({
   getConnectionInfo=function() return 'offline.fixture',0,true end,
   send=function(command) commands[#commands+1]=command; return true end,
   sendGMCP=function() return true end,
   registerNamedEventHandler=function(_,name,_,fn) handlers[name]=fn; return true end,
   deleteNamedEventHandler=function(_,name) handlers[name]=nil end,
-  tempTimer=function(_,fn) local id={}; timers[id]=fn; return id end,
+  getEpoch=function() return clock end,
+  tempTimer=function(delay,fn) local id={};timers[id]={at=clock+delay,fn=fn};return id end,
   killTimer=function(id) timers[id]=nil end,
   gmod={enableModule=function() end,disableModule=function() end},
 },{__index=_G})
@@ -38,10 +40,21 @@ local ok,err=pcall(function()
  assert(t.config.set('consider','enabled',true)); assert(t.config.set('consider','colors',true))
  for _,feature in ipairs({'tags','ascii','help'}) do assert(t.config.set(feature,'enabled',true)) end
  handlers['AardwolfToolbox.gmcp.updated']('', 'room.info')
- local queue=timers; timers={}; for _,fn in pairs(queue) do fn() end
+ local function advance(seconds)
+  local limit=clock+seconds
+  for _=1,1000 do
+   local chosen,at
+   for id,item in pairs(timers) do if item.at<=limit and (not at or item.at<at) then chosen=id;at=item.at end end
+   if not chosen then clock=limit;return end
+   clock=at;local fn=timers[chosen].fn;timers[chosen]=nil;fn()
+  end
+  error('Fixture timer loop')
+ end
+ advance(0.25)
  assert(commands[#commands]=='scan' or commands[#commands]=='scan here')
  feedTriggers('{scan}\nRight here you see:\n     - (Flying) A frog\n     - (Flying) A frog\n     - (Golden Aura) The ancient caretaker\n{/scan}\n')
  feedTriggers('\27[32m(Flying) You would stomp A frog into the ground.\n(Flying) A frog would crush you like a bug!\n(Golden Aura) Best run away from The ancient caretaker while you can!\n')
+ advance(0.05)
  local rows=tracker.snapshot().rows
  assert(rows[1].consider.label=='Trivial' and rows[2].consider.label=='Crushing' and rows[3].consider.label=='Dangerous')
  assert(t.consider.enabled,t.consider.last)

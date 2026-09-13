@@ -92,6 +92,44 @@ class PlaceholderTests(unittest.TestCase):
           assert(rooms[hut].x==0 and rooms[hut].y==2 and count(rooms)==2)
         ''')
 
+    def test_owned_offset_destination_realigns_without_duplicate_identity(self):
+        self.check('''
+          packet(15489,{n=15490,w=15491})
+          packet(15490,{s=15489})
+          local hut=localID(15490)
+          packet(15491,{n=15517}); packet(15517,{n=15516})
+          packet(15516,{e=15490})
+          local shore=localID(15516)
+          assert(rooms[hut].x==0 and rooms[hut].y==4 and rooms[hut].z==0)
+          assert(rooms[shore].exits.east==hut and rooms[hut].exits.south==localID(15489))
+          assert(count(rooms)==5)
+          mapper.stop(); mapper=factory.new(_G); mapper.start()
+          packet(15516,{e=15490}); packet(15489,{n=15490,w=15491})
+          assert(rooms[hut].x==0 and rooms[hut].y==4 and count(rooms)==5)
+        ''')
+
+    def test_alignment_preserves_manual_positions_occupied_slots_and_other_edges(self):
+        for obstacle in ('manual', 'occupied', 'incoming', 'outgoing', 'floor'):
+            with self.subTest(obstacle=obstacle):
+                self.setUp()
+                self.lua.globals().obstacle = obstacle
+                self.check('''
+                  packet(101,{n=102,w=103}); packet(102,{s=101})
+                  local hut=localID(102)
+                  packet(103,{n=104}); packet(104,{n=105})
+                  if obstacle=='manual' then setRoomCoordinates(hut,1,2,0) end
+                  if obstacle=='floor' then setRoomCoordinates(hut,0,2,1) end
+                  if obstacle=='occupied' then
+                    addRoom(900); setRoomArea(900,rooms[hut].area); setRoomCoordinates(900,0,4,0)
+                  elseif obstacle=='incoming' or obstacle=='outgoing' then
+                    addRoom(900); setRoomArea(900,rooms[hut].area); setRoomCoordinates(900,2,2,0)
+                    if obstacle=='incoming' then setExit(900,hut,'w') else setExit(hut,900,'e') end
+                  end
+                  packet(105,{e=102})
+                  assert(rooms[hut].y==2 and localID(102)==hut)
+                  assert(rooms[localID(105)].exits.east==hut)
+                ''')
+
     def test_incoming_link_resolves_owned_stub_after_restart(self):
         self.check('''
           packet(101,{n=102}); packet(101,{n=103})

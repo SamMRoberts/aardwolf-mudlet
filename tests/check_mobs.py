@@ -10,7 +10,7 @@ class MobTests(unittest.TestCase):
     def setUp(self):
         self.lua=LuaRuntime(unpack_returned_tuples=True)
         with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
-            for name,var in [('mob-state','State'),('mob-protocol','Protocol'),('mobs','Mobs'),('consider','Consider')]:
+            for name,var in [('mob-state','State'),('mob-protocol','Protocol'),('mobs','Mobs'),('mob-actions','MobActions'),('consider','Consider')]:
                 self.lua.globals()[var]=self.lua.execute(z.read(name+'.lua').decode())
         self.lua.execute('now=100; function clock() return now end; state=State.new(clock); state.clear("12")')
 
@@ -171,7 +171,7 @@ class MobTests(unittest.TestCase):
     def service(self):
         self.lua.execute('''
           timers={}; handlers={}; sent={}; nextID=0; online=true; calls=0; removed=0
-          function tempTimer(_,fn) nextID=nextID+1; timers[nextID]=fn; return nextID end
+          function tempTimer(delay,fn) nextID=nextID+1; timers[nextID]={at=now+delay,fn=fn}; return nextID end
           function killTimer(id) timers[id]=nil end
           function registerNamedEventHandler(_,name,_,fn) handlers[name]=fn; return true end
           function deleteNamedEventHandler(_,name) handlers[name]=nil end
@@ -182,7 +182,16 @@ class MobTests(unittest.TestCase):
           function sendGMCP() end
           function echo() end
           gmod={enableModule=function() end,disableModule=function() end}
-          function pulse() local old=timers; timers={}; for _,fn in pairs(old) do fn() end end
+          function pulse(seconds)
+            local untilAt=now+(seconds or 0.25)
+            for _=1,10000 do
+              local chosen,at
+              for id,t in pairs(timers) do if t.at<=untilAt and (not at or t.at<at) then chosen=id;at=t.at end end
+              if not chosen then now=untilAt;return end
+              local t=timers[chosen];timers[chosen]=nil;now=math.max(now,at);t.fn()
+            end
+            error('Timer loop')
+          end
           cache={enabled=true,values={['char.status.state']=3,['char.status.pos']='Standing'}}
           function cache.get(path) return cache.values[path] end
           incoming={add=function(_,_,fn) receive=fn; calls=calls+1 end,remove=function() receive=nil; removed=removed+1 end}
@@ -190,11 +199,11 @@ class MobTests(unittest.TestCase):
           queries={acquire=function() return true end,release=function() end}
           spellup={status=function() return {inflight=false} end}
           Pane={new=function() return {configure=function() end,destroy=function() end,layout=function() end,update=function(s,m) displayed=s; message=m end} end}
-          options={}; for _,s in ipairs(Mobs.definition(function() end).settings) do options[s.key]=s.default end
-          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end,Consider)
+          options={}; for _,s in ipairs(Mobs.definition(function() end,MobActions).settings) do options[s.key]=s.default end
+          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end,Consider,MobActions)
           assert(m.configure(options))
           function room(id) cache.values['room.info']={num=id}; handlers['AardwolfToolbox.gmcp.updated']('', 'room.info') end
-          function status(data) cache.values['char.status']=data; handlers['AardwolfToolbox.gmcp.updated']('', 'char.status') end
+          function status(data) for k,v in pairs(data) do cache.values['char.status.'..k]=v end; cache.values['char.status']=data; handlers['AardwolfToolbox.gmcp.updated']('', 'char.status') end
           function scan(names)
             receive('{scan}'); receive('Right here you see:')
             for _,name in ipairs(names) do receive('     - '..name) end
@@ -205,7 +214,7 @@ class MobTests(unittest.TestCase):
     def test_owned_scan_refresh_and_disconnect_cleanup(self):
         self.service()
         self.lua.execute('''
-          room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan')
+          room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan here')
           scan({'a rat','a rat'}); assert(m.snapshot().fresh and m.snapshot().rows[1].alive==1 and #m.snapshot().rows==2)
           status({state=8,enemy='a rat',enemypct=30}); status({enemypct=0})
           assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==0)
@@ -286,7 +295,7 @@ class MobTests(unittest.TestCase):
             'theatre guard','aardvark','Keeper of the gate','an owl','the warrior Élan','a <red>','a guard!'})
           local s=m.snapshot()
           local expected={'kill 1.bat','kill 2.bat','kill 1.caretaker','kill 1.friends',
-            'kill 1.bat','kill 1.guard','kill 1.aardvark','kill 1.gate','kill 1.owl','kill 1.Élan','kill 1.<red>','kill 1.guard!'}
+            'kill 3.bat','kill 1.guard','kill 1.aardvark','kill 1.gate','kill 1.owl','kill 2.Élan','kill 2.<red>','kill 1.guard!'}
           for i,command in ipairs(expected) do
             local count=#sent
             assert(m.attack(s.rows[i].id,s.revision))
@@ -301,19 +310,19 @@ class MobTests(unittest.TestCase):
     def test_nearby_snapshot_is_separate_atomic_and_cleared_on_room_change(self):
         self.service()
         self.lua.execute("""
-          room(12); pulse()
+          room(12); pulse(); scan({'a rat'});now=104;assert(m.refreshNearby());pulse()
           receive('{scan}'); receive('Right here you see:'); receive('     - a rat')
           receive('North from here you see:'); receive('     - a snake'); receive('     - a snake'); receive('{/scan}')
           local s=m.snapshot(); assert(#s.rows==1 and s.nearby.fresh and #s.nearby.sections[1].entries==2)
           s.nearby.sections[1].entries[1].name='mutation'
           assert(m.snapshot().nearby.sections[1].entries[1].name=='a snake')
           assert(not receive('A snake is DEAD!!')); assert(m.snapshot().rows[1].alive==1)
-          now=110; assert(m.refresh()); pulse(); receive('{scan}'); receive('North from here you see:')
+          now=110; assert(m.refreshNearby()); pulse(); receive('{scan}'); receive('North from here you see:')
           assert(m.snapshot().nearby.sections[1].entries[1].name=='a snake')
-          pulse(); assert(not m.snapshot().nearby.fresh and #m.snapshot().nearby.sections==1)
-          now=120; assert(m.refresh()); pulse(); receive('{scan}'); receive('East from here you see:'); receive('     - a bat'); receive('{/scan}')
-          s=m.snapshot(); assert(s.nearby.fresh and not s.fresh and s.nearby.sections[1].direction=='East')
-          assert(not m.attack(s.rows[1].id,s.revision))
+          pulse(10); assert(not m.snapshot().nearby.fresh and #m.snapshot().nearby.sections==1)
+          now=122; assert(m.refreshNearby()); pulse(); receive('{scan}'); receive('East from here you see:'); receive('     - a bat'); receive('{/scan}')
+          s=m.snapshot(); assert(s.nearby.fresh and s.fresh and s.nearby.sections[1].direction=='East')
+          assert(m.attack(s.rows[1].id,s.revision))
           room(13); assert(#m.snapshot().nearby.sections==0 and not m.snapshot().nearby.fresh)
           options.nearby=false; assert(m.configure(options)); assert(m.refresh()); now=130; pulse()
           assert(sent[#sent]=='scan here'); scan({'a frog'})
@@ -326,10 +335,10 @@ class MobTests(unittest.TestCase):
         self.lua.execute('''
           online=false; room(12); pulse(); assert(#sent==0 and not m.refresh())
           online=true; cache.values['char.status.state']=8; pulse(); assert(#sent==0)
-          cache.values['char.status.state']=3; pulse(); assert(#sent==2)
+          status({state=3}); pulse(); assert(#sent==2)
           receive('{scan}'); receive('Right here you see:'); receive('     - a rat')
           room(13); receive('{/scan}'); assert(#m.snapshot().rows==0)
-          now=110; pulse(); pulse(); assert(not m.snapshot().fresh and m.last:find('timed out'))
+          pulse(11); assert(not m.snapshot().fresh and m.last:find('timed out'))
           local count=#sent; now=140; pulse(); assert(#sent==count)
           assert(m.refresh()); pulse(); scan({}); assert(m.snapshot().fresh)
           m.stop()
@@ -342,9 +351,9 @@ class MobTests(unittest.TestCase):
           local claimed,gag,forward=receive('     - a rat')
           assert(claimed and gag and forward=='AardwolfToolbox.tags')
           receive('{/scan}'); assert(m.snapshot().rows[1].name=='a rat')
-          options.interval=1; assert(not Mobs.definition(function() end).validate(options))
-          options.interval=10; assert(Mobs.definition(function() end).validate(options))
-          options.target_color='red'; assert(not Mobs.definition(function() end).validate(options))
+          options.interval=1; assert(not Mobs.definition(function() end,MobActions).validate(options))
+          options.interval=10; assert(Mobs.definition(function() end,MobActions).validate(options))
+          options.target_color='red'; assert(not Mobs.definition(function() end,MobActions).validate(options))
           m.stop()
         ''')
 
@@ -354,7 +363,9 @@ class MobUITests(unittest.TestCase):
         self.package=PackageTests(); self.package.setUp()
         self.addCleanup(self.package.doCleanups)
         self.lua=self.package.lua
-        self.lua.execute('AardwolfToolbox.start()')
+        self.lua.execute('''AardwolfToolbox.start()
+          function mobCard(id) for _,w in pairs(widgets) do if w.entry and w.entry.id==id then return w end end end
+        ''')
 
     def test_consider_card_shares_rating_and_preserves_combat_colors(self):
         with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
@@ -368,13 +379,35 @@ class MobUITests(unittest.TestCase):
             consider=t.consider.parse('(Flying) A bat would crush you like a bug!')}
           local s={fresh=true,revision=1,rows={r}}
           pane.update(s,'Visible mobs · current visit')
-          local card=widgets['AardwolfToolbox.mobs.row1']
+          local card=mobCard(1)
           assert(card.text:find('Crushing · +21–30 lvls',1,true) and card.css:find('#FF6666',1,true))
           r.attacking=true; pane.update(s,'Visible mobs · current visit')
           assert(card.css:find(values.attacker_color,1,true) and card.text:find('#FF6666',1,true))
           values.colors=false; pane.configure(values)
           assert(card.text:find('Crushing',1,true) and not card.text:find('#FF6666',1,true))
           values.consider=false; pane.configure(values); assert(not card.text:find('Crushing',1,true))
+          pane.destroy()
+        ''')
+
+    def test_independent_refresh_and_rating_controls(self):
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
+            self.lua.globals().MobPane=self.lua.execute(z.read('mob-pane.lua').decode())
+        self.lua.execute('''
+          local t=AardwolfToolbox;assert(t.config.set('mobs','enabled',false))
+          assert(t.config.get('mobs','automatic_consider') and t.config.get('mobs','nearby_mode')=='manual')
+          local counts={room=0,nearby=0,rate=0}
+          local pane=MobPane.new(_G,t.ui,t.borders,function() counts.room=counts.room+1 end,
+            function() end,function() end,function() end,
+            function() counts.nearby=counts.nearby+1 end,function() counts.rate=counts.rate+1 end)
+          pane.configure(t.config.draft().mobs)
+          assert(widgets['AardwolfToolbox.mobs.scanBody'].hidden)
+          widgets['AardwolfToolbox.mobs.refresh'].callback()
+          widgets['AardwolfToolbox.mobs.rate'].callback()
+          assert(counts.room==1 and counts.rate==1 and counts.nearby==0)
+          widgets['AardwolfToolbox.mobs.scanHeading'].callback({button='LeftButton'})
+          widgets['AardwolfToolbox.mobs.scanRefresh'].callback()
+          assert(counts.nearby==2 and counts.room==1 and counts.rate==1)
+          assert(widgets['AardwolfToolbox.mobs.rate'].height>=32)
           pane.destroy()
         ''')
 
@@ -406,7 +439,7 @@ class MobUITests(unittest.TestCase):
             {id=10,name='a frog',flags='(Hidden)',alive=1,killed=0,missing=0,ordinal=1,duplicates=2},
             {id=11,name='Élan <red> & friends',flags='',alive=1,killed=0,missing=0}}}
           pane.update(snapshot,'Visible mobs · current visit')
-          local first=widgets['AardwolfToolbox.mobs.row1']; local second=widgets['AardwolfToolbox.mobs.row2']
+          local first=mobCard(10); local second=mobCard(11)
           assert(second.text:find('&lt;red&gt;') and second.text:find('&amp;'))
           assert(first.text:find('#1') and first.renderedFontSize==12)
           values.blink=true; pane.configure(values); snapshot.rows[2].attacking=true
@@ -443,6 +476,7 @@ class MobUITests(unittest.TestCase):
           s.nearby.sections[2]={direction='South',heading='South from here',entries={{name='a snake'}}}
           pane.update(s,'Visible mobs · current visit')
           local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
+          assert(scan.hidden); header.callback()
           local first=widgets['AardwolfToolbox.mobs.scanRow2']; local second=widgets['AardwolfToolbox.mobs.scanRow3']
           assert(not scan.hidden and scan.height>160 and header.height>=32)
           assert(first.text:find('&lt;red&gt;') and first.text:find('&amp;') and second.text==first.text)
@@ -471,10 +505,11 @@ class MobUITests(unittest.TestCase):
           local s={fresh=true,updated=0,revision=1,rows={{id=1,name='Claire',flags='',alive=1,killed=0,missing=0}},
             nearby={fresh=true,updated=0,sections={{direction='East',heading='East from here',entries={{name='The receptionist'}}}}}}
           pane.update(s,'Visible mobs · current visit')
-          local row=widgets['AardwolfToolbox.mobs.row1']; local body=widgets['AardwolfToolbox.mobs.body']
+          local row=mobCard(1); local body=widgets['AardwolfToolbox.mobs.body']
           local scan=widgets['AardwolfToolbox.mobs.scanBody']; local header=widgets['AardwolfToolbox.mobs.scanHeading']
           assert(not row.text:find('In room') and row.height>=32)
           assert(body.height<=row.height+16 and header.y==body.y+body.height+4)
+          header.callback(); assert(not scan.hidden)
           assert(scan.height>200 and widgets['AardwolfToolbox.mobs.status'].hidden)
           local scanY=header.y
           header.callback(); assert(scan.hidden and header.y==scanY,'Collapsing a short roster moved the scan heading')

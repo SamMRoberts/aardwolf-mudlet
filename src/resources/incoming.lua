@@ -2,19 +2,25 @@
 local Incoming = {}
 function Incoming.new(api)
   local self, consumers, trigger = {}, {}, nil
+  local ordered={}
+  local function order()
+    ordered={}
+    for name,consumer in pairs(consumers) do ordered[#ordered+1]={name=name,consumer=consumer} end
+    table.sort(ordered,function(a,b) return a.consumer.priority<b.consumer.priority end)
+  end
   function self.remove(owner)
-    consumers[owner]=nil
+    consumers[owner]=nil; order()
     if not next(consumers) and trigger then api.killTrigger(trigger); trigger=nil end
   end
   function self.add(owner, priority, receive, failed, processed)
     consumers[owner]={priority=priority,receive=receive,failed=failed,processed=processed}
+    order()
     if trigger then return end
     local ok,err=pcall(function()
       trigger=assert(api.tempRegexTrigger([[^.*$]],function()
         local text=api.line
-        local ordered={}
-        for name,consumer in pairs(consumers) do ordered[#ordered+1]={name=name,consumer=consumer} end
-        table.sort(ordered,function(a,b) return a.consumer.priority<b.consumer.priority end)
+        local ordered=ordered -- Stable iteration if a callback changes subscriptions.
+        local context={}
         local function completed(hidden,owner)
           for _,entry in ipairs(ordered) do
             local consumer=entry.consumer
@@ -27,7 +33,7 @@ function Incoming.new(api)
         for _,entry in ipairs(ordered) do
           local consumer=entry.consumer
           if consumers[entry.name]==consumer then
-            local worked,claimed,suppress,forward=pcall(consumer.receive,text)
+            local worked,claimed,suppress,forward=pcall(consumer.receive,text,context)
             if not worked then self.remove(entry.name); consumer.failed(claimed); completed(false,nil); return end
             if claimed then
               -- A machine-readable consumer can forward the same snapshot to the
@@ -36,7 +42,7 @@ function Incoming.new(api)
               completed(suppress==true,entry.name)
               local observer=forward and consumers[forward]
               if observer then
-                local observed,err=pcall(observer.receive,text)
+                local observed,err=pcall(observer.receive,text,context)
                 if not observed then self.remove(forward); observer.failed(err) end
               end
               return
@@ -49,7 +55,7 @@ function Incoming.new(api)
     if not ok then consumers[owner]=nil; error(err,0) end
   end
   function self.destroy()
-    consumers={}
+    consumers={}; ordered={}
     if trigger then api.killTrigger(trigger); trigger=nil end
   end
   return self

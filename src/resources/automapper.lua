@@ -210,6 +210,13 @@ function Mapper.new(api, preferences)
       or api.getRoomIDbyHash("aardwolf-map:vnum:" .. num) ~= -1
   end
 
+  local function recordPlacement(id, area, x, y, z)
+    for key, value in pairs({area = area, x = x, y = y, z = z}) do
+      required(api.setRoomUserData(id, KEY .. "layout-" .. key, tostring(value)),
+        "Cannot record room placement ownership")
+    end
+  end
+
   local function createRoom(room, area, x, y, z, placeholder)
     local id = api.createRoomID()
     if not integer(id, 1, 2147483647) or api.getRoomName(id) ~= nil
@@ -222,6 +229,7 @@ function Mapper.new(api, preferences)
     required(api.setRoomArea(id, area), "Cannot assign room area")
     required(api.setRoomName(id, placeholder and "" or room.name), "Cannot name room")
     required(api.setRoomCoordinates(id, x, y, z), "Cannot place room")
+    recordPlacement(id, area, x, y, z)
     if placeholder then
       local fields = {discovery = "unexplored", ["provisional-area"] = area,
         ["provisional-x"] = x, ["provisional-y"] = y, ["provisional-z"] = z,
@@ -306,6 +314,62 @@ function Mapper.new(api, preferences)
     if enabled then self.stubs = self.stubs + 1 end
   end
 
+  local function alignDestination(room, from, to, direction)
+    if room.continent ~= nil or from == to or direction[5] ~= 0 then return end
+    local area = api.getRoomArea(from)
+    if api.getRoomArea(to) ~= area then return end
+    local x, y, z = api.getRoomCoordinates(to)
+    local sx, sy, sz = api.getRoomCoordinates(from)
+    if z ~= sz then return end -- Never repair a floor based on display adjacency.
+    local nx, ny = sx + 2 * direction[3], sy + 2 * direction[4]
+    local function aligned(ax, ay, az, bx, by, bz, d)
+      local dx, dy, dz = bx - ax, by - ay, bz - az
+      return (d[3] == 0 and dx == 0 or d[3] ~= 0 and dx * d[3] > 0)
+        and (d[4] == 0 and dy == 0 or d[4] ~= 0 and dy * d[4] > 0)
+        and (d[5] == 0 and dz == 0 or d[5] ~= 0 and dz * d[5] > 0)
+    end
+    if aligned(sx, sy, sz, x, y, z, direction) then return end
+    local prefix = api.getRoomUserData(to, KEY .. "layout-x") ~= ""
+      and api.getRoomUserData(to, KEY .. "layout-x") ~= nil and "layout-" or "provisional-"
+    for key, value in pairs({area = area, x = x, y = y, z = z}) do
+      if tonumber(api.getRoomUserData(to, KEY .. prefix .. key)) ~= value then return end
+    end
+    local occupied = api.getRoomsByPosition(area, nx, ny, z)
+    if type(occupied) ~= "table" then error("Cannot inspect aligned room position", 0) end
+    if next(occupied) then conflict("East/west/north/south alignment blocked for room " .. to); return end
+    -- Keep every currently aligned incident connection aligned. Checking incoming
+    -- edges too protects one-way and manual connections absent from our metadata.
+    local directions = {}
+    for _, d in ipairs(DIRECTIONS) do directions[d[2]] = d end
+    for source in pairs(api.getRooms()) do
+      for name, destination in pairs(api.getRoomExits(source) or {}) do
+        if source == to or destination == to then
+          local d = directions[name]
+          if not d then return end
+          local ax, ay, az = api.getRoomCoordinates(source)
+          local bx, by, bz = api.getRoomCoordinates(destination)
+          if not ax or not bx then return end
+          if aligned(ax, ay, az, bx, by, bz, d) then
+            if source == to then ax, ay = nx, ny end
+            if destination == to then bx, by = nx, ny end
+            if not aligned(ax, ay, az, bx, by, bz, d) then
+              conflict("Retained room " .. to .. "; alignment would break another exit")
+              return
+            end
+          end
+        end
+      end
+    end
+    required(api.setRoomCoordinates(to, nx, ny, z), "Cannot align owned room")
+    recordPlacement(to, area, nx, ny, z)
+    if api.getRoomUserData(to, KEY .. "discovery") == "unexplored" then
+      for key, value in pairs({x = nx, y = ny, z = z}) do
+        required(api.setRoomUserData(to, KEY .. "provisional-" .. key, tostring(value)),
+          "Cannot update provisional placement")
+      end
+    end
+  end
+
   local function discover(room, id, direction, target)
     local ok, to = pcall(resolve, target)
     if not ok or (not to and foreignRoom(target)) then
@@ -317,6 +381,7 @@ function Mapper.new(api, preferences)
         conflict("Incomplete destination " .. target .. "; inspect the map before retrying")
         return nil, false
       end
+      alignDestination(room, id, to, direction)
       return to, true
     end
     if not preferences("unexplored_rooms") then return nil, true end
@@ -424,6 +489,7 @@ function Mapper.new(api, preferences)
     if nx ~= x or ny ~= y or nz ~= z then
       required(api.setRoomCoordinates(id, nx, ny, nz), "Cannot confirm room coordinates")
     end
+    if ownPosition and ownArea then recordPlacement(id, targetArea, nx, ny, nz) end
     if api.getRoomChar(id) == "?" then required(api.setRoomChar(id, ""), "Cannot clear placeholder symbol") end
     local environment = saved("placeholder-env")
     if api.getRoomEnv(id) == environment then

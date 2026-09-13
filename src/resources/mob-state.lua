@@ -10,7 +10,7 @@ function State.name(text)
   while true do
     local flag,rest=name:match('^(%b())%s+(.+)$')
     if not flag then break end
-    if flag:lower()=='(player)' then return nil,'player' end
+    if flag:lower()=='(player)' or flag:lower()=='(p)' then return nil,'player' end
     flags[#flags+1]=flag; name=rest
   end
   if name=='' then return end
@@ -25,15 +25,54 @@ function State.new(clock)
     serial=serial+1
     return {id=serial,name=name,flags=flags or '',alive=1,killed=0,missing=0}
   end
-  local function living(name)
-    local result={}
-    for _,r in ipairs(self.rows) do if r.alive>0 and r.name:lower()==name then result[#result+1]=r end end
-    return result
+  local names, keywords = {}, {}
+  local function matches(name, keyword)
+    for wanted in keyword:gmatch('%S+') do
+      local found=false
+      for word in name:lower():gmatch('%S+') do
+        if word:sub(1,#wanted)==wanted then found=true; break end
+      end
+      if not found then return false end
+    end
+    return keyword~=''
+  end
+  local function reindex()
+    names={}; keywords={}
+    for _,r in ipairs(self.rows) do
+      if r.alive>0 then
+        local key=r.name:lower(); names[key]=names[key] or {}; table.insert(names[key],r)
+      end
+    end
+    for _,r in ipairs(self.rows) do
+      if r.alive>0 then
+        local key=r.name:match('%S+$'):lower()
+        if not keywords[key] then
+          keywords[key]={}
+          for _,other in ipairs(self.rows) do
+            if other.alive>0 and not other.unclassified and matches(other.name,key) then
+              table.insert(keywords[key],other)
+            end
+          end
+        end
+        for i,other in ipairs(keywords[key]) do if other==r then r.ordinal=i; break end end
+      end
+    end
+  end
+  local function living(name) return names[name] or {} end
+  function self.known(name) return names[name:lower()]~=nil end
+  function self.expiry(attackWindow)
+    local nextAt
+    for _,at in pairs(attacks) do
+      local ending=at+(self.combat and attackWindow or 2)
+      if ending>clock() and (not nextAt or ending<nextAt) then nextAt=ending end
+    end
+    if intent and intent.time+10>clock() then nextAt=math.min(nextAt or math.huge,intent.time+10) end
+    return nextAt
   end
   function self.clear(room)
     self.room=room; self.rows={}; self.fresh=false; self.updated=nil; self.target=nil; self.combat=false
     self.selected=nil; self.health=nil; attacks={}; intent=nil; targetId=nil; self.revision=self.revision+1
-    considerIntent=nil; considerCursor={}; playerLevel=nil
+    considerIntent=nil; considerCursor={}; playerLevel=nil; reindex()
   end
   function self.observe(entries)
     local nextRows,counts={},{}
@@ -46,8 +85,7 @@ function State.new(clock)
         local key=name:lower(); counts[key]=(counts[key] or 0)+n
       end
     end
-    -- Carry observations only across an unchanged same-name/flags population.
-    -- A changed count cannot establish which duplicate retained its rating.
+    -- Reuse observations only when the same name/flags population is unchanged.
     local oldGroups,newGroups={},{}
     for _,r in ipairs(self.rows) do
       if r.alive>0 then local key=identity(r); oldGroups[key]=oldGroups[key] or {}; table.insert(oldGroups[key],r) end
@@ -55,10 +93,16 @@ function State.new(clock)
     for _,r in ipairs(nextRows) do
       local key=identity(r); newGroups[key]=newGroups[key] or {}; table.insert(newGroups[key],r)
     end
-    for key,group in pairs(newGroups) do
-      local old=oldGroups[key]
-      if old and #old==#group then for i,r in ipairs(group) do r.consider=copy(old[i].consider) end end
+    local offsets={}
+    for i,r in ipairs(nextRows) do
+      local key=identity(r); local old=oldGroups[key]
+      offsets[key]=(offsets[key] or 0)+1
+      if old and #old==#newGroups[key] then nextRows[i]=old[offsets[key]] end
     end
+    local changed=false; local previous={}
+    for _,r in ipairs(self.rows) do if r.alive>0 then previous[#previous+1]=r end end
+    if #previous~=#nextRows then changed=true end
+    for i,r in ipairs(nextRows) do if not previous[i] or previous[i].id~=r.id then changed=true end end
     considerCursor={}; considerIntent=nil
     -- Keep confirmed kills and unmatched observations. A missing row is not a death.
     local history={}
@@ -70,7 +114,12 @@ function State.new(clock)
     end
     table.sort(history,function(a,b) return a.id>b.id end)
     for i=1,math.min(#history,512) do nextRows[#nextRows+1]=history[i] end
-    self.rows=nextRows; intent=nil; targetId=nil; self.selected=nil; self.fresh=true; self.updated=clock(); self.revision=self.revision+1
+    self.rows=nextRows
+    if changed then
+      intent=nil; targetId=nil; self.selected=nil; self.revision=self.revision+1
+    end
+    self.fresh=true; self.updated=clock(); reindex()
+    return changed
   end
   -- Outgoing kill targets are hints: GMCP must still confirm combat and name.
   function self.command(command)
@@ -91,8 +140,8 @@ function State.new(clock)
     local ordinal,keyword=target:match('^(%d+)%.(.+)$')
     ordinal=tonumber(ordinal) or 1; keyword=(keyword or target):lower()
     if keyword=='' or ordinal<1 or ordinal>512 then return end
-    local candidates=living(keyword)
-    if #candidates==0 then
+    local candidates={}
+    do
       for _,r in ipairs(self.rows) do
         local matches=true
         for wanted in keyword:gmatch('%S+') do
@@ -104,7 +153,7 @@ function State.new(clock)
       end
     end
     local row=candidates[ordinal]
-    if row then intent={id=row.id,name=row.name:lower(),time=clock()} end
+    if row then intent={id=row.id,name=row.name:lower(),time=clock()}; return true end
   end
   function self.clearConsider()
     for _,r in ipairs(self.rows) do r.consider=nil end
@@ -112,15 +161,16 @@ function State.new(clock)
   end
   function self.level(level)
     if type(level)~='number' or level~=level then return end
-    if playerLevel and playerLevel~=level then self.clearConsider() end
-    playerLevel=level
+    local changed=playerLevel~=nil and playerLevel~=level
+    if changed then self.clearConsider() end
+    playerLevel=level;return changed
   end
   function self.consider(rating)
     if not self.fresh or not self.room then return false end
     local name,flags=State.name(rating.name)
     if not name then return false end
     flags=rating.flags or flags
-    if flags:lower():find('(player)',1,true) then return false end
+    if flags:lower():find('(player)',1,true) or flags:lower():find('(p)',1,true) then return false end
     local candidates=living(name:lower()); local matching={}
     for _,r in ipairs(candidates) do
       if r.flags:lower()==flags:lower() then matching[#matching+1]=r end
@@ -154,6 +204,9 @@ function State.new(clock)
   end
   function self.enemy(name,combat,pct)
     if self.combat and combat~=true then intent=nil end
+    if not self.combat and combat==true then
+      for key,at in pairs(attacks) do if clock()-at>2 then attacks[key]=nil end end
+    end
     self.combat=combat==true; self.target=nil; self.health=nil
     if not self.combat then attacks={}; targetId=nil; return end
     name=State.name(name)
@@ -162,7 +215,7 @@ function State.new(clock)
       local found=living(self.target); local dead=false
       for _,r in ipairs(self.rows) do if r.name:lower()==self.target and r.killed>0 then dead=true end end
       if #found==0 and not dead and #self.rows<1024 then
-        local r=create(name); r.unclassified=true; self.rows[#self.rows+1]=r
+        local r=create(name); r.unclassified=true; self.rows[#self.rows+1]=r; reindex(); self.revision=self.revision+1
       end
       found=living(self.target)
       local chosen
@@ -177,8 +230,8 @@ function State.new(clock)
   end
   function self.attack(name)
     name=State.name(name); local key=name and name:lower()
-    if not self.combat or not key or #living(key)==0 then return false end
-    attacks[key]=clock(); return true
+    if not key or #living(key)==0 then return false end
+    attacks[key]=clock(); return self.combat
   end
   function self.kill(name)
     name=State.name(name); local key=name and name:lower(); local candidates=key and living(key) or {}
@@ -191,6 +244,7 @@ function State.new(clock)
     attacks[key]=nil
     for _,candidate in ipairs(candidates) do if self.selected==candidate.id then self.selected=nil end end
     if r.id==targetId then targetId=nil; self.target=nil; self.health=nil end
+    reindex(); self.revision=self.revision+1
     return true
   end
   function self.select(id,revision)
@@ -202,7 +256,7 @@ function State.new(clock)
   end
   function self.snapshot(attackWindow)
     local result={room=self.room,fresh=self.fresh,updated=self.updated,revision=self.revision,rows={},combat=self.combat}
-    local counts,ordinals,likelyAttackers={},{},{}
+    local counts,likelyAttackers={},{}
     for _,r in ipairs(self.rows) do
       if r.alive>0 then
         local key=r.name:lower(); counts[key]=(counts[key] or 0)+1
@@ -212,7 +266,8 @@ function State.new(clock)
     end
     for _,stored in ipairs(self.rows) do
       local r=copy(stored); local key=r.name:lower(); local count=counts[key] or 0
-      if r.alive>0 then ordinals[key]=(ordinals[key] or 0)+1; r.ordinal=ordinals[key]; r.duplicates=count end
+      if r.alive>0 then r.duplicates=count end
+      r.requested=intent~=nil and intent.id==r.id and clock()-intent.time<10
       local target=self.combat and key==self.target and r.alive>0
       local attacking=self.combat and r.alive>0 and attacks[key]~=nil and clock()-attacks[key]<attackWindow
       r.target=target and r.id==targetId; r.possibleTarget=false

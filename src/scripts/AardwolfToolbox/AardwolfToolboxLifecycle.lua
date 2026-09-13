@@ -174,12 +174,13 @@ local function initialize()
     AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries,resource("ability-capture"),resource("ability-model"),AardwolfToolbox.spellup)
   config.registerFeature(AbilityFields.definition(AardwolfToolbox.abilities.configure))
   local Mobs=resource("mobs")
+  local MobActions=resource("mob-actions")
   AardwolfToolbox.mobs=Mobs.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,
     AardwolfToolbox.queries,AardwolfToolbox.spellup,resource("mob-state"),resource("mob-protocol"),resource("mob-pane"),
     AardwolfToolbox.ui,AardwolfToolbox.borders,function()
       AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("mobs")
-    end,AardwolfToolbox.consider)
-  config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure))
+    end,AardwolfToolbox.consider,MobActions,config)
+  config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure,MobActions))
 
   local Shortcuts=resource("shortcuts")
   local Actions=resource("action-bar")
@@ -187,7 +188,7 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened end,AardwolfToolbox.abilities)
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) end,AardwolfToolbox.abilities)
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))

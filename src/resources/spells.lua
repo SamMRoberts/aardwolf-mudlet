@@ -109,7 +109,7 @@ function Spells.new(api,cache,incoming,tags,store,queries)
       if not base or not base.name then return end
       store.select(base.name)
     end
-    if queries and not queries.acquire(OWNER) then return end
+    if queries and not queries.acquire(OWNER,40,ready) then return end
     request=REQUESTS[syncIndex]
     self.last="Synchronizing "..request.kind
     armTimeout()
@@ -192,7 +192,7 @@ function Spells.new(api,cache,incoming,tags,store,queries)
         local f=frame; frame=nil
         commit(f)
         if f.expected then
-          cancel(true); syncIndex=syncIndex+1
+          cancel(true); if queries then queries.release(OWNER) end; syncIndex=syncIndex+1
           if syncIndex>#REQUESTS then
             if queries then queries.release(OWNER) end
             syncIndex=nil; fresh=true; self.last="Tracking spells and recoveries"; emit("synced")

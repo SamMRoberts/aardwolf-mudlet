@@ -14,7 +14,22 @@ end
 local SKILLS={assault={command='assault',targeting='single'},scalp={command='scalp',targeting='single'},
   sap={command='sap',targeting='single'},kick={command='kick',targeting='single'},trip={command='trip',targeting='single'},
   stun={command='stun',targeting='single'},hammerswing={command='hammerswing',targeting='area'},bash={command='bash',targeting='single'},uppercut={command='uppercut',targeting='single'},
-  headbutt={command='headbutt',targeting='single'},gouge={command='gouge',targeting='single'}}
+  headbutt={command='headbutt',targeting='single'},gouge={command='gouge',targeting='single'},
+  stomp={id=452,command='stomp',targeting='single'}}
+local function withCommand(row)
+  if not row then return nil end
+  row=copy(row)
+  if row.kind=='spell' and row.targeting~='special' and row.targeting~='unknown' then
+    row.command='cast '..row.id
+  elseif row.kind=='skill' then
+    local known=SKILLS[row.name:lower()]
+    if known and (not known.id or row.id==known.id) then
+      row.command=known.command
+      if row.targeting~='area' then row.targeting=known.targeting end
+    end
+  end
+  return row
+end
 function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Model,spellup)
   local self={enabled=false,last='Disabled'}
   local options={automatic_refresh=true,corrections={}}
@@ -59,14 +74,14 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   local function rows(corrections)
     local result={}
     for _,r in ipairs(store.rows('abilities')) do
-      result[#result+1]=Model.correct(r,corrections or options.corrections,store.character())
+      result[#result+1]=Model.correct(withCommand(r),corrections or options.corrections,store.character())
     end
     return result
   end
   function self.get(id)
     id=tonumber(id); if not id or id%1~=0 or id<1 or id>2147483647 then return nil end
     local r=store.get('abilities',id)
-    return r and Model.correct(r,options.corrections,store.character()) or nil
+    return r and Model.correct(withCommand(r),options.corrections,store.character()) or nil
   end
   function self.list(filter,corrections)
     local result={}
@@ -89,7 +104,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     local candidates
     if button.ability_mode=='specific' then
       local r=store.get('abilities',tonumber(button.ability_id) or 0)
-      candidates=r and {Model.correct(r,corrections or options.corrections,store.character())} or {}
+      candidates=r and {Model.correct(withCommand(r),corrections or options.corrections,store.character())} or {}
     else candidates=rows(corrections) end
     return Model.resolve(candidates,button,level)
   end
@@ -158,25 +173,21 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local n=0
       for _,r in pairs(staged) do
         if #r.memberships==0 then membership(r,'unknown','unknown') end
-        if r.kind=='spell' and r.targeting~='special' and r.targeting~='unknown' then r.command='cast '..r.id
-        elseif r.kind=='skill' and SKILLS[r.name:lower()] then
-          local known=SKILLS[r.name:lower()]; r.command=known.command
-          if r.targeting~='area' then r.targeting=known.targeting end
-        end
+        staged[r.id]=withCommand(r)
         if r.learned and r.available then n=n+1 end
       end
       local at=api.getEpoch()
       store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=tonumber(cache.get('char.base.level')),updated=at,count=n,fingerprint=stamp}}})
       cancel(); count=n; updated=at; fresh=true; self.last='Ready · '..n..' available learned abilities'; notify()
       if dirty then dirty=false; self.refresh() end
-    else schedule() end
+    else queries.release(OWNER); schedule() end
   end
   drive=function()
     if not pending and not queue or request then return end
     if not ready() then self.last='Refresh paused; waiting for standing, command-ready character'; return end
     local b=cache.get('char.base')
     if not b or type(b.name)~='string' or not tonumber(b.level) then return end
-    if not queries.acquire(OWNER) then self.last='Waiting for spell tracker synchronization'; return end
+    if not queries.acquire(OWNER,40,ready) then self.last='Waiting for spell tracker synchronization'; return end
     if not queue then
       store.select(b.name); identity=b.name:lower(); stamp=fingerprint(b); staged={}; pending=false; fresh=false
       queue={{kind='learned',command='slist learned noprompt'}}; index=1

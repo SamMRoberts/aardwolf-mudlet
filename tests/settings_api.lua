@@ -103,4 +103,4 @@ function getCmdLineStyleSheet() return commandStyle end
 function setCmdLineStyleSheet(text) commandStyle=text end
 function getEpoch() return 1000 end
 
-function raiseEvent(event,...) fire(event,...) end
+function raiseEvent(event,...) if fire then fire(event,...) end end

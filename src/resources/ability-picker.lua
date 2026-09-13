@@ -41,19 +41,26 @@ function Picker.render(abilities,record,corrections,view,controls)
     local text=r.name..' (#'..r.id..') · Lv '..tostring(r.level or '?')..' · '..
       (r.cost~=nil and tostring(r.cost)..' '..(r.resource or 'unknown resource') or 'cost unknown')..
       (r.passive and ' · passive' or '')..(r.corrected and ' · local type' or '')
-    controls.button(text,function()
+    if record.ability_mode=='highest' then
+      -- These are candidates, not a request to replace automatic selection with
+      -- a fixed ability. The resolved choice is shown in the preview below.
+      controls.text(text)
+    else controls.button(text,function()
       change(function()
         if r.passive then controls.feedback('Passive abilities cannot be used as buttons'); return end
         if not r.command then controls.feedback('No verified skill command. Use a regular command / alias button.'); return end
         record.ability_mode='specific'; record.ability_id=r.id
         if record.label=='New button' or record.label=='' then record.label=r.name end
       end)
-    end)
+    end) end
   end
   if view.page>1 then controls.button('Previous abilities',function() change(function() view.page=view.page-1 end) end) end
   if view.page<pages then controls.button('Next abilities',function() change(function() view.page=view.page+1 end) end) end
   controls.field({key='arguments',label='Optional target / arguments',type='text'},record)
   local command,selected=abilities.preview(record,corrections)
+  if record.ability_mode=='highest' and command and type(selected)=='table' then
+    controls.text('Automatic choice: '..selected.name..' (#'..selected.id..') · Lv '..selected.level)
+  end
   controls.text(command and ('Command preview: '..command) or ('Unavailable: '..tostring(selected)))
   controls.button('Update preview',function() change(function() end) end)
   if record.ability_id and record.ability_id>0 then

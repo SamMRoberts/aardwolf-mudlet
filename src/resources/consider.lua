@@ -51,8 +51,14 @@ function Consider.parse(text)
   end
 end
 
+function Consider.parseLine(text,context)
+  if not context then return Consider.parse(text) end
+  if context.consider==nil then context.consider=Consider.parse(text) or false end
+  return context.consider or nil
+end
+
 function Consider.new(api, incoming)
-  local self = {enabled=false, last="Disabled", parse=Consider.parse}
+  local self = {enabled=false, last="Disabled", parse=Consider.parse, parseLine=Consider.parseLine}
   local options = {enabled=true, colors=true}
   function self.stop()
     incoming.remove(OWNER)
@@ -63,9 +69,9 @@ function Consider.new(api, incoming)
     self.stop(); self.last="Stopped: "..tostring(err)
     api.echo("Aardwolf consider: "..self.last.."; original consider output is enabled.\n")
   end
-  local function receive(text)
+  local function receive(text,context)
     if not self.enabled or type(text)~="string" then return end
-    local rating=Consider.parse(text)
+    local rating=Consider.parseLine(text,context)
     if rating then
       local mob=rating.flags~="" and rating.flags.." | "..rating.name or rating.name
       local replacement=mob.." | "..rating.label.." | "..rating.range

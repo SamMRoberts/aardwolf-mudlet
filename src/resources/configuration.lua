@@ -126,6 +126,8 @@ function Config.new(api)
       assert(type(setting.label) == "string" and #setting.label > 0, "Setting label required")
       assert(setting.description == nil or type(setting.description) == "string", "Invalid description")
       assert(setting.type == "boolean" or setting.type == "text" or setting.type == "number" or setting.type == "choice" or setting.type == "records", "Unsupported setting type")
+      assert(setting.preview==nil or setting.type=='text' and type(setting.preview)=='function','Invalid preview callback')
+      assert(setting.addLabel==nil or type(setting.addLabel)=='string','Invalid Add label')
       assert(setting.min == nil or finite(setting.min), "Invalid minimum")
       assert(setting.max == nil or finite(setting.max), "Invalid maximum")
       assert(not (setting.min and setting.max) or setting.min <= setting.max, "Invalid numeric range")
@@ -139,6 +141,7 @@ function Config.new(api)
           assert(identifier(field.key) and not fields[field.key] and type(field.label)=="string","Invalid record field")
           fields[field.key]=true
           assert(field.type=="text" or field.type=="number" or field.type=="boolean" or field.type=="choice","Invalid record field type")
+          assert(field.preview==nil or field.type=='text' and type(field.preview)=='function','Invalid field preview callback')
           assert(valid(field,field.default),"Invalid record field default")
         end
       end
@@ -157,6 +160,28 @@ function Config.new(api)
       assert(type(key) == "number" and key >= 1 and key <= #definition.settings and key % 1 == 0, "Settings must be an ordered list")
     end
     assert(definition.validate==nil or type(definition.validate)=="function","Invalid feature validator")
+    for _,setting in ipairs(definition.settings) do
+      if setting.recordSource then
+        assert(setting.type=='text' and identifier(setting.recordSource),'Invalid record reference')
+        local source
+        for _,candidate in ipairs(definition.settings) do if candidate.key==setting.recordSource then source=candidate end end
+        assert(source and source.type=='records','Record reference requires an ordered-record source')
+        local labeled=false
+        for _,field in ipairs(source.fields) do if field.key=='label' and field.type=='text' then labeled=true end end
+        assert(labeled,'Record reference source requires text labels')
+        assert(setting.options==nil or type(setting.options)=='table','Invalid reference options')
+        local seen={};local defaultFound=false
+        for _,record in ipairs(source.default) do if record.id==setting.default then defaultFound=true end end
+        for _,option in ipairs(setting.options or {}) do
+          assert(type(option.value)=='string' and type(option.label)=='string' and not seen[option.value],'Invalid reference option')
+          -- Reserved choices cannot collide with stable record IDs.
+          assert(not identifier(option.value),'Reference options must use non-record identifiers')
+          seen[option.value]=true
+          if option.value==setting.default then defaultFound=true end
+        end
+        assert(defaultFound,'Invalid default record reference')
+      end
+    end
     local feature = copy(definition)
     -- Additive record migrations run only for older settings and never overwrite
     -- saved values or unknown fields. The original bytes are backed up on write.
@@ -183,6 +208,20 @@ function Config.new(api)
     end
     self.revision = self.revision + 1
     if self.active then notify(feature.id) end
+  end
+
+  function self.recordOptions(id,key,fields)
+    local feature=assert(self.features[id],'Unknown feature')
+    for _,setting in ipairs(feature.settings) do
+      if setting.key==key and setting.recordSource then
+        local result=copy(setting.options or {})
+        for _,record in ipairs(fields[setting.recordSource] or {}) do
+          result[#result+1]={value=record.id,label=record.label..(record.enabled==false and ' (disabled)' or '')}
+        end
+        return result
+      end
+    end
+    error('Unknown record reference')
   end
 
   function self.get(id, key)
@@ -261,6 +300,15 @@ function Config.new(api)
       end
     end
     for _,id in ipairs(self.order) do
+      for _,setting in ipairs(self.features[id].settings) do
+        if setting.recordSource then
+          local found=false
+          for _,option in ipairs(self.recordOptions(id,setting.key,draft[id])) do
+            if option.value==draft[id][setting.key] then found=true end
+          end
+          if not found then return nil,'Choose an available '..setting.label..'; the referenced action may have been deleted.' end
+        end
+      end
       local validate=self.features[id].validate
       if validate then
         local ok,valid,message=pcall(validate,copy(draft[id]))
@@ -275,6 +323,7 @@ function Config.new(api)
       if changed[id] or self.runtimeErrors[id] then notify(id) end
       if self.runtimeErrors[id] then errors[#errors + 1] = self.features[id].label .. ": " .. self.runtimeErrors[id] end
     end
+    if api.raiseEvent then api.raiseEvent('AardwolfToolbox.settings.changed',self.revision) end
     return true, #errors > 0 and ("Saved; activation needs attention: " .. table.concat(errors, "; ")) or "Settings saved and applied."
   end
 

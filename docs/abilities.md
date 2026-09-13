@@ -10,6 +10,11 @@ learned and can currently access, breaking ties by the lowest ability number.
 Required level is a progression rule, not a claim about damage or effectiveness.
 A single-target selection cannot turn into an area attack.
 
+In **Highest level of this type** mode, the results are a read-only candidate
+list; the preview identifies the automatic choice. Switch to **Specific ability**
+to pick a fixed row. Clicking a candidate no longer changes automatic selection
+to a fixed ability.
+
 The picker shows the exact command preview. Optional target/arguments are sent as
 one literal line. Buttons and shortcuts remain manual; refreshing, learning, or
 editing never executes an ability. Passive abilities, forgotten abilities,
@@ -18,10 +23,18 @@ by automatic selection. Stale data blocks activation until refreshed.
 
 Spells with supported targeting use `cast <number> [arguments]`. Verified skill
 commands currently cover Bash, Kick, Trip, Stun, Sap, Scalp, Assault, Uppercut,
-Headbutt, Gouge, and Hammerswing. Hammerswing remains an area action. Other skills
+Headbutt, Gouge, Stomp (#452), and Hammerswing. Hammerswing remains an area action. Other skills
 and spells with special/extended syntax remain searchable; use a regular command
 or alias button for their commands. No spell commands are inferred from skill
 names.
+
+Version **0.21.1** adds verified `stomp [target]` command metadata for skill #452.
+Previously saved catalogs receive the command mapping when read, so an existing
+row does not require another catalog collection just to repair its preview.
+Fresh collection also saves this mapping. Execution still requires fresh session
+eligibility; offline browsing does not make stale abilities executable. Stomp's
+level, learned status, Bash membership, and unknown cost remain server facts,
+not values inferred from the command mapping.
 
 ## Catalog and corrections
 
@@ -109,7 +122,8 @@ without loading the full static catalog.
   [Assault](https://www.aardwolf.com/wiki/index.php/Help/Assault),
   [Uppercut](https://aardwolf.com/wiki/index.php/Help/Uppercut),
   [Headbutt](https://aardwolf.com/wiki/index.php/Help/Headbutt),
-  [Gouge](https://www.aardwolf.com/wiki/index.php/Help/Gouge), and
+  [Gouge](https://www.aardwolf.com/wiki/index.php/Help/Gouge),
+  [Stomp](https://aardwolf.com/wiki/index.php/Help/Stomp), and
   [Hammerswing](https://www.aardwolf.com/wiki/index.php/Help/Hammerswing).
 
 Listing fixtures were captured with informational queries on September 11, 2026.

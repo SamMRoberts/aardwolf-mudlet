@@ -39,20 +39,19 @@ function Protocol.scan()
   return self
 end
 function Protocol.combat(text,rows)
-  -- Require a known name at the beginning; prose/chat containing a name does not qualify.
+  -- Reject ordinary output before any roster lookup. The callback is an indexed
+  -- membership check; the table form remains available to existing consumers.
   local lower=text:lower()
-  for _,r in ipairs(rows) do
-    local name=r.name:lower()
-    if lower==name..' is dead!!' then return 'kill',r.name end
-    if lower:sub(1,#name+3)==name.."'s " then
-      local rest=lower:sub(#name+4)
-      local attack,ending=rest:match('^(.-) you([!.].*)$')
-      if attack and ending and not attack:find('[\'\"]') then
-        for word in attack:gmatch('%a+') do
-          if verbs[word] then return 'attack',r.name end
-        end
-      end
-    end
+  local function known(name)
+    if type(rows)=='function' then return rows(name) end
+    for _,r in ipairs(rows or {}) do if r.name:lower()==name then return true end end
+    return false
   end
+  local dead=lower:match('^(.+) is dead!!$')
+  if dead and known(dead) then return 'kill',dead end
+  if not lower:find(' you',1,true) then return end
+  local name,attack=lower:match("^(.+)'s (.-) you[!.]")
+  if not name or not known(name) or attack:find('[\'\"]') then return end
+  for word in attack:gmatch('%a+') do if verbs[word] then return 'attack',name end end
 end
 return Protocol
