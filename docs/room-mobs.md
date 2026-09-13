@@ -246,3 +246,12 @@ player profile. The fixture does not evaluate configured aliases.
    up on close, settings, disable, recompile, and uninstall/reinstall.
 6. End with `NativeMobs021.finish()`. Any later live installation needs separate
    authorization and profile/map backup. Live command execution remains manual.
+
+
+## Optional observed kill history
+
+**aardwolf-config → Local history → Record observed kill history** stores explicit
+known-mob death observations per character, off by default. Browse **Tools → Open
+history → Kills** for names and observed locations. This reuses the room-mob death
+parser and does not add commands or infer deaths from disappearance. Kill credit
+is unknown; identical mob identity remains heuristic. See [history](history.md).

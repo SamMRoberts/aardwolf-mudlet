@@ -7,7 +7,7 @@ local function quote(value)
 end
 local function category(value)
   value=value or 'progression'
-  assert(value=='progression' or value=='quests','Invalid history category')
+  assert(value=='progression' or value=='quests' or value=='kills','Invalid history category')
   return value
 end
 function Store.new(api)
@@ -122,7 +122,13 @@ function Store.new(api)
         local entry=api.yajl.to_value(row.data)
         assert(type(entry)=='table' and type(entry.observed)=='number'
           and entry.observed>=0 and entry.observed%1==0,'Invalid saved history record')
-        if kind=='quests' then
+        if kind=='kills' then
+          local function text(v) return type(v)=='string' and #v<=512 and not v:find('[%z\1-\31\127]') end
+          assert(entry.kind=='mob_death' and entry.source=='room-mobs' and text(entry.name) and entry.name~=''
+            and text(entry.flags) and type(entry.uncertain)=='boolean' and type(entry.room)=='table','Invalid saved kill observation')
+          assert(type(entry.room.num)=='number' and entry.room.num>=1 and entry.room.num<=2147483647 and entry.room.num%1==0,'Invalid saved kill room')
+          for _,field in ipairs({'name','area'}) do assert(entry.room[field]==nil or text(entry.room[field]),'Invalid saved kill location') end
+        elseif kind=='quests' then
           assert(entry.kind=='quest_reward' and type(entry.rewards)=='table' and type(entry.quest)=='table','Invalid saved quest history record')
           local allowed={qp=true,tierqp=true,pracs=true,hardcore=true,opk=true,trains=true,tp=true,lucky=true,double=true,daily=true,totqp=true,gold=true}
           for key,value in pairs(entry.rewards) do

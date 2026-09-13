@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.24.0-dev.14 — optional observed kill history
+
+- Add an opt-in Kills category to Local history, using explicit death transitions
+  from the shared room-mob parser. Record literal names, flags, observed locations
+  and duplicate uncertainty without claiming player kill credit or rewards.
+- Deliver death events after line capture; discard deferred events after movement
+  or reset. No second trigger, raw output logging or gameplay commands.
+- Reuse schema-2 bounded SQLite storage, character/category paging, checked JSON
+  exports, clear confirmation, shared typography and external view placement.
+- Native control and installation await approval. Chat history and remaining
+  roadmap acceptance work are still pending.
+
 ## 0.24.0-dev.13 — optional quest reward history
 
 - Add separately opt-in quest completion observations using documented GMCP

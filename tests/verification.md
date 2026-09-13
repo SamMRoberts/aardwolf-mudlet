@@ -1,3 +1,41 @@
+# 0.24.0-dev.14 observed kill history candidate — 2026-09-13
+
+- **410 tests passed** after the pinned Muddler build. Nine new tests cover kill
+  recording opt-in, fresh character identity, duplicate rows, bounded event
+  validation, reset/stale callbacks, storage failures, category retention/export/
+  clear, literal UI names, corruption handling, deferred notifications and
+  shared-dispatcher ownership. Existing lifecycle/performance tests remain intact.
+- Archive CRC, XML and source consistency passed. The read-only package inspector
+  reports 59 entries and no diagnostics; config.lua was not executed. Updated
+  native history fixture passes Lua 5.1 syntax checks.
+- Package SHA256: `181e0f3637687207b1b060b55d1f10b7a1e11887d42f5c491f347e95cad8bcd1`.
+- Existing ordinary-line benchmark: 10/50/200/512 mobs took 0.87/0.95/0.81/0.86 ms
+  on the indexed path (97.5/99.4/99.9/99.9% below the snapshot baseline). These
+  are Lua contract timings, not native rendering or live network latency.
+- Death syntax reuses the existing known-name `is DEAD!!` parser. New tests use
+  synthetic lines/service events, not newly observed player-profile captures.
+  Explicit death observations do not establish player kill credit.
+- No Mudlet control, installation, profile writes, map changes or gameplay
+  commands were performed in this implementation turn. The offline profile
+  retains dev.13. Native tests require renewed user approval and a profile,
+  package, settings, database and native-map backup first.
+- Authorized next acceptance checklist, **disconnected test profile only**:
+  1. Install the candidate and start `tests/native_foundation.lua` interception.
+  2. Run `tests/native_history.lua`. It creates 30 progression observations,
+     one quest reward and one synthetic death-service event for a unique character.
+  3. Check the Kills tab, literal name, observed location, unknown-credit and
+     uncertain-duplicate tooltip; switch categories and resize/scroll.
+  4. Export/clear only Kills; confirm progression and quest rewards remain intact.
+     Verify close/reopen, float/return, Apply/Cancel and startup/teardown cleanup.
+  5. Restore the history fixture before foundation interceptors; recording and
+     placement preferences must match the backup. Verify native map preservation.
+- This fixture does not prove native death parsing. Full trigger-engine replay,
+  native menu/mouse behavior and live death ordering remain unverified. Never
+  replay it in the player profile or test attacks automatically. Chat history and
+  the broader 1.0 acceptance gates remain unfinished.
+
+---
+
 # 0.24.0-dev.13 quest reward history candidate — 2026-09-13
 
 - **401 tests passed**, including seven new history tests covering independent

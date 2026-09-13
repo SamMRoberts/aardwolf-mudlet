@@ -1,13 +1,14 @@
--- Observe fresh progression and quest rewards; no queries, gameplay commands or inferred gains.
+-- Observe fresh progression, quest rewards and explicit deaths; no queries, gameplay commands or inferred gains.
 local History={}
 local OWNER='AardwolfToolbox.history'
 local FIELDS={'level','tier','remorts','redos','pups','totpups'}
 local function copy(value) local result={};for k,v in pairs(value) do result[k]=type(v)=='table' and copy(v) or v end;return result end
 local function number(value) return type(value)=='number' and value>=0 and value<=2147483647 and value%1==0 end
 function History.definition(apply)
-  return {id='history',label='Local history',description='Optional per-character progression and quest rewards stored only on this computer. Kill and chat history are not recorded. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
+  return {id='history',label='Local history',description='Optional per-character progression, quest rewards and explicit deaths stored only on this computer. Chat history is not recorded. Death observations do not prove player kill credit. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
     {key='progression',type='boolean',default=false,label='Record progression history'},
     {key='quests',type='boolean',default=false,label='Record quest reward history'},
+    {key='kills',type='boolean',default=false,label='Record observed kill history',description='Requires Room mobs and a known current-room mob. Records explicit deaths only, without attributing the kill to you.'},
     {key='days',type='number',integer=true,min=1,max=3650,default=30,label='Retain days'},
     {key='max_entries',type='number',integer=true,min=100,max=10000,default=1000,label='Maximum stored observations'},
     {key='max_kib',type='number',integer=true,min=64,max=16384,default=2048,label='Maximum retained text (KiB)'},
@@ -19,10 +20,12 @@ function History.new(api,cache,store,quest)
   local known,previous,character,statusLevel={},nil,nil,false
   local handlers,epoch={},0
   local paused=false
-  local options={progression=false,quests=false}
+  local options={progression=false,quests=false,kills=false}
+  local deaths,deathOrder={},{}
   local function updated() self.revision=self.revision+1;api.raiseEvent('AardwolfToolbox.history.updated') end
   local function reset()
     known,previous,character,statusLevel={},nil,nil,false
+    deaths,deathOrder={},{}
     if quest then quest.reset() end
     if not paused then self.last=self.enabled and 'Waiting for fresh character data' or 'Recording off' end;updated()
   end
@@ -34,6 +37,21 @@ function History.new(api,cache,store,quest)
       paused=true;self.last='History recording paused: '..tostring(why);api.echo('Aardwolf '..self.last..'\n');updated();return false
     end
     self.last='Recording observed history';updated();return true
+  end
+  local function death(value)
+    if not self.enabled or paused or not options.kills or not cache.enabled or not character or type(value)~='table' then return end
+    local function text(v) return type(v)=='string' and #v<=512 and not v:find('[%z\1-\31\127]') end
+    if value.source~='room-mobs' or not text(value.name) or value.name=='' or not text(value.flags)
+        or type(value.uncertain)~='boolean' or type(value.room)~='table' or not number(value.room.num) or value.room.num<1 then return end
+    for _,key in ipairs({'session','visit','rowId'}) do if not number(value[key]) or value[key]<1 then return end end
+    local key=value.session..':'..value.visit..':'..value.rowId
+    if deaths[key] then return end
+    local entry={kind='mob_death',name=value.name,flags=value.flags,uncertain=value.uncertain,
+      source='room-mobs',room={num=value.room.num}}
+    for _,field in ipairs({'name','area'}) do if text(value.room[field]) then entry.room[field]=value.room[field] end end
+    deaths[key]=true;deathOrder[#deathOrder+1]=key
+    if #deathOrder>512 then deaths[table.remove(deathOrder,1)]=nil end
+    save(entry,'kills')
   end
   local function record(path)
     if not self.enabled or paused or not cache.enabled then return end
@@ -52,7 +70,7 @@ function History.new(api,cache,store,quest)
     end
     if type(base)=='table' and type(base.name)=='string' and base.name~='' and #base.name<=128 and not base.name:find('[%z\1-\31\127]') then
       local identity=store.identity(base.name)
-      if character and character~=identity then known,previous,statusLevel={},nil,false;if quest then quest.reset() end end
+      if character and character~=identity then known,previous,statusLevel={},nil,false;deaths,deathOrder={},{};if quest then quest.reset() end end
       character=identity
     end
     if type(base)=='table' then for _,key in ipairs(FIELDS) do
@@ -60,7 +78,7 @@ function History.new(api,cache,store,quest)
     end end
     if type(status)=='table' and number(status.level) then known.level=status.level;statusLevel=true end
     if not options.progression then
-      if character and self.last=='Waiting for fresh character data' then self.last='Waiting for fresh quest completion';updated() end
+      if character and self.last=='Waiting for fresh character data' then self.last='Waiting for fresh history observations';updated() end
       return
     end
     if not character or not next(known) then return end
@@ -72,7 +90,7 @@ function History.new(api,cache,store,quest)
     local entry={observed=math.floor(api.getEpoch()),kind=previous and 'change' or 'snapshot',values=copy(known),changes=changes}
     if save(entry,'progression') then previous=copy(known) end
   end
-  function self.status() return {enabled=self.enabled,progression=options.progression,quests=options.quests,paused=paused,last=self.last,revision=self.revision} end
+  function self.status() return {enabled=self.enabled,progression=options.progression,quests=options.quests,kills=options.kills,paused=paused,last=self.last,revision=self.revision} end
   function self.list(character,page,category)
     local result,why=store.read(character,page,false,category)
     if not result then self.last='History unavailable: '..tostring(why);return nil,self.last end
@@ -115,17 +133,17 @@ function History.new(api,cache,store,quest)
   self.destroy=self.stop
   function self.configure(values)
     store.configure(values)
-    local changed=options.progression~=values.progression or options.quests~=(values.quests==true)
-    options={progression=values.progression==true,quests=values.quests==true}
-    if not options.progression and not options.quests then if self.enabled then self.stop() end;return true end
+    local changed=options.progression~=values.progression or options.quests~=(values.quests==true) or options.kills~=(values.kills==true)
+    options={progression=values.progression==true,quests=values.quests==true,kills=values.kills==true}
+    if not options.progression and not options.quests and not options.kills then if self.enabled then self.stop() end;return true end
     if self.enabled and not paused and not changed then return true end
     self.stop();self.enabled=true;local owned=epoch
     local ok,why=pcall(function()
-      for _,id in ipairs({'update','reset'}) do
+      for _,id in ipairs({'update','reset','death'}) do
         handlers[#handlers+1]=id
-        assert(api.registerNamedEventHandler(OWNER,id,id=='update' and 'AardwolfToolbox.gmcp.updated' or 'AardwolfToolbox.gmcp.cleared',function(_,path)
+        assert(api.registerNamedEventHandler(OWNER,id,id=='update' and 'AardwolfToolbox.gmcp.updated' or id=='death' and 'AardwolfToolbox.mobs.death' or 'AardwolfToolbox.gmcp.cleared',function(_,path)
           if not self.enabled or epoch~=owned then return end
-          if id=='reset' then reset() elseif path=='char' or path=='char.base' or path=='char.status' or path=='comm.quest' then record(path) end
+          if id=='reset' then reset() elseif id=='death' then death(path) elseif path=='char' or path=='char.base' or path=='char.status' or path=='comm.quest' then record(path) end
         end))
       end
     end)

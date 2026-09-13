@@ -1,7 +1,7 @@
 -- Paged on-demand disk reads; closed views do no history queries.
 local Pane={}
 local OWNER,VIEW='AardwolfToolbox.historyPane','history'
-local CATEGORIES={progression='Progression',quests='Quest rewards'}
+local CATEGORIES={progression='Progression',quests='Quest rewards',kills='Kills'}
 local REWARDS={{'totqp','Total QP'},{'gold','Gold'},{'pracs','Practices'},{'trains','Trains'},{'tp','TP'},{'qp','Base QP'},{'tierqp','Tier QP'},{'hardcore','Hardcore'},{'opk','OPK'},{'lucky','Lucky'},{'double','Double'},{'daily','Daily'}}
 local LABELS={level='Level',tier='Tier',remorts='Remorts',redos='Redos',pups='Powerups',totpups='Total powerups'}
 function Pane.new(api,ui,views,history,openSettings)
@@ -44,7 +44,13 @@ function Pane.new(api,ui,views,history,openSettings)
       local stamp=api.os.date('%Y-%m-%d %H:%M:%S',entry.observed)
       local text=stamp..' · '..(entry.kind=='snapshot' and 'Observed state' or 'Changed observation')
       local detail,tooltip='',''
-      if category=='quests' then
+      if category=='kills' then
+        text=stamp..' · Death observed'
+        summary=entry.name
+        detail=(entry.room.name or 'Room #'..entry.room.num)..' · '..(entry.room.area or 'Area unavailable')
+        tooltip='Room #'..entry.room.num..' · '..entry.flags..' · Kill credit unknown'
+          ..(entry.uncertain and ' · Duplicate identity uncertain' or ' · Identity is a local observation')
+      elseif category=='quests' then
         changes={}
         for _,field in ipairs(REWARDS) do
           if entry.rewards[field[1]]~=nil then changes[#changes+1]=field[2]..' '..tostring(entry.rewards[field[1]]) end
@@ -133,7 +139,7 @@ function Pane.new(api,ui,views,history,openSettings)
       content=api.Geyser.Container:new({name=OWNER..'.content',x=0,y=0,width='100%',height='100%'},home)
       toolbar=api.Geyser.ScrollBox:new({name=OWNER..'.toolbar',x=0,y=0,width='100%',height=64},content)
       local function button(id,text,fn) controls[#controls+1]={id=id,text=text,widget=label(id,toolbar,text,fn)} end
-      for _,id in ipairs({'progression','quests'}) do local value=id;button(value,CATEGORIES[value],function() choose(value);render(true) end) end
+      for _,id in ipairs({'progression','quests','kills'}) do local value=id;button(value,CATEGORIES[value],function() choose(value);render(true) end) end
       button('characterPrevious','‹ Character',function() character(-1) end)
       button('characterNext','Character ›',function() character(1) end)
       button('refresh','Refresh',function() render(true) end)

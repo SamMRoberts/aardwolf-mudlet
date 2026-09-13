@@ -213,6 +213,37 @@ class MobTests(unittest.TestCase):
           end
         ''')
 
+    def test_death_events_deferred_once_with_literal_identity(self):
+        self.service()
+        self.lua.execute("""
+          local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
+          room(12);pulse();cache.values['room.info']={num=12,name='Literal <room>',zone='academy'}
+          scan({'(Hidden) A bat','(Hidden) A bat'});local deferred={}
+          local context={defer=function(fn) deferred[#deferred+1]=fn end}
+          receive('A bat is DEAD!!',context);assert(#deaths==0 and #deferred==1)
+          deferred[1]();assert(#deaths==1 and deaths[1].name=='A bat' and deaths[1].flags=='(Hidden)')
+          assert(deaths[1].uncertain and deaths[1].room.name=='Literal <room>')
+          receive('A bat is DEAD!!',context);deferred[2]();assert(#deaths==2 and deaths[1].rowId~=deaths[2].rowId)
+          receive('A bat is DEAD!!',context);assert(#deferred==2)
+          deaths[1].name='changed';assert(m.snapshot().rows[1].name=='A bat')
+        """)
+
+    def test_death_events_reject_stale_room_unknown_and_enclosed_text(self):
+        self.service()
+        self.lua.execute("""
+          local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
+          room(12);pulse();scan({'A bat'});local notify
+          receive('A bat is DEAD!!',{defer=function(fn) notify=fn end})
+          room(13);notify();assert(#deaths==0)
+          pulse();scan({'A bat'});tags.isCapturing=function() return true end
+          receive('A bat is DEAD!!');assert(#deaths==0)
+          tags.isCapturing=function() return false end
+          receive('Unknown mob is DEAD!!');receive('A bat leaves east.');status({state=3,enemy=''})
+          assert(#deaths==0 and m.snapshot().rows[1].alive==1)
+          receive('A bat is DEAD!!',{defer=function(fn) notify=fn end})
+          m.stop();notify();assert(#deaths==0)
+        """)
+
     def test_owned_scan_refresh_and_disconnect_cleanup(self):
         self.service()
         self.lua.execute('''

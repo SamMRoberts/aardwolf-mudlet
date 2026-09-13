@@ -1,11 +1,11 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.13**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.14**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This quest-reward-history candidate is installed in the backed-up disconnected
-test profile, with native storage and history interaction checks completed.
+This observed-kill-history candidate is repository-tested only; native control
+and installation await approval. The disconnected profile retains dev.13.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -66,10 +66,11 @@ counts, including outgoing tells that identify the recipient.
 - Explicit item-ID Wear/Remove/Get/Put actions with previews, manual readiness,
   stale-selection rejection, bounded menus and no optimistic state mutation.
   Local comparisons show observed numeric values without inventing missing stats.
-- Separately opt-in progression and quest reward history with shared bounded
+- Separately opt-in progression, quest reward and observed kill history with shared bounded
   SQLite retention, category pages, export and clear. Schema-1 progression rows
   migrate transactionally with stable IDs. Quest records use reported completion
-  rewards only; no quest actions or balance-difference estimates.
+  rewards only; no quest actions or balance-difference estimates. Death records use
+  explicit known-mob messages, without claiming player kill credit.
 - Reproducible build/check entrypoint, pinned toolchain, archive/source checks,
   and a macOS CI workflow. CI execution itself remains unverified here.
 
@@ -144,8 +145,9 @@ migration, paging, scrolling, category export/clear and close/reopen passed in
 the disconnected profile. External mouse interaction and live rewards remain
 unverified; see [history](history.md) and [acceptance details](../tests/verification.md).
 
-Remaining history categories are explicit observed kills and chat,
-each separately opt-in. Keyboard improvements and larger-list virtualization
+Observed kill history is now implemented with explicit opt-in, bounded event
+deduplication and category browsing/export/clear. Native death-history acceptance
+remains pending. Chat history is the remaining category, also requiring explicit opt-in. Keyboard improvements and larger-list virtualization
 remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 
@@ -181,5 +183,5 @@ player profile:
 
 Before any later player-profile installation, back up package, profile,
 preferences, database and native map. This development candidate is built
-in the repository; the offline profile still has the earlier dev.10 candidate.
+in the repository; the offline profile still has the earlier dev.13 candidate.
 None of the 1.0 completion gates are waived.

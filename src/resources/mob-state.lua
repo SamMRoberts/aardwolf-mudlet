@@ -245,7 +245,7 @@ function State.new(clock)
     for _,candidate in ipairs(candidates) do if self.selected==candidate.id then self.selected=nil end end
     if r.id==targetId then targetId=nil; self.target=nil; self.health=nil end
     reindex(); self.revision=self.revision+1
-    return true
+    return true,copy(r)
   end
   function self.select(id,revision)
     if not self.fresh or revision~=self.revision then return false,'Room list changed; select from the latest scan' end

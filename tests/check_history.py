@@ -21,6 +21,12 @@ class HistoryTests(unittest.TestCase):
             gmcp=gmcp or {};gmcp.comm=gmcp.comm or {};gmcp.comm.quest=value
             fire('gmcp.comm','gmcp.comm.quest');fire('AardwolfToolbox.gmcp.updated','comm.quest')
           end
+          function death(id,visit)
+            local event={session=1,visit=visit or 1,rowId=id or 1,name='<Éowyn> the bat',flags='(Hidden)',
+              uncertain=true,source='room-mobs',room={num=12,name='A room',area='academy'}}
+            fire('AardwolfToolbox.mobs.death',event);return event
+          end
+          function enableKills() assert(t.config.set('history','kills',true)) end
           function enableQuests() assert(t.config.set('history','quests',true)) end
           function enable() assert(t.config.set('history','progression',true)) end
           function W(id) return assert(widgets['AardwolfToolbox.historyPane.'..id],id) end
@@ -320,3 +326,110 @@ class HistoryTests(unittest.TestCase):
           assert(r.completed==111 and r.quest.room=='Swamp Ape Enclosure')
           assert(r.rewards.wait==nil and r.rewards.action==nil)
         ''')
+
+    def test_kills_opt_in_identity_duplicates_and_defensive_copies(self):
+        self.lua.execute("""
+          assert(not t.config.get('history','kills'));observe('char.base',{name='A'});death()
+          assert(h.list('A',1,'kills').total==0)
+          enableKills();death();assert(h.list('A',1,'kills').total==0)
+          observe('char.base',{name='A'});local event=death();death()
+          assert(h.list('A',1,'kills').total==1 and h.list('A').total==0)
+          death(2);local r=h.list('A',1,'kills');assert(r.total==2)
+          assert(r.rows[1].name=='<Éowyn> the bat' and r.rows[1].uncertain and r.rows[1].room.num==12)
+          assert(r.rows[1].session==nil and r.rows[1].rowId==nil)
+          event.name='changed';r.rows[1].room.num=99;assert(h.list('A',1,'kills').rows[1].room.num==12)
+          death(1,2);assert(h.list('A',1,'kills').total==3)
+        """)
+
+    def test_kills_resets_toggle_character_and_stale_callback(self):
+        self.lua.execute("""
+          enableKills();observe('char.base',{name='A'});death()
+          local old=handlers['AardwolfToolbox.history:death'].fn
+          fire('AardwolfToolbox.gmcp.cleared');death(2);assert(h.list('A',1,'kills').total==1)
+          observe('char.base',{name='B'});death(2);assert(h.list('B',1,'kills').total==1)
+          observe('char.base',{name=''});death(3);assert(h.list('B',1,'kills').total==1)
+          assert(t.config.set('history','kills',false));observe('char.base',{name='B'});local value=death(3)
+          old('',value);assert(h.list('B',1,'kills').total==1)
+          enableKills();old('',value);assert(h.list('B',1,'kills').total==1)
+          observe('char.base',{name='B'});death(3);assert(h.list('B',1,'kills').total==2)
+          t.stop();assert(not handlers['AardwolfToolbox.history:death']);assert(t.start())
+          assert(t.config.get('history','kills') and h.list('B',1,'kills').total==2)
+        """)
+
+    def test_kills_invalid_events_unknown_location_and_storage_failure(self):
+        self.lua.execute("""
+          enableKills();observe('char.base',{name='A'});local e=death()
+          e.rowId=2;e.room={num=13};e.uncertain=false
+          fire('AardwolfToolbox.mobs.death',e);assert(h.list('A',1,'kills').rows[1].room.name==nil)
+          for _,field in ipairs({'name','flags','rowId','visit','session','room','uncertain','source'}) do
+            local keep=e[field];e[field]=nil;fire('AardwolfToolbox.mobs.death',e);e[field]=keep
+          end
+          e.rowId=3;e.name=string.rep('x',513);fire('AardwolfToolbox.mobs.death',e)
+          e.name='valid';e.room.num=0;fire('AardwolfToolbox.mobs.death',e)
+          assert(h.list('A',1,'kills').total==2)
+          local append=s.append;s.append=function() return nil,'Disk full' end
+          death(3);assert(h.status().paused and h.last:find('Disk full'))
+          s.append=append;death(4);assert(h.list('A',1,'kills').total==2)
+        """)
+
+    def test_kills_category_export_clear_retention_and_persistence(self):
+        self.lua.execute("""
+          enable();enableQuests();enableKills();observe('char.base',{name='A',level=0})
+          quest({action='comp',gold=0});death()
+          local path=assert(h.export('A','kills'));local data=yajl.to_value(files[path])
+          assert(data.category=='kills' and data.observations[1].kind=='mob_death')
+          assert(h.clear('A',h.revision,'kills'))
+          assert(h.list('A',1,'kills').total==0 and h.list('A').total==1 and h.list('A',1,'quests').total==1)
+          for i=2,105 do death(i) end
+          s.configure({days=1,max_entries=100,max_kib=64})
+          assert(h.list('A',1,'kills').total==100 and h.list('A').total==0 and h.list('A',1,'quests').total==0)
+          clock=clock+86401;assert(h.list('A',1,'kills').total==0)
+        """)
+
+    def test_kills_view_literal_names_unknown_credit_and_category_clear(self):
+        self.lua.execute("""
+          enable();enableKills();observe('char.base',{name='A',level=0});death()
+          assert(p.open('kills'));local row=W('row.2')
+          assert(row.text:find('Death observed') and row.text:find('&lt;Éowyn&gt;'))
+          assert(row.tooltip:find('Kill credit unknown') and row.tooltip:find('Duplicate identity uncertain'))
+          W('clear').callback();W('progression').callback();W('kills').callback()
+          assert(h.list('A',1,'kills').total==1)
+          W('clear').callback();W('clear').callback()
+          assert(h.list('A',1,'kills').total==0 and h.list('A').total==1)
+        """)
+
+    def test_corrupt_kill_record_preserved_and_reported(self):
+        self.lua.execute("""
+          assert(s.append('A',{kind='mob_death',source='room-mobs',observed=clock,
+            name='bat',flags='',uncertain=false,room={num=-1}},'kills'))
+          local result,why=h.list('A',1,'kills');assert(not result and why:find('Invalid saved kill room'))
+          local env=luasql.sqlite3();local db=env:connect(s.path)
+          local c=db:execute('SELECT COUNT(*) AS n FROM observations');assert(c:fetch({},'a').n==1)
+          c:close();db:close();env:close()
+        """)
+
+    def test_kills_shared_dispatcher_and_capture_ownership(self):
+        self.lua.execute("""
+          enableKills();observe('char.base',{name='A'});connected=true
+          assert(t.config.set('mobs','on_entry',false));assert(t.config.set('mobs','automatic_setup',false))
+          assert(t.config.set('mobs','automatic_consider',false));assert(t.config.set('mobs','after_combat',false))
+          local get=t.gmcp.get
+          t.gmcp.get=function(path) if path=='room.info' then return {num=12,name='Room',zone='test'} end;return get(path) end
+          consumer=function(event,value) fire(event,value) end
+          fire('AardwolfToolbox.gmcp.updated','room.info')
+          incoming('{scan}');incoming('Right here you see:');incoming('     - A bat');incoming('{/scan}')
+          assert(t.mobs.snapshot().rows[1].alive==1)
+          local before=gagCount
+          incoming('{unfamiliar}');incoming('A bat is DEAD!!');incoming('{/unfamiliar}')
+          assert(h.list('A',1,'kills').total==0)
+          incoming('<MAPSTART>');incoming('A bat is DEAD!!');incoming('<MAPEND>')
+          assert(h.list('A',1,'kills').total==0)
+          t.incoming.add('death-test',18,function(text) return text=='A bat is DEAD!!',true end,error)
+          local append=s.append
+          s.append=function(...) assert(gagCount==before+7,'Death notification preceded suppression');return append(...) end
+          incoming('A bat is DEAD!!')
+          assert(h.list('A',1,'kills').total==1 and t.mobs.snapshot().rows[1].killed==1)
+          s.append=append;t.incoming.remove('death-test')
+          incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==1)
+          assert(count(triggers)==1)
+        """)

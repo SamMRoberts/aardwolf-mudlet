@@ -1,14 +1,14 @@
-# Local progression and quest reward history
+# Local progression, quest reward and kill history
 
 Open **Tools → Open history** or **Views → History**. Configure it under
-**aardwolf-config → Local history**. **Record progression history** and **Record quest reward history** both start off.
+**aardwolf-config → Local history**. **Record progression history**, **Record quest reward history**, and **Record observed kill history** all start off.
 The browser remains available when recording is off, including offline.
 
 This step of the roadmap records observed level, tier, remort, redo, current
-powerup and total-powerup values. A separate category records documented quest-completion rewards. Kills and chat
-history are still future steps; no raw output or chat messages are saved by this service.
+powerup and total-powerup values. A separate category records documented quest-completion rewards. A third category records explicit deaths from the room-mob tracker. Chat
+history is still a future step; no raw output or chat messages are saved by this service.
 No queries, additional monitoring requests, gameplay commands, timers for polling,
-or automatic actions are added. Recording consumes the existing GMCP stream.
+or automatic actions are added. Recording consumes the existing GMCP stream and room-mob death events.
 
 ## Observations and identity
 
@@ -53,6 +53,36 @@ past rewards. Repeated completed-count values are deduplicated within a bounded
 until a new quest/readiness transition. These are observations, not guaranteed
 persistent server quest identities; duplicate protection does not span sessions.
 
+## Observed kills
+
+Enable **Record observed kill history** and keep **Room mobs** enabled. Select
+**Kills** in History. The existing combat parser recognizes a complete
+`<known mob> is DEAD!!` line (case-insensitive). No new death-message variants,
+queries, triggers or automatic attacks are introduced. A name must match a
+living current-room observation; nearby mobs, unknown names, player-flagged or
+unclassified rows are excluded. ASCII, help and generic-tag frame ownership
+continues to take precedence.
+
+Rows say **Death observed**, not “You killed.” Kill credit is unknown: neither
+attack intent nor a current target proves that the player dealt the killing blow.
+No XP, loot, reward or kill-count gains are inferred. Disappearance, zero target
+health, combat ending and room changes do not create records.
+
+Each record retains only the observed name, flags, room number, optional room/area
+names, and whether duplicate selection was uncertain. Same-named mobs remain
+separate observations. Identity is local and heuristic, never a server instance ID.
+The existing tracker chooses the current matching target, otherwise its first
+living match. Repeated death lines can describe different identical mobs; they
+cannot be distinguished from repeated server output. Once no living match
+remains, further messages do not record deaths.
+
+Recording waits for fresh character identity after enable/reset and never backfills
+old killed rows. The producer emits only new alive-to-dead transitions after line
+capture/suppression, rejecting notifications that cross a room/session boundary.
+The recorder deduplicates the latest 512 session/visit/row tokens; these tokens
+are not persisted. Disconnect, character changes, disable and teardown clear
+that bounded session state. Turning history off leaves the room tracker intact.
+
 ## Storage, retention, and privacy
 
 Data is stored outside the installed package at
@@ -62,17 +92,17 @@ and closes after the operation. Default startup with recording off does not open
 or create it. Opening an empty browser may create the empty database.
 
 Defaults are **30 days**, **1,000 observations**, and **2,048 KiB of encoded
-record text**. Limits apply to the profile's history across both categories and all
+record text**. Limits apply to the profile's history across all categories and all
 characters. Expired records are removed first, followed by oldest inserted
 records until both count and text limits are met. Pruning runs transactionally
 on writes and reads; changing retention takes effect at the next access/write.
 There is no idle retention timer. The text limit excludes SQLite indexes, page
 and journal overhead, so it is not an exact file-size cap.
 
-History database schema **2** adds categories. On first access, schema **1** is
+History database schema **2** supports all three categories without another migration. On first access, schema **1** is
 migrated in one transaction, retaining progression row IDs and data. A migration
 failure rolls back the schema and rows. Settings remain format **3**. Back up the
-profile database before installing this candidate: older packages reject schema 2.
+profile database before installing this candidate: packages predating dev.13 reject schema 2. Dev.13 can still read progression/quest categories but does not expose Kills; retention applies across all stored categories.
 To roll back, stop Toolbox and restore its package and the pre-upgrade database
 backup together; export any newer records first if they should be retained.
 
@@ -84,7 +114,7 @@ preferences, not this database.
 
 ## Browser, export, and clear
 
-Choose **Progression** or **Quest rewards**, then use **‹ Character / Character ›**
+Choose **Progression**, **Quest rewards**, or **Kills**, then use **‹ Character / Character ›**
 to choose a saved character in that category. Pages contain
 25 observations, newest first. Hover shortened rows for all changes or reward fields and quest details.
 In short/narrow windows, scroll the action area to reach all controls.
@@ -92,8 +122,8 @@ In short/narrow windows, scroll the action area to reach all controls.
 shared Appearance settings and supports profile/external placement.
 
 **Export JSON** writes all retained observations for the selected character and category to a
-new `AardwolfToolbox-progression-export-NNN.json` or
-`AardwolfToolbox-quests-export-NNN.json` in the profile directory. The
+new `AardwolfToolbox-progression-export-NNN.json`,
+`AardwolfToolbox-quests-export-NNN.json`, or `AardwolfToolbox-kills-export-NNN.json` in the profile directory. The
 export includes the character name and observed values. The filename is shown
 in the feedback tooltip. Exports use checked temporary writes and atomic rename;
 existing exports are not overwritten. Exports are separate files and are not
@@ -122,6 +152,9 @@ end
 -- history.list("Tesobi", 1, "quests") -> quest reward page
 -- history.export("Tesobi", "quests") -> quest reward export
 -- history.clear("Tesobi", page.revision, "quests") -> clear quest rewards only
+-- history.list("Tesobi", 1, "kills") -> observed deaths
+-- history.export("Tesobi", "kills")  -> death observation export
+-- history.clear("Tesobi", page.revision, "kills") -> clear deaths only
 -- history.status()                  -> defensive status snapshot, no raw records
 ```
 
@@ -131,6 +164,11 @@ in-memory history mirror. Future history categories need explicit opt-in setting
 and source/identity rules rather than adding raw logs to this store. Existing calls with no category
 argument continue to use `progression`. Quest rows have `kind="quest_reward"`,
 `observed`, `quest={target,room,area}`, `rewards`, and optional `completed`.
+Kill rows have `kind="mob_death"`, `observed`, `name`, `flags`, `uncertain`,
+`source="room-mobs"`, and `room={num,name,area}`; room/area names may be absent.
+The shared producer event `AardwolfToolbox.mobs.death` carries this source data
+plus ephemeral `session`, `visit`, and `rowId` tokens, after capture completes.
+Consumers must not treat these tokens as persistent mob identities.
 
 ## Acceptance
 
@@ -143,6 +181,8 @@ These do not establish native SQLite, Geyser mouse behavior or live GMCP orderin
 After user approval and a backup, use `tests/native_history.lua` only in the
 **disconnected AardwolfToolboxSettingsTest** profile with the foundation dispatch
 interceptors. Verify readable rows, paging, character selection, exported JSON,
-category-only clear/export, literal quest names, reported zero rewards, external
+category-only clear/export, literal quest/mob names, reported zero rewards, unknown
+kill credit, duplicate-identity tooltips, external
 placement, native cleanup and unchanged map data.
-The fixture restores preferences and deletes only its uniquely named test records.
+The native history fixture injects a synthetic death-service event; it does not
+exercise native death parsing. The fixture restores preferences and deletes only its uniquely named test records.

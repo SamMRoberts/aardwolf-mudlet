@@ -392,7 +392,21 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     else
       local event,name=Protocol.combat(text,model.known)
       if event then
-        if model[event](name) then update() end
+        local changed,row=model[event](name)
+        if changed then update() end
+        if event=='kill' and row and not row.unclassified and model.room then
+          local room=cache.get('room.info') or {}
+          local observed={session=session,visit=visit,rowId=row.id,name=row.name,flags=row.flags,
+            uncertain=row.uncertainDeath==true,room={num=tonumber(model.room)},source='room-mobs'}
+          if tostring(room.num)==model.room then observed.room.name=room.name;observed.room.area=room.zone end
+          local ownedSession,ownedVisit=session,visit
+          local function notify()
+            if self.enabled and connected() and session==ownedSession and visit==ownedVisit then
+              api.raiseEvent(OWNER..'.death',observed)
+            end
+          end
+          if context and context.defer then context.defer(notify) else notify() end
+        end
         if frame then frame.events[#frame.events+1]={event,name} end
       end
     end
