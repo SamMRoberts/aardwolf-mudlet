@@ -169,6 +169,8 @@ class MobTests(unittest.TestCase):
         self.lua.execute('''state.observe(scan.entries); assert(#state.snapshot(12).rows==6); assert(state.snapshot(12).rows[6].ordinal==3)''')
 
     def service(self):
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as archive:
+            self.lua.globals().Queries=self.lua.execute(archive.read('query-coordinator.lua').decode())
         self.lua.execute('''
           timers={}; handlers={}; sent={}; nextID=0; online=true; calls=0; removed=0
           function tempTimer(delay,fn) nextID=nextID+1; timers[nextID]={at=now+delay,fn=fn}; return nextID end
@@ -196,7 +198,7 @@ class MobTests(unittest.TestCase):
           function cache.get(path) return cache.values[path] end
           incoming={add=function(_,_,fn) receive=fn; calls=calls+1 end,remove=function() receive=nil; removed=removed+1 end}
           tags={isCapturing=function() return false end}
-          queries={acquire=function() return true end,release=function() end}
+          queries=Queries.new(_G)
           spellup={status=function() return {inflight=false} end}
           Pane={new=function() return {configure=function() end,destroy=function() end,layout=function() end,update=function(s,m) displayed=s; message=m end} end}
           options={}; for _,s in ipairs(Mobs.definition(function() end,MobActions).settings) do options[s.key]=s.default end
@@ -222,7 +224,7 @@ class MobTests(unittest.TestCase):
           receive('A rat is DEAD!!'); assert(m.snapshot().rows[1].killed==1)
           m.start(); assert(calls==1)
           handlers['sysDisconnectionEvent'](); assert(#m.snapshot().rows==0)
-          m.stop(); m.stop(); assert(next(handlers)==nil and next(timers)==nil)
+          m.stop(); m.stop(); pulse(0); assert(next(handlers)==nil and next(timers)==nil)
         ''')
 
     def test_consider_ranges_duplicates_rescan_level_and_room_scope(self):

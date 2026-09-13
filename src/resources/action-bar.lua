@@ -61,12 +61,16 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,
   function self.dispatch(command,mode)
     if not self.enabled then return feedback(nil,"Action bar disabled") end
     if type(command)~="string" or #command>1024 or not command:match("%S") or command:find("[%z\1-\31\127]") then return feedback(nil,"One command line is required") end
+    if cache.checkReadiness then
+      local ready,reason=cache.checkReadiness('manual');if not ready then return feedback(nil,reason) end
+    else
     if not select(3,api.getConnectionInfo()) then return feedback(nil,"Disconnected") end
     local status=cache.get("char.status"); local state=status and tonumber(status.state)
     if not cache.enabled or not state or state<3 then return feedback(nil,"Waiting for fresh character readiness") end
     if state==5 or state==6 or state==7 then return feedback(nil,"Close the game pager/editor first") end
     -- Only documented in-world states establish readiness; unknown states fail closed.
     if not ({[3]=true,[4]=true,[8]=true,[9]=true,[11]=true})[state] then return feedback(nil,"Character is not command-ready") end
+    end
     local fn=mode=="alias" and api.expandAlias or api.send
     local ok,result,message=pcall(fn,command)
     if not ok or result==false or (result==nil and message) then return feedback(nil,message or result) end

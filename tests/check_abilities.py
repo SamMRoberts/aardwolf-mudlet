@@ -231,7 +231,7 @@ class AbilityTests(unittest.TestCase):
           end
           function syncAbilities()
             for _=1,200 do
-              if abilities.status().fresh then return end
+              if abilities.status().fresh and not abilities.status().busy then return end
               assert(abilities.status().busy,abilities.last)
               reply(commands[#commands])
             end
@@ -284,6 +284,8 @@ class AbilityTests(unittest.TestCase):
           feed('{spellheaders learned noprompt}'); feed('A friend says hello.')
           assert(visible[#visible]=='A friend says hello.')
           feed('28,malformed'); advance(0.2)
+          assert(abilities.status().busy and queries.owner()=='AardwolfToolbox.abilities')
+          feed('{/spellheaders}'); advance(0.2)
           assert(not abilities.status().fresh and not abilities.status().busy)
           assert(abilities.get(54).name=='heal')
           local n=#commands; advance(30); assert(#commands==n)
@@ -325,14 +327,15 @@ class AbilityTests(unittest.TestCase):
           update('char.status.level',128,'char.status')
           update('char.status.level',129,'char.status')
           assert(#commands==1 and abilities.status().busy)
-          -- Finish the already owned response, then its remaining queries.
+          -- Drain the current boundary, cancelling all unsent old queries.
           local lines=fixtures['slist learned noprompt']
           for i=2,#lines do feed(lines[i]) end
           advance(0.2)
-          nextGeneration()
-          local second=#commands; assert(commands[second]=='slist learned noprompt')
+          local second=#commands; assert(second==2 and commands[second]=='slist learned noprompt')
           assert(not abilities.status().fresh)
-          syncAbilities(); assert(#commands==second+26 and abilities.status().fresh)
+          syncAbilities(); assert(abilities.status().fresh)
+          local learned=0;for _,cmd in ipairs(commands) do if cmd=='slist learned noprompt' then learned=learned+1 end end
+          assert(learned==2)
           assert(store.get('ability_metadata',0).level==129)
         ''')
 
@@ -406,11 +409,15 @@ class AbilityTests(unittest.TestCase):
         self.service()
         self.lua.execute('''
           raiseEvent('sysDataSendRequest','spells combat')
+          assert(abilities.status().busy and queries.owner()=='AardwolfToolbox.abilities')
+          reply('slist learned noprompt')
           assert(not abilities.status().busy and not abilities.status().fresh)
           assert(queries.owner()==nil)
           abilities.refresh(); advance(0.2)
           update('char.status.state',6,'char.status')
-          assert(not abilities.status().busy and abilities.last:find('pager/editor'))
+          assert(abilities.status().busy and abilities.last:find('pager/editor'))
+          reply('slist learned noprompt')
+          assert(not abilities.status().busy)
           local n=#commands; advance(30); assert(#commands==n)
         ''')
 
@@ -447,7 +454,7 @@ class AbilityTests(unittest.TestCase):
           function syncTogether()
             for _=1,100 do
               advance(0.2)
-              if abilities.status().fresh and spells.isFresh() then return end
+              if abilities.status().fresh and not abilities.status().busy and spells.isFresh() then return end
               local owner=queries.owner()
               assert(owner,abilities.last..' / '..spells.last)
               local command=commands[#commands]
@@ -665,7 +672,8 @@ class AbilityTests(unittest.TestCase):
           feed('Syntax: example <target>'); feed('{/helpbody}'); feed('{/help}')
           assert(#paneLines==0 and abilities.status().busy)
           local sent=#commands; advance(11)
-          assert(not abilities.status().busy and not abilities.status().fresh)
+          assert(not abilities.status().busy and abilities.status().fresh)
+          assert(abilities.last:find('command verification incomplete'))
           assert(store.get('abilities',447).command==old and #commands==sent)
           feed(marker) -- A late completion cannot revive a failed transaction.
           assert(not abilities.status().busy)

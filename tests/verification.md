@@ -1,3 +1,20 @@
+# 0.24.0-dev.2 roadmap candidate — 2026-09-13
+
+- Local Muddler 1.1.0 build succeeded on macOS with Java 17.0.16+8.
+- Python 3.14.6 / Lupa 2.6: **304 tests passed** against the rebuilt package.
+- Archive: 46 entries; CRC and XML checks passed; Lua resources match source.
+- Ordinary-line benchmark (2,000 lines): 10/50/200/512 mobs passed the existing
+  performance assertions. The indexed path measured about 0.8 ms in this run;
+  this excludes native Geyser rendering and is not a live latency claim.
+- Reviewed bundled Mudlet Geyser source read-only for CommandLine, Mapper,
+  MiniConsole and Adjustable APIs. No Mudlet control or live installation.
+- `tests/native_foundation.lua` and `docs/roadmap-status.md` provide the later
+  disconnected-profile setup/checklist. Native interaction, migration, rendering,
+  transport, multi-monitor behavior and the remaining roadmap are unverified.
+- Existing map/profile/settings/database files were not modified.
+
+---
+
 # Verification record
 
 ## 0.12.1 mapper Z-axis collision fix

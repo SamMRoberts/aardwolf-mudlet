@@ -5,6 +5,11 @@ local function escape(text)
   return (text:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"):gsub('"',"&quot;"))
 end
 function Help.new(api,incoming,ui)
+  local function diagnosticEcho(message)
+    if incoming and incoming.defer then incoming.defer(function() api.echo(message) end)
+    else api.echo(message) end
+  end
+
   local self={enabled=false,last="Disabled"}
   local options={enabled=true,font_size=11}
   local root,console,frame,timer,displayTimer
@@ -29,11 +34,11 @@ function Help.new(api,incoming,ui)
   self.destroy=self.stop
   local function failed(err)
     self.stop(); self.last="Stopped: "..tostring(err)
-    api.echo("Aardwolf help: "..self.last.."; original help output is visible.\n")
+    diagnosticEcho("Aardwolf help: "..self.last.."; original help output is visible.\n")
   end
   local function diagnostic(reason)
     self.last=reason
-    api.echo("Aardwolf help: "..reason.."; ordinary output is visible again.\n")
+    diagnosticEcho("Aardwolf help: "..reason.."; ordinary output is visible again.\n")
   end
   local function build()
     if root then return end

@@ -95,7 +95,7 @@ class ActionTests(unittest.TestCase):
           local input=widgetContaining('New button'); input.text='Heal'
           local empty; for _,v in pairs(widgets) do if v.action and v.text=='' then empty=v end end
           -- Target the command editor by its ordered neighbor: use the final empty input (tooltip precedes command).
-          local max=0; for _,v in pairs(widgets) do if v.action and v.text=='' then local n=tonumber(v.name:match('input(%d+)$')); if n>max then empty=v; max=n end end end
+          local max=0; for _,v in pairs(widgets) do if v.action and v.text=='' then local n=tonumber(v.name:match('input(%d+)$')); if n and n>max then empty=v; max=n end end end
           empty.text='heal'; empty.action('heal'); assert(w.apply())
           assert(c.get('actions','buttons')[1].label=='Heal')
           widgetContaining('Duplicate').callback(); assert(w.apply() and #c.get('actions','buttons')==2)

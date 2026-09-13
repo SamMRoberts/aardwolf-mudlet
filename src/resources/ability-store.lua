@@ -98,6 +98,22 @@ function Store.new(api)
     if not committed then pcall(execute,'ROLLBACK'); error(err or 'Ability commit failed',0) end
     return true
   end
+  function self.put(bucket,id,row)
+    assert(connection and character,'No character selected')
+    assert(type(id)=='number' and id>=0 and id%1==0 and id<=2147483647,'Invalid ability number')
+    local encoded=api.yajl.to_string(row)
+    assert(#encoded<=1048576,'Ability row exceeds storage limit')
+    execute('BEGIN IMMEDIATE')
+    local ok,err=pcall(function()
+      execute('INSERT OR REPLACE INTO ability_records(character,bucket,id,name,data) VALUES('..quote(character)..','..quote(bucket)..','..id..','..quote(row.name or '')..','..quote(encoded)..')')
+      local size=query('SELECT COUNT(*) AS count, SUM(length(CAST(data AS BLOB))) AS bytes FROM ability_records WHERE '..where(bucket))[1]
+      assert(tonumber(size.count)<=4096 and tonumber(size.bytes)<=1048576,'Ability snapshot exceeds storage limit')
+    end)
+    if not ok then execute('ROLLBACK'); error(err,0) end
+    local committed,message=connection:execute('COMMIT')
+    if not committed then pcall(execute,'ROLLBACK'); error(message or 'Ability commit failed',0) end
+    return true
+  end
   function self.destroy()
     owners={}; self.close('shutdown')
   end

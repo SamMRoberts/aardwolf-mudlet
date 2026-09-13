@@ -44,18 +44,20 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local nearby={fresh=false,sections={}}
   local ratings={fresh=false,verified=false,last='Use Rate room to verify completion this session'}
   local diagnostics={requests=0,renders=0,stale=0,lines=0,bytes=0}
-  local pending={}; local active,frame
+  local pending={}; local active,frame,wire,queuedKind
   local wake,timeout,paintTimer,evidenceTimer,periodicTimer
   local session,visit,sequence=0,0,0
   local setup,ownSend,autoRated=false,false,false
+  local setupConfirmed=false
   local lastRequest=-math.huge; local settle=0; local status={}
-  local schedule,drive,update,armEvidence,armPeriodic
+  local schedule,drive,update,armEvidence,armPeriodic,fail
   local function copy(v)
     if type(v)~='table' then return v end
     local t={};for k,x in pairs(v) do t[k]=copy(x) end;return t
   end
   local function connected() return cache.enabled and select(3,api.getConnectionInfo())==true end
   local function ready()
+    if cache.checkReadiness then return self.enabled and cache.checkReadiness("spellup") and not (spellup and spellup.status().inflight) end
     return self.enabled and connected() and cache.get('char.status.state')==3
       and cache.get('char.status.pos')=='Standing' and not spellup.status().inflight
   end
@@ -72,14 +74,22 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       feedback=function(message) self.last=message;update(true) end,
     })
   local function kill(id) if id then api.killTimer(id) end end
-  local function release() (queries.cancel or queries.release)(OWNER) end
+  local function release(ok,reason,detach)
+    local old=wire;wire=nil;queuedKind=nil
+    if old and detach then old.detach(reason)
+    else
+      if old then old.finish(ok~=false,reason) end
+      queries.release(OWNER)
+    end
+  end
   function self.snapshot()
     local result=model.snapshot(options.attack_window or 12)
     result.nearby=copy(nearby); result.ratings=copy(ratings); return result
   end
   function self.status()
     local result=copy(diagnostics);result.enabled=self.enabled;result.last=self.last
-    result.ratingStatus=ratings.last;result.markerVerified=ratings.verified;return result
+    result.ratingStatus=ratings.last;result.markerVerified=ratings.verified
+    result.scanMonitoring=setupConfirmed and 'confirmed' or setup and 'requested' or 'unavailable';return result
   end
   local lastRows={}
   local function flush()
@@ -121,19 +131,23 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       end
     end) end
   end
-  local function finish()
+  local function finish(ok,reason)
     kill(timeout); timeout=nil
     if active then diagnostics.duration=api.getEpoch()-active.started end
-    active=nil; frame=nil; release(); schedule(); armPeriodic()
+    active=nil; frame=nil; release(ok,reason); schedule(); armPeriodic()
   end
-  local function fail(reason)
+  fail=function(reason,boundary)
+    if wire and active and not boundary then
+      active.error=reason;active.discard=true;wire.cancel(reason)
+      self.last=reason..'; draining response';update();return
+    end
     local kind=active and active.kind or 'room'
     if kind=='nearby' then nearby.fresh=false
     elseif kind=='rate' then ratings.fresh=false; ratings.last=reason
     else diagnostics.rosterError=reason end
     self.last=reason..'; Refresh to retry'; pending[kind]=nil
     if frame and tags.abortCapture then tags.abortCapture('scan',reason) end
-    finish(); update()
+    finish(false,reason); update()
   end
   local function queue(kind,manual)
     if not self.enabled or not model.room or manual and not connected() then return false,'Room data unavailable' end
@@ -142,6 +156,11 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if kind=='nearby' and not options.nearby then return false,'Nearby is disabled' end
     if active and active.kind==kind and active.visit==visit then return true,'Already in progress' end
     pending[kind]={kind=kind,priority=manual and 10 or kind=='room' and 20 or kind=='rate' and 30 or 40,manual=manual}
+    if wire and not active then
+      -- A manual click promotes already queued work without duplicating its send.
+      if manual and queuedKind==kind then wire.setPriority(10)
+      elseif manual then release(false,'Manual request reprioritized queued work') end
+    end
     self.last=manual and 'Refresh queued' or self.last
     schedule(); update(); return true
   end
@@ -158,12 +177,17 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     end
   end
   local function send(command)
-    ownSend=true; local ok,result,err=pcall(api.send,command,false); ownSend=false
-    return ok and result~=false and not err
+    ownSend=true
+    local ok,result,err
+    if cache.sendChecked then ok,result,err=pcall(cache.sendChecked,'command',command)
+    else ok,result,err=pcall(api.send,command,false) end
+    ownSend=false
+    return ok and result~=false and not (result==nil and err)
   end
   drive=function()
     wake=nil
-    if active or frame then return end
+    if active or frame or wire then return end
+    if not queries.accepting(OWNER) then diagnostics.queued='Draining the previous collector response';return end
     if not model.room or not ready() then
       diagnostics.queued=next(pending) and 'Waiting for standing, command-ready character' or nil
       release();return
@@ -175,29 +199,53 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if not request then release(); return end
     local delay=math.max(settle,lastRequest+1)-api.getEpoch()
     if delay>0 then diagnostics.queued='Waiting for room settle/cooldown';wake=api.tempTimer(delay,drive);return end
-    if not queries.acquire(OWNER,request.priority,ready) then diagnostics.queued='Waiting for informational response'; return end
-    if request.kind~='rate' and options.automatic_setup and not setup then
-      if not send('tags scan on') then request.started=api.getEpoch();active=request; fail('Could not enable scan tags'); return end
-      setup=true
-    end
-    sequence=sequence+1; pending[request.kind]=nil
-    request.visit=visit; request.started=api.getEpoch(); request.revision=model.revision
-    request.level=cache.get('char.status.level') or cache.get('char.base.level')
-    request.session=session; request.bytes=0; request.lines=0
-    active=request; lastRequest=api.getEpoch(); diagnostics.requests=diagnostics.requests+1; diagnostics.queued=nil
-    timeout=api.tempTimer(10,function() timeout=nil; fail('Room '..request.kind..' response timed out') end)
-    if request.kind=='rate' then
-      autoRated=true; request.entries={}
-      request.marker='AWTB_CON_'..tostring(self):gsub('[^%w]','')..'_'..session..'_'..visit..'_'..sequence
-      self.last='Rating room'
-      if not send('consider all') or not send('echo '..request.marker) then fail('Consider request failed') end
-    else
-      self.last=request.kind=='nearby' and 'Refreshing nearby rooms' or 'Refreshing room mobs'
-      if not send(request.kind=='nearby' and 'scan' or 'scan here') then fail('Room scan request failed') end
-    end
-    update()
+    local requestedVisit,requestedSession=visit,session
+    queuedKind=request.kind
+    diagnostics.queued='Waiting for informational response'
+    wire=queries.request(OWNER,{priority=request.priority,timeout=10,ready=function() return ready() and not frame end,
+      current=function() return self.enabled and requestedVisit==visit and requestedSession==session end,
+      boundary=function(line)
+        if request.kind=='rate' then return line==request.marker end
+        return line:match('^%s*(.-)%s*$')=='{/scan}','AardwolfToolbox.tags'
+      end,
+      start=function()
+        if request.kind~='rate' and options.automatic_setup and not setup then
+          if not send('tags scan on') then return false,'Could not enable scan tags' end
+          setup=true
+        end
+        sequence=sequence+1; pending[request.kind]=nil
+        request.visit=visit; request.started=api.getEpoch(); request.revision=model.revision
+        request.level=cache.get('char.status.level') or cache.get('char.base.level')
+        request.session=session; request.bytes=0; request.lines=0
+        active=request; lastRequest=api.getEpoch(); diagnostics.requests=diagnostics.requests+1; diagnostics.queued=nil
+        if request.kind=='rate' then
+          autoRated=true; request.entries={}
+          request.marker='AWTB_CON_'..tostring(self):gsub('[^%w]','')..'_'..session..'_'..visit..'_'..sequence
+          self.last='Rating room'
+          if not send('consider all') or not send('echo '..request.marker) then return false,'Consider request failed' end
+        else
+          self.last=request.kind=='nearby' and 'Refreshing nearby rooms' or 'Refreshing room mobs'
+          if not send(request.kind=='nearby' and 'scan' or 'scan here') then return false,'Room scan request failed' end
+        end
+        update();return true
+      end,
+      finish=function(ok,reason,handle)
+        if wire~=handle then return end
+        wire=nil;queuedKind=nil
+        if requestedSession~=session or not self.enabled then return end
+        if not ok then
+          if requestedVisit~=visit then active=nil;frame=nil;schedule()
+          else
+            if reason=='Query deadline exceeded' then reason='Room '..request.kind..' response timed out' end
+            fail(reason or 'Room request failed',true)
+          end
+        end
+      end,
+    })
   end
+
   schedule=function()
+    queries.poke()
     kill(wake); wake=nil
     if self.enabled and not active and not frame then wake=api.tempTimer(0,drive) end
   end
@@ -205,11 +253,11 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if frame and tags.abortCapture then tags.abortCapture('scan','Room tracking stopped') end
     kill(wake);kill(timeout);kill(paintTimer);kill(evidenceTimer);kill(periodicTimer)
     wake,timeout,paintTimer,evidenceTimer,periodicTimer=nil,nil,nil,nil,nil
-    active=nil;frame=nil;pending={};release()
+    active=nil;frame=nil;pending={};release(false,"Room tracking stopped",true)
   end
   local function reset()
     if view.closeMenu then view.closeMenu() end
-    session=session+1;visit=visit+1;cancelAll();setup=false;autoRated=false;status={}
+    session=session+1;visit=visit+1;cancelAll();setup=false;setupConfirmed=false;autoRated=false;status={}
     model.clear(nil);nearby={fresh=false,sections={}};lastRows={}
     ratings={fresh=false,verified=false,last='Use Rate room to verify completion this session'}
     self.last='Waiting for fresh room data';update()
@@ -268,6 +316,12 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if not frame and tags.isCapturing and tags.isCapturing() then return false end
     if active then
       diagnostics.lines=diagnostics.lines+1;diagnostics.bytes=diagnostics.bytes+#text
+      if active.error then
+        if text==active.marker or frame and text:match('^%s*{/scan}%s*$') then
+          local reason=active.error;fail(reason,true);return true,true,'AardwolfToolbox.tags'
+        end
+        return false
+      end
       if active.kind=='rate' then
         active.lines=active.lines+1;active.bytes=active.bytes+#text
         if active.lines>1024 or active.bytes>262144 then fail('Consider response too large');return false end
@@ -298,8 +352,9 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if text:match('^%s*{/scan}%s*$') then
         local saved=frame;local hidden=not request.passive
         if not saved.capture.valid or request.kind=='room' and not saved.capture.seen then
-          fail('No recognized scan section');return true,hidden,'AardwolfToolbox.tags'
+          fail('No recognized scan section',true);return true,hidden,'AardwolfToolbox.tags'
         end
+        setupConfirmed=true
         if current(request) then
           if saved.capture.seen then
             model.observe(saved.capture.entries);diagnostics.rosterError=nil;pending.room=nil
@@ -344,7 +399,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if view.closeMenu then view.closeMenu() end
       visit=visit+1;pending={};kill(wake);wake=nil
       -- A sent response still owns its boundary. Drain it before acquiring again.
-      if active then active.discard=true else release() end
+      if active then active.discard=true;queries.poke() else release(false,'Room or configuration changed') end
       model.clear(key);status={};nearby={fresh=false,sections={}};autoRated=false
       ratings.fresh=false;diagnostics.rosterError=nil;settle=api.getEpoch()+0.25
       model.level(cache.get('char.status.level') or cache.get('char.base.level'))
@@ -413,7 +468,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     options=copy(values)
     if not options.enabled then self.stop();return true end
     if self.enabled then
-      pending={};if active then active.discard=true else release() end
+      pending={};if active then active.discard=true;queries.poke() else release(false,'Room or configuration changed') end
       view.configure(options);armPeriodic();update();return true
     end
     return self.start()

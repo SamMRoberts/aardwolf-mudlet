@@ -3,10 +3,20 @@ local Incoming = {}
 function Incoming.new(api)
   local self, consumers, trigger = {}, {}, nil
   local ordered={}
+  local active
+  function self.defer(fn)
+    assert(type(fn)=='function','Deferred notification must be a function')
+    if active then
+      assert(#active<4096,'Too many deferred notifications'); active[#active+1]=fn
+    else fn() end
+  end
   local function order()
     ordered={}
     for name,consumer in pairs(consumers) do ordered[#ordered+1]={name=name,consumer=consumer} end
-    table.sort(ordered,function(a,b) return a.consumer.priority<b.consumer.priority end)
+    table.sort(ordered,function(a,b)
+      if a.consumer.priority==b.consumer.priority then return a.name<b.name end
+      return a.consumer.priority<b.consumer.priority
+    end)
   end
   function self.remove(owner)
     consumers[owner]=nil; order()
@@ -20,7 +30,13 @@ function Incoming.new(api)
       trigger=assert(api.tempRegexTrigger([[^.*$]],function()
         local text=api.line
         local ordered=ordered -- Stable iteration if a callback changes subscriptions.
-        local context={}
+        local deferred={}
+        local previous=active; active=deferred
+        local context={defer=self.defer}
+        local function flush()
+          active=previous
+          for _,fn in ipairs(deferred) do pcall(fn) end
+        end
         local function completed(hidden,owner)
           for _,entry in ipairs(ordered) do
             local consumer=entry.consumer
@@ -34,7 +50,7 @@ function Incoming.new(api)
           local consumer=entry.consumer
           if consumers[entry.name]==consumer then
             local worked,claimed,suppress,forward=pcall(consumer.receive,text,context)
-            if not worked then self.remove(entry.name); consumer.failed(claimed); completed(false,nil); return end
+            if not worked then self.remove(entry.name); consumer.failed(claimed); completed(false,nil); flush(); return end
             if claimed then
               -- A machine-readable consumer can forward the same snapshot to the
               -- generic tag archive, without allowing ordinary formatters to claim it.
@@ -45,11 +61,11 @@ function Incoming.new(api)
                 local observed,err=pcall(observer.receive,text,context)
                 if not observed then self.remove(forward); observer.failed(err) end
               end
-              return
+              flush(); return
             end
           end
         end
-        completed(false,nil)
+        completed(false,nil); flush()
       end),"Cannot register incoming-line trigger")
     end)
     if not ok then consumers[owner]=nil; error(err,0) end

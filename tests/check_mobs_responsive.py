@@ -183,3 +183,17 @@ class ResponsiveMobsTests(unittest.TestCase):
           assert(aborted==1 and m.snapshot().fresh and m.snapshot().rows[1].name=='a bat')
           m.stop();assert(next(timers)==nil)
         ''')
+
+    def test_broker_contended_room_change_cancels_old_unsent_work(self):
+        self.service()
+        self.lua.execute('''
+          assert(queries.acquire('catalog',40))
+          room(12);pulse();assert(#sent==0 and #queries.snapshot().requests==1)
+          room(13);pulse();assert(#sent==0 and #queries.snapshot().requests==1)
+          assert(m.refresh());pulse(0)
+          for _,r in ipairs(queries.snapshot().waiting) do if r.owner=='AardwolfToolbox.mobs' then assert(r.priority==10) end end
+          queries.release('catalog');pulse(0)
+          assert(#sent==2 and sent[2]=='scan here')
+          scan({'a new bat'});assert(m.snapshot().room=='13' and m.snapshot().rows[1].name=='a new bat')
+          m.stop();queries.destroy();assert(next(timers)==nil)
+        ''')

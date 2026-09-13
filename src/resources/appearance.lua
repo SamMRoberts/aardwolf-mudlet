@@ -5,6 +5,7 @@ function UI.new(api,config)
   local self={enabled=false,last="Disabled"}
   local options={ui_font="Arial",mono_font="Menlo",ui_size=12,reading_size=13,preset="comfortable"}
   local original,written,probe
+  local measurements,measurementCount={},0
   local function copy(t) local r={}; for k,v in pairs(t or {}) do r[k]=v end; return r end
   function self.escape(text)
     return (tostring(text):gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;"):gsub('"',"&quot;"):gsub("'","&#39;"))
@@ -31,23 +32,30 @@ function UI.new(api,config)
     return m
   end
   function self.measure(text,role)
+    local metrics=self.metrics(role)
+    local key=metrics.font..'\0'..metrics.size..'\0'..tostring(text)
+    local saved=measurements[key]
+    if saved then return saved[1],saved[2] end
     if not probe then
       probe=api.Geyser.Label:new({name=OWNER..".measure",x=0,y=0,width=10000,height=100,hidden=true})
       probe:hide(); probe:setStyleSheet("QLabel { border: none; padding: 0; }")
     end
     self.apply(probe,role); probe:echo(self.escape(text))
     local width,height=probe:getSizeHint()
+    if measurementCount>=1024 then measurements={};measurementCount=0 end
+    if #key<=4096 then measurements[key]={width,height};measurementCount=measurementCount+1 end
     return width,height
   end
   function self.fit(text,width,role)
     if self.measure(text,role)<=width then return text end
     local chars={}; for char in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars+1]=char end
-    while #chars>0 do
-      chars[#chars]=nil
-      local value=table.concat(chars).."…"
-      if self.measure(value,role)<=width then return value end
+    if self.measure('…',role)>width then return '' end
+    local low,high=0,#chars
+    while low<high do
+      local middle=math.ceil((low+high)/2)
+      if self.measure(table.concat(chars,'',1,middle)..'…',role)<=width then low=middle else high=middle-1 end
     end
-    return ""
+    return table.concat(chars,'',1,low)..'…'
   end
   function self.style(widget,button,selected)
     self.apply(widget)
@@ -65,6 +73,7 @@ function UI.new(api,config)
     end
   end
   function self.stop()
+    measurements={};measurementCount=0
     if original and written then
       if api.getFont("main")==written.font then api.setFont("main",original.font) end
       if api.getFontSize("main")==written.size then api.setFontSize("main",original.size) end
@@ -75,6 +84,7 @@ function UI.new(api,config)
   end
   self.destroy=self.stop
   function self.configure(values)
+    measurements={};measurementCount=0
     options=copy(values)
     if not values.enabled then self.stop(); api.raiseEvent(OWNER..".changed"); return true end
     local ok,err=pcall(function()

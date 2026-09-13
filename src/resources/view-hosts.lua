@@ -14,11 +14,16 @@ end
 function Views.new(api,config,ui,settings)
   local self={last="Waiting for sidebar"}
   local entries,windows={},{}
+  local order={};for _,id in ipairs(IDS) do order[#order+1]=id end
   local menu,escapeKey,generation,geometryTimer
   local observedGeometry,stableGeometry={},{}
   generation=0
   local function changed() api.raiseEvent("AardwolfToolbox.views.changed") end
-  function self.mode(id) return config.get("views",id) or "tabbed" end
+  function self.mode(id)
+    local entry=entries[id]
+    if entry and entry.placement then return config.get(entry.placement.feature,entry.placement.key) or 'tabbed' end
+    return config.get("views",id) or "tabbed"
+  end
   function self.closeMenu()
     generation=generation+1
     if escapeKey then api.killKey(escapeKey); escapeKey=nil end
@@ -101,7 +106,18 @@ function Views.new(api,config,ui,settings)
     return true
   end
   function self.register(id,definition)
+    assert(type(id)=='string' and id:match('^[%a][%w_%-]*$'),'Invalid view ID')
     assert(not entries[id],"Duplicate view "..id)
+    assert(type(definition)=='table' and definition.root and definition.home and type(definition.select)=='function','Invalid view definition')
+    local found=false;for _,key in ipairs(order) do if key==id then found=true end end
+    if not found then
+      local placement=definition.placement
+      assert(placement and config.features[placement.feature],'Custom views require a registered placement setting')
+      local setting
+      for _,candidate in ipairs(config.features[placement.feature].settings) do if candidate.key==placement.key then setting=candidate end end
+      assert(setting and setting.type=='choice','Custom views require a choice placement setting')
+      order[#order+1]=id
+    end
     definition.parent=definition.home; entries[id]=definition
     local ok,err=pcall(mount,id,true)
     if not ok then self.last=tostring(err); return false,self.last end
@@ -123,8 +139,11 @@ function Views.new(api,config,ui,settings)
     changed(); return true
   end
   function self.setMode(id,mode)
-    local found=false; for _,key in ipairs(IDS) do if key==id then found=true end end
+    if mode~='tabbed' and mode~='floating' then return false,'Invalid view mode' end
+    local found=false; for _,key in ipairs(order) do if key==id then found=true end end
     if not found then return false,"Unknown view" end
+    local entry=entries[id]
+    if entry and entry.placement then return config.set(entry.placement.feature,entry.placement.key,mode) end
     return config.set("views",id,mode)
   end
   function self.resetPlacement(id)
@@ -142,7 +161,7 @@ function Views.new(api,config,ui,settings)
       add(self.mode(id)=="floating" and "Return to sidebar" or "Float outside Mudlet",function() self.setMode(id,self.mode(id)=="floating" and "tabbed" or "floating") end)
       if self.mode(id)=="floating" then add("Reset window placement",function() self.resetPlacement(id) end) end
     else
-      for _,key in ipairs(IDS) do
+      for _,key in ipairs(order) do
         local e=entries[key]
         if e then
           local count=e.unread and e.unread() or 0
@@ -169,6 +188,15 @@ function Views.new(api,config,ui,settings)
     changed()
   end
   function self.available(id) return entries[id]~=nil end
+  function self.unregister(id)
+    self.closeMenu()
+    local entry=entries[id];if not entry then return end
+    if entry.parent~=entry.home then moveContent(entry.root,entry.home) end
+    if windows[id] then windows[id]:delete();windows[id]=nil end
+    entries[id]=nil
+    local builtin=false;for _,key in ipairs(IDS) do if id==key then builtin=true end end
+    if not builtin then for i,key in ipairs(order) do if id==key then table.remove(order,i);break end end end
+  end
   function self.configure()
     self.closeMenu()
     local ok,err=pcall(function() for id in pairs(entries) do mount(id) end end)
@@ -183,6 +211,7 @@ function Views.new(api,config,ui,settings)
     end
     for _,w in pairs(windows) do w:delete() end
     entries,windows={},{}
+    order={};for _,id in ipairs(IDS) do order[#order+1]=id end
     observedGeometry,stableGeometry={},{}
   end
   self.destroy=self.stop

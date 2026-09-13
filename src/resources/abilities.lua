@@ -26,19 +26,27 @@ local function withCommand(row)
   return row
 end
 function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Model,spellup)
+  local function diagnosticEcho(message)
+    if incoming and incoming.defer then incoming.defer(function() api.echo(message) end)
+    else api.echo(message) end
+  end
+
   local self={enabled=false,last='Disabled'}
   local options={automatic_refresh=true,corrections={}}
-  local handlers,request,timeout,pumpTimer,notifyTimer={},nil,nil,nil,nil
+  local handlers,request,wire,pumpTimer,notifyTimer={},nil,nil,nil,nil
   local staged,queue,index,pending,fresh,identity,stamp,session=nil,nil,nil,false,false,nil,nil,0
   local count,updated=0,nil
   local ownSend=false
   local forceSyntax,pendingForce,nextForce=false,false,false
   local sequence=0
   local dirty=false
+  local coreCommitted=false
+  local priority=40
   local observedStamp,currentLevel,baseLevel,statusLevel
   local drive,fail
   local function connected() return cache.enabled and select(3,api.getConnectionInfo()) end
   local function ready()
+    if cache.checkReadiness then return self.enabled and cache.checkReadiness("spellup") and not (spellup and spellup.status().inflight) end
     return self.enabled and connected() and cache.get('char.status.state')==3 and cache.get('char.status.pos')=='Standing'
       and not (spellup and spellup.status().inflight)
   end
@@ -71,14 +79,20 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     end)
   end
   local function cancel()
-    if timeout then api.killTimer(timeout); timeout=nil end
     if pumpTimer then api.killTimer(pumpTimer); pumpTimer=nil end
     if request and request.query.kind=='learned' and tags then tags.abortCapture('spellheaders','Ability collection stopped') end
-    request=nil; staged=nil; queue=nil; index=nil; queries.release(OWNER)
+    local old=wire; wire=nil
+    request=nil; staged=nil; queue=nil; index=nil
+    if old then old.detach('Ability collection stopped') else queries.release(OWNER) end
   end
-  fail=function(reason)
-    cancel(); pending=false; fresh=false; self.last='Stale: '..reason..'. Refresh to retry.'
-    api.echo('Aardwolf abilities: '..self.last..'\n'); notify()
+  fail=function(reason,boundary)
+    if wire and request and not boundary then
+      request.discard=reason; wire.cancel(reason); pending=false; fresh=false
+      self.last='Draining interrupted ability response: '..reason; notify(); return
+    end
+    local enrichment=coreCommitted and not dirty
+    cancel(); pending=false; fresh=enrichment; self.last=(enrichment and 'Catalog ready; command verification incomplete: ' or 'Stale: ')..reason..'. Refresh to retry.'
+    diagnosticEcho('Aardwolf abilities: '..self.last..'\n'); notify()
   end
   local function rows(corrections)
     local result={}
@@ -129,15 +143,17 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     return self.preview(button)
   end
   function self.status()
-    return {enabled=self.enabled,fresh=fresh and connected() and stamp==fingerprint(characterData()) or false,busy=queue~=nil,pending=pending,
+    return {enabled=self.enabled,fresh=fresh and not dirty and connected() and stamp==fingerprint(characterData()) or false,busy=queue~=nil,pending=pending,
       character=store.character(),count=count,updated=updated,last=self.last,session=session}
   end
   function self.refresh(recheckSyntax)
     if not self.enabled then return false,'Ability catalog disabled' end
     if queue then
+      if wire and recheckSyntax~=false then wire.setPriority(10) end
       if recheckSyntax~=false then dirty=true; nextForce=true end
       return true,'Ability refresh already in progress'
     end
+    priority=recheckSyntax==false and 40 or 10
     pendingForce=pendingForce or recheckSyntax~=false
     pending=true; fresh=false; self.last='Refresh queued; waiting for standing, command-ready character'
     notify(); schedule(); return true,self.last
@@ -160,6 +176,17 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       end
     end
     return found
+  end
+  local function persistCatalog()
+    local n=0
+    for _,r in pairs(staged) do
+      if #r.memberships==0 then membership(r,'unknown','unknown') end
+      staged[r.id]=withCommand(r)
+      if r.learned and r.available then n=n+1 end
+    end
+    local at=api.getEpoch()
+    store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=characterData().level,updated=at,count=n,fingerprint=stamp}}})
+    count=n; updated=at; fresh=true; coreCommitted=true; notify()
   end
   local function complete(q,capture)
     if q.kind=='learned' then staged=capture.rows
@@ -199,40 +226,40 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       table.sort(ids)
       for _,id in ipairs(ids) do
         local r=staged[id]; local saved=store.get('abilities',id)
-        if not forceSyntax and saved and saved.kind==r.kind and saved.name==r.name
+        if saved and saved.kind==r.kind and saved.name==r.name
             and saved.command_source=='help' and saved.command_id==id and saved.command_name==r.name
             and saved.command_version==Capture.syntaxVersion then
           for _,key in ipairs({'command','command_source','command_name','command_id','command_version',
               'command_checked','command_syntax','command_reason'}) do r[key]=copy(saved[key]) end
-        elseif Model.single(r.name,256) and r.name:match('%S') then
-          queue[#queue+1]={kind='syntax',id=id,name=r.name,command='help '..r.name}
-        else r.command_reason='Ability name cannot be used in a help query' end
+        end
+        if forceSyntax or r.command_version~=Capture.syntaxVersion then
+          if Model.single(r.name,256) and r.name:match('%S') then
+            queue[#queue+1]={kind='syntax',id=id,name=r.name,command='help '..r.name}
+          else r.command_reason='Ability name cannot be used in a help query' end
+        end
       end
+      persistCatalog()
+    elseif q.kind=='syntax' then
+      -- Commit each verified command independently of the remaining help queries.
+      store.put('abilities',q.id,withCommand(staged[q.id])); notify()
     end
     if index>#queue then
-      local n=0
-      for _,r in pairs(staged) do
-        if #r.memberships==0 then membership(r,'unknown','unknown') end
-        staged[r.id]=withCommand(r)
-        if r.learned and r.available then n=n+1 end
-      end
-      local at=api.getEpoch()
-      store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=characterData().level,updated=at,count=n,fingerprint=stamp}}})
-      cancel(); count=n; updated=at; fresh=true; self.last='Ready · '..n..' available learned abilities'; notify()
+      if not coreCommitted then persistCatalog() end
+      cancel(); fresh=true; self.last='Ready · '..count..' available learned abilities'; notify()
       if dirty then
         local recheck=nextForce; dirty=false; nextForce=false; self.refresh(recheck)
       end
     else queries.release(OWNER); schedule() end
   end
   drive=function()
-    if not pending and not queue or request then return end
+    if not pending and not queue or request or wire then return end
+    if not queries.accepting(OWNER) then return end
     if not ready() then self.last='Refresh paused; waiting for standing, command-ready character'; return end
     local b=characterData()
     if type(b.name)~='string' or not b.level then return end
-    if not queries.acquire(OWNER,40,ready) then self.last='Waiting for spell tracker synchronization'; return end
     if not queue then
       store.select(b.name); identity=b.name:lower(); stamp=fingerprint(b); observedStamp=stamp; staged={}; pending=false; fresh=false
-      forceSyntax=pendingForce; pendingForce=false
+      forceSyntax=pendingForce; pendingForce=false; coreCommitted=false
       queue={{kind='learned',command='slist learned noprompt'}}; index=1
       for _,filter in ipairs({'','combat','resist','healing','str','dex','con','int','wis','luck','passive','area','spellup'}) do
         for _,kind in ipairs({'spell','skill'}) do
@@ -245,19 +272,56 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       sequence=sequence+1
       q.marker='AWTB_ABILITY_'..tostring(self):gsub('[^%w]','')..'_'..session..'_'..sequence
     end
-    request={query=q,capture=Capture.new(q)}; self.last='Collecting '..q.command..' ('..index..'/'..#queue..')'
     local current=session
-    timeout=api.tempTimer(10,function()
-      timeout=nil; if current==session then fail('Response timed out for '..q.command) end
-    end)
-    ownSend=true
-    local ok,result,err=pcall(api.send,q.command,false)
-    if ok and result~=false and not (result==nil and err) and q.marker then
-      ok,result,err=pcall(api.send,'echo '..q.marker,false)
-    end
-    ownSend=false
-    if not ok or result==false or (result==nil and err) then fail('Request failed: '..tostring(err or result)) end
+    local expected=stamp
+    self.last='Queued: '..q.command
+    wire=queries.request(OWNER,{priority=priority,timeout=10,ready=ready,
+      current=function() return self.enabled and current==session and expected==fingerprint(characterData()) end,
+      boundary=function(line)
+        local text=line:match('^%s*(.-)%s*$')
+        if q.kind=='syntax' then return text==q.marker end
+        if q.kind=='learned' then return text=='{/spellheaders}','AardwolfToolbox.tags' end
+        return text=="To see all skills/spells for your class, use 'allspells <class>'"
+          or text=='No spells found.' or text=='No skills found.'
+      end,
+      start=function(handle)
+        request={query=q,capture=Capture.new(q)}
+        self.last='Collecting '..q.command..' ('..index..'/'..#queue..')'; notify()
+        ownSend=true
+        local function send(command)
+          if cache.sendChecked then return cache.sendChecked('command',command) end
+          local ok,result,err=pcall(api.send,command,false)
+          return ok and result~=false and not (result==nil and err),tostring(err or result)
+        end
+        local ok,result,reason=pcall(function()
+          local good,message=send(q.command)
+          if good and q.marker then good,message=send('echo '..q.marker) end
+          return good,message
+        end)
+        ownSend=false
+        if not ok then return false,tostring(result) end
+        return result,reason
+      end,
+      finish=function(ok,reason,handle)
+        if wire~=handle then return end
+        wire=nil
+        if current~=session or not self.enabled then return end
+        if not ok then
+          reason=request and request.discard or reason
+          request=nil
+          if expected~=fingerprint(characterData()) then
+            cancel(); coreCommitted=false; dirty=false; fresh=false
+            pending=options.automatic_refresh; pendingForce=pendingForce or nextForce; nextForce=false
+            self.last='Character progression changed; fresh catalog queued'; notify(); schedule()
+          else
+            if reason=='Query deadline exceeded' then reason='Response timed out for '..q.command end
+            fail(reason or 'Request failed',true)
+          end
+        end
+      end,
+    })
   end
+
   local function captureLine(line)
     if request then
       local current=request
@@ -265,9 +329,14 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local ok,claimed,done=pcall(current.capture.receive,line)
       if not ok then fail(tostring(claimed)); return false end
       if done then
-        if timeout then api.killTimer(timeout); timeout=nil end
         request=nil
-        local ok,err=pcall(complete,current.query,current.capture); if not ok then fail(tostring(err)) end
+        local handle=wire
+        if current.discard or not handle or not handle.current() then
+          if handle then handle.finish(false,current.discard or 'Obsolete response') end
+        else
+          handle.finish(true)
+          local good,err=pcall(complete,current.query,current.capture); if not good then fail(tostring(err),true) end
+        end
       end
       if claimed then return true,true,current.query.kind=='learned' and 'AardwolfToolbox.tags' or nil end
       return false
@@ -292,7 +361,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     return false
   end
   local function reset()
-    session=session+1; cancel(); dirty=false; fresh=false; identity=nil; stamp=nil; pending=options.automatic_refresh
+    session=session+1; cancel(); priority=40; coreCommitted=false; dirty=false; fresh=false; identity=nil; stamp=nil; pending=options.automatic_refresh
     observedStamp=nil; currentLevel=nil; baseLevel=nil; statusLevel=nil
     forceSyntax=false; pendingForce=false; nextForce=false
     self.last='Saved catalog available offline; waiting for fresh character data'; notify('reset')
@@ -312,11 +381,11 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local opened,message=store.open(OWNER); assert(opened,message)
       local meta=store.get('ability_metadata',0) or {}; count=meta.count or 0; updated=meta.updated
       self.enabled=true; reset()
-      incoming.add(OWNER,18,receive,function(message) self.stop(); self.last='Stopped: '..tostring(message); api.echo('Aardwolf abilities: '..self.last..'\n') end)
+      incoming.add(OWNER,18,receive,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end)
       incoming.add(OWNER..'.syntax',14,function(line)
         if self.enabled and connected() and request and request.query.kind=='syntax' then return captureLine(line) end
         return false
-      end,function(message) self.stop(); self.last='Stopped: '..tostring(message); api.echo('Aardwolf abilities: '..self.last..'\n') end)
+      end,function(message) self.stop(); self.last='Stopped: '..tostring(message); diagnosticEcho('Aardwolf abilities: '..self.last..'\n') end)
       local function on(event,fn)
         handlers[#handlers+1]=event; assert(api.registerNamedEventHandler(OWNER,event,event,fn),'Cannot register ability handler')
       end
@@ -348,8 +417,8 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
             if observedStamp and observedStamp~=nextStamp then
               fresh=false
               if queue then
-                -- Drain the owned response sequence before requesting a fresh
-                -- snapshot; do not let its tail enter the next request.
+                -- Drain only the active response. Unsent work from the previous
+                -- progression is cancelled by the broker's current-state check.
                 dirty=dirty or options.automatic_refresh
                 self.last='Character progression changed; catalog refresh pending'; notify()
               elseif options.automatic_refresh then self.refresh(false)
@@ -362,7 +431,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
           local state=cache.get('char.status.state')
           if request and (state==5 or state==6 or state==7) then fail('Game pager/editor interrupted collection') end
         end
-        schedule()
+        queries.poke(); schedule()
       end)
       api.gmod.enableModule(OWNER,'Char')
       if connected() and type(api.sendGMCP)=='function' then api.sendGMCP('request char') end

@@ -4,7 +4,7 @@ import check_package
 class ASCIITests(unittest.TestCase):
     def setUp(self):
         check_package.PackageTests.setUp(self)
-        self.lua.execute('AardwolfToolbox.start(); c=AardwolfToolbox.config; a=AardwolfToolbox.ascii; pane=widgets["AardwolfToolbox.ascii.console"]; root=widgets["AardwolfToolbox.ascii.window"]')
+        self.lua.execute('AardwolfToolbox.start(); c=AardwolfToolbox.config; c.set("dashboard","enabled",false); a=AardwolfToolbox.ascii; pane=widgets["AardwolfToolbox.ascii.console"]; root=widgets["AardwolfToolbox.ascii.window"]')
 
     def test_frames_literal_colors_and_shared_capture(self):
         self.lua.execute('''

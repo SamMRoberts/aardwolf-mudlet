@@ -6,22 +6,30 @@ function Data.new(api,cache)
   local self={enabled=false,last="Disabled",quest={state="Unknown"}}
   local handlers,modules={},{}
   local tick,repops,requested=nil,{},false
+  local groupSetup='unavailable'
   local options={automatic_data=true}
   local function now() return api.getEpoch() end
   local function changed() api.raiseEvent(OWNER..".updated") end
   function self.reset()
-    self.quest={state="Unknown"}; tick=nil; repops={}; requested=false; changed()
+    self.quest={state="Unknown"}; tick=nil; repops={}; requested=false; groupSetup='unavailable'; changed()
   end
   function self.ready()
+    if cache.checkReadiness then return self.enabled and cache.checkReadiness("information") end
     return self.enabled and cache.enabled and select(3,api.getConnectionInfo()) and cache.get("char.status.state")==3
   end
   function self.requestQuest()
     if not self.ready() then return false end
-    requested=true
-    local ok,err=pcall(api.sendGMCP,"request quest")
-    if not ok then self.last="Quest refresh failed: "..tostring(err) end
-    return ok
+    local ok,result,err=pcall(api.sendGMCP,"request quest")
+    if not ok or result==false or (result==nil and err) then self.last="Quest refresh failed: "..tostring(err or result); return false end
+    requested=true; return true
   end
+  local function setupGroup()
+    if not options.automatic_data or groupSetup~='unavailable' or not self.ready() then return end
+    local ok,result,err=pcall(api.sendGMCP,'group on')
+    if ok and result~=false and not (result==nil and err) then groupSetup='requested'
+    else groupSetup='failed'; self.last='Group monitoring setup failed: '..tostring(err or result) end
+  end
+  function self.status() return {enabled=self.enabled,last=self.last,groupMonitoring=groupSetup,questRequested=requested} end
   function self.elapsed(kind)
     local stamp
     if kind=="tick" then stamp=tick else stamp=repops[cache.get("room.info.zone") or ""] end
@@ -67,6 +75,7 @@ function Data.new(api,cache)
       end
       on("clear","AardwolfToolbox.gmcp.cleared",self.reset)
       on("data","AardwolfToolbox.gmcp.updated",function(_,path)
+        if path=='group' or type(path)=='string' and path:match('^group%.') then groupSetup='confirmed' end
         if path=="comm.quest" then questEvent(cache.get(path))
         elseif path=="comm.tick" then tick=now()
         elseif path=="comm.repop" then
@@ -79,6 +88,7 @@ function Data.new(api,cache)
           end
         end
         if options.automatic_data and not requested then self.requestQuest() end
+        setupGroup()
         changed()
       end)
       if options.automatic_data then
@@ -86,6 +96,7 @@ function Data.new(api,cache)
           modules[#modules+1]=name; api.gmod.enableModule(OWNER,name)
         end
         self.requestQuest()
+        setupGroup()
       end
       self.last="Receiving dashboard data"
     end)

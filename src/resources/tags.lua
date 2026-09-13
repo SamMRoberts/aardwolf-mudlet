@@ -32,6 +32,11 @@ local function textBytes(value)
 end
 
 function Tags.new(api, incoming)
+  local function diagnosticEcho(message)
+    if incoming and incoming.defer then incoming.defer(function() api.echo(message) end)
+    else api.echo(message) end
+  end
+
   local self = {enabled=false, last="Disabled"}
   local options = {enabled=true,suppress=true,block_timeout=10}
   local trigger, timer, notificationTimer, generation, session, sequence = nil,nil,nil,0,0,0
@@ -78,9 +83,9 @@ function Tags.new(api, incoming)
         if generation~=epoch or not self.enabled then return end
         local retainedValue=item.kind=="record" and records[item.id] or blocks[item.id]
         if retainedValue then
-          if item.diagnostic then api.echo("Aardwolf tags: unfinished block ("..item.diagnostic.."); ordinary output is visible again.\n") end
+          if item.diagnostic then diagnosticEcho("Aardwolf tags: unfinished block ("..item.diagnostic.."); ordinary output is visible again.\n") end
           local ok,err=pcall(api.raiseEvent,OWNER.."."..item.kind,item.id)
-          if not ok then api.echo("Aardwolf tags: consumer notification failed: "..tostring(err).."\n") end
+          if not ok then diagnosticEcho("Aardwolf tags: consumer notification failed: "..tostring(err).."\n") end
         end
       end
     end),"Cannot schedule tag notifications")
@@ -107,7 +112,7 @@ function Tags.new(api, incoming)
   end
   local function diagnostic(reason)
     self.last="Capture resumed after "..reason
-    api.echo("Aardwolf tags: unfinished block ("..reason.."); ordinary output is visible again.\n")
+    diagnosticEcho("Aardwolf tags: unfinished block ("..reason.."); ordinary output is visible again.\n")
   end
   function self.stop()
     self.enabled=false
@@ -118,7 +123,7 @@ function Tags.new(api, incoming)
   self.destroy=self.stop
   local function failed(err)
     self.stop(); self.last="Stopped: "..tostring(err)
-    api.echo("Aardwolf tags: "..self.last.."; output is visible.\n")
+    diagnosticEcho("Aardwolf tags: "..self.last.."; output is visible.\n")
   end
   local function armTimer()
     local epoch=generation

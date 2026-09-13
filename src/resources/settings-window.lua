@@ -12,7 +12,7 @@ end
 local STYLE = "QLabel { background-color: #202b39; color: #eef3fa; border: 0; padding: 5px; qproperty-wordWrap: true; }"
 local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px solid #526b86; border-radius: 4px; padding: 5px; qproperty-wordWrap: true; } QLabel:hover { background-color: #46627f; }"
 
-function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, picker)
+function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, picker, health, exportDiagnostics)
   local self = {opened = false}
   local root, body, message, status, navigation, timer, draft, revision, selected
   local recordSelection={}
@@ -55,7 +55,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
     if width == contentWidth and height == contentHeight then return end
     contentWidth, contentHeight = width, height
     body:resize(width + 24, height)
-    if navigation then navigation:resize(143, height) end
+    if navigation then navigation:resize(143, math.max(60,height-66)) end
     for _, widget in ipairs(contentWidgets) do widget:resize(width, widget.height) end
   end
   local render
@@ -228,6 +228,39 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
       end); y=y+controlHeight+8
     end
     for _,setting in ipairs(feature.settings) do field(setting,draft[selected]) end
+    if selected=='diagnostics' and health then
+      local snapshot=health()
+      label(body,'reportVersion','Version '..snapshot.version,4,y,'-8px',controlHeight);y=y+controlHeight+4
+      local function report(text)
+        label(body,'report',text,4,y,'-8px',controlHeight*2);y=y+controlHeight*2+4
+      end
+      local queries=snapshot.queries or {}
+      report('Current request: '..tostring(queries.owner or 'None'))
+      for _,request in ipairs(queries.requests or {}) do
+        report(request.owner..' · '..request.state..' · '..tostring(request.reason or ''))
+      end
+      for _,entry in ipairs({{'Inventory',snapshot.inventory},{'Spells',snapshot.spells}}) do
+        if entry[2] then report(entry[1]..' monitoring: '..tostring(entry[2].monitoring or 'unavailable')) end
+      end
+      if snapshot.mobs then report('Scan tags: '..snapshot.mobs.scanMonitoring) end
+      if snapshot.dashboard then report('Group monitoring: '..snapshot.dashboard.groupMonitoring) end
+      if snapshot.catalog then report('Ability catalog: '..(snapshot.catalog.fresh and 'Fresh' or 'Stale / waiting')) end
+      local recent=queries.recent or {};local shown=0
+      for i=#recent,1,-1 do
+        local request=recent[i]
+        if request.state=='failed' then
+          report('Failed: '..request.owner..' · '..request.reason);shown=shown+1
+          if shown>=8 then break end
+        end
+      end
+      for _,entry in ipairs(snapshot.features) do
+        report(entry.id..': '..tostring(entry.error or entry.last or 'Initialized'))
+      end
+      label(body,'reportRefresh','Refresh report',4,y,'-8px',controlHeight,function() capture();render() end);y=y+controlHeight+4
+      if exportDiagnostics then label(body,'reportExport','Export diagnostics',4,y,'-8px',controlHeight,function()
+        local ok,message=exportDiagnostics();feedback(message or (ok and 'Exported' or 'Export failed'))
+      end) end
+    end
     for _,child in ipairs(oldChildren) do child:delete() end
     fitContents()
   end
@@ -349,12 +382,32 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
       root.exitLabel:setClickCallback(function() self.close() end)
       root.minimizeLabel:hide()
       status = label(root, "status", "", 4, 2, "-8px", 52)
-      navigation = api.Geyser.ScrollBox:new({name = PREFIX .. "navigation", x = 4, y = 60,
-        width = 143, height = "-108px"}, root)
-      for index, id in ipairs(config.order) do
-        label(navigation, "feature", config.features[id].label, 0, (index - 1) * 42, "100%", 38,
-          function() self.select(id) end)
+      label(root,'searchLabel','Search settings',4,60,143,24)
+      local search=api.Geyser.CommandLine:new({name=PREFIX..'search',x=4,y=84,width=143,height=38},root)
+      search:setStyleSheet("QPlainTextEdit {font-size:"..(ui and ui.metrics().size or 12).."pt; background:#15202c; color:#eef3fa;}")
+      search:print('')
+      navigation=api.Geyser.ScrollBox:new({name=PREFIX..'navigation',x=4,y=126,width=143,height='-174px'},root)
+      local navigationLabels={}
+      local function filterNavigation(text)
+        for _,widget in ipairs(navigationLabels) do widget:delete() end;navigationLabels={}
+        text=tostring(text):lower()
+        local y=0
+        for _,id in ipairs(config.order) do
+          local feature=config.features[id]
+          local haystack=id..' '..feature.label..' '..(feature.description or '')
+          for _,setting in ipairs(feature.settings) do haystack=haystack..' '..setting.label..' '..(setting.description or '') end
+          if text=='' or haystack:lower():find(text,1,true) then
+            local height=ui and math.max(38,math.ceil(ui.measure(feature.label)/123)*ui.metrics().line+10) or 38
+            navigationLabels[#navigationLabels+1]=label(navigation,'feature',feature.label,0,y,'100%',height,function() self.select(id) end)
+            y=y+height+4
+          end
+        end
       end
+      search:setAction(function(text)
+        if not self.opened then return end
+        search:print(text);filterNavigation(text)
+      end)
+      filterNavigation('')
       message = label(root, "message", config.readError or "Changes take effect when you Apply.", 4, "-100px", "-8px", 54)
       label(root, "defaults", "Restore defaults", 4, "-40px", "40%", 34, self.restoreDefaults)
       label(root, "cancel", "Cancel", "43%", "-40px", "25%", 34, self.close)

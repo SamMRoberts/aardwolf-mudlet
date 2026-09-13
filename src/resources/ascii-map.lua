@@ -2,6 +2,11 @@ local ASCII = {}
 local OWNER="AardwolfToolbox.ascii"
 local function clamp(n,low,high) return math.max(low,math.min(n,math.max(low,high))) end
 function ASCII.new(api,config,incoming,borders,openSettings,ui)
+  local function diagnosticEcho(message)
+    if incoming and incoming.defer then incoming.defer(function() api.echo(message) end)
+    else api.echo(message) end
+  end
+
   local self={enabled=false,last="Disabled"}
   local options,root,console,frame,timer,renderTimer,drag,busy
   local handlers={}
@@ -12,7 +17,7 @@ function ASCII.new(api,config,incoming,borders,openSettings,ui)
   end
   local function diagnostic(reason)
     self.last=reason
-    api.echo("Aardwolf ASCII map: "..reason.."; ordinary output is visible.\n")
+    diagnosticEcho("Aardwolf ASCII map: "..reason.."; ordinary output is visible.\n")
   end
   local function waiting()
     if console then console:clear(); console:echo("Waiting for map\n") end

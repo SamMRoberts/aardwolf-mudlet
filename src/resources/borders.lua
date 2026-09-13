@@ -31,8 +31,18 @@ function Borders.new(api,config)
     saved=encoded
   end
   function self.resetExternal(margins)
+    for edge,value in pairs(margins) do
+      assert(edge=='left' or edge=='right' or edge=='top' or edge=='bottom','Unknown border edge')
+      assert(type(value)=='number' and value>=0 and value<math.huge,'Invalid external margin')
+    end
     for edge,value in pairs(margins) do base[edge]=value; written[edge]=read(edge) end
     self.refresh()
+  end
+  function self.snapshot()
+    local result={edges={},claims={}}
+    for _,edge in ipairs(edges) do result.edges[edge]={current=read(edge),base=base[edge],written=written[edge]} end
+    for owner,claim in pairs(claims) do result.claims[owner]={edge=claim.edge,size=claim.size,rank=claim.rank,fullWidth=claim.fullWidth} end
+    return result
   end
   function self.refresh()
     if busy then return end
@@ -106,6 +116,16 @@ function Borders.new(api,config)
     local old=claims[owner]
     return math.max(1,size+(old and old.edge==edge and old.size or 0)-80)
   end
+  function self.stop()
+    local owners={}; for owner in pairs(claims) do owners[#owners+1]=owner end
+    local errors={}
+    for _,owner in ipairs(owners) do
+      local ok,err=pcall(self.release,owner)
+      if not ok then errors[#errors+1]=tostring(err) end
+    end
+    return #errors==0,table.concat(errors,'; ')
+  end
+  self.destroy=self.stop
   return self
 end
 return Borders

@@ -4,7 +4,7 @@ local OWNER="AardwolfToolbox.dashboard"
 local function number(value)
   return type(value)=="number" and value==value and math.abs(value)<math.huge and string.format("%.0f",value) or "--"
 end
-function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels)
+function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell)
   local self={enabled=false,last="Disabled"}
   local options,adapter,timer,refreshTimer,drag
   local root,mapTabs,mapHost,body,playerHost,split1,split2,widthHandle,tabStrip
@@ -345,8 +345,10 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if a.base.layoutDock then a.base.layoutDock() end
   end
   local function adapt()
-    local base=api.BaseUI
-    if adapter and (base~=adapter.base or base.container~=adapter.container) then restore() end
+    local base=shell and shell.getBase() or api.BaseUI
+    if adapter and (base~=adapter.base or base.container~=adapter.container) then
+      local owned=adapter.base.toolboxOwned; restore();if owned and shell then shell.stop() end
+    end
     if not base or not base.container or not base.sections or not base.sections.map or not base.sections.chat
         or type(base.layoutDock)~="function" or type(base.refreshChatTabs)~="function" then
       self.last="Waiting for starter sidebar"; return
@@ -413,6 +415,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if refreshTimer then api.killTimer(refreshTimer); refreshTimer=nil end
     for _,name in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,name) end
     handlers={}; data.stop(); restore()
+    if shell then shell.stop() end
     for _,id in ipairs({"views","sidebar","quest","tick","repop"}) do bar.unregisterItem(id) end
     self.last="Disabled"
   end
@@ -447,6 +450,9 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   end
   function self.resetLayout()
     local draft,revision=config.draft()
+    local backedUp,backupError=config.setMetadata('layoutResetBackup',{settings=draft,borders=borders.snapshot()})
+    if not backedUp then return false,'Layout not reset: '..tostring(backupError) end
+    draft,revision=config.draft()
     draft.dashboard.width=0; draft.dashboard.map_percent=40; draft.dashboard.dashboard_percent=30
     draft.dashboard.collapsed=true; draft.dashboard.ascii_popout=false; draft.dashboard.map_tab="graphical"
     draft.ascii.x=40; draft.ascii.y=140; draft.ascii.width=265; draft.ascii.height=330

@@ -1,4 +1,25 @@
-# AardwolfToolbox 0.23.3
+# AardwolfToolbox 0.24.0-dev.2
+
+This is a development candidate for the roadmap to a standalone 1.0, not a
+completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
+
+New controls are in **aardwolf-config → Sidebar and setup** and **Diagnostics**.
+The settings search field filters sections and their setting descriptions when
+Enter is pressed; input stays local. `aardwolf-status` includes feature health
+and the current query owner. Diagnostics show queued requests, recent failures,
+and requested/confirmed monitoring; they can be exported locally as JSON.
+
+This candidate moves inventory, abilities, spell snapshots, room scans, and
+consider batches onto the shared request broker. Progression changes cancel
+unsent obsolete catalog work and drain the active response before refreshing.
+The item service now retains bounded, session-only item records and observed
+equipment/container data; dedicated item views remain part of the next milestone.
+
+Automatic sidebar ownership retains an installed starter UI; on fresh profiles,
+Toolbox supplies its own map/dashboard/chat shell. Explicit Toolbox mode moves
+existing map/chat widgets after saving a layout/settings snapshot. This migration
+is a native acceptance candidate: back up the profile before installing it.
+
 
 AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
 player dashboards, room-mob tracking, configurable action buttons, and shared
@@ -304,6 +325,20 @@ deletes them. Mapper preferences persist; counters remain session state. Module
 Manager synchronization is outside scope.
 
 ## Build and verify
+
+Use the pinned local toolchain (Python 3.14.6, Temurin 17.0.16+8,
+Muddler 1.1.0, Lupa 2.6):
+
+```sh
+python3 tools/check.py --bootstrap
+# Subsequent builds, archive checks, Lua 5.1 tests and mob benchmarks:
+python3 tools/check.py
+```
+
+Bootstrap downloads tools into ignored `.tools/` and installs test dependencies
+in `.venv/`; it does not install anything into Mudlet. `JAVA_HOME` and
+`MUDDLER_JAR` can point to an existing toolchain. CI uses the same check command.
+
 
 From this directory, use Muddler 1.1.0:
 

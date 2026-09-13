@@ -1,15 +1,30 @@
 -- Preserve session state when this script is compiled again in the editor.
+-- A different package version must release its old instances before rebuilding.
+if AardwolfToolbox and AardwolfToolbox.config and AardwolfToolbox.loadedVersion~="@VERSION@" then
+  local previous=AardwolfToolbox
+  local ok,result=pcall(previous.stop)
+  if not ok or result==false then
+    echo("Aardwolf upgrade stopped: existing resources could not be released.\n")
+    return
+  end
+  AardwolfToolbox={active=false,calls=previous.calls or 0}
+end
 AardwolfToolbox = AardwolfToolbox or { active = false, calls = 0 }
 
 local function resource(name)
   return dofile(getMudletHomeDir() .. "/@PKGNAME@/" .. name .. ".lua")
 end
 
+local function own(id,value,dependencies,method)
+  AardwolfToolbox.components.register(id,value,dependencies,method)
+  AardwolfToolbox[id]=value
+  return value
+end
+
 local function initialize()
-  if AardwolfToolbox.config then return end
   local config = resource("configuration").new(_G)
-  AardwolfToolbox.config = config
-  AardwolfToolbox.ui = resource("appearance").new(_G,config)
+  own("config",config,{},"deactivate")
+  own("ui",resource("appearance").new(_G,config),{},"stop")
   config.registerFeature({id="appearance",label="Appearance",description="Shared readable fonts for Toolbox, console, input, and chat. Larger existing console text is preserved.",settings={
     {key="enabled",type="boolean",default=true,label="Manage console and input fonts"},
     {key="preset",type="choice",default="comfortable",label="Reading preset",options={{value="comfortable",label="Comfortable"},{value="large",label="Large"}}},
@@ -18,15 +33,15 @@ local function initialize()
     {key="ui_size",type="number",default=12,min=11,max=24,integer=true,label="Interface font size"},
     {key="reading_size",type="number",default=13,min=11,max=24,integer=true,label="Reading font size"},
   },apply=AardwolfToolbox.ui.configure})
-  AardwolfToolbox.gmcp = resource("gmcp-cache").new(_G)
+  own("gmcp",resource("gmcp-cache").new(_G),{},"stop")
   config.registerFeature({id="gmcp",label="GMCP data",
     description="Keep session-only character, communication, group, and room values for Toolbox features.",
     settings={{key="enabled",type="boolean",default=true,label="Enable GMCP cache"}},
     apply=AardwolfToolbox.gmcp.configure})
-  AardwolfToolbox.mapper = resource("automapper").new(_G, function(key)
+  own("mapper",resource("automapper").new(_G, function(key)
     return config.get("mapper", key)
-  end, resource("mapper-identity"))
-  AardwolfToolbox.mapTravel = resource("map-travel").new(_G, AardwolfToolbox.gmcp)
+  end, resource("mapper-identity")),{},"stop")
+  own("mapTravel",resource("map-travel").new(_G, AardwolfToolbox.gmcp),{"gmcp"},"stop")
   config.registerFeature({
     id = "mapper", label = "Auto-mapper",
     description = "Use game room numbers and authoritative GMCP room fields. Legacy Toolbox maps are backed up and renumbered on the next fresh room update.",
@@ -55,15 +70,28 @@ local function initialize()
       return AardwolfToolbox.mapTravel.configure(values.double_click_run)
     end,
   })
-  AardwolfToolbox.borders = resource("borders").new(_G,config)
-  AardwolfToolbox.incoming = resource("incoming").new(_G)
-  AardwolfToolbox.help = resource("help-pane").new(_G,AardwolfToolbox.incoming,AardwolfToolbox.ui)
+  own("borders",resource("borders").new(_G,config),{},"stop")
+  local Shell=resource("sidebar-shell")
+  own("shell",Shell.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.ui,resource("console-text")),{"config","gmcp","ui"})
+  config.registerFeature(Shell.definition(function(values)
+    local shell=AardwolfToolbox.shell
+    local changed=shell.configuredMode and shell.configuredMode~=values.mode
+    local dashboard=AardwolfToolbox.dashboard
+    local running=changed and dashboard and dashboard.enabled
+    if running then dashboard.stop() end
+    if changed then shell.stop() end
+    shell.configure(values)
+    if running then local draft=config.draft();return dashboard.configure(draft.dashboard) end
+    return true
+  end))
+  own("incoming",resource("incoming").new(_G),{},"destroy")
+  own("help",resource("help-pane").new(_G,AardwolfToolbox.incoming,AardwolfToolbox.ui),{"incoming","ui"},"stop")
   config.registerFeature({id="help",label="Help pane",
     description="Open tagged help in a floating window, titled with its keywords.",settings={
       {key="enabled",type="boolean",default=true,label="Enable floating help"},
 
     },apply=AardwolfToolbox.help.configure})
-  AardwolfToolbox.vitals = resource("vitals").new(_G,AardwolfToolbox.borders,AardwolfToolbox.ui)
+  own("vitals",resource("vitals").new(_G,AardwolfToolbox.borders,AardwolfToolbox.ui),{"borders","ui"},"stop")
   config.registerFeature({id="vitals", label="Vitals",
     description="Compact HP, Mana, Moves, target health, and level progress above the command input.",
     settings={
@@ -75,7 +103,7 @@ local function initialize()
       {key="bar_height", type="number", default=22, min=16, max=36, integer=true, label="Bar height (pixels)"},
     }, apply=AardwolfToolbox.vitals.configure})
 
-  AardwolfToolbox.tags = resource("tags").new(_G,AardwolfToolbox.incoming)
+  own("tags",resource("tags").new(_G,AardwolfToolbox.incoming),{"incoming"},"stop")
   config.registerFeature({id="tags",label="Game tags",
     description="Capture brace-tagged records and complete blocks for Toolbox features.",
     settings={
@@ -85,10 +113,10 @@ local function initialize()
       {key="block_timeout",type="number",default=10,min=1,max=120,label="Block timeout (seconds)",
         description="Stop hiding unfinished blocks after this many seconds."},
     },apply=AardwolfToolbox.tags.configure})
-  AardwolfToolbox.ascii = resource("ascii-map").new(_G,config,AardwolfToolbox.incoming,
+  own("ascii",resource("ascii-map").new(_G,config,AardwolfToolbox.incoming,
     AardwolfToolbox.borders,function()
       AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("ascii")
-    end,AardwolfToolbox.ui)
+    end,AardwolfToolbox.ui),{"incoming","borders","ui"},"stop")
   config.registerFeature({id="ascii",label="ASCII map",
     description="Capture maps for the ASCII tab. Dock and geometry preferences apply to its pop-out pane. Fonts are shared in Appearance.",settings={
       {key="enabled",type="boolean",default=true,label="Enable ASCII map"},
@@ -105,9 +133,9 @@ local function initialize()
     },apply=AardwolfToolbox.ascii.configure})
 
   local Cleanup=resource("console-cleanup")
-  AardwolfToolbox.consoleCleanup=Cleanup.new(_G,AardwolfToolbox.incoming)
+  own("consoleCleanup",Cleanup.new(_G,AardwolfToolbox.incoming),{"incoming"})
   config.registerFeature(Cleanup.definition(AardwolfToolbox.consoleCleanup.configure))
-  AardwolfToolbox.consider = resource("consider").new(_G,AardwolfToolbox.incoming)
+  own("consider",resource("consider").new(_G,AardwolfToolbox.incoming),{"incoming"},"stop")
   config.registerFeature({id="consider",label="Consider",
     description="Replace consider messages with clear difficulty labels and relative level ranges.",settings={
       {key="enabled",type="boolean",default=true,label="Enable consider formatting"},
@@ -115,7 +143,7 @@ local function initialize()
         description="Difficulty labels and relative level ranges remain visible with colors disabled."},
     },apply=AardwolfToolbox.consider.configure})
 
-  AardwolfToolbox.player = resource("player-panel").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.ui)
+  own("player",resource("player-panel").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.ui),{"gmcp","ui"},"stop")
   config.registerFeature({id="player",label="Player panel",
     description="Compact player level, stats, and status between the map and chat.",settings={
       {key="enabled",type="boolean",default=true,label="Enable player panel"},
@@ -123,9 +151,11 @@ local function initialize()
     },apply=AardwolfToolbox.player.configure})
 
 
-  AardwolfToolbox.inventory = resource("inventory").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming)
-  AardwolfToolbox.utilityBar = resource("utility-bar").new(_G,AardwolfToolbox.gmcp,
-    AardwolfToolbox.inventory,AardwolfToolbox.borders,function() AardwolfToolbox.openSettings() end,AardwolfToolbox.ui)
+  own("queries",resource("query-coordinator").new(_G),{},"destroy")
+  own("readiness",resource("readiness").new(_G,AardwolfToolbox.gmcp),{"gmcp"},"stop")
+  own("inventory",resource("inventory").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.queries,AardwolfToolbox.readiness,resource("item-state")),{"gmcp","incoming","queries","readiness"},"stop")
+  own("utilityBar",resource("utility-bar").new(_G,AardwolfToolbox.gmcp,
+    AardwolfToolbox.inventory,AardwolfToolbox.borders,function() AardwolfToolbox.openSettings() end,AardwolfToolbox.ui),{"gmcp","inventory","borders","ui"},"stop")
   local utilitySettings={
     {key="enabled",type="boolean",default=true,label="Enable utility bar"},
 
@@ -140,10 +170,9 @@ local function initialize()
     description="Full-width player progression, gold, and loose inventory above the console and sidebar.",
     settings=utilitySettings,apply=AardwolfToolbox.utilityBar.configure})
 
-  AardwolfToolbox.abilityStore=resource("ability-store").new(_G)
-  AardwolfToolbox.queries=resource("query-coordinator").new(_G)
-  AardwolfToolbox.spells=resource("spells").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries)
-  AardwolfToolbox.spellup=resource("spellup").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.spells,AardwolfToolbox.queries)
+  own("abilityStore",resource("ability-store").new(_G),{},"destroy")
+  own("spells",resource("spells").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries),{"gmcp","incoming","tags","abilityStore","queries"},"stop")
+  own("spellup",resource("spellup").new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.spells,AardwolfToolbox.queries),{"gmcp","spells","queries"},"stop")
   AardwolfToolbox.utilityBar.bindSpellups(AardwolfToolbox.spells,AardwolfToolbox.spellup,function() AardwolfToolbox.openBuffs() end)
   config.registerFeature({id="spellups",label="Spellups",description="Track buffs and recoveries. Optional spellup learned retry starts batches only while standing outside combat. Pause stops new batches; already queued server casts may continue.",settings={
     {key="enabled",type="boolean",default=true,label="Enable spell tracking"},
@@ -158,14 +187,14 @@ local function initialize()
   end})
 
   local Views=resource("view-hosts")
-  AardwolfToolbox.views=Views.new(_G,config,AardwolfToolbox.ui,function()
+  own("views",Views.new(_G,config,AardwolfToolbox.ui,function()
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("views")
-  end)
+  end),{"config","ui"})
   config.registerFeature(Views.definition(AardwolfToolbox.views.configure))
-  AardwolfToolbox.dashboardData=resource("dashboard-data").new(_G,AardwolfToolbox.gmcp)
-  AardwolfToolbox.dashboard=resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
+  own("dashboardData",resource("dashboard-data").new(_G,AardwolfToolbox.gmcp),{"gmcp"},"stop")
+  own("dashboard",resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
     AardwolfToolbox.dashboardData,AardwolfToolbox.ui,AardwolfToolbox.borders,
-    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"))
+    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell),{"gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
   config.registerFeature({id="dashboard",label="Dashboard and layout",description="Tabbed maps and gameplay views above chat. Drag the dividers to resize. Reset layout restores placement without clearing data.",settings={
     {key="enabled",type="boolean",default=true,label="Enable tabbed sidebar"},
     {key="automatic_data",type="boolean",default=true,label="Automatic GMCP data setup"},
@@ -180,26 +209,30 @@ local function initialize()
     {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="buffs",label="Buffs"}}},
   },validate=function(values) return values.map_percent+values.dashboard_percent<=80,"Map and dashboard shares must leave at least 20% for chat." end,apply=AardwolfToolbox.dashboard.configure})
 
+  config.registerFeature({id="diagnostics",label="Diagnostics",description="Feature activation, freshness and request status. Reports contain no raw gameplay logs.",settings={
+    {key="details",type="boolean",default=true,label="Include feature details in status reports"},
+  },apply=function() return AardwolfToolbox.queries.start(AardwolfToolbox.gmcp,AardwolfToolbox.incoming) end})
+
   local AbilityFields=resource("ability-fields")
-  AardwolfToolbox.abilities=resource("abilities").new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
-    AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries,resource("ability-capture"),resource("ability-model"),AardwolfToolbox.spellup)
+  own("abilities",resource("abilities").new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
+    AardwolfToolbox.tags,AardwolfToolbox.abilityStore,AardwolfToolbox.queries,resource("ability-capture"),resource("ability-model"),AardwolfToolbox.spellup),{"gmcp","incoming","tags","abilityStore","queries","spellup"},"stop")
   config.registerFeature(AbilityFields.definition(AardwolfToolbox.abilities.configure))
   local Mobs=resource("mobs")
   local MobActions=resource("mob-actions")
-  AardwolfToolbox.mobs=Mobs.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,
+  own("mobs",Mobs.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,AardwolfToolbox.tags,
     AardwolfToolbox.queries,AardwolfToolbox.spellup,resource("mob-state"),resource("mob-protocol"),resource("mob-pane"),
     AardwolfToolbox.ui,AardwolfToolbox.borders,function()
       AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("mobs")
-    end,AardwolfToolbox.consider,MobActions,config)
+    end,AardwolfToolbox.consider,MobActions,config),{"config","gmcp","incoming","queries"})
   config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure,MobActions))
 
   local Shortcuts=resource("shortcuts")
   local Actions=resource("action-bar")
-  AardwolfToolbox.actionBar=Actions.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.borders,AardwolfToolbox.ui,
+  own("actionBar",Actions.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.borders,AardwolfToolbox.ui,
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) end,AardwolfToolbox.abilities)
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
@@ -207,48 +240,46 @@ local function initialize()
 end
 
 function AardwolfToolbox.start()
-  initialize()
-  AardwolfToolbox.active = true
-  if not AardwolfToolbox.config.getMetadata("layout013") then
-    local ok,message=pcall(function()
-      AardwolfToolbox.borders.resetExternal({top=0,bottom=0})
-      assert(AardwolfToolbox.config.setMetadata("layout013",true))
-    end)
-    if not ok then echo("Aardwolf layout: "..tostring(message).."\n") end
+  if not AardwolfToolbox.initialized then
+    AardwolfToolbox.components=resource("components").new()
+    local ok,err=pcall(initialize)
+    if not ok then
+      local _,entries=AardwolfToolbox.components.stop()
+      for _,entry in ipairs(entries) do AardwolfToolbox[entry.id]=nil end
+      AardwolfToolbox.navigation=nil; AardwolfToolbox.shortcuts=nil
+      AardwolfToolbox.lastError=tostring(err); AardwolfToolbox.active=false
+      echo("Aardwolf startup failed: "..tostring(err).."\n")
+      return false,tostring(err)
+    end
+    AardwolfToolbox.initialized=true
+    AardwolfToolbox.loadedVersion="@VERSION@"
   end
-  AardwolfToolbox.config.activate()
+  local ok,err=pcall(AardwolfToolbox.config.activate)
+  if not ok then
+    AardwolfToolbox.components.stop(); AardwolfToolbox.active=false
+    AardwolfToolbox.lastError=tostring(err)
+    return false,tostring(err)
+  end
+  AardwolfToolbox.active=true; AardwolfToolbox.lastError=nil
+  return true
 end
 
 function AardwolfToolbox.stop()
-  if AardwolfToolbox.mapTravel then AardwolfToolbox.mapTravel.stop() end
-  if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
-  if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
-  if AardwolfToolbox.actionBar then AardwolfToolbox.actionBar.stop() end
-  if AardwolfToolbox.dashboard then AardwolfToolbox.dashboard.stop() end
-  if AardwolfToolbox.utilityBar then AardwolfToolbox.utilityBar.stop() end
-  if AardwolfToolbox.player then AardwolfToolbox.player.stop() end
-  if AardwolfToolbox.help then AardwolfToolbox.help.stop() end
-  if AardwolfToolbox.consoleCleanup then AardwolfToolbox.consoleCleanup.stop() end
-  if AardwolfToolbox.consider then AardwolfToolbox.consider.stop() end
-  if AardwolfToolbox.mobs then AardwolfToolbox.mobs.stop() end
-  if AardwolfToolbox.spellup then AardwolfToolbox.spellup.stop() end
-  if AardwolfToolbox.spells then AardwolfToolbox.spells.stop() end
-  if AardwolfToolbox.abilities then AardwolfToolbox.abilities.stop() end
-  if AardwolfToolbox.abilityStore then AardwolfToolbox.abilityStore.destroy() end
-  if AardwolfToolbox.queries then AardwolfToolbox.queries.destroy() end
-  if AardwolfToolbox.gmcp then AardwolfToolbox.gmcp.stop() end
-  if AardwolfToolbox.ascii then AardwolfToolbox.ascii.stop() end
-  if AardwolfToolbox.tags then AardwolfToolbox.tags.stop() end
-  if AardwolfToolbox.vitals then AardwolfToolbox.vitals.stop() end
-  if AardwolfToolbox.mapper then AardwolfToolbox.mapper.stop() end
-  if AardwolfToolbox.ui then AardwolfToolbox.ui.stop() end
-  AardwolfToolbox.active = false
+  if AardwolfToolbox.settingsWindow then
+    local ok,err=pcall(AardwolfToolbox.settingsWindow.destroy)
+    if not ok then AardwolfToolbox.lastError=tostring(err) end
+  end
+  local ok,errors=true,{}
+  if AardwolfToolbox.components then ok,errors=AardwolfToolbox.components.stop() end
+  AardwolfToolbox.active=false
+  return ok,errors
 end
 
 function AardwolfToolbox.openSettings()
-  AardwolfToolbox.start()
+  local started,err=AardwolfToolbox.start()
+  if not started then return false,err end
   if not AardwolfToolbox.settingsWindow then
-    AardwolfToolbox.settingsWindow = resource("settings-window").new(_G, AardwolfToolbox.config, function(id)
+    own("settingsWindow",resource("settings-window").new(_G, AardwolfToolbox.config, function(id)
       if id=="mapper" then
         local mapper=AardwolfToolbox.mapper
         return "Saved: "..(AardwolfToolbox.config.get("mapper","enabled") and "enabled" or "disabled")..
@@ -258,7 +289,7 @@ function AardwolfToolbox.openSettings()
       local key=id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
       local component=AardwolfToolbox[key]
       return AardwolfToolbox.config.runtimeErrors[id] or (component and component.last) or "Settings ready"
-    end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end,AardwolfToolbox.abilities,resource("ability-picker"))
+    end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end,AardwolfToolbox.abilities,resource("ability-picker"),AardwolfToolbox.health,AardwolfToolbox.exportDiagnostics),{"config","mapper","spells","spellup","ui","dashboard","abilities"},"stop")
   end
   AardwolfToolbox.settingsWindow.open()
 end
@@ -293,12 +324,46 @@ function AardwolfToolbox.spellupCommand(command)
   echo("Aardwolf spellups: "..(message or AardwolfToolbox.spellup.last).."\n")
 end
 
-function AardwolfToolbox.status()
-  if AardwolfToolbox.active then
-    AardwolfToolbox.calls = AardwolfToolbox.calls + 1
+function AardwolfToolbox.health()
+  local result={version="@VERSION@",active=AardwolfToolbox.active,error=AardwolfToolbox.lastError,features={}}
+  for _,entry in ipairs(AardwolfToolbox.components and AardwolfToolbox.components.snapshot() or {}) do
+    result.features[#result.features+1]=entry
   end
-  echo(string.format("Aardwolf Toolbox: %s; calls=%d\n",
-    AardwolfToolbox.active and "ready" or "inactive", AardwolfToolbox.calls))
+  if AardwolfToolbox.queries then result.queries=AardwolfToolbox.queries.snapshot() end
+  if AardwolfToolbox.abilities then result.catalog=AardwolfToolbox.abilities.status() end
+  if result.catalog then result.catalog.character=nil end
+  if AardwolfToolbox.inventory then result.inventory=AardwolfToolbox.inventory.status() end
+  if AardwolfToolbox.spells then result.spells=AardwolfToolbox.spells.status() end
+  if AardwolfToolbox.mobs then result.mobs=AardwolfToolbox.mobs.status() end
+  if AardwolfToolbox.dashboardData then result.dashboard=AardwolfToolbox.dashboardData.status() end
+  return result
+end
+
+function AardwolfToolbox.exportDiagnostics()
+  local path=getMudletHomeDir().."/AardwolfToolbox-diagnostics.json"
+  local ok,encoded=pcall(yajl.to_string,AardwolfToolbox.health())
+  if not ok then return false,"Cannot encode diagnostics" end
+  local file,err=io.open(path..".tmp","wb"); if not file then return false,err end
+  local written,message=file:write(encoded); local closed,closeError=file:close()
+  if not written or not closed then os.remove(path..".tmp"); return false,message or closeError end
+  local renamed,renameError=os.rename(path..".tmp",path)
+  if not renamed then os.remove(path..".tmp"); return false,renameError end
+  return true,"Diagnostics saved to "..path
+end
+
+function AardwolfToolbox.status()
+  if AardwolfToolbox.active then AardwolfToolbox.calls=AardwolfToolbox.calls+1 end
+  local report=AardwolfToolbox.health()
+  local lines={string.format("Aardwolf Toolbox: %s; calls=%d",AardwolfToolbox.active and "ready" or "inactive",AardwolfToolbox.calls),
+    "Version "..report.version}
+  if report.error then lines[#lines+1]="Startup: "..report.error end
+  if AardwolfToolbox.config and AardwolfToolbox.config.get('diagnostics','details') then
+    for _,entry in ipairs(report.features) do
+      if entry.last or entry.error then lines[#lines+1]=entry.id..": "..tostring(entry.error or entry.last) end
+    end
+    lines[#lines+1]="Query owner: "..tostring(report.queries and report.queries.owner or "none")
+  end
+  echo(table.concat(lines,"\n").."\n")
 end
 
 -- Mudlet owns the permanent alias and these script event registrations.

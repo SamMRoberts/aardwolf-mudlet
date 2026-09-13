@@ -42,11 +42,11 @@ class UtilityTests(unittest.TestCase):
           end
         ''')
         with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as z:
-            for name in ('incoming','borders','inventory','utility-bar'):
+            for name in ('incoming','borders','item-state','inventory','utility-bar'):
                 self.lua.globals()[name.replace('-','_')]=self.lua.execute(z.read(name+'.lua').decode())
         self.lua.execute('''
           incoming=incoming.new(_G); borders=borders.new(_G)
-          inventory=inventory.new(_G,cache,incoming)
+          inventory=inventory.new(_G,cache,incoming,nil,nil,item_state)
           bar=utility_bar.new(_G,cache,inventory,borders,function() opened=true end)
           function snapshot()
             feed('{invdata}'); feed('42,,a bag, with commas,1,11,0,-1,-1')
@@ -182,6 +182,7 @@ class UtilityTests(unittest.TestCase):
           incoming.add('AardwolfToolbox.tags',20,function(s) archived[#archived+1]=s; return true,true end,error)
           incoming.add('consider',30,function() formatted=formatted+1 end,error)
           incoming.add('ascii',10,function(s) return s=='{invmon}4,99,-1,-1',true end,error)
+          connected=true; data={char={status={state=3}}}
           inventory.start(); snapshot(); assert(#archived==4 and gags==4 and inventory.count==1)
           feed('{invmon}4,99,-1,-1'); assert(#archived==4 and inventory.count==1)
           incoming.remove('AardwolfToolbox.tags'); feed('{invmon}4,44,-1,-1')

@@ -30,6 +30,9 @@ function Controller.new(api,cache,spells,queries)
     if not cache.enabled or not select(3,api.getConnectionInfo()) then return "Disconnected" end
     if queries and queries.owner() then return "Waiting for ability data collection" end
     if not spells.isFresh() then return "Waiting for data" end
+    if cache.checkReadiness then
+      local ready,reason=cache.checkReadiness('spellup');if not ready then return reason end
+    end
     if cache.get("char.status.state")~=3 or cache.get("char.status.pos")~="Standing" then return "Waiting for standing, command-ready character outside combat" end
   end
   local function schedule()
@@ -77,7 +80,7 @@ function Controller.new(api,cache,spells,queries)
       probeTimer=nil
       if not self.enabled or not inflight or paused then return end
       if cache.enabled and select(3,api.getConnectionInfo()) and cache.get("char.status.state")==3 then
-        confirming=true; spells.sync(false)
+        confirming=true; spells.sync(false,true)
       else probe() end
     end)
   end
@@ -208,7 +211,7 @@ function Controller.new(api,cache,spells,queries)
       on("invalid","AardwolfToolbox.spells.invalid",function(_,reason) self.last="Waiting for data: "..tostring(reason); schedule() end)
       on("complete","AardwolfToolbox.spells.complete",function()
         if not inflight then return end
-        finish(); spells.sync(true)
+        finish(); spells.sync(true,true)
       end)
       on("externalBatch","AardwolfToolbox.spells.batchStarted",function()
         if not inflight then inflight=true; targets={}; settled={}; observed=false; unknown=false; self.last="External spellup running"; armBatchTimeout(); probe(); notify() end

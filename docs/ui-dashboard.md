@@ -96,3 +96,21 @@ close/reopen, resize and return it; verify chat history and unread markers. Chec
 1280×800, 1920×1080, a narrow and a short window, Retina, and another monitor when
 available. `Sidebar022.lifecycle()` checks native cleanup and map preservation;
 `Sidebar022.finish()` restores dispatch and fixture-overridden APIs.
+
+## Standalone sidebar development candidate
+
+`aardwolf-config → Sidebar and setup` selects Automatic, Starter compatibility,
+or Toolbox standalone. Automatic retains an existing `BaseUI`; fresh profiles
+use the Toolbox-owned shell. The existing dashboard continues to coordinate its
+geometry, map tabs, view hosts and chat tabs.
+
+Explicit migration first saves a layout/settings snapshot. It reparents supported
+starter map/chat sections and reversibly wraps their capture/layout entrypoints.
+Returning to compatibility mode restores the original objects and callbacks.
+Unsupported starter APIs produce an activation diagnostic and preserve the
+original pane. No starter package files are edited.
+
+Standalone chat consumes fresh `comm.channel` updates once, uses literal native
+ANSI color rendering, and supports optional timestamps/channel exclusions. Raw
+Aardwolf color codes, native migration/rendering acceptance, chat search/mentions,
+and the rest of the 0.25 workflow remain outstanding. See `roadmap-status.md`.

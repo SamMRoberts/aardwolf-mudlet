@@ -297,3 +297,53 @@ class SpellIntegrationTests(unittest.TestCase):
           assert(not AardwolfToolbox.spellup.runOnce())
           AardwolfToolbox.stop()
         ''')
+
+class BrokerSpellTests(unittest.TestCase):
+    def setUp(self):
+        self.lua=LuaRuntime()
+        self.lua.execute((ROOT/'tests/spells_api.lua').read_text())
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as archive:
+            for name,key in [('incoming','Incoming'),('spells','Spells'),('query-coordinator','Queries')]:
+                self.lua.globals()[key]=self.lua.execute(archive.read(name+'.lua').decode())
+        self.lua.execute('''
+          queries=Queries.new(_G);incoming=Incoming.new(_G)
+          spells=Spells.new(_G,cache,incoming,nil,nil,queries)
+          assert(spells.configure({enabled=true,automatic_setup=true}));advance(0)
+        ''')
+
+    def test_malformed_owned_response_drains_and_keeps_committed_state(self):
+        self.lua.execute('''
+          synchronize();assert(spells.isFresh());assert(spells.sync(true,true));advance(0)
+          assert(commands[#commands]=='slist affected noprompt')
+          feed('{spellheaders affected noprompt}');feed('72,broken')
+          assert(not spells.isFresh() and queries.owner()=='AardwolfToolbox.spells')
+          assert(not queries.acquire('manual inventory',10))
+          feed('{/spellheaders}');assert(queries.owner()==nil)
+          assert(spells.get(72).active)
+          assert(queries.acquire('manual inventory',10));queries.release('manual inventory')
+          spells.stop();queries.destroy();assert(next(timers)==nil)
+        ''')
+
+    def test_progression_discards_only_current_response_before_fresh_sync(self):
+        self.lua.execute('''
+          update('char.base',{name='Tesobi',level=10},'char.base')
+          feed('{spellheaders noprompt}')
+          update('char.base',{name='Tesobi',level=11},'char.base')
+          assert(#commands==1)
+          feed('72,Old ability,2,0,100,-1,1');feed('{/spellheaders}')
+          assert(#commands==2 and commands[2]=='slist noprompt' and not spells.get(72))
+          synchronize();assert(spells.isFresh())
+          spells.stop();queries.destroy()
+        ''')
+
+    def test_no_idle_polling_and_expiry_requests_only_active_snapshots(self):
+        self.lua.execute('''
+          synchronize();local before=#commands
+          -- Just an expiry deadline remains, with no one-second polling work.
+          for _,t in pairs(timers) do assert(t.at>=clock+120) end
+          advance(119);assert(#commands==before)
+          advance(1);assert(commands[#commands]=='slist affected noprompt')
+          spellRows('affected',{});feed('{recoveries noprompt}');feed('{/recoveries}')
+          assert(spells.isFresh() and next(timers)==nil)
+          spells.stop();queries.destroy()
+        ''')

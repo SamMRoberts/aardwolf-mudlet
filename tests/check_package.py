@@ -18,9 +18,9 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(set(archive.namelist()), {
                 "AardwolfToolbox.xml", "config.lua", "automapper.lua", "mapper-identity.lua", "map-travel.lua",
                 "console-cleanup.lua", "mobs.lua", "mob-state.lua", "mob-protocol.lua", "mob-pane.lua", "mob-actions.lua", "abilities.lua", "ability-capture.lua", "ability-store.lua", "ability-model.lua", "ability-fields.lua", "ability-picker.lua", "query-coordinator.lua",
-                "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "view-hosts.lua", "dashboard-panels.lua", "spells.lua", "spellup.lua", "action-bar.lua", "navigation.lua", "shortcuts.lua",
+                "sidebar-shell.lua", "console-text.lua", "components.lua", "readiness.lua", "configuration.lua", "settings-window.lua", "vitals.lua", "tags.lua", "incoming.lua", "borders.lua", "ascii-map.lua", "consider.lua", "gmcp-cache.lua", "player-panel.lua", "help-pane.lua", "inventory.lua", "item-state.lua", "utility-bar.lua", "appearance.lua", "dashboard-data.lua", "dashboard.lua", "view-hosts.lua", "dashboard-panels.lua", "spells.lua", "spellup.lua", "action-bar.lua", "navigation.lua", "shortcuts.lua",
             })
-            self.extra = {name: archive.read(name+".lua").decode() for name in ("map-travel","mapper-identity","console-cleanup","mobs","mob-state","mob-protocol","mob-pane","mob-actions","abilities","ability-capture","ability-store","ability-model","ability-fields","ability-picker","query-coordinator","incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","inventory","utility-bar","appearance","dashboard-data","dashboard","view-hosts","dashboard-panels","spells","spellup","action-bar","navigation","shortcuts")}
+            self.extra = {name: archive.read(name+".lua").decode() for name in ("sidebar-shell","console-text","components","readiness","map-travel","mapper-identity","console-cleanup","mobs","mob-state","mob-protocol","mob-pane","mob-actions","abilities","ability-capture","ability-store","ability-model","ability-fields","ability-picker","query-coordinator","incoming","borders","ascii-map","settings-window","consider","gmcp-cache","player-panel","help-pane","item-state","inventory","utility-bar","appearance","dashboard-data","dashboard","view-hosts","dashboard-panels","spells","spellup","action-bar","navigation","shortcuts")}
             xml = archive.read("AardwolfToolbox.xml")
             self.mapper_source = archive.read("automapper.lua").decode()
             self.config_source = archive.read("configuration.lua").decode()
@@ -37,6 +37,8 @@ class PackageTests(unittest.TestCase):
         self.lua.execute((ROOT / "tests/tags_api.lua").read_text())
         self.lua.execute((ROOT / "tests/ascii_api.lua").read_text())
         self.lua.execute((ROOT / "tests/consider_api.lua").read_text())
+        self.lua.execute((ROOT / "tests/dashboard_api.lua").read_text())
+        self.lua.execute("Geyser.Mapper=setmetatable({}, {__index=Geyser.Label})")
         install_json(self.lua)
         self.addCleanup(install_sqlite(self.lua))
         self.lua.globals().config_source = self.config_source
@@ -80,7 +82,7 @@ class PackageTests(unittest.TestCase):
         self.lua.execute('assert(not AardwolfToolbox.active)')
         self.lua.execute('AardwolfToolboxLifecycle("sysInstallPackage", "AardwolfToolbox")')
         self.lua.execute(self.alias)
-        self.lua.execute('assert(output[1] == "Aardwolf Toolbox: ready; calls=1\\n")')
+        self.lua.execute('assert(output[1]:find("Aardwolf Toolbox: ready; calls=1",1,true) and output[1]:find("Version",1,true))')
         self.lua.execute('AardwolfToolboxLifecycle("sysUninstallPackage", "OtherPackage")')
         self.lua.execute('assert(AardwolfToolbox.active)')
 
@@ -93,7 +95,7 @@ class PackageTests(unittest.TestCase):
         self.lua.execute('assert(#output == 2 and AardwolfToolbox.calls == 2)')
         self.lua.execute('AardwolfToolbox.stop(); AardwolfToolbox.stop()')
         self.lua.execute(self.alias)
-        self.lua.execute('assert(output[3] == "Aardwolf Toolbox: inactive; calls=2\\n")')
+        self.lua.execute('assert(output[3]:find("Aardwolf Toolbox: inactive; calls=2",1,true))')
         self.lua.execute('AardwolfToolbox.start(); assert(AardwolfToolbox.active)')
 
     def test_placeholder_preference_persists_without_replaying_room_data(self):
@@ -179,7 +181,7 @@ class PackageTests(unittest.TestCase):
         self.lua.execute(self.script)
         self.lua.execute('AardwolfToolboxLifecycle("sysInstallPackage", "AardwolfToolbox")')
         self.lua.execute(self.alias)
-        self.lua.execute('assert(output[1] == "Aardwolf Toolbox: ready; calls=1\\n")')
+        self.lua.execute('assert(output[1]:find("Aardwolf Toolbox: ready; calls=1",1,true) and output[1]:find("Version",1,true))')
 
 
 if __name__ == "__main__":
