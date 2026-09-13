@@ -43,16 +43,28 @@ def install_sqlite(lua):
                     if cursor.description is None:
                         return cursor.rowcount
                     names = [column[0] for column in cursor.description]
+                    closed = False
+
+                    def close(_cursor):
+                        nonlocal closed
+                        if closed:
+                            return False
+                        cursor.close()
+                        closed = True
+                        return True
 
                     def fetch(_cursor, table, _mode):
+                        nonlocal closed
                         row = cursor.fetchone()
                         if row is None:
+                            # Mudlet's LuaSQL SQLite driver closes at EOF.
+                            close(_cursor)
                             return None
                         for name, value in zip(names, row):
                             table[name] = value
                         return table
 
-                    return lua.table_from({"fetch": fetch, "close": lambda _cursor: cursor.close() or True})
+                    return lua.table_from({"fetch": fetch, "close": close})
                 except sqlite3.Error as error:
                     return None, str(error)
 

@@ -10,8 +10,12 @@
 - Transactionally migrate history database version 1 to categorized version 2,
   preserving progression IDs/data and enforcing shared profile retention limits.
   Earlier packages cannot read the upgraded database; back it up before upgrade.
+- Handle Mudlet's SQLite cursor auto-close at end of results. Update the SQLite
+  test bridge to reproduce this native behavior instead of masking it.
 - No new gameplay commands, queries, polling or automatic quest actions.
-  Kill/chat history, native acceptance and installation remain pending.
+  Offline native history storage, migration, paging, export, clear and lifecycle
+  checks passed. Player-profile installation, live rewards, external mouse
+  interactions and kill/chat history remain pending.
 
 ## 0.24.0-dev.12 — ability listing refresh fix
 

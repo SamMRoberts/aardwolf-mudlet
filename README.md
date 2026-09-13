@@ -6,8 +6,10 @@ completed 1.0 release. See [implementation status and remaining milestones](docs
 **Local progression and quest reward history** is now available through **Tools → Open history**.
 Both categories start **off**; enable them in **aardwolf-config → Local history**. Browse
 observed progression or reported quest rewards per character, configure retention,
-export JSON, or clear only the selected category. See [history controls](docs/history.md). This candidate is
-repository-tested only; native control and installation are awaiting approval.
+export JSON, or clear only the selected category. See [history controls](docs/history.md).
+This candidate passed repository checks and partial native acceptance in the
+disconnected test profile. Player-profile installation and live reward capture
+remain pending; see [verification details](tests/verification.md).
 
 **Clan** and **Newbie** now have dedicated chat tabs and optional external windows.
 Open them through **Views**, or set their placement in **aardwolf-config → Dashboard

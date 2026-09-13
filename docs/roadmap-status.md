@@ -4,8 +4,8 @@ Current artifact: **0.24.0-dev.13**. This candidate contains the first foundatio
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This quest-reward-history candidate is repository-tested only; native control and
-installation await approval. Earlier candidates have partial offline acceptance.
+This quest-reward-history candidate is installed in the backed-up disconnected
+test profile, with native storage and history interaction checks completed.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -139,8 +139,10 @@ The notification center is implemented and contract-tested. Offline native filte
 paging, scrolling, unread counts, external close/reopen/reflow and lifecycle checks
 passed. External mouse interaction and audio remain unverified. It uses existing
 events and defaults to quiet presentation. Opt-in local progression and quest reward history now includes transactional
-SQLite storage, retention, category paging, export and clear. Native history acceptance is pending; see
-[history](history.md).
+SQLite storage, retention, category paging, export and clear. Native SQLite
+migration, paging, scrolling, category export/clear and close/reopen passed in
+the disconnected profile. External mouse interaction and live rewards remain
+unverified; see [history](history.md) and [acceptance details](../tests/verification.md).
 
 Remaining history categories are explicit observed kills and chat,
 each separately opt-in. Keyboard improvements and larger-list virtualization

@@ -7,21 +7,40 @@
 - Muddler build, archive CRC/XML/source consistency and ordinary-line benchmarks
   passed. The 59-entry archive has no package-inspector diagnostics; config.lua
   was inspected without execution. Native fixture Lua 5.1 syntax passed.
-- Package SHA256: `bf615900ae3dc6c72f4c4ecbaa967e5aa2f3bfb7b6ac6c821ceac9bc12586856`.
+- Package SHA256: `11fe191e2bc17f3eda61130937ea477febccc40105fc99642cada4df1e6932bf`.
 - `fixtures/quest-history.json` records the Aardwolf documentation examples and
   their source, not player-profile captures. Contract tests use the existing
-  LuaSQL-shaped bridge to real isolated SQLite; no native database/API claims.
+  LuaSQL-shaped bridge to real isolated SQLite. Native acceptance exposed SQLite
+  auto-closing cursors at EOF (`close()` then returns false without an error).
+  The store and bridge now handle that behavior; all 401 tests passed afterward.
 - History schema 2 migrates old progression records transactionally. Native
   rollback requires the backed-up older database together with its package.
   The native fixture now covers both categories and restores their preferences.
-- No Mudlet control, installation, gameplay commands or player-profile writes.
-  User approval is required before the disconnected AardwolfToolboxSettingsTest
-  acceptance session. Back up its package/profile/settings/databases/native map
-  first; use the foundation dispatch interceptors and verify map preservation.
-- Pending native checks: category navigation, clear/export, scrolling, local
-  input, external windows and real LuaSQL migration. Naturally arriving quest
-  rewards and Windows/Linux behavior remain unverified. Kill/chat history and
-  the broader roadmap acceptance matrix are still outstanding.
+- After user approval, backed up and installed only in the disconnected
+  **AardwolfToolboxSettingsTest** profile. Backup:
+  `backups/offline-quest-history-20260913/` (profile/package/settings/databases
+  and native map). All installed Lua resources match source and the archive.
+- Native mouse checks passed for category switching, two-page progression
+  navigation, scrolling, both JSON exports, clear cancellation and confirmed
+  category-only clear. Clearing the quest fixture left all 30 progression rows.
+  Literal angle brackets, reported zero rewards and readable labels rendered.
+- Native SQLite schema-1 migration preserved original progression ID 37; a new
+  quest observation received ID 38. This used an isolated backup-folder database.
+- The view floated outside Mudlet, native Close hid it, reopening retained the
+  same UserWindow/content, and return to the profile succeeded. Programmatic
+  resizing to 640×520 reflowed controls. External coordinate clicks/drags failed
+  in the control tool (`windowNotFoundAtPosition`), so external mouse interaction
+  and user-driven resizing remain unverified.
+- Fixture records and profile exports were removed after retaining export
+  evidence in the backup folder. Recording preferences and history placement
+  were restored. Stop/start and repeated startup passed without runtime errors;
+  dispatch interceptors observed only Core.Supports negotiation and were restored.
+  No gameplay commands, connection or player-profile writes were performed.
+- Before/after native map files match byte-for-byte: 8 rooms, 8,376 bytes,
+  SHA256 `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- Pending: keyboard/focus coverage, the full display-size/Retina matrix,
+  naturally arriving quest rewards, player-profile installation and Windows/Linux
+  behavior. Kill/chat history and the broader roadmap remain outstanding.
 
 ---
 

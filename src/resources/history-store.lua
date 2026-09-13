@@ -18,10 +18,16 @@ function Store.new(api)
     local cursor,why=connection:execute(sql);assert(cursor,why)
     local ok,rows=pcall(function()
       local result={}
-      while true do local row=cursor:fetch({},'a');if not row then break end;result[#result+1]=row end
+      while true do
+        local row,err=cursor:fetch({},'a')
+        if not row then assert(not err,err);break end
+        result[#result+1]=row
+      end
       return result
     end)
-    local closed,err=cursor:close();assert(ok,rows);assert(closed,err)
+    local closed,err=cursor:close();assert(ok,rows)
+    -- LuaSQL SQLite auto-closes exhausted cursors; a second close returns false.
+    assert(closed or closed==false and err==nil,err or 'Cannot close history cursor')
     return rows
   end
   local function execute(sql)
