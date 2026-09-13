@@ -19,7 +19,8 @@ local SKILLS={assault={command='assault',targeting='single'},scalp={command='sca
   sap={command='sap',targeting='single'},kick={command='kick',targeting='single'},trip={command='trip',targeting='single'},
   stun={command='stun',targeting='single'},hammerswing={command='hammerswing',targeting='area'},bash={command='bash',targeting='single'},uppercut={command='uppercut',targeting='single'},
   headbutt={command='headbutt',targeting='single'},gouge={command='gouge',targeting='single'},
-  stomp={id=452,command='stomp',targeting='single'}}
+  stomp={id=452,command='stomp',targeting='single'},
+  bodycheck={id=451,command='bodycheck',targeting='single'}}
 local function withCommand(row)
   if not row then return nil end
   row=copy(row)
@@ -282,7 +283,12 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
         handlers[#handlers+1]=event; assert(api.registerNamedEventHandler(OWNER,event,event,fn),'Cannot register ability handler')
       end
       on('sysDataSendRequest',function(_,command)
-        if queue and not ownSend and type(command)=='string' and
+        -- Other coordinated consumers may query between our complete responses.
+        -- Only an uncoordinated query (or one during our active response) can
+        -- contaminate this collection. Yielding must not discard staged rows.
+        local owner=queries.owner()
+        local yielded=not request and owner and owner~=OWNER
+        if queue and not ownSend and not yielded and type(command)=='string' and
             (command:match('^slist[%s$]') or command=='slist' or command:match('^spells?%s') or command=='spells' or command:match('^skills?%s') or command=='skills') then
           fail('Another spell/skill query interrupted collection')
         end

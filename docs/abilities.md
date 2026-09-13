@@ -28,7 +28,7 @@ committed catalog, so it may temporarily select an older learned ability.
 
 Spells with supported targeting use `cast <number> [arguments]`. Verified skill
 commands currently cover Bash, Kick, Trip, Stun, Sap, Scalp, Assault, Uppercut,
-Headbutt, Gouge, Stomp (#452), and Hammerswing. Hammerswing remains an area action. Other skills
+Headbutt, Gouge, Stomp (#452), Bodycheck (#451), and Hammerswing. Hammerswing remains an area action. Other skills
 and spells with special/extended syntax remain searchable; use a regular command
 or alias button for their commands. No spell commands are inferred from skill
 names.
@@ -90,6 +90,15 @@ queries are hidden. Other output remains visible. ASCII and help keep precedence
 and Game tags can still receive the tagged learned list. Spell tracking and
 catalog collection share one query coordinator.
 
+Version **0.23.2** fixes refreshes being cancelled when spell tracking sends its
+own coordinated query between catalog responses. Level-up and manual refreshes
+now keep their staged rows while yielding, then resume at the next request.
+Uncoordinated spell/skill queries still interrupt collection to prevent mixing
+responses. This release also adds verified `bodycheck <target>` command metadata
+for #451, including when reading previously saved rows. A successful refresh is
+still needed to discover a missing row and its level/type information; the
+command mapping does not invent those facts or execute the skill.
+
 Disconnect cancels requests and clears execution eligibility. Disk records remain
 available for offline browsing. Static spell metadata also uses SQLite; normal
 buff/utility rendering reads active-state snapshots without materializing the
@@ -113,7 +122,8 @@ local command, selectedOrReason = a.resolve({
 -- Resolving does not send. Use actionBar.activate(buttonId) for guarded manual use.
 ```
 
-`get`, `list`, and `types` load rows on demand. `resolve` requires fresh eligibility;
+`get`, `list`, and `types` load rows on demand. `resolve` requires current character
+identity and level, but permits eligible rows from a stale saved catalog;
 `preview` can show saved data offline for editing. Profile-local
 `AardwolfToolbox.abilities.updated` and `.reset` events carry no catalog payload.
 Consumers fetch only what they need. Existing `spells.get()` and `spells.snapshot()`
@@ -126,6 +136,7 @@ without loading the full static catalog.
 - [SLIST identities, targeting, and practice](https://www.aardwolf.com/wiki/index.php/Help/SLIST)
 - [Damage-type listings](https://www.aardwolf.com/blog/2014/08/10/uprising-area-skills-spells/)
 - [Cast syntax](https://aardwolf.com/wiki/index.php/Help/Cast)
+- [Bodycheck command syntax](https://aardwolf.com/wiki/index.php/Help/Bodycheck)
 - Verified skill syntax: official help pages for
   [Bash](https://www.aardwolf.com/wiki/index.php/Help/Bash),
   [Kick](https://www.aardwolf.com/wiki/index.php/Help/Kick),

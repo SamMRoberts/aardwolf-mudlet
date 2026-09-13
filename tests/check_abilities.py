@@ -191,6 +191,11 @@ class AbilityTests(unittest.TestCase):
         fixtures = json.loads((ROOT / 'tests/fixtures/ability-listings.json').read_text())
         self.lua.globals().fixtures = self.lua.table_from({k: self.lua.table_from(v) for k, v in fixtures.items()})
         self.lua.execute('''
+          local originalSend=send
+          send=function(command,...)
+            raiseEvent('sysDataSendRequest',command)
+            return originalSend(command,...)
+          end
           cache.values['char.base']={name='Tesobi',level=127,class='Warrior'}
           cache.values['char.base.level']=127
           queries=Queries.new(_G); incoming=Incoming.new(_G)
@@ -385,6 +390,98 @@ class AbilityTests(unittest.TestCase):
           update('char.status.state',6,'char.status')
           assert(not abilities.status().busy and abilities.last:find('pager/editor'))
           local n=#commands; advance(30); assert(#commands==n)
+        ''')
+
+    def test_coordinated_spell_queries_do_not_cancel_a_yielded_catalog_refresh(self):
+        self.service()
+        self.lua.execute('''
+          local owner='AardwolfToolbox.spells'
+          assert(not queries.acquire(owner))
+          for _,text in ipairs(fixtures['slist learned noprompt']) do feed(text) end
+          assert(queries.acquire(owner))
+          send('slist noprompt',false)
+          assert(abilities.status().busy,abilities.last)
+          spellRows('')
+          queries.release(owner); advance(0.2)
+          syncAbilities(); assert(abilities.status().fresh)
+          -- An uncoordinated request still invalidates the collected sequence,
+          -- even between its individual responses.
+          abilities.refresh(); advance(0.2)
+          for _,text in ipairs(fixtures['slist learned noprompt']) do feed(text) end
+          assert(queries.owner()==nil)
+          send('skills combat',false)
+          assert(not abilities.status().busy and abilities.last:find('interrupted'))
+        ''')
+
+    def test_levelup_and_manual_refresh_with_spell_tracker_discover_bodycheck(self):
+        self.service()
+        with zipfile.ZipFile(ROOT / 'build/AardwolfToolbox.mpackage') as archive:
+            self.lua.globals().Spells = self.lua.execute(archive.read('spells.lua').decode())
+        self.lua.execute('''
+          syncAbilities()
+          spells=Spells.new(_G,cache,incoming,nil,store,queries)
+          assert(spells.configure({enabled=true,automatic_setup=true}))
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base')
+          function syncTogether()
+            for _=1,100 do
+              advance(0.2)
+              if abilities.status().fresh and spells.isFresh() then return end
+              local owner=queries.owner()
+              assert(owner,abilities.last..' / '..spells.last)
+              local command=commands[#commands]
+              if owner=='AardwolfToolbox.spells' then
+                if command=='slist noprompt' then
+                  spellRows('',{'451,bodycheck,1,0,85,-1,2'})
+                elseif command=='slist spellup noprompt' then spellRows('spellup',{})
+                elseif command=='slist affected noprompt' then spellRows('affected',{})
+                else
+                  assert(command=='slist recoveries noprompt',command)
+                  feed('{recoveries noprompt}'); feed('{/recoveries}')
+                end
+              else
+                assert(owner=='AardwolfToolbox.abilities',owner)
+                reply(command)
+              end
+            end
+            error('Coordinated refresh did not finish: '..abilities.last)
+          end
+          syncTogether()
+          assert(not abilities.get(451))
+          -- Synthetic additions use the captured listing grammar. The learned
+          -- identity/practice matches the saved server spell row; level/type
+          -- here are fixtures, not newly observed player-profile listings.
+          table.insert(fixtures['slist learned noprompt'],#fixtures['slist learned noprompt'],
+            '451,bodycheck,1,0,85,-1,2')
+          table.insert(fixtures['skills'],#fixtures['skills'],'Level 150: bodycheck                      85%')
+          table.insert(fixtures['skills combat'],#fixtures['skills combat'],
+            'Level 150: bodycheck                      85%  Bash')
+          update('char.status.level',150,'char.status')
+          cache.values['char.base'].level=150; cache.values['char.base.level']=150
+          raiseEvent('AardwolfToolbox.gmcp.updated','char.base')
+          assert(abilities.status().pending and not abilities.status().fresh)
+          syncTogether()
+          local bodycheck=abilities.get(451)
+          assert(bodycheck and bodycheck.learned and bodycheck.available)
+          assert(bodycheck.command=='bodycheck' and bodycheck.level==150)
+          assert(bodycheck.cost==nil and not bodycheck.cost_known)
+          assert(store.get('ability_metadata',0).level==150)
+          button.ability_type='bash'; button.ability_kind='skill'; button.arguments='2.bat'
+          local command,selected=abilities.resolve(button)
+          assert(command=='bodycheck 2.bat' and selected.id==451)
+          assert(abilities.refresh()); advance(0.2)
+          assert(spells.sync(true)); advance(0)
+          syncTogether()
+          assert(abilities.resolve(button)=='bodycheck 2.bat')
+          local saved=store.get('abilities',451); saved.command=nil
+          store.replace({abilities={[451]=saved}})
+          assert(abilities.get(451).command=='bodycheck','Repair command metadata on disk reads')
+          saved.id=999; store.replace({abilities={[999]=saved}})
+          assert(not abilities.get(999).command,'Do not verify another skill identity')
+          for _,sent in ipairs(commands) do
+            assert(not sent:match('^bodycheck') and not sent:match('^cast '))
+          end
+          abilities.stop(); spells.stop(); queries.destroy()
+          assert(next(handlers)==nil and next(triggers)==nil and next(timers)==nil)
         ''')
 
     def test_stomp_saved_catalog_command_specific_highest_and_guards(self):

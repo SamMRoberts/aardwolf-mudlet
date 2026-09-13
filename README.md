@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.23.1
+# AardwolfToolbox 0.23.2
 
 AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
 player dashboards, room-mob tracking, configurable action buttons, and shared
