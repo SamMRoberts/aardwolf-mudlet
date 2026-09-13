@@ -144,7 +144,7 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
       local background=label('background',root,'');background:resize('100%','100%');background:setStyleSheet('QLabel { background: #151c23; border: 1px solid #83bde8; }')
       title=label('title',root,'')
       input=api.Geyser.CommandLine:new({name=OWNER..'.search',x=8,y=64,width='100%-16',height=32},root)
-      ui.apply(input);input:setStyleSheet('QPlainTextEdit { background: #101820; color: #e0e6ec; border: 1px solid #83bde8; }')
+      ui.apply(input)
       input:setAction(function(value)
         if root~=owned or mode~='menu' then return end
         if type(value)~='string' or #value>256 or value:find('[%z\1-\31\127]') then say('Enter up to 256 characters.');return end

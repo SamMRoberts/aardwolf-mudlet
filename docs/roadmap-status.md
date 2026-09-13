@@ -1,8 +1,9 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.4**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.5**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
-and no live installation or native acceptance has been performed for it.
+and no player-profile installation has been performed. Partial native acceptance
+is recorded in tests/verification.md.
 
 ## Implemented and covered by local contract tests
 
@@ -60,11 +61,17 @@ reply formats; requested setup is not reported as confirmed observation. Broad
 collector tests cover contention, obsolete responses, failure and cleanup.
 Verify actual native migration, reload/replacement, external-window ownership,
 input focus, chat scrollback, delayed starter construction and startup order.
-Native chat search, workspace focus, scrollback, colors and badges still require
-acceptance. The control tool returned the connected window during the latest
-attempt. Only window-selection attempts were made; no commands or fixtures were
-sent. Control stopped when the requested offline window could not be selected.
-Testing remains restricted to the disconnected AardwolfToolboxSettingsTest profile.
+Native workspace startup, Unicode search, literal detail rendering, unchanged
+main-input text, blocked offline Refresh and detaching were observed in the
+backed-up test profile. Native tests exposed reentrant registration and missing
+CommandLine font APIs, both corrected. External resize reflow and menu-host
+fixes passed native geometry assertions. Tools filtering, the five-step guide,
+local chat search and jumping to an original buffer line passed mouse/keyboard
+checks. Fixtures were restored, native teardown/repeated startup passed, and
+the eight-room map is byte-identical to its backup. External-window mouse
+targeting failed in the control tool; those interactions, chat capture stress,
+migration and the full acceptance matrix still require completion. All control remains restricted to the
+disconnected AardwolfToolboxSettingsTest profile.
 
 ### Inventory/equipment and ability browser (0.26)
 

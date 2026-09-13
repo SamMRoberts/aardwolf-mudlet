@@ -78,7 +78,13 @@ function Widget:get_width()
 end
 function Widget:get_height() return self.height end
 function Widget:resize(w,h) self.width,self.height = w,h end
-Geyser = {Label=Widget,ScrollBox=Widget,CommandLine=Widget}
+local CommandLine=setmetatable({},{__index=Widget})
+function CommandLine:new(cons,parent)
+  local widget=Widget.new(self,cons,parent)
+  widget.type='commandLine';widget.setFont=false;widget.setFontSize=false
+  return widget
+end
+Geyser = {Label=Widget,ScrollBox=Widget,CommandLine=CommandLine}
 Adjustable = {Container={new=function(_,cons,parent)
   local root=Widget:new(cons,parent)
   for _, key in ipairs({"adjLabel","exitLabel","minimizeLabel"}) do root[key]=Widget:new({name=cons.name..key},root) end

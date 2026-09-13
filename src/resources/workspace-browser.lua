@@ -14,7 +14,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   local self={enabled=false,last='Disabled'}
   local root,header,closeButton,active,escapeKey
   local entries,tabs,handlers={}, {}, {}
-  local epoch=0
+  local epoch,building=0,false
   local layout,render,selectView
   local function label(name,parent,text,callback)
     local w=api.Geyser.Label:new({name=OWNER..'.'..name,x=0,y=0,width='100%',height=32},parent)
@@ -25,11 +25,14 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   local function itemName(row) return row.name and Text.plain(row.name,'raw') or ('Item #'..row.id) end
   local function status(id) return id=='abilities' and abilities.status() or inventory.status() end
   local function message(e,text) e.feedback:echo(ui.escape(text)) end
-  local function visible(id) return self.enabled and (views.mode(id)=='floating' or active==id) and views.visible(id) end
+  local function visible(id) return self.enabled and not building and views.available(id) and (views.mode(id)=='floating' or active==id) and views.visible(id) end
   local function clearRows(e)
     for _,w in ipairs(e.rows) do w:delete() end;e.rows={}
   end
-  local function resetSelection(e) e.selected=nil;e.detail:echo('Select a row for details.');e.detailText=nil end
+  local function resetSelection(e)
+    e.selected=nil;e.detailText=nil
+    if e.detail then e.detail:echo('Select a row for details.') end
+  end
   local function detail(e)
     local row=e.selected and (e.id=='abilities' and abilities.get(e.selected) or inventory.get(e.selected))
     if not row then resetSelection(e);return end
@@ -145,7 +148,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     render(e)
   end
   layout=function()
-    if not root then return end
+    if not self.enabled or building or not root then return end
     local w,h=api.getMainWindowSize();local row=ui.metrics().height
     local width,height=math.min(820,w-16),math.min(700,h-24)
     root:move(math.max(0,(w-width)/2),math.max(0,(h-height)/2));root:resize(width,height)
@@ -162,7 +165,10 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     if root then root:hide() end
     for _,id in ipairs(IDS) do
       local e=entries[id]
-      if e and views.mode(id)=='tabbed' then e.root:hide();clearRows(e);resetSelection(e);e.dirty=true end
+      if e then
+        if e.root and views.mode(id)~='floating' then e.root:hide() end
+        if views.mode(id)~='floating' then clearRows(e);resetSelection(e);e.dirty=true end
+      end
     end
     if escapeKey then api.killKey(escapeKey);escapeKey=nil end
   end
@@ -175,18 +181,19 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     layout();local e=entries[id];if e.dirty then render(e) end
   end
   function self.open(id)
-    if not self.enabled or not entries[id] then return false,'Workspace unavailable' end
+    if not self.enabled or building or not entries[id] then return false,'Workspace unavailable' end
     local ok,why=views.open(id)
     if ok then layoutEntry(entries[id]);if entries[id].dirty then render(entries[id]) end end
     return ok,why
   end
   function self.isEditing()
+    if not self.enabled or building then return false end
     if active then return true end
-    for _,id in ipairs(IDS) do if entries[id] and views.mode(id)=='floating' and visible(id) then return true end end
+    for _,id in ipairs(IDS) do if entries[id] and views.available(id) and views.mode(id)=='floating' and visible(id) then return true end end
     return false
   end
   function self.stop()
-    self.enabled=false;epoch=epoch+1;self.close()
+    self.enabled=false;building=false;epoch=epoch+1;self.close()
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end;handlers={}
     for _,id in ipairs(IDS) do if entries[id] then views.unregister(id) end end
     if root then root:delete() end;root=nil;entries={};tabs={};self.last='Disabled'
@@ -204,7 +211,9 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       layout();return ok,why
     end
     local ok,why=pcall(function()
-      self.enabled=true;epoch=epoch+1;local owned=epoch
+      -- Native widget creation can synchronously invoke other components’ layout hooks.
+      -- Publish editing/placement state only after every view is registered.
+      self.enabled=true;building=true;epoch=epoch+1;local owned=epoch
       root=api.Geyser.Container:new({name=OWNER,x=20,y=60,width=820,height=700})
       local bg=label('background',root,'');bg:resize('100%','100%');bg:setStyleSheet('QLabel { background: #151c23; border: 1px solid #83bde8; }')
       header=label('title',root,'Inventory and ability workspace')
@@ -217,7 +226,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         e.root=api.Geyser.Container:new({name=OWNER..'.'..id,x=0,y=0,width='100%',height='100%'},e.home)
         local surface=label(id..'.background',e.root,'');surface:resize('100%','100%')
         e.input=api.Geyser.CommandLine:new({name=OWNER..'.'..id..'.search',x=4,y=0,width='100%-8',height=32},e.root)
-        ui.apply(e.input);e.input:setStyleSheet('QPlainTextEdit { background: #101820; color: #e0e6ec; border: 1px solid #83bde8; }');e.input:setAction(function(text)
+        ui.apply(e.input);e.input:setAction(function(text)
           if epoch~=owned then return end
           if type(text)~='string' or #text>256 or text:find('[%z\1-\31\127]') then message(e,'Search up to 256 characters.');return end
           e.search=text;e.page=1;render(e)
@@ -246,17 +255,17 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         e.mode=views.mode(id)
       end
       root:hide()
-      for _,event in ipairs({'sysWindowResizeEvent','AardwolfToolbox.ui.changed','AardwolfToolbox.views.changed','AardwolfToolbox.inventory.updated','AardwolfToolbox.abilities.updated','AardwolfToolbox.abilities.reset'}) do
+      for _,event in ipairs({'sysWindowResizeEvent','sysUserWindowResizeEvent','AardwolfToolbox.ui.changed','AardwolfToolbox.views.changed','AardwolfToolbox.inventory.updated','AardwolfToolbox.abilities.updated','AardwolfToolbox.abilities.reset'}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,function()
           if epoch~=owned then return end
-          if event=='sysWindowResizeEvent' or event=='AardwolfToolbox.ui.changed' or event=='AardwolfToolbox.views.changed' then layout()
+          if event=='sysWindowResizeEvent' or event=='sysUserWindowResizeEvent' or event=='AardwolfToolbox.ui.changed' or event=='AardwolfToolbox.views.changed' then layout()
           else for id,e in pairs(entries) do
             if (id=='abilities')==(event~='AardwolfToolbox.inventory.updated') and (id=='abilities' or e.dataRevision~=inventory.status().revision) then e.dirty=true;if visible(id) then render(e) end end
           end end
         end))
       end
-      layout();self.last='Workspace ready'
+      building=false;layout();self.last='Workspace ready'
     end)
     if not ok then self.stop();self.last=tostring(why);return false,self.last end
     return true

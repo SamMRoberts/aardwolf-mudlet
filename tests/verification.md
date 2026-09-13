@@ -1,3 +1,46 @@
+# 0.24.0-dev.5 native-fix candidate — 2026-09-13
+
+- Muddler 1.1.0, Java 17.0.16+8, Python 3.14.6 / Lupa 2.6:
+  **329 tests passed**. Archive/source integrity and 10/50/200/512-mob
+  ordinary-line benchmarks passed; native rendering is excluded from benchmarks.
+- Backed up the disconnected AardwolfToolboxSettingsTest profile, settings,
+  package, SQLite database and native map (8 rooms) under
+  `backups/offline-workspace-20260913-144005/` before replacing dev.2.
+- Native startup exposed reentrant access to an unregistered view and use of
+  nonexistent CommandLine font methods. Both fixes were rebuilt and installed
+  in the test profile; the workspace then activated without either error.
+- Native mouse/keyboard evidence: workspace opens, local Unicode search selects
+  the expected record, markup-like names remain literal, detail selection works,
+  main command input remains unchanged and offline Refresh reports its guard.
+- Abilities successfully moves to a real external window. Resizing exposed a
+  missing `sysUserWindowResizeEvent` subscription; source and regression tests
+  now cover external layout and parenting the view menu into that window.
+- Installed the final rebuilt artifact after access resumed. Native geometry
+  assertions passed for a 640×520 external window, footer reflow from the real
+  resize event, and menu ownership inside the external host. Native Close,
+  reopen, reset placement and return to workspace were exercised. Mouse drag
+  and external-menu click acceptance remains pending: the control tool returned
+  `windowNotFoundAtPosition` for external-window coordinates.
+- Tools search was entered locally, its Setup result clicked, all five guide
+  steps visited, and Finish clicked. The settings file confirms completion.
+  Chat search found the existing `Tells` buffer line; clicking the result closed
+  search and scrolled the original borrowed console without changing input text.
+- Restored all synthetic read overrides and dispatch interceptors. Zero
+  commands were intercepted. Native stop/start/repeated-start checks passed,
+  no owned Geyser widgets remained after stop, and activation reported no errors.
+  The before/after native maps are byte-identical (8 rooms; SHA256
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`).
+- Installed UI resources match source. Final package SHA256:
+  `2817f7da6fe2175dec38ecaedfaa2e3138ecafaada83ccbfb3cf3b962236d930`.
+- Regular Aardwolf was not changed, connected or used for fixtures. Profile
+  selection was opened only after verifying Games → Play maps to the selection
+  dialog in official Mudlet 5.0.1 source; Offline loaded the named test profile.
+- Still pending: external mouse interactions, chat capture/append/scrollback
+  stress, standalone migration, complete sizing/Retina matrix and live server
+  behavior. The roadmap and 1.0 acceptance gate remain incomplete.
+
+---
+
 # 0.24.0-dev.4 roadmap candidate — 2026-09-13
 
 - Real Muddler 1.1.0 build with Java 17.0.16+8; Python 3.14.6 / Lupa 2.6:

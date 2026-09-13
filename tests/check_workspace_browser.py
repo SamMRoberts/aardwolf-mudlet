@@ -28,6 +28,48 @@ class WorkspaceBrowserTests(unittest.TestCase):
           t.inventory.status=function() local s=items.status();s.enabled=true;return s end
         ''')
 
+    def test_reentrant_widget_creation_cannot_read_unregistered_placement(self):
+        self.lua.execute('''
+          assert(t.config.set('browser','enabled',false))
+          local create=Geyser.Container.new;local observed=false
+          function Geyser.Container:new(def,parent)
+            if def.name=='AardwolfToolbox.browser.inventory.home' then
+              observed=true;assert(not b.isEditing());fire('sysWindowResizeEvent')
+            end
+            return create(self,def,parent)
+          end
+          assert(t.config.set('browser','enabled',true))
+          assert(observed and b.enabled and not t.config.runtimeErrors.browser,b.last)
+          assert(b.open('inventory'))
+        ''')
+
+    def test_partial_construction_failure_cleans_up_and_retries(self):
+        self.lua.execute('''
+          assert(t.config.set('browser','enabled',false))
+          local create=Geyser.ScrollBox.new
+          function Geyser.ScrollBox:new(def,parent)
+            if def.name=='AardwolfToolbox.browser.inventory.list' then error('Injected native constructor failure') end
+            return create(self,def,parent)
+          end
+          t.config.set('browser','enabled',true)
+          assert(not b.enabled and not b.isEditing())
+          assert(t.config.runtimeErrors.browser:find('Injected native constructor failure',1,true))
+          for name in pairs(widgets) do assert(not name:find('AardwolfToolbox.browser',1,true)) end
+          assert(not t.views.available('inventory') and t.views.mode('inventory')==nil)
+          Geyser.ScrollBox.new=create;assert(t.config.set('browser','enabled',true))
+          assert(b.enabled and not t.config.runtimeErrors.browser and b.open('inventory'))
+        ''')
+
+    def test_external_resize_reflows_footer_and_menu_uses_external_host(self):
+        self.lua.execute('''
+          assert(t.views.setMode('abilities','floating'));assert(b.open('abilities'))
+          local root=widgets['AardwolfToolbox.browser.abilities'];local window=root.parent
+          window:resize(700,640);fire('sysUserWindowResizeEvent',700,640,window.name)
+          local footer=widgets['AardwolfToolbox.browser.abilities.next']
+          assert(footer.y==640-t.ui.metrics().height)
+          t.views.menu('abilities');assert(widgets['AardwolfToolbox.views.menu'].parent==window)
+        ''')
+
     def test_stored_abilities_details_zero_unknown_and_search(self):
         self.lua.execute('''
           assert(b.open('abilities'));assert(b.isEditing())

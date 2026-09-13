@@ -18,6 +18,16 @@ class ReadabilityTests(unittest.TestCase):
           function character(key,value) originalCharacter(key,value); fire('gmcp.char','gmcp.char.'..key) end
         ''')
 
+    def test_command_line_uses_native_stylesheet_font_api(self):
+        self.lua.execute('''
+          local input=Geyser.CommandLine:new({name='FontTest',x=0,y=0,width=200,height=40})
+          assert(not input.setFont and not input.setFontSize)
+          ui.apply(input);assert(input.style:find('font-size: 12pt',1,true))
+          assert(input.style:find("font-family: 'Arial'",1,true))
+          assert(c.set('appearance','preset','large'));ui.apply(input)
+          assert(input.style:find('font-size: 14pt',1,true));input:delete()
+        ''')
+
     def test_effective_font_presets_measurement_and_unicode(self):
         self.lua.execute('''
           local label=Geyser.Label:new({name='font-test'})

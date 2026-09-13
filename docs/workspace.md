@@ -1,6 +1,7 @@
 # Tools, setup and the inventory/ability workspace
 
-Available in **0.24.0-dev.4**, a development candidate awaiting native acceptance.
+Available in **0.24.0-dev.5**, a development candidate with partial native
+acceptance recorded in [verification](../tests/verification.md).
 
 ## Find a feature
 
@@ -95,5 +96,9 @@ paging, Unicode/literal markup, readable fonts, button hit areas, Escape, native
 close/reopen and floating/return placement. Verify command input remains intact.
 
 Restore `AardwolfToolboxWorkspaceAcceptance.restore()` before
-`AardwolfToolboxAcceptance.restore()`. These checks have not yet been performed
-for this candidate; contract tests are not native rendering or live evidence.
+`AardwolfToolboxAcceptance.restore()`. With both fixtures active,
+`tests/native_workspace_geometry.lua` checks real resize-event reflow and menu
+ownership, then restores the prior placement mode. This does not replace mouse
+dragging or multi-monitor acceptance. Workspace search/details, Tools/guide,
+borrowed chat search, geometry and cleanup have partial native evidence; see
+the verification record for the remaining checks. Live behavior is unverified.

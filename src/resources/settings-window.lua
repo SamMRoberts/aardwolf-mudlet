@@ -198,7 +198,8 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
         serial = serial + 1
         local input = api.Geyser.CommandLine:new({name = PREFIX .. "input" .. serial,
           x = 4, y = y, width = "-8px", height = controlHeight}, body)
-        input:setStyleSheet("QPlainTextEdit { font-family: '"..(ui and ui.metrics().font or "Arial").."'; font-size: "..(ui and ui.metrics().size or 11).."pt; background-color: #15202c; color: #ffffff; border: 1px solid #526b86; padding: 3px; }")
+        if ui then ui.apply(input)
+        else input:setStyleSheet("QPlainTextEdit { font-family: 'Arial'; font-size: 11pt; background-color: #15202c; color: #ffffff; border: 1px solid #526b86; padding: 3px; }") end
         input:print(tostring(target[key]))
         local current = generation
         input:setAction(function(text)
@@ -384,7 +385,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
       status = label(root, "status", "", 4, 2, "-8px", 52)
       label(root,'searchLabel','Search settings',4,60,143,24)
       local search=api.Geyser.CommandLine:new({name=PREFIX..'search',x=4,y=84,width=143,height=38},root)
-      search:setStyleSheet("QPlainTextEdit {font-size:"..(ui and ui.metrics().size or 12).."pt; background:#15202c; color:#eef3fa;}")
+      if ui then ui.apply(search) else search:setStyleSheet("QPlainTextEdit {font-size:12pt; background:#15202c; color:#eef3fa;}") end
       search:print('')
       navigation=api.Geyser.ScrollBox:new({name=PREFIX..'navigation',x=4,y=126,width=143,height='-174px'},root)
       local navigationLabels={}

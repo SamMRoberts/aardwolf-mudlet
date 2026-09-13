@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.24.0-dev.5 — native workspace fixes
+
+- Guard workspace callbacks during construction and clean up partial widget
+  trees. Unknown custom-view placement is unavailable until registration.
+- Apply CommandLine fonts through native stylesheets; Mudlet CommandLine has no
+  Label font methods. Align test doubles with the bundled Geyser API.
+- Handle external-window resize events and host detached-view menus in their
+  own window instead of behind them in the main profile.
+- Cover reentrant creation, constructor failures/retry, real input-font API and
+  external resize/menu ownership with regression tests.
+
+Validation: 329 Lua 5.1/package tests, Muddler build, archive/source checks and
+ordinary-line benchmarks passed. Native acceptance uses only the backed-up,
+disconnected AardwolfToolboxSettingsTest profile. See tests/verification.md for
+completed native checks and remaining acceptance work.
+
+
 ## 0.24.0-dev.4 — discovery and workspace candidate
 
 - Add a searchable Tools menu for local views, shared settings and existing

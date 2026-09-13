@@ -28,7 +28,13 @@ function UI.new(api,config)
   end
   function self.apply(widget,role)
     local m=self.metrics(role)
-    widget:setFont(m.font); widget:setFontSize(m.size)
+    if widget.type=='commandLine' then
+      -- CommandLine is a native plain-text editor, not a Label. It has no
+      -- setFont/setFontSize methods and no inline echo formatting to override.
+      local font=m.font:gsub("\\","\\\\"):gsub("'","\\'"):gsub('[%z\1-\31\127]','')
+      widget:setStyleSheet("QPlainTextEdit { font-family: '"..font.."'; font-size: "..m.size..
+        "pt; background: #101820; color: #e0e6ec; border: 1px solid #83bde8; padding: 3px; }")
+    else widget:setFont(m.font); widget:setFontSize(m.size) end
     return m
   end
   function self.measure(text,role)

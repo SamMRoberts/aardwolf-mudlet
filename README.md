@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.24.0-dev.4
+# AardwolfToolbox 0.24.0-dev.5
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
@@ -7,8 +7,10 @@ This candidate adds a searchable **Tools** utility menu, an offline setup
 walkthrough, and an **Inventory / Equipment / Abilities** workspace. Open these
 from Tools or Views. Workspace tabs can float independently, and browsing does
 not execute an ability or change equipment. See [workspace controls](docs/workspace.md).
-Native validation remains pending: use the disconnected disposable profile
-before upgrading a player profile.
+Native testing in the disconnected disposable profile identified and fixed
+workspace initialization and editor-font API errors. Detached-window resize
+and menu fixes are also included; see [acceptance evidence](tests/verification.md)
+for completed checks and remaining gaps before upgrading a player profile.
 
 Chat search, quiet mention badges, raw Aardwolf chat colors and
 **Off / Captured queries / Compact output** cleanup are also included.

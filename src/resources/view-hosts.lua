@@ -22,7 +22,10 @@ function Views.new(api,config,ui,settings)
   function self.mode(id)
     local entry=entries[id]
     if entry and entry.placement then return config.get(entry.placement.feature,entry.placement.key) or 'tabbed' end
-    return config.get("views",id) or "tabbed"
+    for _,builtin in ipairs(IDS) do
+      if id==builtin then return config.get("views",id) or "tabbed" end
+    end
+    return nil,"View is not registered"
   end
   function self.closeMenu()
     generation=generation+1
@@ -154,6 +157,8 @@ function Views.new(api,config,ui,settings)
   function self.menu(id)
     self.closeMenu()
     local w,h=api.getMainWindowSize(); local row=ui.metrics().height
+    local parent=id and entries[id] and self.mode(id)=='floating' and entries[id].parent or nil
+    if parent then w,h=parent:get_width(),parent:get_height() end
     local list={}
     local function add(text,fn) list[#list+1]={text,fn} end
     if id then
@@ -177,7 +182,7 @@ function Views.new(api,config,ui,settings)
     local mx,my=w-340,40
     if api.getMousePosition then mx,my=api.getMousePosition() end
     local mh=math.min(h-60,#list*row)
-    menu=api.Geyser.ScrollBox:new({name="AardwolfToolbox.views.menu",x=math.max(0,math.min(w-340,mx)),y=math.max(0,math.min(h-mh,my)),width=math.min(w,340),height=mh})
+    menu=api.Geyser.ScrollBox:new({name="AardwolfToolbox.views.menu",x=math.max(0,math.min(w-340,mx)),y=math.max(0,math.min(h-mh,my)),width=math.min(w,340),height=mh},parent)
     local token=generation
     for i,item in ipairs(list) do
       local b=api.Geyser.Label:new({name="AardwolfToolbox.views.menu."..i,x=0,y=(i-1)*row,width="100%",height=row},menu)
