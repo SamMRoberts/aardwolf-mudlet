@@ -26,12 +26,15 @@ local function initialize()
   AardwolfToolbox.mapper = resource("automapper").new(_G, function(key)
     return config.get("mapper", key)
   end, resource("mapper-identity"))
+  AardwolfToolbox.mapTravel = resource("map-travel").new(_G, AardwolfToolbox.gmcp)
   config.registerFeature({
     id = "mapper", label = "Auto-mapper",
     description = "Use game room numbers and authoritative GMCP room fields. Legacy Toolbox maps are backed up and renumbered on the next fresh room update.",
     settings = {
       {key = "enabled", type = "boolean", default = true, label = "Enable mapping",
         description = "Record rooms and exits. Turning this off releases the mapper's listeners."},
+      {key = "double_click_run", type = "boolean", default = true, label = "Double-click map rooms to run",
+        description = "Send one run command along a mapped path. Requires fresh room data and a standing, command-ready character."},
       {key = "follow_room", type = "boolean", default = true, label = "Follow current room",
         description = "Center the map when fresh room information arrives."},
       {key = "unexplored_rooms", type = "boolean", default = true, label = "Create unexplored room placeholders",
@@ -42,11 +45,14 @@ local function initialize()
     apply = function(values)
       if values.enabled then
         AardwolfToolbox.mapper.start()
-        if not AardwolfToolbox.mapper.enabled then return false, AardwolfToolbox.mapper.last end
+        if not AardwolfToolbox.mapper.enabled then
+          AardwolfToolbox.mapTravel.stop()
+          return false, AardwolfToolbox.mapper.last
+        end
       else
         AardwolfToolbox.mapper.stop()
       end
-      return true
+      return AardwolfToolbox.mapTravel.configure(values.double_click_run)
     end,
   })
   AardwolfToolbox.borders = resource("borders").new(_G,config)
@@ -214,6 +220,7 @@ function AardwolfToolbox.start()
 end
 
 function AardwolfToolbox.stop()
+  if AardwolfToolbox.mapTravel then AardwolfToolbox.mapTravel.stop() end
   if AardwolfToolbox.settingsWindow then AardwolfToolbox.settingsWindow.destroy() end
   if AardwolfToolbox.config then AardwolfToolbox.config.deactivate() end
   if AardwolfToolbox.actionBar then AardwolfToolbox.actionBar.stop() end

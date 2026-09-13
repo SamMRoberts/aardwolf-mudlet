@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.23.0
+# AardwolfToolbox 0.23.1
 
 AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
 player dashboards, room-mob tracking, configurable action buttons, and shared
@@ -245,6 +245,11 @@ are stored as metadata while the mapper retains its inferred interior layout.
 The complete bounded packet, details, and additional reported fields are saved
 in room user data. See [authoritative mapping and migration](docs/mapper-authority.md)
 for the metadata keys and coordinate contract.
+
+Double-click a mapped room to send one Aardwolf `run` command along the mapped
+path (for example, `run 3n2e`). Toggle this in **Auto-mapper → Double-click map
+rooms to run**. It uses fresh current-room GMCP, requires standing outside combat,
+and reports missing paths or routes requiring custom exits. See [map travel](docs/mapper-authority.md#double-click-to-run).
 
 ### Existing maps and ID migration
 

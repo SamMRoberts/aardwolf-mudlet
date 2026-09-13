@@ -92,3 +92,23 @@ preservation, foreign conflicts, checked writes, and failed-import restoration
 through Lua/native-API contracts. No Mudlet interaction or player-profile
 migration was performed for this change. Native import/export fidelity and live
 GMCP acceptance require a backed-up installation and manual verification.
+
+## Double-click to run
+
+Version 0.23.1 installs a reversible `doSpeedWalk` adapter with Mudlet's custom
+speedwalk mode. Double-clicking the native graphical map passes its destination
+to the adapter, which calculates a path from fresh GMCP current-room identity.
+It sends one literal command, such as `run 3n2e`, without alias expansion.
+Aardwolf's [run command](https://www.aardwolf.com/wiki/index.php/Help/Run) accepts
+basic directions, not a room number. No mapped path, stale identity, non-ready
+state, or a route requiring a special exit produces a visible explanation and
+sends nothing. Doors or other game restrictions can stop the server's run;
+Toolbox does not automatically open doors, retry, or resume movement.
+
+**Auto-mapper → Double-click map rooms to run** defaults on. It also works with
+room discovery disabled, provided fresh GMCP and an existing verified map are
+available. Turning it off or uninstalling restores the previous speedwalk hook
+and flags while still owned. It is independent of the bottom action bar.
+`AardwolfToolbox.mapTravel.runTo(nativeRoomID)` uses the same guarded path.
+Native clicks and actual travel remain manual acceptance checks; automated tests
+intercept outgoing commands and never move the player.

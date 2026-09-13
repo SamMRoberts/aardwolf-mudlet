@@ -186,3 +186,7 @@ function setExitStub(id, direction, enabled)
   rooms[id].stubs=rooms[id].stubs or {}
   rooms[id].stubs[dirs[direction]]=enabled and true or nil
 end
+
+function getPath() return false,-1,"No path in this fixture" end
+
+function send() error("Unexpected gameplay command in mapper fixture") end
