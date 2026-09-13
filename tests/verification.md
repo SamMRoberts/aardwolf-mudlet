@@ -1,3 +1,37 @@
+# 0.24.0-dev.8 preference transfer candidate — 2026-09-13
+
+- **358 tests passed** with the pinned toolchain and real Muddler build. The
+  53-entry archive passed CRC/XML/source checks. Existing 10/50/200/512-mob
+  benchmarks passed (99.9% ordinary-line reduction at 200 mobs); no native
+  rendering benchmark is claimed.
+- Package SHA256: `3ee034d4e7230c091076386984763121893fb3b4e790b12b64d169253ce9a8df`.
+- Added 11 transfer tests covering defaults/unknown values, typed validation,
+  malformed/oversized files, list references, read/flush/rename/write failures,
+  exact backups, missing-file fallback, stale drafts, Cancel, lifecycle cleanup,
+  bounded preview widgets and separate activation errors.
+- Backed up only the disconnected `AardwolfToolboxSettingsTest` profile/package,
+  settings/database and native map in `backups/offline-preferences-20260913-162008/`.
+- Native mouse/keyboard: Export created valid JSON without layout metadata;
+  Choose file opened the macOS chooser, a local font-only export displayed
+  Before 12 / After 13, and Cancel preserved 12 with no import backup.
+- Repeated staging through `native_preferences.lua`, then clicked Apply. The
+  native backup matched the previous settings file byte for byte. New font and
+  feedback rendered without clipping in the observed window. Restored 12;
+  fixture assertions recorded zero gameplay/alias/GMCP dispatch.
+- Native stop/start removed all Toolbox Geyser widgets; repeated startup was
+  healthy. Final documentation build was reinstalled into the offline profile,
+  with installed archive files matching the artifact. Eight rooms were retained;
+  before/after native maps are byte-identical:
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- The regular Aardwolf profile was not controlled or installed into. Export,
+  fixture and pre-import backup files remain in the test profile for inspection;
+  all fixture hooks are restored. No live automatic-feature activation tested.
+- Large-import scrolling, full keyboard traversal, chooser cancellation and
+  filesystem-failure injection remain contract-only or manual acceptance gaps.
+  Full Retina/window-size/migration/platform roadmap acceptance remains open.
+
+---
+
 # 0.24.0-dev.7 map workspace candidate — 2026-09-13
 
 - **347 tests passed** with Muddler 1.1.0, Java 17.0.16+8, Python 3.14.6 /

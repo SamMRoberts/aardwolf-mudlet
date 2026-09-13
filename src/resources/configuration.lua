@@ -59,9 +59,10 @@ local function valid(setting, value)
   return false
 end
 
-function Config.new(api)
+function Config.new(api, preferenceFiles)
   local self = {features = {}, order = {}, revision = 0, runtimeErrors = {}, active = false}
   local values, metadata, legacyBytes, legacyVersion = {}, {}, nil, nil
+  local pendingImport, importSerial=nil,0
   local path = api.getMudletHomeDir() .. "/AardwolfToolbox-settings.json"
   self.path = path
   local function diagnostic(message)
@@ -282,7 +283,7 @@ function Config.new(api)
     return ok,message
   end
 
-  function self.apply(draft, revision)
+  local function validateDraft(draft, revision)
     if revision ~= self.revision then return nil, "Settings changed elsewhere. Cancel and reopen this window before applying." end
     if self.readError then return nil, self.readError end
     if type(draft) ~= "table" then return nil, "Invalid settings draft" end
@@ -318,9 +319,38 @@ function Config.new(api)
         if not ok or not valid then return nil,message or "Invalid settings for "..id end
       end
     end
+    return nextValues,changed
+  end
+
+  local function savedPreferences()
+    local saved=copy(values)
+    for _,id in ipairs(self.order) do
+      saved[id]=saved[id] or {}
+      for key,value in pairs(featureValues(id)) do saved[id][key]=value end
+    end
+    return saved
+  end
+
+  local function applyDraft(draft,revision,import)
+    local nextValues,changed=validateDraft(draft,revision)
+    if not nextValues then return nil,changed end
+    local backup
+    if import then
+      for id,fields in pairs(import.unknown) do
+        nextValues[id]=nextValues[id] or {}
+        for key,value in pairs(fields) do nextValues[id][key]=copy(value) end
+      end
+      local encodedOK,encoded=pcall(api.yajl.to_string,{version=3,values=nextValues,metadata=metadata})
+      if not encodedOK or #encoded>1048576 then return nil,'Imported settings exceed storage limits' end
+      local fallbackOK,fallback=pcall(api.yajl.to_string,{version=3,values=savedPreferences(),metadata=metadata})
+      if not fallbackOK then return nil,'Cannot encode pre-import backup' end
+      local why;backup,why=preferenceFiles.backup(path,fallback)
+      if not backup then return nil,why end
+    end
     local saved,message=persist(nextValues,metadata)
     if not saved then return nil,message end
     values, self.revision = nextValues, self.revision + 1
+    if import then pendingImport=nil;self.lastImportBackup=backup end
     local errors = {}
     for _, id in ipairs(self.order) do
       if changed[id] or self.runtimeErrors[id] then notify(id) end
@@ -328,6 +358,77 @@ function Config.new(api)
     end
     if api.raiseEvent then api.raiseEvent('AardwolfToolbox.settings.changed',self.revision) end
     return true, #errors > 0 and ("Saved; activation needs attention: " .. table.concat(errors, "; ")) or "Settings saved and applied."
+  end
+
+  function self.apply(draft,revision) return applyDraft(draft,revision) end
+
+  function self.exportPreferences()
+    if self.readError then return nil,self.readError end
+    if not preferenceFiles then return nil,'Preference file service unavailable' end
+    local exported=savedPreferences()
+    local ok,bytes=pcall(api.yajl.to_string,{format='AardwolfToolbox-preferences',version=1,settingsVersion=3,values=exported})
+    if not ok then return nil,'Cannot encode preferences' end
+    return preferenceFiles.writeNew('export',bytes)
+  end
+
+  local function changesFor(draft)
+    local review={changes={}}
+    for _,id in ipairs(self.order) do
+      for _,setting in ipairs(self.features[id].settings) do
+        local before,after=self.get(id,setting.key),draft[id][setting.key]
+        if not equal(before,after) then
+          review.changes[#review.changes+1]={feature=id,key=setting.key,label=self.features[id].label..' / '..setting.label,before=copy(before),after=copy(after)}
+        end
+      end
+    end
+    return review.changes
+  end
+  function self.reviewImport(draft,revision,token)
+    if not pendingImport or pendingImport.token~=token then return nil,'Import preview expired' end
+    local values,why=validateDraft(draft,revision)
+    if not values then return nil,why end
+    return changesFor(draft)
+  end
+
+  function self.prepareImport(filePath,draft,revision)
+    if not preferenceFiles then return nil,'Preference file service unavailable' end
+    if self.readError then return nil,self.readError end
+    local validDraft,why=validateDraft(draft,revision)
+    if not validDraft then return nil,why end
+    local bytes,err=preferenceFiles.read(filePath);if not bytes then return nil,err end
+    local ok,doc=pcall(api.yajl.to_value,bytes)
+    if not ok or type(doc)~='table' or doc.format~='AardwolfToolbox-preferences' or doc.version~=1 or doc.settingsVersion~=3 or type(doc.values)~='table' then
+      return nil,'Unsupported or malformed preference export (expected export format 1, settings version 3)'
+    end
+    for key in pairs(doc) do
+      if key~='format' and key~='version' and key~='settingsVersion' and key~='values' then return nil,'Unexpected export field: '..tostring(key) end
+    end
+    local nextDraft,unknown=copy(draft),{}
+    local review={changes={},unavailable={},revision=revision}
+    for id,fields in pairs(doc.values) do
+      if not identifier(id) or #id>80 or type(fields)~='table' then return nil,'Invalid imported feature' end
+      for key,value in pairs(fields) do
+        if not identifier(key) or #key>80 or not jsonValue(value,0) then return nil,'Invalid imported preference: '..id..'.'..tostring(key) end
+        if nextDraft[id] and nextDraft[id][key]~=nil then nextDraft[id][key]=copy(value)
+        else
+          unknown[id]=unknown[id] or {};unknown[id][key]=copy(value)
+          review.unavailable[#review.unavailable+1]=id..'.'..key
+        end
+      end
+    end
+    local checked,reason=validateDraft(nextDraft,revision);if not checked then return nil,reason end
+    review.changes=changesFor(nextDraft)
+    table.sort(review.unavailable)
+    importSerial=importSerial+1;review.token=importSerial
+    pendingImport={token=importSerial,revision=revision,unknown=unknown}
+    return nextDraft,review
+  end
+  function self.cancelImport(token)
+    if pendingImport and pendingImport.token==token then pendingImport=nil end
+  end
+  function self.applyImport(draft,revision,token)
+    if not preferenceFiles or not pendingImport or pendingImport.token~=token or pendingImport.revision~=revision then return nil,'Import preview expired; choose the file again' end
+    return applyDraft(draft,revision,pendingImport)
   end
 
   function self.set(id, key, value)
@@ -341,7 +442,7 @@ function Config.new(api)
     self.active = true
     for _, id in ipairs(self.order) do notify(id) end
   end
-  function self.deactivate() self.active = false end
+  function self.deactivate() self.active = false;pendingImport=nil end
   return self
 end
 return Config

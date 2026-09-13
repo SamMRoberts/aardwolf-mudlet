@@ -22,8 +22,10 @@ local function own(id,value,dependencies,method)
 end
 
 local function initialize()
-  local config = resource("configuration").new(_G)
-  own("config",config,{},"deactivate")
+  local PreferenceFiles=resource("preferences-files")
+  local preferenceFiles=own("preferencesFiles",PreferenceFiles.new(_G),{},"stop")
+  local config = resource("configuration").new(_G,preferenceFiles)
+  own("config",config,{"preferencesFiles"},"deactivate")
   own("ui",resource("appearance").new(_G,config),{},"stop")
   config.registerFeature({id="appearance",label="Appearance",description="Shared readable fonts for Toolbox, console, input, and chat. Larger existing console text is preserved.",settings={
     {key="enabled",type="boolean",default=true,label="Manage console and input fonts"},
@@ -33,6 +35,7 @@ local function initialize()
     {key="ui_size",type="number",default=12,min=11,max=24,integer=true,label="Interface font size"},
     {key="reading_size",type="number",default=13,min=11,max=24,integer=true,label="Reading font size"},
   },apply=AardwolfToolbox.ui.configure})
+  config.registerFeature(PreferenceFiles.definition(preferenceFiles.configure))
   own("gmcp",resource("gmcp-cache").new(_G),{},"stop")
   config.registerFeature({id="gmcp",label="GMCP data",
     description="Keep session-only character, communication, group, and room values for Toolbox features.",

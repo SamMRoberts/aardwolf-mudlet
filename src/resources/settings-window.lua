@@ -15,6 +15,7 @@ local BUTTON = "QLabel { background-color: #34485f; color: #ffffff; border: 1px 
 function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, picker, health, exportDiagnostics)
   local self = {opened = false}
   local root, body, message, status, navigation, timer, draft, revision, selected
+  local importReview
   local recordSelection={}
   local pickerViews={}
   local renderedSection
@@ -82,6 +83,48 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
     if feature.description then
       local h=ui and math.max(60,math.ceil(ui.measure(feature.description)/math.max(100,root:get_width()-230))*ui.metrics().line+18) or 60
       label(body, "description", feature.description, 0, y, "100%", h); y = y + h+4
+    end
+    if selected=='preferences' then
+      label(body,'exportPreferences','Export saved preferences',0,y,'100%',controlHeight,function()
+        local path,why=config.exportPreferences()
+        feedback(path and ('Exported saved preferences to '..path) or why)
+      end);y=y+controlHeight+4
+      label(body,'importPreferences','Choose file to import…',0,y,'100%',controlHeight,function()
+        if not api.invokeFileDialog then feedback('This Mudlet build has no file chooser');return end
+        local current=generation
+        capture()
+        local ok,path=pcall(api.invokeFileDialog,true,'Import AardwolfToolbox preferences')
+        if not self.opened or generation~=current then return end
+        if not ok then feedback('Cannot open file chooser: '..tostring(path));return end
+        if not path or path=='' then return end
+        self.importFile(path)
+      end);y=y+controlHeight+4
+      if importReview then
+        local changes,why=config.reviewImport(draft,revision,importReview.token)
+        if changes then importReview.changes=changes else feedback(why) end
+        label(body,'importSummary',#importReview.changes..' changed settings; '..#importReview.unavailable..' unavailable settings retained. Review the sections below, then Apply or Cancel. Lists replace the whole list.',0,y,'100%',controlHeight*3);y=y+controlHeight*3+4
+        local function valueText(value)
+          if type(value)=='table' then return #value..' records (review in section)' end
+          if type(value)=='boolean' then return value and 'Enabled' or 'Disabled' end
+          local text=tostring(value)
+          return ui and ui.fit(text,math.max(100,root:get_width()-240)) or text:sub(1,160)
+        end
+        for i=1,math.min(100,#importReview.changes) do
+          local item=importReview.changes[i]
+          local changeLabel=label(body,'importChange','',0,y,'100%',controlHeight*3,function()
+            if bodyGeneration==currentBody then self.select(item.feature) end
+          end)
+          changeLabel:echo(escape(item.label)..'<br>Before: '..escape(valueText(item.before))..'<br>After: '..escape(valueText(draft[item.feature][item.key])))
+          y=y+controlHeight*3+4
+        end
+        if #importReview.changes>100 or #importReview.unavailable>100 then
+          label(body,'importLimit','Showing the first 100 entries of each kind. Review additional settings in their sections.',0,y,'100%',controlHeight*2);y=y+controlHeight*2+4
+        end
+        for i=1,math.min(100,#importReview.unavailable) do
+          local name=importReview.unavailable[i]
+          label(body,'importUnavailable','Unavailable: '..name..' (stored, not activated)',0,y,'100%',controlHeight*2);y=y+controlHeight*2+4
+        end
+      end
     end
     if selected=="dashboard" and resetLayout then
       label(body,"resetlayout","Reset layout",0,y,"100%",40,function()
@@ -293,12 +336,27 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
   function self.apply()
     if not self.opened then return end
     capture()
-    local ok, text = config.apply(draft, revision)
-    if ok then draft, revision = config.draft(); render() end
+    local ok, text
+    if importReview then ok,text=config.applyImport(draft,revision,importReview.token)
+    else ok,text=config.apply(draft,revision) end
+    if ok then
+      if importReview then text=text..' Backup: '..tostring(config.lastImportBackup) end
+      importReview=nil;draft, revision = config.draft(); render()
+    end
     feedback(text); refreshStatus()
     return ok, text
   end
+  function self.importFile(path)
+    if not self.opened then return nil,'Open settings before importing' end
+    capture()
+    local nextDraft,review=config.prepareImport(path,draft,revision)
+    if not nextDraft then feedback(review);return nil,review end
+    draft=nextDraft;importReview=review;selected='preferences';render()
+    feedback('Import staged. Review changed sections; Apply backs up, saves and activates. Cancel discards the draft.')
+    return true
+  end
   function self.close()
+    if importReview then config.cancelImport(importReview.token);importReview=nil end
     self.opened = false; generation = generation + 1
     if abilities then api.deleteNamedEventHandler(PREFIX,"catalog") end
     api.raiseEvent("AardwolfToolbox.settings.visibility")

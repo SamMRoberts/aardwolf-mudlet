@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.7**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.8**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 is recorded in tests/verification.md.
@@ -42,6 +42,9 @@ is recorded in tests/verification.md.
 - Off / Captured queries / Compact output cleanup modes preserve existing
   preferences. Query gaps are bounded by time and line count.
 - Shared-settings search and extensible registered view placement.
+- Local settings import/export with before/after draft review, unknown-setting
+  retention, checked pre-import backups and existing validation/stale-draft rules.
+  Preference transfers exclude native map and layout-ownership metadata.
 - Searchable Tools menu with guarded informational actions and a resumable,
   offline setup walkthrough. Completing it writes only local completion metadata.
 - Inventory/equipment/ability workspace with bounded pages, literal details,
@@ -112,8 +115,12 @@ size/scroll/keyboard and live route-source acceptance remain pending.
 
 ### Polish, notifications and history (0.28)
 
+Settings import/export is implemented in this candidate; native file selection,
+before/after preview, Cancel, Apply, exact backup and restoration passed in the
+disconnected test profile. See [preference transfers](preferences-transfer.md).
+
 Implement the notification center, opt-in per-character history with retention,
-export/clear, settings import/export, keyboard improvements and larger-list
+export/clear, keyboard improvements and larger-list
 virtualization. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 

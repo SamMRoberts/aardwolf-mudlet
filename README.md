@@ -1,9 +1,14 @@
-# AardwolfToolbox 0.24.0-dev.7
+# AardwolfToolbox 0.24.0-dev.8
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-The new **Map workspace** adds local room/area search, bookmarks with notes,
+**Settings import/export** is available in **aardwolf-config → Import and export**.
+Export saved preferences, preview an imported file, then Apply or Cancel. Applying
+an import first saves a local backup; maps and layout ownership stay local.
+See [preference transfers](docs/preferences-transfer.md).
+
+The **Map workspace** adds local room/area search, bookmarks with notes,
 route previews and read-only map health. Open **Tools → Open map workspace**
 or **Views → Atlas**. Configure it under **aardwolf-config → Map workspace**.
 See [map workspace](docs/map-workspace.md).

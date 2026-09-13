@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.24.0-dev.8 — settings import and export
+
+- Export saved preferences as bounded JSON, including unavailable-feature settings
+  while excluding native maps, catalogs, history and layout-ownership metadata.
+- Import into the existing settings draft with before/after review, typed
+  validation, stale-draft protection and Apply/Cancel. Structured lists replace
+  the entire setting; missing settings retain their current draft values.
+- Save a checked local backup before importing. Storage failures preserve active
+  preferences and the pending draft; activation failures remain separately visible.
+- Add failure, lifecycle, unknown-setting, preview and persistence regressions.
+
 ## 0.24.0-dev.7 — local map workspace
 
 - Add paged room/area search, identity-bound bookmarks and local notes through

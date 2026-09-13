@@ -165,3 +165,24 @@ Ordered lists can supply `addLabel` to name their Add control.
 Successful Apply publishes `AardwolfToolbox.settings.changed` with the new
 configuration revision after persistence and feature callbacks. Consumers can
 invalidate pending interactions even when another feature's settings changed.
+
+## Preference transfers
+
+`aardwolf-config → Import and export` uses the same draft, validation, Apply and
+Cancel flow. See [file format and user workflow](preferences-transfer.md).
+
+- `config.exportPreferences()` returns a new export path, or `nil, reason`.
+- `config.prepareImport(path, draft, revision)` returns a new draft and review,
+  or `nil, reason`, without saving or activating preferences.
+- `config.reviewImport(draft, revision, review.token)` refreshes changed fields
+  after local edits. `config.applyImport(draft, revision, review.token)` validates,
+  backs up and applies. `config.cancelImport(review.token)` invalidates the plan.
+- Reviews contain defensive copies of changed values and unavailable field names.
+  Unknown imported values remain internal to the configuration service.
+- Only one import plan is active. Revision changes, Cancel or shutdown reject
+  stale application. Never bypass the shared Apply path to write imported data.
+
+Registered feature validation and activation contracts are unchanged. Imported
+settings can enable existing automatic features, so descriptions and preview
+labels must identify those preferences clearly. Exports contain saved values,
+not unsaved editor text.
