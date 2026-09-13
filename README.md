@@ -1,73 +1,128 @@
 # AardwolfToolbox 0.22.0
 
-Compact sidebar dashboards, external dashboard/chat windows, and reserved navigation space. See [Dashboard views](docs/ui-dashboard.md#sidebar-views-0220).
+AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
+player dashboards, room-mob tracking, configurable action buttons, and shared
+settings. It targets **Mudlet 5.0.1** and uses Lua 5.1-compatible scripts.
 
-A Mudlet 5.0.1 package with an incremental Aardwolf GMCP auto-mapper, a compact
-bottom Vitals strip, a full-width utility bar, tabbed maps and gameplay dashboard, shared readable typography, inventory tracking, game-tag capture, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.
+## Install
 
-## Install and use
+1. Obtain **`AardwolfToolbox.mpackage`**. In a local checkout, the package is
+   [build/AardwolfToolbox.mpackage](build/AardwolfToolbox.mpackage). If it is missing
+   or you changed the source, follow [Build and verify](#build-and-verify) first.
+   Install the `.mpackage` file, not the repository ZIP or an individual Lua file.
+2. Open Mudlet and select your **Aardwolf profile**. Installation and preferences
+   apply to that profile.
+3. Open **Packages** on Mudlet's toolbar to open **Package Manager**, choose
+   **Install**, and select `AardwolfToolbox.mpackage`.
+4. Enable **GMCP** in that profile's Mudlet settings. Log in normally so features
+   can receive fresh character and room data. If you enabled GMCP while connected,
+   reconnect when convenient to establish the protocol.
+5. Enter **`aardwolf-config`** in Mudlet's command input to customize the package.
+   Use `aardwolf-status` for package status and `aardwolf-map status` for mapping
+   diagnostics. Open Mudlet's **Map** window if the graphical mapper is not visible.
 
-Install `build/AardwolfToolbox.mpackage` through **Package Manager**, open Mudlet's
-**Map** window, and enable GMCP in your Aardwolf profile. The mapper starts on
-installation and profile load unless disabled in saved settings. Move normally to receive fresh room information;
-it records visited rooms, connects reported exits when both endpoints are known,
-and follows your position in the map. It never walks or sends gameplay commands.
+The package starts on installation and profile load. Data-dependent panels may
+show waiting or unavailable readings until fresh server data arrives. Features
+can request informational data according to their settings; **automatic spellup
+casting starts disabled**. Action buttons and mob actions execute only when used.
 
-Version **0.14.3** fixes spellup completion without end tags and bases buff coverage on the confirmed server-selected buff set. Version **0.14.1** adds a colored top-bar spellup indicator: buff coverage, automation status, and click-to-open Buffs. Version **0.14.0** adds a Buffs dashboard tab, live spell/recovery tracking, and opt-in automatic `spellup learned retry`. Automatic casting starts off. See the [spellup guide](docs/spellups.md).
+### Upgrade or uninstall
 
-Version **0.13.0** added shared Appearance settings, Graphical/ASCII map tabs, a Player/Quest/Group/Combat dashboard, and persistent layout ownership. See [UI and dashboard guide](docs/ui-dashboard.md).
+Before upgrading, save and back up your Aardwolf profile, native map, and settings.
+In Package Manager, uninstall the existing **AardwolfToolbox**, then install the
+new `.mpackage`. If migrating from **AardwolfStarter**, uninstall that old package
+first to avoid duplicate aliases. Do not delete your profile to upgrade.
 
-The mapper keeps new-room placement collisions on the intended Z level by
-searching nearby X/Y positions. Only reported up/down exits change the inferred
-floor; occupied coordinates no longer push rooms upstairs. Existing coordinates
-remain unchanged, including older incorrect placements and manual edits.
+Package uninstall preserves the native map, saved Toolbox preferences, and local
+ability catalog. Preferences are reused after reinstalling. Settings use format
+3; releases that only understand older formats cannot read those preferences.
+Keep your backup if you may need to downgrade.
 
-Use one mapping package per profile. If `generic_mapper` is installed, Toolbox
-stays off and explains the conflict. Generic Mapper can move the same marker
-even after `stop mapping`, which only stops its room creation. To use Toolbox,
-back up your map, remove `generic_mapper` through Package Manager, then run
-`aardwolf-map on`. Existing rooms remain in the map; rooms created by Generic
-Mapper have no reliable Aardwolf room IDs and are not automatically adopted.
-Toolbox also stops before applying room data if Generic Mapper is installed
-later. Other packages and unrelated room listeners remain supported.
+Use only one active mapping package per profile. If `generic_mapper` is installed,
+Toolbox's mapper stays off and reports the conflict. Back up the map, remove
+`generic_mapper` through Package Manager, then use `aardwolf-map on` to enable
+Toolbox mapping. Existing foreign map rooms are not automatically adopted.
+
+## Features
+
+| Feature | What it provides |
+| --- | --- |
+| **Auto-mapper** | Maps fresh GMCP room observations, follows your position, colors terrain, and previews unexplored exits with gray **?** rooms or exit stubs. Preserves manual map edits. See [mapping behavior](#mapping-behavior-and-preservation). |
+| **Graphical and ASCII maps** | Switch map tabs or pop out the ASCII pane. Captured ASCII frames retain spacing and colors and are hidden from the game console. [Map and layout guide](docs/ui-dashboard.md). |
+| **Player dashboard** | Compact identity, total/base attributes, combat rolls, and conditions; base attributes are italic. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
+| **Quest and Group dashboards** | Quest state, target/location, approximate timer, and local map lookup; group membership, presence, and resource readings. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
+| **Buffs and spellups** | Active effects, recoveries, expiry warnings, coverage, and a utility-bar indicator. Optional auto refresh uses `spellup learned retry`. [Spellup guide](docs/spellups.md). |
+| **External views and chat** | Move Player, Quest, Group, Buffs, or existing All/Tells/Channels chat views into separate native windows. Chat retains its history, with unread counts and Latest/Mark read controls. [View controls](docs/ui-dashboard.md#sidebar-views-0220). |
+| **Room mobs and Nearby scans** | Individual mob rows, observed consider ranges, target/attacker/kill indicators, and compact nearby scans. Configurable double-click actions and right-click command/alias menus. [Room mobs guide](docs/room-mobs.md). |
+| **Action and navigation bar** | Paged command/alias buttons, optional keybindings, a directional compass, door controls, and known special exits. [Action bar guide](docs/action-bar.md). |
+| **Ability catalog and smart buttons** | Locally stored learned skills/spells, filters and type corrections, and buttons for a specific ability or the highest-required-level eligible ability of a type. [Ability guide](docs/abilities.md). |
+| **Top utility bar** | Level, total levels, tier, remorts, worth, gold, inventory count, status indicators, Settings, and Views access. [Utility bar guide](docs/utility-bar.md). |
+| **Bottom Vitals** | HP, Mana, Moves, target health, and TNL in one row above the command input, with TNL at the far right. |
+| **Consider formatting** | Compact difficulty labels, relative-level ranges, and threat colors using shared ratings with Room mobs. [Consider guide](docs/consider.md). |
+| **Floating help** | Tagged help pages in a bordered, movable reading pane. [Help guide](docs/help-pane.md). |
+| **Console cleanup and tag capture** | Configurable blank-line/repeated-prompt filtering and bounded capture of tagged records for other features. [Cleanup](docs/console-cleanup.md) · [Game tags](docs/game-tags.md). |
+| **Shared appearance and data** | Readable fonts, layout controls, profile-local settings, and a shared GMCP cache for current and future features. [Appearance](docs/ui-dashboard.md) · [GMCP API](docs/gmcp-cache.md). |
+
+## Access and use settings
+
+Enter either command in **Mudlet's command input**, then press Enter:
+
+```text
+aardwolf-config
+```
+
+```text
+aardwolf-settings
+```
+
+Both open the same draggable, resizable settings window. You can also click
+**⚙** on the top utility bar.
+
+1. Select a feature section in the settings navigation.
+2. Edit its switches, fields, or lists. Scroll the body for additional controls.
+3. Click **Apply** to validate, save, and activate your changes.
+
+**Cancel** or closing the window discards unsaved edits. **Restore defaults**
+changes only the selected section's draft; click Apply to save those defaults.
+Opening the settings command again raises the existing window without discarding
+its draft. If a command changes preferences while a draft is open, cancel and
+reopen the panel before applying.
+
+Useful sections to start with:
+
+- **Appearance:** shared UI/reading fonts, sizes, and presets.
+- **Dashboard and layout:** sidebar sizing, section proportions, and layout controls.
+- **Dashboard and chat views:** tabbed or external placement for each view, Buffs
+  recovery visibility, and expiry warnings. The utility **Views** menu also opens,
+  floats, or returns a view to the sidebar.
+- **Room mobs:** refresh behavior, indicators, double-click action, and right-click
+  command/alias templates such as `kill {target}`.
+- **Action bar:** buttons, ability selections, and keyboard shortcuts.
+- **Spellups:** tracking and optional automatic refresh. Enable casting only if you
+  want Toolbox to start guarded spellup batches.
+- **Auto-mapper:** mapping, following, terrain colors, and unexplored placeholders.
+
+Preferences are saved per profile in **`AardwolfToolbox-settings.json`**, inside
+Mudlet's profile directory (`getMudletHomeDir()`), outside the installed package.
+They survive restarts, uninstall, and upgrades. Validation or storage failures
+keep active settings unchanged; invalid settings files are preserved and reported.
+Feature status messages distinguish saved preferences from actual activation.
+
+Developers adding configurable features must use this same window through the
+[settings registry](docs/settings-framework.md).
+
+## Command reference
 
 | Command | Action |
 | --- | --- |
-| `aardwolf-config` or `aardwolf-settings` | Open the floating settings panel. |
+| `aardwolf-config` or `aardwolf-settings` | Open the shared settings window. |
 | `aardwolf-ascii` | Enable/select ASCII, or raise its popped-out pane. |
-| `aardwolf-buffs` | Open the Buffs dashboard tab. |
-| `aardwolf-spellup on\|off\|status\|sync\|now` | Control guarded spellup automation or synchronize spell data. |
+| `aardwolf-buffs` | Open the Buffs view. |
+| `aardwolf-spellup on\|off\|status\|sync\|now` | Enable/pause automation, inspect status, synchronize data, or request one guarded spellup batch. |
 | `aardwolf-status` | Show package status and session invocation count. |
 | `aardwolf-map` or `aardwolf-map status` | Show mapper state, counts, last result, and backup path. |
-| `aardwolf-map off` | Stop mapping and release this component's handlers/subscription. |
-| `aardwolf-map on` | Resume, waiting for a fresh room update. |
-
-If replacing the previously named `AardwolfStarter`, uninstall that package first
-to avoid two copies of the status alias. Use Package Manager to uninstall an older
-`AardwolfToolbox` before installing its replacement. Map data survives uninstall.
-
-## Settings
-
-Run `aardwolf-config` to open a draggable, resizable panel inside Mudlet. Select a
-feature, edit its controls, and press **Apply** to save and activate the changes.
-**Cancel** and the close button discard unsaved edits. **Restore defaults** changes
-the selected section's draft; press Apply to save it. Re-running the command raises
-the existing window. Use its scrollable body to reach settings on smaller panels.
-
-The Auto-mapper section provides **Enable mapping**, **Follow current room**, and
-**Color rooms by terrain**. All default to enabled. Following can be disabled while
-mapping continues; terrain coloring can be disabled without erasing existing colors
-or terrain metadata. Re-enabling either takes effect on fresh room updates. The
-status line shows actual mapper state separately from its saved enabled preference.
-
-Preferences live in `AardwolfToolbox-settings.json` in the Mudlet profile directory
-and survive restart, uninstall, and package upgrades. Failed validation or saving
-keeps active settings unchanged. If a command changes preferences while a draft is
-open, cancel and reopen the panel before applying. Unreadable or invalid settings
-files are preserved and reported rather than overwritten.
-
-Future features register their settings with this window. See the
-[settings framework contract](docs/settings-framework.md) for types and examples.
+| `aardwolf-map off` | Stop mapper updates. |
+| `aardwolf-map on` | Resume mapping, waiting for fresh room data. |
 
 ## Top utility bar (0.12.0)
 
