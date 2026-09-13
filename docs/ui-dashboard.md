@@ -144,5 +144,27 @@ is a literal whole-word match; ASCII letters ignore case, while Unicode letters
 retain case. Messages reported as sent by the player are excluded. Tab tooltips
 and the Views menu show counts; selecting a sidebar tab or Latest / Mark read
 clears them. No sound, blinking, message recoloring or second capture pipeline is
-added. These capture options apply to Toolbox-owned chat; compatibility mode
-continues using the starter's capture preferences.
+added. Aardwolf GMCP capture uses these preferences in both Toolbox and starter
+compatibility modes. The starter retains its own preferences for text fallback.
+
+## Clan and Newbie chat (0.24.0-dev.10)
+
+Clan receives `clantalk`; Newbie receives `newbie` (also accepting `newbietalk`).
+These are Aardwolf's [documented GMCP channels](https://aardwolf.com/wiki/index.php/Clients/GMCP).
+Both also appear in All and Channels. Other clan-related channels such as `gclan`
+and `claninfo` remain in the aggregate feed. Hidden-channel preferences apply
+before routing into any view.
+
+Open **Views → Clan / Newbie**, or scroll the chat tab strip using **›**. Each
+view supports local search, Latest/Mark read, and independent floating placement
+in **aardwolf-config → Dashboard and chat views**. The same views work with the
+Toolbox sidebar and the starter-compatible sidebar without replacing existing buffers.
+
+Your own messages stay visible but do not increase unread or mention badges, even
+when the view is hidden or detached. Sender matching is case-insensitive. Outgoing
+`You ...` text is also recognized because tell metadata can name the recipient.
+Existing unread messages remain unread; sending a reply does not mark them read.
+
+The starter's existing text capture is retained until fresh Aardwolf channel GMCP
+arrives, then duplicate starter capture is suppressed reversibly for that session.
+No gameplay commands or server channel-preference changes are sent.

@@ -1,3 +1,34 @@
+# 0.24.0-dev.10 Clan/Newbie chat — 2026-09-13
+
+- **380 tests passed** after the Muddler build. Archive CRC/XML and source consistency
+  passed; installed Lua resources match the final archive. Existing mob benchmarks
+  passed (99.9% ordinary-line reduction at 200 mobs).
+- Package SHA256: `42f073c0f17fec1664b95ac619fed671ccad0d01ff7d229789bc9d140cf4bc1d`.
+- Added regression coverage for dedicated routing, outgoing tells with recipient
+  metadata, case-insensitive self matching, quoted incoming text, raw/ANSI colors,
+  preserved unread counts, hidden channels, external placement persistence,
+  starter duplicate capture, constructor failure cleanup and stale callbacks.
+- Updated detach-all coverage for the two additional views. Starter capture wrappers
+  now remain active in compatibility mode; the migration test verifies restored
+  original functions on final teardown and preserved borrowed chat buffers.
+- Authorized native testing used **only the disconnected AardwolfToolboxSettingsTest**
+  profile, backed up at `backups/offline-chat-channels-20260913-172027/` (profile/package/settings/database/map).
+- Synthetic Clan and Newbie messages appeared in the dedicated tabs and aggregate
+  feeds. Native assertions confirmed one unread each after one incoming message
+  plus an outgoing reply; outgoing tells also did not increment unread counts.
+  Clicking Newbie showed its messages and cleared its badge. Literal Unicode and
+  angle brackets, native color rendering and five-tab layout were observed.
+- Clan floated into a native external window with the same messages; native close
+  and return to sidebar passed. No external mouse-resize claim. Fixture state and
+  dispatch interceptors were restored. Teardown/repeated startup passed without
+  activation errors or owned widget roots remaining; no gameplay was dispatched.
+- All eight native map rooms are preserved byte for byte:
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- Naturally arriving Clan/Newbie traffic and live sender formats remain unverified.
+  The player profile was not controlled or upgraded.
+
+---
+
 # 0.24.0-dev.9 notification center candidate — 2026-09-13
 
 - **375 tests passed** with the pinned toolchain and Muddler build. The 55-entry

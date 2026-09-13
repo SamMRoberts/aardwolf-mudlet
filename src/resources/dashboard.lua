@@ -22,7 +22,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   end
   local chatFirst=1
   local DASH={"player","quest","group","buffs"}
-  local CHAT={"all","tells","channels"}
+  local CHAT={"all","tells","channels","clan","newbie"}
   local function docked(id) return id~=nil and views.mode(id)=="tabbed" and (id~="buffs" or config.get("spellups","show_tab")) end
   local busy=false
   local tabLayoutHeight,tabPaintKey
@@ -406,8 +406,8 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
         if views.mode(key)=="floating" then views.open(key); return end
         base.activeChatTab=key; base.unread[key]=0; if base.mentions then base.mentions[key]=0 end; chatFonts(base)
       end
-      a.noteChat=function(key,mention)
-        if views.mode(key)=="floating" or key~=base.activeChatTab or base.container.hidden then
+      a.noteChat=function(key,mention,outgoing)
+        if not outgoing and (views.mode(key)=="floating" or key~=base.activeChatTab or base.container.hidden) then
           base.unread[key]=(base.unread[key] or 0)+1
           if mention then base.mentions=base.mentions or {};base.mentions[key]=(base.mentions[key] or 0)+1 end
         end

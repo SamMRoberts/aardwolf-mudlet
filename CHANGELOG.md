@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.0-dev.10 — Clan and Newbie chat
+
+- Add dedicated Clan (`clantalk`) and Newbie (`newbie`) views with tab overflow,
+  search, unread badges and independently persisted external-window placement.
+- Preserve All/Channels feeds and literal colors. Outgoing messages, including
+  recipient-addressed tells, no longer increment unread or mention counts.
+- Share Aardwolf GMCP routing with starter-compatible sidebars; reversibly suppress
+  duplicate starter capture after fresh channel data arrives. Restore borrowed
+  buffers/functions and remove only added views during teardown.
+
 ## 0.24.0-dev.9 — notification center
 
 - Add a bounded session inbox, category filters, unread counts and a utility

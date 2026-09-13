@@ -278,7 +278,7 @@ local function initialize()
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities","atlas","notifications"}) do
+  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications"}) do
     local view=id
     launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"

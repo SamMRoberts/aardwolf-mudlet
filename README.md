@@ -1,9 +1,14 @@
-# AardwolfToolbox 0.24.0-dev.9
+# AardwolfToolbox 0.24.0-dev.10
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-The new **Notification center** provides a quiet session inbox for quest,
+**Clan** and **Newbie** now have dedicated chat tabs and optional external windows.
+Open them through **Views**, or set their placement in **aardwolf-config → Dashboard
+and chat views**. Your outgoing messages remain visible without increasing unread
+counts. All and Channels retain their combined feeds.
+
+The **Notification center** provides a quiet session inbox for quest,
 spellup, refresh-failure and combat-entry notices. Open **Notices** in the utility
 bar or **Tools → Open notifications**. Configure categories, presentation and
 optional alerts in **aardwolf-config → Notifications**. Sound and pulsing start

@@ -1,10 +1,14 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.9**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.10**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
+
+Clan and Newbie chat views now share sidebar/external placement, search and unread
+controls. Outgoing messages remain visible without increasing unread or mention
+counts, including outgoing tells that identify the recipient.
 
 ## Implemented and covered by local contract tests
 
