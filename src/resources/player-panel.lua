@@ -16,6 +16,7 @@ function Panel.new(api,cache,ui)
   local busy=false
   local visible=true
   local labels,handlers={},{}
+  local content={}
   local function render()
     if not root then return end
     local char=cache.get("char") or {}
@@ -30,7 +31,7 @@ function Panel.new(api,cache,ui)
     end
     local rows={
       {escape(base.name).." &nbsp;·&nbsp; Lv "..number(status.level or base.level)},
-      {escape(base.race).." &nbsp;·&nbsp; "..escape(base.class)},
+      {escape(base.race).." &nbsp;·&nbsp; "..escape(base.class)..(base.subclass and base.subclass~="" and " · "..escape(base.subclass) or "")},
       {stat("STR","str"),stat("DEX","dex"),stat("CON","con")},
       {stat("INT","int"),stat("WIS","wis"),stat("LCK","luck")},
       {"HR "..number(stats.hr),"DR "..number(stats.dr),"SAV "..number(stats.saves)},
@@ -38,34 +39,55 @@ function Panel.new(api,cache,ui)
       {"Hunger "..number(status.hunger).." &nbsp;·&nbsp; Thirst "..number(status.thirst)},
     }
     for row,values in ipairs(rows) do
-      for col,text in ipairs(values) do labels[row][col]:echo(text) end
+      for col,text in ipairs(values) do
+        local label=labels[row][col]
+        content[row]=content[row] or {}; content[row][col]=text
+        if label.playerText~=text then
+          if ui then ui.apply(label) end
+          label:echo(text,row==1 and "#e6edf3" or (row==2 or row>=6) and "#b7c9d8" or "#e6edf3"); label.playerText=text
+        end
+      end
     end
   end
   local function paint(height)
-    local line=ui and ui.metrics().line or (height-12)/7
+    local line=ui and math.max(20,ui.metrics().line-2) or (height-12)/7
     local font=ui and ui.metrics().size or options.font_size
     local y=6
+    local statColumns=ui and math.max(1,math.min(3,math.floor(root:get_width()/(ui.measure("STR 999/999")+30)))) or 3
     for row,cells in ipairs(labels) do
       local columns=#cells
+      local statRow=row==3 or row==4
       if ui and columns>1 then
         local width=root:get_width()
         columns=math.max(1,math.min(columns,math.floor(width/(ui.measure("STR 9999/9999")+18))))
       end
+      if statRow then columns=statColumns end
+      local cellHeight=line
+      if ui and #cells==1 then
+        local text=((content[row] or {})[1] or ""):gsub("<[^>]*>",""):gsub("&nbsp;"," ")
+        cellHeight=math.max(line,math.ceil(ui.measure(text)/math.max(30,root:get_width()-14))*line)
+      end
       for col,label in ipairs(cells) do
-        label:move(((col-1)%columns)*100/columns.."%",y+math.floor((col-1)/columns)*line)
-        label:resize(100/columns.."%",line)
+        local index=statRow and (row-3)*3+col-1 or col-1
+        label:move((index%columns)*100/columns.."%",y+math.floor(index/columns)*line)
+        label:resize(100/columns.."%",cellHeight)
+        local styleKey=tostring(font)..(ui and ui.metrics().font or "")..tostring(root:get_width())
+        if label.playerStyle~=styleKey then
         if ui then ui.apply(label) else label:setFontSize(font) end
         label:setStyleSheet("background-color: transparent; border: none; padding-left: 7px; color: "..
           (row==1 and "#e0e6ec" or (row==2 or row>=6) and "#bdc9d3" or "#d4dce4")..
-          "; font-style: normal;"..(row==1 and " font-weight: bold;" or " font-weight: normal;"))
+          "; qproperty-wordWrap: true; font-style: normal;"..(row==1 and " font-weight: bold;" or " font-weight: normal;"))
+        if statRow then label:setToolTip("Total with equipment/buffs / italic base stat") end
+        label.playerStyle=styleKey
+        end
       end
-      y=y+math.ceil(#cells/columns)*line
+      if row==4 then y=y+math.ceil(6/statColumns)*line elseif not statRow then y=y+math.ceil(#cells/columns)*cellHeight end
     end
     return y+6
   end
   local function removeRoot()
     if root then root:delete(); root=nil end
-    labels={}; mountedParent=nil
+    labels={}; content={}; mountedParent=nil
   end
   local function restore()
     if not adapter then return end
@@ -95,7 +117,7 @@ function Panel.new(api,cache,ui)
     if host then
       mount({container={Inside=host}})
       local height=7*(ui and ui.metrics().line or options.font_size*1.5+2)+12
-      root:move(0,0); root:resize("100%",height); root:resize("100%",paint(height)); render(); if visible then root:show() else root:hide() end
+      render(); root:move(0,0); root:resize("100%",height); root:resize("100%",paint(height)); if visible then root:show() else root:hide() end
       self.last="Player dashboard"; return
     end
     local base=api.BaseUI
@@ -148,7 +170,7 @@ function Panel.new(api,cache,ui)
   end
   self.destroy=self.stop
   local function refresh()
-    if not self.enabled or timer then return end
+    if not self.enabled or timer or not visible then return end
     -- Run after the cache and starter UI finish their current event callbacks.
     timer=api.tempTimer(0,function()
       timer=nil
@@ -169,7 +191,7 @@ function Panel.new(api,cache,ui)
         if path=="char" or path:match("^char%.") then refresh() end
       end)
       on("clear","AardwolfToolbox.gmcp.cleared",refresh)
-      for _,event in ipairs({"AardwolfToolbox.ui.changed","sysWindowResizeEvent","AdjustableContainerRepositionFinish","sysInstallPackage","sysUninstallPackage"}) do
+      for _,event in ipairs({"AardwolfToolbox.ui.changed","sysWindowResizeEvent","sysUserWindowResizeEvent","AdjustableContainerRepositionFinish","sysInstallPackage","sysUninstallPackage"}) do
         on(event,event,refresh)
       end
       adapt()
@@ -178,7 +200,8 @@ function Panel.new(api,cache,ui)
     return true
   end
   function self.setVisible(value)
-    visible=value
+    local changed=visible~=value; visible=value
+    if changed and value and self.enabled then refresh() end
     if root then if value then root:show() else root:hide() end end
   end
   function self.setHost(parent)

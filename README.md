@@ -1,4 +1,6 @@
-# Aardwolf Toolbox
+# AardwolfToolbox 0.22.0
+
+Compact sidebar dashboards, external dashboard/chat windows, and reserved navigation space. See [Dashboard views](docs/ui-dashboard.md#sidebar-views-0220).
 
 A Mudlet 5.0.1 package with an incremental Aardwolf GMCP auto-mapper, a compact
 bottom Vitals strip, a full-width utility bar, tabbed maps and gameplay dashboard, shared readable typography, inventory tracking, game-tag capture, colored consider ratings, and a shared settings window. Uses Lua 5.1-compatible code and built-in Mudlet APIs.

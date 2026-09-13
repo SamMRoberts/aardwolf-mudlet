@@ -181,10 +181,10 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,
   end
   local function renderContents()
     if not self.enabled or not root then return end
-    local windowWidth=api.getMainWindowSize()
+    local windowWidth,windowHeight=api.getMainWindowSize()
     local row=ui.metrics().height
     local navWidth=4*(row+4)+ui.measure("Other exits")+28
-    local narrow=windowWidth<1000 or windowWidth-navWidth<300
+    local narrow=windowWidth<1000 or windowWidth-navWidth<300 or windowHeight<600
     local height=narrow and row+8 or row*3+16
     borders.reserve(OWNER,"bottom",height,5,function()
       if root then local x,y,w,h=borders.box(OWNER); root:move(x,y); root:resize(w,h) end
@@ -288,6 +288,7 @@ function Bar.new(api,config,cache,borders,ui,Shortcut,Navigation,edit,isEditing,
           handlers[#handlers+1]=event
           assert(api.registerNamedEventHandler(OWNER,event,event,fn),"Cannot register action bar handler")
         end
+        on("AardwolfToolbox.views.changed",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
         on("AardwolfToolbox.mobs.menu",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
         on("AardwolfToolbox.settings.visibility",function() self.shortcuts.suspend(isEditing() or menu~=nil) end)
         on("AardwolfToolbox.abilities.updated",render)

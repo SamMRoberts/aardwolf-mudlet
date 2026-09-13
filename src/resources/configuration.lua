@@ -183,6 +183,9 @@ function Config.new(api)
       end
     end
     local feature = copy(definition)
+    if feature.id=="dashboard" and values.dashboard and values.dashboard.tab=="combat" then
+      values.dashboard.tab="player"
+    end
     -- Additive record migrations run only for older settings and never overwrite
     -- saved values or unknown fields. The original bytes are backed up on write.
     if legacyVersion and feature.id=="actions" and values.actions and type(values.actions.buttons)=="table" then

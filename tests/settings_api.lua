@@ -104,3 +104,13 @@ function setCmdLineStyleSheet(text) commandStyle=text end
 function getEpoch() return 1000 end
 
 function raiseEvent(event,...) if fire then fire(event,...) end end
+
+Geyser.UserWindow=Widget
+function Widget:setDockPosition(p) self.dockPosition=p end
+function Widget:setTitle(t) self.title=t end
+function getProfileName() return 'TestProfile' end
+function windowVisible(name)
+  local w=widgets[name]
+  while w do if w.hidden or w.auto_hidden then return false end; w=w.parent end
+  return widgets[name]~=nil
+end

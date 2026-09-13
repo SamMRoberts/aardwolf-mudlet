@@ -1,4 +1,4 @@
-# UI and dashboard — 0.13.0
+# UI and dashboard — 0.22.0
 
 Open `aardwolf-config` and choose **Appearance**. Comfortable uses Arial 12-point interface text and Menlo 13-point reading text; Large uses at least 14/15 points. Available platform fonts are used as fallbacks. Existing larger console/input sizes are preserved. The console/input checkbox restores their previous fonts when disabled; Toolbox widgets continue to use the selected shared typography. Older per-feature font settings are retained in storage but replaced in the window by Appearance.
 
@@ -10,7 +10,7 @@ The full-width utility bar sits at the top; Vitals sits above the command input,
 
 Map tabs switch the single native graphical mapper and the single captured ASCII console. Hidden ASCII maps continue receiving complete frames. The arrow pops the same ASCII console out into its existing movable pane, showing Graphical in the sidebar. Click the arrow again or select a map tab to dock it. No extra map requests or capture triggers are created. ASCII dock/geometry settings apply to the pop-out.
 
-**Player / Quest / Group / Combat** never switch automatically. Their content scrolls vertically. Existing All/Tells/Channels chat capture and history remain intact, with clearer active tabs and unread counts.
+**Player / Quest / Group / Buffs** never switch automatically. Their content scrolls vertically. Existing All/Tells/Channels chat capture and history remain intact, with clearer active tabs and unread counts.
 
 Below 1,000 profile pixels, the sidebar can collapse using **Sidebar** in the utility bar. This button and Settings stay outside overflow. With the utility bar disabled, the sidebar stays visible. Reset layout restores panel placement and shares; it preserves feature preferences, native map data, and chat history. Disabling the dashboard restores the starter's original layout functions and section geometry.
 
@@ -18,11 +18,11 @@ Reservation provenance lives in the existing settings JSON. A matching saved Too
 
 ## Gameplay data
 
-The dashboard uses the shared GMCP cache. Quest events retain target/location across warning and killed messages, replace details for a new quest, and show server-reported remaining/wait minutes. They do not run a predicted countdown. Group membership comes from complete snapshots; departed members disappear. Combat shows only reported target health, combat state, resources, hit roll, and damage roll. Missing values remain `--`, distinct from zero.
+The dashboard uses the shared GMCP cache. Quest events retain target/location across warning and killed messages, replace details for a new quest, and derive an approximate countdown from server-reported remaining/wait minutes. Zero remains awaiting confirmation. Group membership comes from complete snapshots; departed members disappear. Combat information remains in target Vitals, Player statistics and Room mob indicators. Missing values remain `--`, distinct from zero.
 
 Quest, Tick ago, and Repop ago are low-priority utility items. Times mean elapsed time since an observed event, never time until the next event. Repop is scoped to the current area's key. All gameplay readings clear with session/cache reset.
 
-Automatic dashboard setup shares Char, Comm, and Group subscriptions and requests quest status once when a fresh connected character becomes command-ready. Turn it off under **Dashboard and layout** to stop automatic setup. **Refresh quest status** requires a command-ready character, including when setup is off. There is no polling, movement, casting, quest acceptance, or quest completion. Protocol fields follow the [Aardwolf GMCP reference](https://www.aardwolf.com/wiki/index.php/Clients/GMCP). Buff tracking remains deferred.
+Automatic dashboard setup shares Char, Comm, and Group subscriptions and requests quest status once when a fresh connected character becomes command-ready. Turn it off under **Dashboard and layout** to stop automatic setup. **Refresh quest status** requires a command-ready character, including when setup is off. There is no polling, movement, casting, quest acceptance, or quest completion. Protocol fields follow the [Aardwolf GMCP reference](https://www.aardwolf.com/wiki/index.php/Clients/GMCP). Buffs uses the existing spellup tracking and controller APIs.
 
 ## Future UI features
 
@@ -43,3 +43,56 @@ label:resize(width + 16, math.max(ui.metrics().height, height + 12))
 ```
 
 `ui.fit(text, width, role)` shortens at UTF-8 character boundaries with an ellipsis. `ui.style(label, isButton, selected)` applies common surfaces and text. `ui.metrics(role)` exposes resolved font, point size, line height, and minimum control height. The existing `utilityBar.registerItem`, `updateItem`, and `unregisterItem` APIs remain available; utility items now use measured text widths.
+
+## Sidebar views (0.22.0)
+
+Player, Quest, Group and Buffs use compact rows and the shared Appearance font.
+Combat is no longer a dashboard tab; target Vitals and Room mob combat indicators
+continue to work. A saved Combat selection becomes Player.
+
+- Player shows total/base attributes (base italic), identity and conditions.
+- Quest shows the supplied target and location, next step and an approximate
+  countdown. Zero means awaiting an update. Refresh requests status; Copy copies
+  details; Find on map lists existing matches without walking or changing rooms.
+- Group shows each member's presence and resource percentages. Tooltips show exact
+  values; missing values and zero maxima never become fabricated percentages.
+- Buffs has fixed Sync, Spellup now and Enable/Pause/Resume controls. Effect names
+  and times align in compact rows; amber indicates the configured expiry warning.
+  Recoveries can be collapsed. Coverage and automation state are separate.
+
+Use the utility **Views** menu or right-click a dashboard/chat tab to float a view,
+return it to the sidebar, open it or access settings. Each external window can move
+outside Mudlet. Closing hides the window while data collection continues. Reopen it
+through Views; floating views reopen at profile startup. Reset window placement
+recovers an inaccessible window. Toolbox records each native window's settled geometry in shared settings metadata; it does not reload the application's global layout. Native title bars follow the OS theme.
+
+All/Tells/Channels move their existing MiniConsoles, retaining their buffer and
+capture pipeline. Latest / Mark read returns to the end without changing game input.
+Unread detached chat is shown in Views. No new chat or command capture is introduced.
+
+Preferences are under **Dashboard and chat views** in `aardwolf-config`. Saved
+sidebar shares are redistributed when entire sections float. Slim dividers remain
+draggable; exact shares are also available in settings. Navigation owns a full-width
+bottom reservation above Vitals, and becomes a Navigate menu on short/narrow windows.
+
+### View host API and ownership
+
+`AardwolfToolbox.views.open(id)` opens an existing view and
+`views.setMode(id, "tabbed" | "floating")` persists placement through config.
+IDs are `player`, `quest`, `group`, `buffs`, `all`, `tells`, `channels`.
+`views.register(id, {root=widget, home=parent, select=callback, chat=boolean,
+unread=function})` mounts a retained view; duplicate IDs are rejected. A registered
+ID requires a corresponding shared choice setting. The host borrows the content;
+it returns it home before deleting its native windows. Data producers remain owned
+by the feature. Use shared `ui.apply` before echo and specify the foreground in
+`echo` when using status colors, since inline colors override stylesheets.
+
+### Native acceptance
+
+Run `tests/native_sidebar022.lua` only in disconnected AardwolfToolboxSettingsTest.
+It intercepts outgoing dispatch and supplies readable fixtures. Check all tabs,
+copy/select quest details, list scrolling and fixed Buffs actions. Float each view,
+close/reopen, resize and return it; verify chat history and unread markers. Check
+1280×800, 1920×1080, a narrow and a short window, Retina, and another monitor when
+available. `Sidebar022.lifecycle()` checks native cleanup and map preservation;
+`Sidebar022.finish()` restores dispatch and fixture-overridden APIs.

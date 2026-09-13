@@ -180,7 +180,7 @@ class DashboardLayoutTests(unittest.TestCase):
     def test_buffs_controls_remain_visible_during_timer_updates(self):
         self.lua.execute('''
           c.set('dashboard','tab','buffs'); flushEvents()
-          local button=widgets['AardwolfToolbox.dashboard.buffAuto']
+          local button=widgets['AardwolfToolbox.dashboard.buffs.buffAuto']
           local hidden=0; local original=button.hide
           function button:hide(...) hidden=hidden+1; return original(self,...) end
           fire('AardwolfToolbox.spells.updated'); flushEvents()
@@ -193,8 +193,8 @@ class DashboardLayoutTests(unittest.TestCase):
           assert(not widgets['AardwolfToolbox.dashboard.tabPrevious'].hidden)
           widgets['AardwolfToolbox.dashboard.tabPrevious'].callback()
           assert(c.get('dashboard','tab')=='buffs')
-          assert(not widgets['AardwolfToolbox.dashboard.combat'].hidden)
-          c.set('dashboard','tab','player'); flushEvents(); assert(button.hidden)
+          assert(not widgets['AardwolfToolbox.dashboard.combat'])
+          c.set('dashboard','tab','player'); flushEvents(); assert(not AardwolfToolbox.views.visible('buffs'))
         ''')
 
     def test_divider_transaction_lock_and_stale_gesture(self):
@@ -213,18 +213,13 @@ class DashboardLayoutTests(unittest.TestCase):
           assert(c.get('dashboard','map_percent')==saved)
         ''')
 
-    def test_combat_zero_missing_target_changes_and_no_auto_tab_switch(self):
+    def test_combat_tab_removed_without_affecting_target_vitals(self):
         self.lua.execute('''
-          gmcp={char={status={state=8,pos='Fighting',enemy='<dragon>',enemypct=0},vitals={hp=0,mana=12,moves=34},stats={hr=0,dr=221}}}
-          fire('gmcp.char'); assert(c.set('dashboard','tab','combat')); flushEvents()
-          assert(widgets['AardwolfToolbox.dashboard.row2'].text=='Target: &lt;dragon&gt;')
-          assert(widgets['AardwolfToolbox.dashboard.row3'].text=='Target health: 0%')
-          assert(widgets['AardwolfToolbox.dashboard.row4'].text=='HP 0  Mana 12  Moves 34')
-          gmcp.char.status={state=8,pos='Fighting',enemy='New target'}; fire('gmcp.char','gmcp.char.status')
-          fire('AardwolfToolbox.dashboardData.updated'); flushEvents()
-          assert(widgets['AardwolfToolbox.dashboard.row2'].text=='Target: New target')
-          assert(widgets['AardwolfToolbox.dashboard.row3'].text=='Target health: --%')
-          assert(c.set('dashboard','tab','player')); flushEvents()
-          gmcp.char.status={state=8,pos='Fighting',enemy='Third target',enemypct=99}; fire('gmcp.char','gmcp.char.status')
-          fire('AardwolfToolbox.dashboardData.updated'); flushEvents(); assert(c.get('dashboard','tab')=='player')
+          assert(not c.set('dashboard','tab','combat'))
+          assert(not widgets['AardwolfToolbox.dashboard.combat'])
+          character('status',{state=8,pos='Fighting',enemy='<dragon>',enemypct=0})
+          fire('gmcp.char','gmcp.char.status'); flushEvents()
+          assert(c.get('dashboard','tab')=='player')
+          assert(gauge('target').value==0 and gauge('target').label=='Target 0%')
+          assert(AardwolfToolbox.gmcp.get('char.status.enemypct')==0)
         ''')

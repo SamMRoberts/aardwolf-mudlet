@@ -151,10 +151,15 @@ local function initialize()
     return AardwolfToolbox.spellup.configure(values)
   end})
 
+  local Views=resource("view-hosts")
+  AardwolfToolbox.views=Views.new(_G,config,AardwolfToolbox.ui,function()
+    AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("views")
+  end)
+  config.registerFeature(Views.definition(AardwolfToolbox.views.configure))
   AardwolfToolbox.dashboardData=resource("dashboard-data").new(_G,AardwolfToolbox.gmcp)
   AardwolfToolbox.dashboard=resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
     AardwolfToolbox.dashboardData,AardwolfToolbox.ui,AardwolfToolbox.borders,
-    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup)
+    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"))
   config.registerFeature({id="dashboard",label="Dashboard and layout",description="Tabbed maps and gameplay views above chat. Drag the dividers to resize. Reset layout restores placement without clearing data.",settings={
     {key="enabled",type="boolean",default=true,label="Enable tabbed sidebar"},
     {key="automatic_data",type="boolean",default=true,label="Automatic GMCP data setup"},
@@ -166,7 +171,7 @@ local function initialize()
     {key="dashboard_percent",type="number",default=30,min=20,max=60,integer=true,label="Dashboard height share (%)"},
     {key="map_tab",type="choice",default="graphical",label="Map view",options={{value="graphical",label="Graphical"},{value="ascii",label="ASCII"}}},
     {key="ascii_popout",type="boolean",default=false,label="Pop out ASCII map"},
-    {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="combat",label="Combat"},{value="buffs",label="Buffs"}}},
+    {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="buffs",label="Buffs"}}},
   },validate=function(values) return values.map_percent+values.dashboard_percent<=80,"Map and dashboard shares must leave at least 20% for chat." end,apply=AardwolfToolbox.dashboard.configure})
 
   local AbilityFields=resource("ability-fields")
@@ -188,7 +193,7 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) end,AardwolfToolbox.abilities)
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) end,AardwolfToolbox.abilities)
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
@@ -267,7 +272,7 @@ function AardwolfToolbox.openBuffs()
   local draft,revision=AardwolfToolbox.config.draft()
   draft.spellups.show_tab=true; draft.dashboard.enabled=true; draft.dashboard.tab="buffs"
   local ok,message=AardwolfToolbox.config.apply(draft,revision)
-  if not ok then echo("Aardwolf buffs: "..message.."\n") end
+  if not ok then echo("Aardwolf buffs: "..message.."\n") else AardwolfToolbox.views.open("buffs") end
 end
 
 function AardwolfToolbox.spellupCommand(command)
