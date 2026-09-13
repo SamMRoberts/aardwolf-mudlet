@@ -13,25 +13,15 @@ local function fingerprint(b)
   return table.concat({tostring(b.name),tostring(b.level),tostring(b.classes),tostring(b.class),
     tostring(b.subclass),tostring(b.tier),tostring(b.remorts),tostring(b.redos)},':')
 end
--- Verified command syntax, not names converted speculatively into commands.
--- References and unsupported-command behavior are documented in docs/abilities.md.
-local SKILLS={assault={command='assault',targeting='single'},scalp={command='scalp',targeting='single'},
-  sap={command='sap',targeting='single'},kick={command='kick',targeting='single'},trip={command='trip',targeting='single'},
-  stun={command='stun',targeting='single'},hammerswing={command='hammerswing',targeting='area'},bash={command='bash',targeting='single'},uppercut={command='uppercut',targeting='single'},
-  headbutt={command='headbutt',targeting='single'},gouge={command='gouge',targeting='single'},
-  stomp={id=452,command='stomp',targeting='single'},
-  bodycheck={id=451,command='bodycheck',targeting='single'}}
+-- Spell invocation is defined by the protocol. Skill invocation is saved data
+-- captured from help; there is no built-in ability-name or number registry.
 local function withCommand(row)
   if not row then return nil end
   row=copy(row)
   if row.kind=='spell' and row.targeting~='special' and row.targeting~='unknown' then
-    row.command='cast '..row.id
-  elseif row.kind=='skill' then
-    local known=SKILLS[row.name:lower()]
-    if known and (not known.id or row.id==known.id) then
-      row.command=known.command
-      if row.targeting~='area' then row.targeting=known.targeting end
-    end
+    row.command='cast '..row.id; row.command_source='slist'
+  elseif row.kind=='skill' and row.command_source=='help' then
+    if row.command_name~=row.name or row.command_id~=row.id then row.command=nil end
   end
   return row
 end
@@ -42,6 +32,8 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   local staged,queue,index,pending,fresh,identity,stamp,session=nil,nil,nil,false,false,nil,nil,0
   local count,updated=0,nil
   local ownSend=false
+  local forceSyntax,pendingForce,nextForce=false,false,false
+  local sequence=0
   local dirty=false
   local observedStamp,currentLevel,baseLevel,statusLevel
   local drive,fail
@@ -140,9 +132,13 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     return {enabled=self.enabled,fresh=fresh and connected() and stamp==fingerprint(characterData()) or false,busy=queue~=nil,pending=pending,
       character=store.character(),count=count,updated=updated,last=self.last,session=session}
   end
-  function self.refresh()
+  function self.refresh(recheckSyntax)
     if not self.enabled then return false,'Ability catalog disabled' end
-    if queue then return true,'Ability refresh already in progress' end
+    if queue then
+      if recheckSyntax~=false then dirty=true; nextForce=true end
+      return true,'Ability refresh already in progress'
+    end
+    pendingForce=pendingForce or recheckSyntax~=false
     pending=true; fresh=false; self.last='Refresh queued; waiting for standing, command-ready character'
     notify(); schedule(); return true,self.last
   end
@@ -167,6 +163,11 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
   end
   local function complete(q,capture)
     if q.kind=='learned' then staged=capture.rows
+    elseif q.kind=='syntax' then
+      local r=staged[q.id]
+      r.command=capture.command; r.command_source='help'; r.command_name=r.name; r.command_id=r.id
+      r.command_version=Capture.syntaxVersion; r.command_checked=api.getEpoch()
+      r.command_syntax=copy(capture.syntax); r.command_reason=capture.reason
     elseif q.kind=='detail' then
       local r=staged[q.id]
       assert(capture.detail and capture.detail.level,'Incomplete ability details')
@@ -190,6 +191,24 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       end
     end
     index=index+1
+    if index>#queue and q.kind~='syntax' then
+      local ids={}
+      for id,r in pairs(staged) do
+        if r.kind=='skill' and r.learned and r.available and not r.passive then ids[#ids+1]=id end
+      end
+      table.sort(ids)
+      for _,id in ipairs(ids) do
+        local r=staged[id]; local saved=store.get('abilities',id)
+        if not forceSyntax and saved and saved.kind==r.kind and saved.name==r.name
+            and saved.command_source=='help' and saved.command_id==id and saved.command_name==r.name
+            and saved.command_version==Capture.syntaxVersion then
+          for _,key in ipairs({'command','command_source','command_name','command_id','command_version',
+              'command_checked','command_syntax','command_reason'}) do r[key]=copy(saved[key]) end
+        elseif Model.single(r.name,256) and r.name:match('%S') then
+          queue[#queue+1]={kind='syntax',id=id,name=r.name,command='help '..r.name}
+        else r.command_reason='Ability name cannot be used in a help query' end
+      end
+    end
     if index>#queue then
       local n=0
       for _,r in pairs(staged) do
@@ -200,7 +219,9 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local at=api.getEpoch()
       store.replace({abilities=staged,ability_metadata={[0]={name=identity,level=characterData().level,updated=at,count=n,fingerprint=stamp}}})
       cancel(); count=n; updated=at; fresh=true; self.last='Ready · '..n..' available learned abilities'; notify()
-      if dirty then dirty=false; self.refresh() end
+      if dirty then
+        local recheck=nextForce; dirty=false; nextForce=false; self.refresh(recheck)
+      end
     else queries.release(OWNER); schedule() end
   end
   drive=function()
@@ -211,6 +232,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     if not queries.acquire(OWNER,40,ready) then self.last='Waiting for spell tracker synchronization'; return end
     if not queue then
       store.select(b.name); identity=b.name:lower(); stamp=fingerprint(b); observedStamp=stamp; staged={}; pending=false; fresh=false
+      forceSyntax=pendingForce; pendingForce=false
       queue={{kind='learned',command='slist learned noprompt'}}; index=1
       for _,filter in ipairs({'','combat','resist','healing','str','dex','con','int','wis','luck','passive','area','spellup'}) do
         for _,kind in ipairs({'spell','skill'}) do
@@ -219,6 +241,10 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       end
     end
     local q=queue[index]
+    if q.kind=='syntax' then
+      sequence=sequence+1
+      q.marker='AWTB_ABILITY_'..tostring(self):gsub('[^%w]','')..'_'..session..'_'..sequence
+    end
     request={query=q,capture=Capture.new(q)}; self.last='Collecting '..q.command..' ('..index..'/'..#queue..')'
     local current=session
     timeout=api.tempTimer(10,function()
@@ -226,26 +252,16 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     end)
     ownSend=true
     local ok,result,err=pcall(api.send,q.command,false)
+    if ok and result~=false and not (result==nil and err) and q.marker then
+      ok,result,err=pcall(api.send,'echo '..q.marker,false)
+    end
     ownSend=false
     if not ok or result==false or (result==nil and err) then fail('Request failed: '..tostring(err or result)) end
   end
-  local function receive(line)
-    if not self.enabled or not connected() then return false end
-    if options.automatic_refresh then
-      local name=line:match('^Your new skill level in (.-) is %d+%%%.') or line:match('^You are now an expert in (.-)%.')
-      if not name then
-        local improved=line:match('^You have become better at (.-)! %(%d+%%%)')
-        if improved then
-          local existing=store.rows('abilities',improved:lower())[1]
-          if not existing or not existing.learned then name=improved end
-        end
-      end
-      if name then if queue then dirty=true; fresh=false else self.refresh() end end
-      if line:match('^You have forgotten ') or line:match('^You can now use the following skills and spells') then if queue then dirty=true; fresh=false else self.refresh() end end
-    end
+  local function captureLine(line)
     if request then
       local current=request
-      if current.query.kind~='learned' and tags and tags.isCapturing and tags.isCapturing() then return false end
+      if current.query.kind~='learned' and current.query.kind~='syntax' and tags and tags.isCapturing and tags.isCapturing() then return false end
       local ok,claimed,done=pcall(current.capture.receive,line)
       if not ok then fail(tostring(claimed)); return false end
       if done then
@@ -258,15 +274,33 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     end
     return false
   end
+  local function receive(line)
+    if not self.enabled or not connected() then return false end
+    if options.automatic_refresh then
+      local name=line:match('^Your new skill level in (.-) is %d+%%%.') or line:match('^You are now an expert in (.-)%.')
+      if not name then
+        local improved=line:match('^You have become better at (.-)! %(%d+%%%)')
+        if improved then
+          local existing=store.rows('abilities',improved:lower())[1]
+          if not existing or not existing.learned then name=improved end
+        end
+      end
+      if name then if queue then dirty=true; fresh=false else self.refresh(false) end end
+      if line:match('^You have forgotten ') or line:match('^You can now use the following skills and spells') then if queue then dirty=true; fresh=false else self.refresh(false) end end
+    end
+    if request and request.query.kind~='syntax' then return captureLine(line) end
+    return false
+  end
   local function reset()
     session=session+1; cancel(); dirty=false; fresh=false; identity=nil; stamp=nil; pending=options.automatic_refresh
     observedStamp=nil; currentLevel=nil; baseLevel=nil; statusLevel=nil
+    forceSyntax=false; pendingForce=false; nextForce=false
     self.last='Saved catalog available offline; waiting for fresh character data'; notify('reset')
   end
   function self.stop()
     self.enabled=false; reset(); pending=false
     if notifyTimer then api.killTimer(notifyTimer); notifyTimer=nil end
-    incoming.remove(OWNER)
+    incoming.remove(OWNER); incoming.remove(OWNER..'.syntax')
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end; handlers={}
     if api.gmod then api.gmod.disableModule(OWNER,'Char') end
     store.close(OWNER); self.last='Disabled'; api.raiseEvent(OWNER..'.reset')
@@ -279,6 +313,10 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
       local meta=store.get('ability_metadata',0) or {}; count=meta.count or 0; updated=meta.updated
       self.enabled=true; reset()
       incoming.add(OWNER,18,receive,function(message) self.stop(); self.last='Stopped: '..tostring(message); api.echo('Aardwolf abilities: '..self.last..'\n') end)
+      incoming.add(OWNER..'.syntax',14,function(line)
+        if self.enabled and connected() and request and request.query.kind=='syntax' then return captureLine(line) end
+        return false
+      end,function(message) self.stop(); self.last='Stopped: '..tostring(message); api.echo('Aardwolf abilities: '..self.last..'\n') end)
       local function on(event,fn)
         handlers[#handlers+1]=event; assert(api.registerNamedEventHandler(OWNER,event,event,fn),'Cannot register ability handler')
       end
@@ -289,7 +327,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
         local owner=queries.owner()
         local yielded=not request and owner and owner~=OWNER
         if queue and not ownSend and not yielded and type(command)=='string' and
-            (command:match('^slist[%s$]') or command=='slist' or command:match('^spells?%s') or command=='spells' or command:match('^skills?%s') or command=='skills') then
+            (request and request.query.kind=='syntax' and command:match('^help%s') or command:match('^slist[%s$]') or command=='slist' or command:match('^spells?%s') or command=='spells' or command:match('^skills?%s') or command=='skills') then
           fail('Another spell/skill query interrupted collection')
         end
       end)
@@ -312,9 +350,9 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
               if queue then
                 -- Drain the owned response sequence before requesting a fresh
                 -- snapshot; do not let its tail enter the next request.
-                dirty=options.automatic_refresh
+                dirty=dirty or options.automatic_refresh
                 self.last='Character progression changed; catalog refresh pending'; notify()
-              elseif options.automatic_refresh then self.refresh()
+              elseif options.automatic_refresh then self.refresh(false)
               else self.last='Stale: character progression changed; automatic refresh disabled'; notify() end
             end
             observedStamp=nextStamp
@@ -339,7 +377,7 @@ function Abilities.new(api,config,cache,incoming,tags,store,queries,Capture,Mode
     if not values.enabled then self.stop(); return true end
     if self.enabled and changed and not options.automatic_refresh then cancel(); pending=false; fresh=false end
     local ok,err=self.start(); if not ok then return ok,err end
-    if changed and options.automatic_refresh then self.refresh() end
+    if changed and options.automatic_refresh then self.refresh(false) end
     notify(); return true
   end
   return self

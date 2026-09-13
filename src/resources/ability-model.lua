@@ -45,7 +45,9 @@ function Model.eligible(row,level)
   if type(row.level)~='number' or row.level~=row.level or row.level<1 or row.level%1~=0 or row.level>2147483647 or type(level)~='number' or level~=level or row.level>level then return false,'Required level is unknown or unavailable' end
   if row.available==false then return false,'Ability is unavailable or forgotten' end
   if row.passive then return false,'Passive abilities cannot be activated' end
-  if not Model.single(row.command) or not row.command:match('%S') then return false,'No verified command; use a regular command button' end
+  if not Model.single(row.command) or not row.command:match('%S') then
+    return false,row.command_reason or 'Command syntax not collected; refresh the ability catalog'
+  end
   if not ({single=true,area=true,self=true,object=true,special=true})[row.targeting] then return false,'Targeting is unknown' end
   return true
 end

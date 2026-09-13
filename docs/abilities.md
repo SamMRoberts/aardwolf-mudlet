@@ -1,4 +1,4 @@
-# Learned abilities and smart buttons (0.17.0)
+# Learned abilities and smart buttons (0.23.3)
 
 Open `aardwolf-config → Action bar`, add or edit a button, and choose **Choose
 learned ability**. Regular command and alias buttons remain available.
@@ -26,21 +26,40 @@ activation and shortcuts. The normal button color returns after synchronization;
 disabled buttons retain their disabled styling. A failed refresh retains the last
 committed catalog, so it may temporarily select an older learned ability.
 
-Spells with supported targeting use `cast <number> [arguments]`. Verified skill
-commands currently cover Bash, Kick, Trip, Stun, Sap, Scalp, Assault, Uppercut,
-Headbutt, Gouge, Stomp (#452), Bodycheck (#451), and Hammerswing. Hammerswing remains an area action. Other skills
-and spells with special/extended syntax remain searchable; use a regular command
-or alias button for their commands. No spell commands are inferred from skill
-names.
+## Dynamic command discovery
 
-Version **0.21.1** adds verified `stomp [target]` command metadata for skill #452.
-Previously saved catalogs receive the command mapping when read, so an existing
-row does not require another catalog collection just to repair its preview.
-Fresh collection also saves this mapping. Execution still requires a connected,
-command-ready character with current identity and level; offline browsing does
-not permit execution. Stomp's
-level, learned status, Bash membership, and unknown cost remain server facts,
-not values inferred from the command mapping.
+The Lua package contains no ability-name/number command list. Names, numbers,
+learned status, levels, costs, targeting, and classifications come from game
+responses. Supported spells use Aardwolf's generic `cast <number>` syntax.
+
+After the normal catalog listings, collection requests `help <skill name>` for
+each available, practiced, non-passive skill whose command metadata has not yet
+been collected. It recognizes tagged help and the standard plain help header,
+checks the help keywords against the requested skill, and reads its `Syntax:`
+section. Each request ends with a unique informational `echo` marker so missing
+or ambiguous help cannot be mistaken for the next response. Owned help stays
+out of the help pane; ordinary player help keeps its existing behavior.
+
+Simple command syntax with no arguments or one target/victim/opponent/character/
+object/item argument is supported, including optional bracketed arguments.
+Commands may differ from the displayed skill name. Multiple commands or complex
+argument forms are marked unsupported, with a reason, rather than guessed.
+Those skills remain searchable; regular command/alias buttons remain available.
+Passive skills never gain executable buttons from help syntax.
+
+SQLite stores the command, source help syntax, checked time, parser version, and
+matching ability identity with the catalog row. Automatic refresh reuses this
+metadata for unchanged skills and requests help for newly discovered skills.
+**Refresh catalog** also rechecks previously saved syntax, including unsupported
+results. No per-skill Lua edit is needed when the game adds an ability.
+
+Older saved command strings remain usable while their replacement is collected,
+preserving stale-catalog button behavior. The next successful refresh replaces
+that legacy metadata with game-derived results. An unsupported response can
+therefore make a previously assumed command unavailable; the picker explains why.
+A missing completion marker, incomplete frame, or storage failure preserves the
+previous complete catalog and reports a stale/error state. Refreshing only sends
+informational queries, never ability executions.
 
 ## Catalog and corrections
 
@@ -94,10 +113,8 @@ Version **0.23.2** fixes refreshes being cancelled when spell tracking sends its
 own coordinated query between catalog responses. Level-up and manual refreshes
 now keep their staged rows while yielding, then resume at the next request.
 Uncoordinated spell/skill queries still interrupt collection to prevent mixing
-responses. This release also adds verified `bodycheck <target>` command metadata
-for #451, including when reading previously saved rows. A successful refresh is
-still needed to discover a missing row and its level/type information; the
-command mapping does not invent those facts or execute the skill.
+responses. Version **0.23.3** replaces the former built-in skill command mappings with the
+dynamic help collection described above.
 
 Disconnect cancels requests and clears execution eligibility. Disk records remain
 available for offline browsing. Static spell metadata also uses SQLite; normal
@@ -137,18 +154,11 @@ without loading the full static catalog.
 - [Damage-type listings](https://www.aardwolf.com/blog/2014/08/10/uprising-area-skills-spells/)
 - [Cast syntax](https://aardwolf.com/wiki/index.php/Help/Cast)
 - [Bodycheck command syntax](https://aardwolf.com/wiki/index.php/Help/Bodycheck)
-- Verified skill syntax: official help pages for
-  [Bash](https://www.aardwolf.com/wiki/index.php/Help/Bash),
-  [Kick](https://www.aardwolf.com/wiki/index.php/Help/Kick),
-  [Trip](https://www.aardwolf.com/wiki/index.php/Help/Trip),
-  [Stun](https://www.aardwolf.com/wiki/index.php/Help/Stun),
-  [Sap](https://www.aardwolf.com/wiki/index.php/Help/Sap),
-  [Scalp](https://www.aardwolf.com/wiki/index.php/Help/Scalp),
-  [Assault](https://www.aardwolf.com/wiki/index.php/Help/Assault),
-  [Uppercut](https://aardwolf.com/wiki/index.php/Help/Uppercut),
-  [Headbutt](https://aardwolf.com/wiki/index.php/Help/Headbutt),
-  [Gouge](https://www.aardwolf.com/wiki/index.php/Help/Gouge),
-  [Stomp](https://aardwolf.com/wiki/index.php/Help/Stomp), and
-  [Hammerswing](https://www.aardwolf.com/wiki/index.php/Help/Hammerswing).
+- [In-game help lookup and ambiguous keywords](https://aardwolf.com/wiki/index.php/Help/Help)
 
 Listing fixtures were captured with informational queries on September 11, 2026.
+
+Help-parser and unfamiliar-skill tests are offline protocol fixtures. Native
+help/echo delivery and player-profile execution have not been tested for 0.23.3.
+After installation, run **Refresh catalog** and check its completion status and
+command previews before using a button. No test casting is performed by refresh.

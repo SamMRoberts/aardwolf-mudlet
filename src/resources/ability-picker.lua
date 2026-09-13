@@ -48,7 +48,7 @@ function Picker.render(abilities,record,corrections,view,controls)
     else controls.button(text,function()
       change(function()
         if r.passive then controls.feedback('Passive abilities cannot be used as buttons'); return end
-        if not r.command then controls.feedback('No verified skill command. Use a regular command / alias button.'); return end
+        if not r.command then controls.feedback(r.command_reason or 'Command syntax not collected. Refresh the ability catalog.'); return end
         record.ability_mode='specific'; record.ability_id=r.id
         if record.label=='New button' or record.label=='' then record.label=r.name end
       end)

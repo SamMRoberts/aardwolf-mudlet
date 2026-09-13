@@ -201,14 +201,36 @@ class AbilityTests(unittest.TestCase):
           queries=Queries.new(_G); incoming=Incoming.new(_G)
           abilities=Abilities.new(_G,{},cache,incoming,nil,store,queries,Capture,Model)
           assert(abilities.configure({enabled=true,automatic_refresh=true,corrections={}})); advance(0.2)
+          -- Protocol fixtures, not a live execution test. Unknown help is a
+          -- completed unsupported response, never a guessed command.
+          helpSyntax={bash='bash <target>',headbutt='headbutt <target>',uppercut='uppercut <target>',
+            stomp='stomp <target>',bodycheck='bodycheck <target>'}
           function reply(command)
+            if command:match('^echo AWTB_ABILITY_') then
+              local name=commands[#commands-1]:match('^help (.*)$')
+              assert(name)
+              local syntax=helpSyntax[name]
+              if syntax then
+                feed('{help}'); feed('{helpkeywords}'..name); feed('{helpbody}')
+                feed('Syntax: '..syntax); feed('{/helpbody}'); feed('{/help}')
+              else feed('No help fixture for '..name) end
+              feed(command:sub(6)); advance(0.2); return
+            end
             local fixture=fixtures[command]
             if fixture then for _,text in ipairs(fixture) do feed(text) end
             else feed(command:match('^spells') and 'No spells found.' or 'No skills found.') end
             advance(0.2)
           end
+          function nextGeneration()
+            local before=#commands
+            for _=1,200 do
+              reply(commands[#commands])
+              if #commands>before and commands[#commands]=='slist learned noprompt' then return end
+            end
+            error('A replacement refresh was not started')
+          end
           function syncAbilities()
-            for _=1,80 do
+            for _=1,200 do
               if abilities.status().fresh then return end
               assert(abilities.status().busy,abilities.last)
               reply(commands[#commands])
@@ -307,10 +329,10 @@ class AbilityTests(unittest.TestCase):
           local lines=fixtures['slist learned noprompt']
           for i=2,#lines do feed(lines[i]) end
           advance(0.2)
-          for i=2,27 do reply(commands[#commands]) end
-          assert(#commands==28 and commands[28]=='slist learned noprompt')
+          nextGeneration()
+          local second=#commands; assert(commands[second]=='slist learned noprompt')
           assert(not abilities.status().fresh)
-          syncAbilities(); assert(#commands==54 and abilities.status().fresh)
+          syncAbilities(); assert(#commands==second+26 and abilities.status().fresh)
           assert(store.get('ability_metadata',0).level==129)
         ''')
 
@@ -372,7 +394,7 @@ class AbilityTests(unittest.TestCase):
         self.service()
         self.lua.execute('''
           feed('Your new skill level in fire blast is 32%.')
-          for i=1,27 do reply(commands[#commands]) end
+          nextGeneration()
           assert(not abilities.status().fresh and commands[#commands]=='slist learned noprompt')
           syncAbilities(); assert(abilities.status().fresh)
           local countBefore=#commands
@@ -472,9 +494,10 @@ class AbilityTests(unittest.TestCase):
           assert(spells.sync(true)); advance(0)
           syncTogether()
           assert(abilities.resolve(button)=='bodycheck 2.bat')
-          local saved=store.get('abilities',451); saved.command=nil
+          local saved=store.get('abilities',451)
+          assert(saved.command_source=='help' and saved.command_syntax[1]=='bodycheck <target>')
           store.replace({abilities={[451]=saved}})
-          assert(abilities.get(451).command=='bodycheck','Repair command metadata on disk reads')
+          assert(abilities.get(451).command=='bodycheck','Use persisted server syntax on reads')
           saved.id=999; store.replace({abilities={[999]=saved}})
           assert(not abilities.get(999).command,'Do not verify another skill identity')
           for _,sent in ipairs(commands) do
@@ -488,22 +511,23 @@ class AbilityTests(unittest.TestCase):
         self.service()
         self.lua.execute('''
           syncAbilities()
-          -- Regression fixture mirrors the persisted #452 row: learned and
-          -- classified correctly, but older packages saved no command.
+          -- Persisted server verification survives reload and remains tied to
+          -- this exact learned identity; reads cannot invent missing commands.
           local stomp={id=452,name='stomp',kind='skill',level=137,learned=true,
+            command='stomp',command_source='help',command_name='stomp',command_id=452,
             practice=85,available=true,target=1,targeting='single',resource='unknown',
             cost_known=false,recovery=-1,memberships={{role='damage',type='bash'}}}
           local uppercut={id=447,name='uppercut',kind='skill',level=101,learned=true,
             available=true,targeting='single',command='uppercut',memberships={{role='damage',type='bash'}}}
           store.replace({abilities={[452]=stomp,[447]=uppercut},ability_metadata={[0]={level=146}}})
           cache.values['char.base.level']=146;cache.values['char.base'].level=146
-          local original=store.get('abilities',452);assert(original.command==nil)
+          local original=store.get('abilities',452);assert(original.command=='stomp')
           assert(abilities.get(452).command=='stomp' and abilities.get(452).cost==nil)
           assert(abilities.get(452).targeting=='single')
           local list=abilities.list({role='damage',type='bash',kind='skill'})
           local found;for _,r in ipairs(list) do if r.id==452 then found=r end end
           assert(found and found.command=='stomp');found.command='bad'
-          assert(abilities.get(452).command=='stomp' and store.get('abilities',452).command==nil)
+          assert(abilities.get(452).command=='stomp' and store.get('abilities',452).command=='stomp')
           local b={ability_mode='highest',ability_role='damage',ability_type='bash',ability_kind='skill',ability_targeting='single',arguments='2.bat'}
           local before=#commands;local command,selected=abilities.preview(b)
           assert(command=='stomp 2.bat' and selected.id==452 and #commands==before)
@@ -540,6 +564,115 @@ class AbilityTests(unittest.TestCase):
           local b={ability_mode='highest',ability_role='damage',ability_type='bash',ability_kind='skill',ability_targeting='single',arguments=''}
           local n=#commands;local command,selected=abilities.resolve(b)
           assert(command=='stomp' and selected.id==452 and #commands==n)
+        ''')
+
+    def test_dynamic_unlisted_skill_persistence_reuse_and_manual_reverification(self):
+        self.service()
+        self.lua.execute('''
+          syncAbilities()
+          local before=#commands
+          -- Previously unknown name AND command: neither exists in package code.
+          table.insert(fixtures['slist learned noprompt'],#fixtures['slist learned noprompt'],
+            '70001,meteor jab,1,0,90,-1,2')
+          table.insert(fixtures.skills,#fixtures.skills,'Level 128: meteor jab                     90%')
+          table.insert(fixtures['skills combat'],#fixtures['skills combat'],
+            'Level 128: meteor jab                     90%  Bash')
+          helpSyntax['meteor jab']='meteorjab <target>'
+          update('char.status.level',128,'char.status'); advance(0.2); syncAbilities()
+          assert(#commands==before+29,'Only the new skill needs a help query and marker')
+          local r=store.get('abilities',70001)
+          assert(r.command=='meteorjab' and r.command_source=='help' and r.command_checked)
+          assert(r.command_syntax[1]=='meteorjab <target>' and r.command_id==70001)
+          button.ability_kind='skill'; button.ability_type='bash'; button.arguments='2.bat'
+          assert(abilities.resolve(button)=='meteorjab 2.bat')
+          -- Reopen the database, then reconnect. Static syntax survives; no
+          -- complete help list is held in memory or collected on each login.
+          abilities.stop(); store.close('test'); store.open('test')
+          assert(abilities.configure({enabled=true,automatic_refresh=true,corrections={}}))
+          before=#commands; advance(0.2); syncAbilities()
+          assert(#commands==before+27 and abilities.resolve(button)=='meteorjab 2.bat')
+          helpSyntax['meteor jab']='mj <target>'
+          assert(abilities.refresh()); advance(0.2); syncAbilities()
+          assert(abilities.resolve(button)=='mj 2.bat')
+          helpSyntax['meteor jab']='mj <target> <weapon>'
+          assert(abilities.refresh()); advance(0.2); syncAbilities()
+          r=abilities.get(70001)
+          assert(r and r.learned and not r.command and r.command_reason:find('custom arguments'))
+          assert(#abilities.list({search='meteor jab'})==1,'Unsupported skills remain searchable')
+          assert(abilities.resolve(button)=='headbutt 2.bat')
+          local unknown={id=70002,name='invented',kind='skill',level=1,learned=true,available=true,
+            targeting='single',memberships={}}
+          store.replace({abilities={[70002]=unknown}})
+          assert(not abilities.get(70002).command,'Never infer commands from names or IDs')
+        ''')
+
+    def test_help_parser_tagged_plain_multiline_and_unknown_syntax(self):
+        self.lua.execute('''
+          function parseHelp(lines,name)
+            local c=Capture.new({kind='syntax',name=name or 'meteor jab',marker='END_fixture'})
+            assert(not c.receive('A friend says hello.'))
+            for _,line in ipairs(lines) do c.receive(line) end
+            local claimed,done=c.receive('END_fixture'); assert(claimed and done)
+            return c
+          end
+          local c=parseHelp({'{help}','{helpkeywords}',"'METEOR JAB'",'{/helpkeywords}',
+            '{helpbody}','Syntax:','    meteorjab <target>','Description of the skill.',
+            '{/helpbody}','{/help}'})
+          assert(c.command=='meteorjab' and #c.syntax==1)
+          c=parseHelp({'Help Keywords : Meteor Jab.','Help Category : Attack Skill.',
+            'Last Updated : fixture','--------','Syntax: meteorjab [target]',
+            'Description of the skill.','--------'})
+          assert(c.command=='meteorjab')
+          for _,syntax in ipairs({'mj <target> <weapon>','mj <foo>','mj;kill <target>','mj % target'}) do
+            c=parseHelp({'{help}','{helpkeywords}meteor jab','{helpbody}','Syntax: '..syntax,'{/helpbody}','{/help}'})
+            assert(not c.command and c.reason)
+          end
+          c=parseHelp({'{help}','{helpkeywords}meteor jab','{helpbody}',
+            'Syntax: mj <target>','    other <target>','{/helpbody}','{/help}'})
+          assert(not c.command and c.reason:find('multiple commands'))
+          c=parseHelp({'{help}','{helpkeywords}unrelated','{helpbody}',
+            'Syntax: unrelated <target>','{/helpbody}','{/help}'})
+          assert(not c.command)
+          c=parseHelp({'No help found.'}); assert(not c.command)
+          c=Capture.new({kind='syntax',name='meteor jab',marker='END_fixture'})
+          c.receive('{help}'); c.receive('{helpkeywords}meteor jab'); c.receive('{helpbody}')
+          assert(not pcall(c.receive,'END_fixture'),'An incomplete response must not commit')
+          c=Capture.new({kind='syntax',name='meteor jab',marker='END_fixture'})
+          c.receive('{help}')
+          assert(not pcall(c.receive,string.rep('x',1048577)))
+        ''')
+
+    def test_owned_help_precedes_pane_but_not_ascii_and_timeout_keeps_catalog(self):
+        self.service()
+        self.lua.execute('''
+          syncAbilities()
+          local old=store.get('abilities',447).command
+          local paneLines={}; local ascii=false
+          incoming.add('fixture.ascii',10,function(line)
+            if line=='<MAPSTART>' then ascii=true end
+            if ascii then if line=='<MAPEND>' then ascii=false end; return true,true end
+          end,error)
+          incoming.add('fixture.help',15,function(line)
+            if line:match('^{/?help') then paneLines[#paneLines+1]=line; return true,true end
+          end,error)
+          abilities.refresh(); advance(0.2)
+          for _=1,27 do reply(commands[#commands]) end
+          assert(commands[#commands]:match('^echo AWTB_ABILITY_'))
+          local marker=commands[#commands]:sub(6)
+          local name=commands[#commands-1]:sub(6)
+          feed('<MAPSTART>'); feed('{help}'); feed('Syntax: wrong <target>'); feed('<MAPEND>')
+          feed('{help}'); feed('{helpkeywords}'..name); feed('{helpbody}')
+          feed('Syntax: example <target>'); feed('{/helpbody}'); feed('{/help}')
+          assert(#paneLines==0 and abilities.status().busy)
+          local sent=#commands; advance(11)
+          assert(not abilities.status().busy and not abilities.status().fresh)
+          assert(store.get('abilities',447).command==old and #commands==sent)
+          feed(marker) -- A late completion cannot revive a failed transaction.
+          assert(not abilities.status().busy)
+          feed('{help}'); feed('{helpkeywords}USER'); feed('{helpbody}')
+          assert(#paneLines==3,'Normal player help still belongs to the pane')
+          abilities.stop(); incoming.remove('fixture.help'); incoming.remove('fixture.ascii')
+          queries.destroy(); assert(next(timers)==nil and next(triggers)==nil)
         ''')
 
     def test_highest_picker_candidates_do_not_change_selection_mode(self):

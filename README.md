@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.23.2
+# AardwolfToolbox 0.23.3
 
 AardwolfToolbox is a Mudlet package for Aardwolf with automatic mapping, readable
 player dashboards, room-mob tracking, configurable action buttons, and shared
@@ -346,7 +346,7 @@ Configure paged command/alias buttons and optional shortcuts in `aardwolf-config
 
 ### Ability catalog and smart buttons (0.17.0)
 
-Choose learned abilities in the existing button editor, or bind a button to the highest-required-level learned ability of a chosen role/type and compatible targeting behavior. The catalog is stored per character in SQLite. See the [ability guide](docs/abilities.md) for filters, local corrections, supported skill commands, freshness rules, and the API. Refreshes are informational; all ability buttons remain manual.
+Choose learned abilities in the existing button editor, or bind a button to the highest-required-level learned ability of a chosen role/type and compatible targeting behavior. The catalog is stored per character in SQLite. See the [ability guide](docs/abilities.md) for filters, local corrections, supported skill commands, freshness rules, and the API. Skill command syntax is collected dynamically from in-game help and saved in SQLite, with no built-in ability command list. Automatic refresh collects new skills; manual Refresh also rechecks saved syntax. Refreshes are informational; all ability buttons remain manual.
 
 ### Room mob tracker (0.18.1)
 
