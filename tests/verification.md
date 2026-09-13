@@ -1,3 +1,49 @@
+# 0.24.0-dev.9 notification center candidate — 2026-09-13
+
+- **375 tests passed** with the pinned toolchain and Muddler build. The 55-entry
+  archive passed CRC/XML/source consistency checks. Existing 10/50/200/512-mob
+  benchmarks passed; approximately 99.9% ordinary-line reduction at 200 mobs.
+- Package SHA256: `e32804d980cf328af3639a39e028cd8dba21eed9a18bacdc68c93f563f83ad20`.
+- Added 17 tests for notification bounds, copies, validation, source transitions,
+  category preferences, deduplication, suppression/event ordering, stale delivery,
+  local audio failure/throttling, finite opt-in pulses, retained rows, pagination,
+  hidden views, external placement, constructor/handler failures and teardown.
+- Full-package event delivery exposed a pre-existing mob/query/spellup zero-delay
+  feedback loop. The fix avoids re-poking broker availability and ignores repeated
+  unchanged spellup readiness. Regression checks verify idle quiescence and that
+  pending scans resume on the in-flight-to-ready transition.
+- The workspace menu test now locates Settings within its owned menu rather than
+  accidentally choosing a hidden Settings label belonging to another feature.
+- Authorized native acceptance used only the disconnected **AardwolfToolboxSettingsTest**
+  profile. Profile/package/settings/database and eight-room native map were backed
+  up in `backups/offline-notifications-20260913-165626/` before installation.
+- Mouse checks passed for Warning/Combat/All filters, row mark-read (26 to 25 unread),
+  page navigation, scrolling and the Float action. Unicode and literal angle brackets
+  rendered correctly; scrolling retained the header/footer.
+- Native external close and API-driven reopen retained all 26 records and 25 unread.
+  API-driven resize to 640×520 reflowed the controls and footer; returning to the
+  profile preserved the same content. External coordinate clicks failed with the
+  control-tool error `windowNotFoundAtPosition`, so external mouse operation and
+  mouse resizing remain unverified.
+- Unmodified Escape did not dismiss the inbox. Mudlet documents that key as reserved;
+  removed the ineffective binding and added a Close/reopen regression. Use the
+  visible Close control or native external close button.
+- Fixtures were cleared and placement restored. Native teardown removed owned roots
+  and external hosts; repeated startup had no activation errors. Notification UI
+  interactions sent nothing. Lifecycle checks intercepted eight existing
+  `Core.Supports.Add/Remove` messages and **no gameplay commands**.
+- Reinstalled the final rebuilt artifact after removing the reserved Escape binding.
+  Installed Lua resources match the archive byte for byte. Native mouse checks of
+  Mark all read, Clear, Close and utility-button reopening passed. Final fixtures
+  and dispatch interceptors were restored, with an empty inbox and quiet defaults.
+- All eight map rooms survived; before/after native map files are byte-identical:
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- Audio, opt-in pulsing, comprehensive keyboard/focus and resolution/Retina matrix,
+  external mouse interactions and naturally arriving sources remain unverified.
+  The player profile was not controlled or upgraded.
+
+---
+
 # 0.24.0-dev.8 preference transfer candidate — 2026-09-13
 
 - **358 tests passed** with the pinned toolchain and real Muddler build. The

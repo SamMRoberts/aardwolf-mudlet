@@ -186,3 +186,12 @@ Registered feature validation and activation contracts are unchanged. Imported
 settings can enable existing automatic features, so descriptions and preview
 labels must identify those preferences clearly. Exports contain saved values,
 not unsaved editor text.
+
+## Notification producers
+
+Future features may publish concise notices through `AardwolfToolbox.notifications`
+without owning alerts, audio timers or inbox widgets. See the [consumer contract](notifications.md#consumer-api).
+Keep source state authoritative, include captured session IDs for delayed work,
+and never attach executable commands or callbacks to notices. Category and alert
+preferences live in the shared Notifications section. Notification records stay
+in session memory and are excluded from preference and diagnostic exports.

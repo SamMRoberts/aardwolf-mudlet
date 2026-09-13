@@ -121,7 +121,9 @@ class WorkspaceBrowserTests(unittest.TestCase):
           t.views.menu('inventory');assert(widgetContaining('Return to workspace'))
           assert(t.views.setMode('inventory','tabbed'));assert(content.parent==widgets['AardwolfToolbox.browser.inventory.home'])
           assert(b.isEditing() and not widgets['AardwolfToolbox.browser'].hidden)
-          t.views.menu('inventory');widgetContaining('Settings').callback();assert(t.settingsWindow.opened)
+          t.views.menu('inventory');local settings
+          for name,w in pairs(widgets) do if name:find('AardwolfToolbox.views.menu.',1,true) and w.text=='Settings' then settings=w end end
+          assert(settings,'Missing view settings action');settings.callback();assert(t.settingsWindow.opened)
           assert(t.config.set('browser','enabled',false));assert(not b.enabled and not t.views.available('inventory'))
           assert(t.config.set('browser','enabled',true));assert(b.open('equipment'))
           t.stop();assert(count(widgets)==0);assert(t.start());assert(b.open('inventory'));t.stop();assert(count(widgets)==0)

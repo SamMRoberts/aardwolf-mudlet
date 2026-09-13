@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.24.0-dev.9 — notification center
+
+- Add a bounded session inbox, category filters, unread counts and a utility
+  indicator. Move its retained rows between an in-profile and external window.
+- Consume existing quest, spellup, query, configuration and GMCP events; no new
+  gameplay commands, protocol subscriptions or polling. Defer notice events
+  until incoming-line suppression finishes.
+- Add shared settings for categories, colors, retention and opt-in six-second
+  pulses/local sound. Coalesce repeated failures and throttle audio attempts.
+- Fix a pre-existing Room mobs/query/spellup wakeup loop: broker availability
+  no longer wakes itself, and repeated spellup status only reschedules scans
+  when its in-flight state changes. Preserve pending scan readiness wakeups.
+- Add retained-rendering, event/lifecycle, notification and full-package idle
+  regressions, plus a disconnected native fixture awaiting approval.
+
 ## 0.24.0-dev.8 — settings import and export
 
 - Export saved preferences as bounded JSON, including unavailable-feature settings

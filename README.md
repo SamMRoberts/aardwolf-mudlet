@@ -1,7 +1,16 @@
-# AardwolfToolbox 0.24.0-dev.8
+# AardwolfToolbox 0.24.0-dev.9
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
+
+The new **Notification center** provides a quiet session inbox for quest,
+spellup, refresh-failure and combat-entry notices. Open **Notices** in the utility
+bar or **Tools → Open notifications**. Configure categories, presentation and
+optional alerts in **aardwolf-config → Notifications**. Sound and pulsing start
+disabled. See [notification controls](docs/notifications.md). The disconnected
+test profile passed inbox filtering, paging, scrolling, unread updates and external
+close/reopen/reflow checks. External mouse interaction, audio and live sources
+remain unverified; see [acceptance evidence](tests/verification.md).
 
 **Settings import/export** is available in **aardwolf-config → Import and export**.
 Export saved preferences, preview an imported file, then Apply or Cancel. Applying
@@ -97,6 +106,7 @@ Toolbox mapping. Existing foreign map rooms are not automatically adopted.
 | Feature | What it provides |
 | --- | --- |
 | **Auto-mapper** | Maps fresh GMCP room observations, follows your position, colors terrain, and previews unexplored exits with gray **?** rooms or exit stubs. Uses game room IDs and authoritative reported fields. See [mapping behavior](#mapping-behavior-and-preservation). |
+| **Notification center** | Session inbox with category filters, unread counts, floating placement and opt-in visual/audio alerts. No gameplay actions or persistent logs. [Guide](docs/notifications.md). |
 | **Map workspace** | Local room/area search, persistent bookmarks and notes, route previews and a read-only health report. Works offline and never initiates travel or repairs. [Guide](docs/map-workspace.md). |
 | **Graphical and ASCII maps** | Switch map tabs or pop out the ASCII pane. Captured ASCII frames retain spacing and colors and are hidden from the game console. [Map and layout guide](docs/ui-dashboard.md). |
 | **Player dashboard** | Compact identity, total/base attributes, combat rolls, and conditions; base attributes are italic. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |

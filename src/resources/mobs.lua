@@ -49,6 +49,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local session,visit,sequence=0,0,0
   local setup,ownSend,autoRated=false,false,false
   local setupConfirmed=false
+  local lastSpellupInflight
   local lastRequest=-math.huge; local settle=0; local status={}
   local schedule,drive,update,armEvidence,armPeriodic,fail
   local function copy(v)
@@ -244,10 +245,17 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     })
   end
 
-  schedule=function()
-    queries.poke()
+  schedule=function(event)
+    -- Broker availability is already a wakeup, not a reason to emit another.
+    -- Spellup emits status repeatedly; only its readiness transition matters.
+    if event=='AardwolfToolbox.spellup.updated' then
+      local inflight=spellup and spellup.status().inflight==true or false
+      if inflight==lastSpellupInflight then return end
+      lastSpellupInflight=inflight
+    end
+    if event~='AardwolfToolbox.queries.available' then queries.poke() end
     kill(wake); wake=nil
-    if self.enabled and not active and not frame then wake=api.tempTimer(0,drive) end
+    if self.enabled and next(pending) and not active and not frame then wake=api.tempTimer(0,drive) end
   end
   local function cancelAll()
     if frame and tags.abortCapture then tags.abortCapture('scan','Room tracking stopped') end

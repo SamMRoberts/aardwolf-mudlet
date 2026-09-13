@@ -1,9 +1,10 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.8**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.9**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
-is recorded in tests/verification.md.
+in the disconnected test profile is recorded in [verification](../tests/verification.md).
+External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 ## Implemented and covered by local contract tests
 
@@ -42,6 +43,11 @@ is recorded in tests/verification.md.
 - Off / Captured queries / Compact output cleanup modes preserve existing
   preferences. Query gaps are bounded by time and line count.
 - Shared-settings search and extensible registered view placement.
+- Bounded notification center with category filters, unread counts, shared view
+  placement, event-driven source adapters and optional pulse/local-sound alerts.
+  No notification content persists. See [notifications](notifications.md).
+- Room-mob/query/spellup idle wakeup loop corrected; full-package event tests
+  verify quiescence and resumption of scans after a spellup readiness transition.
 - Local settings import/export with before/after draft review, unknown-setting
   retention, checked pre-import backups and existing validation/stale-draft rules.
   Preference transfers exclude native map and layout-ownership metadata.
@@ -119,7 +125,13 @@ Settings import/export is implemented in this candidate; native file selection,
 before/after preview, Cancel, Apply, exact backup and restoration passed in the
 disconnected test profile. See [preference transfers](preferences-transfer.md).
 
-Implement the notification center, opt-in per-character history with retention,
+The notification center is implemented and contract-tested. Offline native filters,
+paging, scrolling, unread counts, external close/reopen/reflow and lifecycle checks
+passed. External mouse interaction and audio remain unverified. It uses existing
+events and defaults to quiet presentation. Optional per-character history with
+retention remains separate.
+
+Implement opt-in history with retention,
 export/clear, keyboard improvements and larger-list
 virtualization. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
@@ -130,7 +142,7 @@ Use `python3 tools/check.py` for the real Muddler build, archive validation,
 Lua 5.1 suite and ordinary-line benchmark. Mocks do not establish native Geyser
 geometry or live transport correctness.
 
-For the authorized disconnected-profile native work, use `tests/native_foundation.lua` in the
+After receiving renewed approval for Mudlet control, use `tests/native_foundation.lua` in the
 **disconnected AardwolfToolboxSettingsTest profile only**. Perform the manual
 checks below; the fixture intercepts command dispatch and must never run in a
 player profile:

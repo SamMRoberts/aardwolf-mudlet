@@ -260,13 +260,25 @@ local function initialize()
     return AardwolfToolbox.mapWorkspacePane.configure(values)
   end))
 
+  local Notifications=resource("notifications")
+  own("notifications",Notifications.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,config,
+    AardwolfToolbox.queries,AardwolfToolbox.spellup,AardwolfToolbox.dashboardData),{"gmcp","incoming","config","queries","spellup","dashboardData"},"stop")
+  own("notificationPane",resource("notification-pane").new(_G,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.utilityBar,AardwolfToolbox.notifications,function()
+    AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select("notifications")
+  end),{"notifications","ui","views","utilityBar"},"stop")
+  config.registerFeature(Notifications.definition(function(values)
+    local ok,why=AardwolfToolbox.notifications.configure(values)
+    if not ok then AardwolfToolbox.notificationPane.stop();return false,why end
+    return AardwolfToolbox.notificationPane.configure(values)
+  end))
+
   local Launcher=resource("launcher")
   local launcher=own("launcher",Launcher.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.utilityBar,function(feature)
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select(feature)
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities","atlas"}) do
+  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities","atlas","notifications"}) do
     local view=id
     launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
@@ -320,6 +332,7 @@ function AardwolfToolbox.start()
     return false,tostring(err)
   end
   AardwolfToolbox.active=true; AardwolfToolbox.lastError=nil
+  AardwolfToolbox.notifications.observeHealth()
   return true
 end
 
@@ -395,6 +408,7 @@ function AardwolfToolbox.health()
   if AardwolfToolbox.spells then result.spells=AardwolfToolbox.spells.status() end
   if AardwolfToolbox.mobs then result.mobs=AardwolfToolbox.mobs.status() end
   if AardwolfToolbox.dashboardData then result.dashboard=AardwolfToolbox.dashboardData.status() end
+  if AardwolfToolbox.notifications then result.notifications=AardwolfToolbox.notifications.status() end
   return result
 end
 
