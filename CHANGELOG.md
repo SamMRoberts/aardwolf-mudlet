@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.0-dev.13 — optional quest reward history
+
+- Add separately opt-in quest completion observations using documented GMCP
+  reward fields and fresh character identity. Preserve reported zero/missing
+  distinctions, partial quest details and bounded session duplicate protection.
+- Add Progression / Quest rewards history sections with readable summaries,
+  full detail tooltips, independent character pages, JSON export and clear.
+- Transactionally migrate history database version 1 to categorized version 2,
+  preserving progression IDs/data and enforcing shared profile retention limits.
+  Earlier packages cannot read the upgraded database; back it up before upgrade.
+- No new gameplay commands, queries, polling or automatic quest actions.
+  Kill/chat history, native acceptance and installation remain pending.
+
 ## 0.24.0-dev.12 — ability listing refresh fix
 
 - Accept server-reported level-zero listing rows, including `Catalysis 0%`,

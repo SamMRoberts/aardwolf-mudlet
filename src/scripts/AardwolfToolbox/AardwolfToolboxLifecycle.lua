@@ -274,7 +274,7 @@ local function initialize()
 
   local History=resource("progression-history")
   own("historyStore",resource("history-store").new(_G),{"config"})
-  own("history",History.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.historyStore),{"gmcp","historyStore"},"stop")
+  own("history",History.new(_G,AardwolfToolbox.gmcp,AardwolfToolbox.historyStore,resource("quest-history").new()),{"gmcp","historyStore"},"stop")
   own("historyPane",resource("history-pane").new(_G,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.history,function()
     AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select("history")
   end),{"history","ui","views"},"stop")

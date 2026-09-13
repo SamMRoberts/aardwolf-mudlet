@@ -1,31 +1,50 @@
--- Observe fresh progression only; no queries, gameplay commands or inferred gains.
+-- Observe fresh progression and quest rewards; no queries, gameplay commands or inferred gains.
 local History={}
 local OWNER='AardwolfToolbox.history'
 local FIELDS={'level','tier','remorts','redos','pups','totpups'}
 local function copy(value) local result={};for k,v in pairs(value) do result[k]=type(v)=='table' and copy(v) or v end;return result end
 local function number(value) return type(value)=='number' and value>=0 and value<=2147483647 and value%1==0 end
 function History.definition(apply)
-  return {id='history',label='Local history',description='Optional per-character progression observations stored only on this computer. Quest, kill and chat history are not recorded. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
+  return {id='history',label='Local history',description='Optional per-character progression and quest rewards stored only on this computer. Kill and chat history are not recorded. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
     {key='progression',type='boolean',default=false,label='Record progression history'},
+    {key='quests',type='boolean',default=false,label='Record quest reward history'},
     {key='days',type='number',integer=true,min=1,max=3650,default=30,label='Retain days'},
     {key='max_entries',type='number',integer=true,min=100,max=10000,default=1000,label='Maximum stored observations'},
     {key='max_kib',type='number',integer=true,min=64,max=16384,default=2048,label='Maximum retained text (KiB)'},
     {key='placement',type='choice',default='tabbed',label='History placement',options={{value='tabbed',label='Profile window'},{value='floating',label='External window'}}},
   },apply=apply}
 end
-function History.new(api,cache,store)
+function History.new(api,cache,store,quest)
   local self={enabled=false,last='Recording off',revision=0}
   local known,previous,character,statusLevel={},nil,nil,false
   local handlers,epoch={},0
   local paused=false
+  local options={progression=false,quests=false}
   local function updated() self.revision=self.revision+1;api.raiseEvent('AardwolfToolbox.history.updated') end
   local function reset()
     known,previous,character,statusLevel={},nil,nil,false
+    if quest then quest.reset() end
     if not paused then self.last=self.enabled and 'Waiting for fresh character data' or 'Recording off' end;updated()
+  end
+  local function save(entry,category)
+    entry.observed=math.floor(api.getEpoch())
+    local called,ok,why=pcall(store.append,character,entry,category)
+    if not called then why=ok;ok=nil end
+    if not ok then
+      paused=true;self.last='History recording paused: '..tostring(why);api.echo('Aardwolf '..self.last..'\n');updated();return false
+    end
+    self.last='Recording observed history';updated();return true
   end
   local function record(path)
     if not self.enabled or paused or not cache.enabled then return end
     local value=cache.get(path);if type(value)~='table' then return end
+    if path=='comm.quest' then
+      if options.quests and character then
+        local entry=quest.receive(value)
+        if entry then save(entry,'quests') end
+      end
+      return
+    end
     local base=path=='char' and value.base or path=='char.base' and value
     local status=path=='char' and value.status or path=='char.status' and value
     if type(base)=='table' and base.name~=nil and (type(base.name)~='string' or base.name=='' or #base.name>128 or base.name:find('[%z\1-\31\127]')) then
@@ -33,13 +52,17 @@ function History.new(api,cache,store)
     end
     if type(base)=='table' and type(base.name)=='string' and base.name~='' and #base.name<=128 and not base.name:find('[%z\1-\31\127]') then
       local identity=store.identity(base.name)
-      if character and character~=identity then known,previous,statusLevel={},nil,false end
+      if character and character~=identity then known,previous,statusLevel={},nil,false;if quest then quest.reset() end end
       character=identity
     end
     if type(base)=='table' then for _,key in ipairs(FIELDS) do
       if number(base[key]) and (key~='level' or not statusLevel) then known[key]=base[key] end
     end end
     if type(status)=='table' and number(status.level) then known.level=status.level;statusLevel=true end
+    if not options.progression then
+      if character and self.last=='Waiting for fresh character data' then self.last='Waiting for fresh quest completion';updated() end
+      return
+    end
     if not character or not next(known) then return end
     local changes={}
     for _,key in ipairs(FIELDS) do
@@ -47,32 +70,27 @@ function History.new(api,cache,store)
     end
     if #changes==0 then return end
     local entry={observed=math.floor(api.getEpoch()),kind=previous and 'change' or 'snapshot',values=copy(known),changes=changes}
-    local called,ok,why=pcall(store.append,character,entry)
-    if not called then why=ok;ok=nil end
-    if not ok then
-      paused=true;self.last='History recording paused: '..tostring(why);api.echo('Aardwolf '..self.last..'\n');updated();return
-    end
-    previous=copy(known);self.last='Recording observed progression';updated()
+    if save(entry,'progression') then previous=copy(known) end
   end
-  function self.status() return {enabled=self.enabled,paused=paused,last=self.last,revision=self.revision} end
-  function self.list(character,page)
-    local result,why=store.read(character,page)
+  function self.status() return {enabled=self.enabled,progression=options.progression,quests=options.quests,paused=paused,last=self.last,revision=self.revision} end
+  function self.list(character,page,category)
+    local result,why=store.read(character,page,false,category)
     if not result then self.last='History unavailable: '..tostring(why);return nil,self.last end
     result.revision=self.revision;return result
   end
-  function self.clear(character,revision)
+  function self.clear(character,revision,category)
     if revision~=self.revision then return nil,'History changed; review before clearing' end
-    local ok,why=store.clear(character)
+    local ok,why=store.clear(character,category)
     if ok then updated();return true end
     return nil,why
   end
-  function self.export(character)
-    local result,why=store.read(character,1,true);if not result then return nil,why end
-    local data=api.yajl.to_string({version=1,category='progression',character=result.character,observations=result.rows})
+  function self.export(character,category)
+    local result,why=store.read(character,1,true,category);if not result then return nil,why end
+    local data=api.yajl.to_string({version=1,category=result.category,character=result.character,observations=result.rows})
     if #data>16777216 then return nil,'History export exceeds 16 MiB' end
     local destination
     for i=1,999 do
-      local path=api.getMudletHomeDir()..'/AardwolfToolbox-progression-export-'..string.format('%03d',i)..'.json'
+      local path=api.getMudletHomeDir()..'/AardwolfToolbox-'..result.category..'-export-'..string.format('%03d',i)..'.json'
       local f,err,code=api.io.open(path,'rb')
       if f then if not f:close() then return nil,'Cannot inspect export destination' end
       elseif code==2 then destination=path;break
@@ -97,15 +115,17 @@ function History.new(api,cache,store)
   self.destroy=self.stop
   function self.configure(values)
     store.configure(values)
-    if not values.progression then if self.enabled then self.stop() end;return true end
-    if self.enabled and not paused then return true end
+    local changed=options.progression~=values.progression or options.quests~=(values.quests==true)
+    options={progression=values.progression==true,quests=values.quests==true}
+    if not options.progression and not options.quests then if self.enabled then self.stop() end;return true end
+    if self.enabled and not paused and not changed then return true end
     self.stop();self.enabled=true;local owned=epoch
     local ok,why=pcall(function()
       for _,id in ipairs({'update','reset'}) do
         handlers[#handlers+1]=id
         assert(api.registerNamedEventHandler(OWNER,id,id=='update' and 'AardwolfToolbox.gmcp.updated' or 'AardwolfToolbox.gmcp.cleared',function(_,path)
           if not self.enabled or epoch~=owned then return end
-          if id=='reset' then reset() elseif path=='char' or path=='char.base' or path=='char.status' then record(path) end
+          if id=='reset' then reset() elseif path=='char' or path=='char.base' or path=='char.status' or path=='comm.quest' then record(path) end
         end))
       end
     end)

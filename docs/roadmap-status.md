@@ -1,10 +1,10 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.12**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.13**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This progression-history candidate is repository-tested only; native control and
+This quest-reward-history candidate is repository-tested only; native control and
 installation await approval. Earlier candidates have partial offline acceptance.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
@@ -66,6 +66,10 @@ counts, including outgoing tells that identify the recipient.
 - Explicit item-ID Wear/Remove/Get/Put actions with previews, manual readiness,
   stale-selection rejection, bounded menus and no optimistic state mutation.
   Local comparisons show observed numeric values without inventing missing stats.
+- Separately opt-in progression and quest reward history with shared bounded
+  SQLite retention, category pages, export and clear. Schema-1 progression rows
+  migrate transactionally with stable IDs. Quest records use reported completion
+  rewards only; no quest actions or balance-difference estimates.
 - Reproducible build/check entrypoint, pinned toolchain, archive/source checks,
   and a macOS CI workflow. CI execution itself remains unverified here.
 
@@ -134,11 +138,11 @@ disconnected test profile. See [preference transfers](preferences-transfer.md).
 The notification center is implemented and contract-tested. Offline native filters,
 paging, scrolling, unread counts, external close/reopen/reflow and lifecycle checks
 passed. External mouse interaction and audio remain unverified. It uses existing
-events and defaults to quiet presentation. Opt-in local progression history now includes transactional SQLite storage,
-retention, paging, export and clear. Native history acceptance is pending; see
+events and defaults to quiet presentation. Opt-in local progression and quest reward history now includes transactional
+SQLite storage, retention, category paging, export and clear. Native history acceptance is pending; see
 [history](history.md).
 
-Remaining history categories are quest rewards, explicit observed kills and chat,
+Remaining history categories are explicit observed kills and chat,
 each separately opt-in. Keyboard improvements and larger-list virtualization
 remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.

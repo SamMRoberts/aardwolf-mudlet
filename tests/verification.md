@@ -1,3 +1,30 @@
+# 0.24.0-dev.13 quest reward history candidate — 2026-09-13
+
+- **401 tests passed**, including seven new history tests covering independent
+  opt-in, fresh identity, completion-only capture, reported zero/missing rewards,
+  partial quest context, duplicate/reset handling, category isolation, export,
+  shared retention, schema-1 migration/rollback and category-only UI clear.
+- Muddler build, archive CRC/XML/source consistency and ordinary-line benchmarks
+  passed. The 59-entry archive has no package-inspector diagnostics; config.lua
+  was inspected without execution. Native fixture Lua 5.1 syntax passed.
+- Package SHA256: `bf615900ae3dc6c72f4c4ecbaa967e5aa2f3bfb7b6ac6c821ceac9bc12586856`.
+- `fixtures/quest-history.json` records the Aardwolf documentation examples and
+  their source, not player-profile captures. Contract tests use the existing
+  LuaSQL-shaped bridge to real isolated SQLite; no native database/API claims.
+- History schema 2 migrates old progression records transactionally. Native
+  rollback requires the backed-up older database together with its package.
+  The native fixture now covers both categories and restores their preferences.
+- No Mudlet control, installation, gameplay commands or player-profile writes.
+  User approval is required before the disconnected AardwolfToolboxSettingsTest
+  acceptance session. Back up its package/profile/settings/databases/native map
+  first; use the foundation dispatch interceptors and verify map preservation.
+- Pending native checks: category navigation, clear/export, scrolling, local
+  input, external windows and real LuaSQL migration. Naturally arriving quest
+  rewards and Windows/Linux behavior remain unverified. Kill/chat history and
+  the broader roadmap acceptance matrix are still outstanding.
+
+---
+
 # 0.24.0-dev.12 ability listing refresh fix — 2026-09-13
 
 - Reproduced the user's `Level 0  : Catalysis 0%` failure in the old parser and

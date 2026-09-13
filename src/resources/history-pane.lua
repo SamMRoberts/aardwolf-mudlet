@@ -1,12 +1,15 @@
 -- Paged on-demand disk reads; closed views do no history queries.
 local Pane={}
 local OWNER,VIEW='AardwolfToolbox.historyPane','history'
+local CATEGORIES={progression='Progression',quests='Quest rewards'}
+local REWARDS={{'totqp','Total QP'},{'gold','Gold'},{'pracs','Practices'},{'trains','Trains'},{'tp','TP'},{'qp','Base QP'},{'tierqp','Tier QP'},{'hardcore','Hardcore'},{'opk','OPK'},{'lucky','Lucky'},{'double','Double'},{'daily','Daily'}}
 local LABELS={level='Level',tier='Tier',remorts='Remorts',redos='Redos',pups='Powerups',totpups='Total powerups'}
 function Pane.new(api,ui,views,history,openSettings)
   local self={enabled=false,last='Disabled'}
   local root,home,content,toolbar,list,title,closeButton,feedback,previous,nextButton,pageLabel
   local rows,controls,handlers={},{},{}
   local selected,page,result,confirm=nil,1,nil,nil
+  local category='progression'
   local building,epoch,timer=false,0,nil
   local layout,render
   local function visible() return self.enabled and not building and views.visible(VIEW) end
@@ -21,13 +24,16 @@ function Pane.new(api,ui,views,history,openSettings)
   render=function(read)
     if not visible() then return end
     if read or not result then
-      local why;result,why=history.list(selected,page)
+      local why;result,why=history.list(selected,page,category)
       if not result then clearRows();say(why);return end
       page,selected=result.page,result.character
     end
     confirm=nil
     local retained={}
-    for _,c in ipairs(controls) do if c.id=='clear' then c.widget:echo('Clear…') end end
+    for _,c in ipairs(controls) do
+      if c.id=='clear' then c.widget:echo('Clear…') end
+      if CATEGORIES[c.id] then ui.style(c.widget,true,c.id==category) end
+    end
     local rowHeight=ui.metrics().line*3+12
     for i,entry in ipairs(result.rows) do
       local changes={}
@@ -37,20 +43,32 @@ function Pane.new(api,ui,views,history,openSettings)
       local summary=table.concat(changes,' · ')
       local stamp=api.os.date('%Y-%m-%d %H:%M:%S',entry.observed)
       local text=stamp..' · '..(entry.kind=='snapshot' and 'Observed state' or 'Changed observation')
+      local detail,tooltip='',''
+      if category=='quests' then
+        changes={}
+        for _,field in ipairs(REWARDS) do
+          if entry.rewards[field[1]]~=nil then changes[#changes+1]=field[2]..' '..tostring(entry.rewards[field[1]]) end
+        end
+        summary=#changes>0 and table.concat(changes,' · ') or 'Rewards unavailable'
+        text=stamp..' · Quest completed'..(entry.completed and ' · Count '..entry.completed or '')
+        detail=(entry.quest.target or 'Target unavailable')..' · '..(entry.quest.area or 'Area unavailable')
+        tooltip=detail..' · '..(entry.quest.room or 'Room unavailable')
+      end
       local id=tostring(entry.id);local w=rows[id]
       if not w then w=label('row.'..id,list,'');rows[id]=w end;retained[id]=true
       local y=(i-1)*rowHeight
       if w.historyY~=y or w.historyHeight~=rowHeight then w:move(0,y);w:resize('100%',rowHeight);w.historyY=y;w.historyHeight=rowHeight end
       local width=math.max(1,list:get_width()-24)
       local html=ui.escape(ui.fit(text,width))..'<br><span style="color:#A8D7E8">'..ui.escape(ui.fit(summary,width))..'</span>'
+      if detail~='' then html=html..'<br>'..ui.escape(ui.fit(detail,width)) end
       local signature=html..ui.metrics().font..ui.metrics().size
-      if w.historyText~=signature then ui.style(w);w:echo(html);w:setToolTip(ui.escape(text)..'<br>'..ui.escape(summary));w.historyText=signature end
+      if w.historyText~=signature then ui.style(w);w:echo(html);w:setToolTip(ui.escape(text)..'<br>'..ui.escape(summary)..(tooltip~='' and '<br>'..ui.escape(tooltip) or ''));w.historyText=signature end
     end
     if #result.rows==0 then
-      if not rows.empty then rows.empty=label('empty',list,'No saved progression observations.') end;retained.empty=true
+      if not rows.empty then rows.empty=label('empty',list,'No saved '..CATEGORIES[category]:lower()..' observations.') end;retained.empty=true
     end
     for id,w in pairs(rows) do if not retained[id] then w:delete();rows[id]=nil end end
-    local heading='Progression history · '..(selected or 'No character')
+    local heading=CATEGORIES[category]..' history · '..(selected or 'No character')
     title:echo(ui.escape(ui.fit(heading,math.max(1,title:get_width()))));title:setToolTip(ui.escape(heading))
     pageLabel:echo(page..' / '..result.pages)
     local status=history.status()
@@ -87,7 +105,16 @@ function Pane.new(api,ui,views,history,openSettings)
     if timer then api.killTimer(timer);timer=nil end
     clearRows();result=nil;confirm=nil
   end
-  function self.open() if not self.enabled then return nil,'History view unavailable' end;return views.open(VIEW) end
+  local function choose(value)
+    if not CATEGORIES[value] then return nil,'Unknown history category' end
+    if category~=value then category=value;selected=nil;page=1;result=nil;confirm=nil;clearRows() end
+    return true
+  end
+  function self.open(value)
+    if not self.enabled then return nil,'History view unavailable' end
+    if value then local ok,why=choose(value);if not ok then return nil,why end end
+    return views.open(VIEW)
+  end
   function self.stop()
     self.enabled=false;epoch=epoch+1;self.close()
     for _,id in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,id) end;handlers={}
@@ -101,26 +128,27 @@ function Pane.new(api,ui,views,history,openSettings)
       building=true;epoch=epoch+1;local owned=epoch
       root=api.Geyser.Container:new({name=OWNER,x=20,y=40,width=760,height=640})
       local bg=label('background',root,'');bg:resize('100%','100%');bg:setStyleSheet('QLabel { background: #151c23; border: 1px solid #83bde8; }')
-      title=label('title',root,'Progression history');closeButton=label('close',root,'Close',self.close)
+      title=label('title',root,'Local history');closeButton=label('close',root,'Close',self.close)
       home=api.Geyser.Container:new({name=OWNER..'.home',x=0,y=32,width='100%',height='100%-32'},root)
       content=api.Geyser.Container:new({name=OWNER..'.content',x=0,y=0,width='100%',height='100%'},home)
       toolbar=api.Geyser.ScrollBox:new({name=OWNER..'.toolbar',x=0,y=0,width='100%',height=64},content)
       local function button(id,text,fn) controls[#controls+1]={id=id,text=text,widget=label(id,toolbar,text,fn)} end
+      for _,id in ipairs({'progression','quests'}) do local value=id;button(value,CATEGORIES[value],function() choose(value);render(true) end) end
       button('characterPrevious','‹ Character',function() character(-1) end)
       button('characterNext','Character ›',function() character(1) end)
       button('refresh','Refresh',function() render(true) end)
       button('export','Export JSON',function()
         if not selected then say('Select a saved character first');return end
-        local path,err=history.export(selected);say(path and 'Exported: '..path or err)
+        local path,err=history.export(selected,category);say(path and 'Exported: '..path or err)
       end)
       button('clear','Clear…',function()
         if not selected then say('Select a saved character first');return end
-        if confirm and confirm.character==selected and confirm.revision==history.revision then
-          local done,err=history.clear(selected,confirm.revision);confirm=nil;render(true);if not done then say(err) end
+        if confirm and confirm.character==selected and confirm.category==category and confirm.revision==history.revision then
+          local done,err=history.clear(selected,confirm.revision,category);confirm=nil;render(true);if not done then say(err) end
         else
-          confirm={character=selected,revision=history.revision}
+          confirm={category=category,character=selected,revision=history.revision}
           for _,c in ipairs(controls) do if c.id=='clear' then c.widget:echo('Confirm clear') end end
-          say('Clear all saved progression for '..selected..'? Click Confirm clear again; Refresh cancels.')
+          say('Clear saved '..CATEGORIES[category]:lower()..' for '..selected..'? Click Confirm clear again; Refresh cancels.')
         end
       end)
       button('settings','Settings',openSettings);button('view','View',function() views.menu(VIEW) end)

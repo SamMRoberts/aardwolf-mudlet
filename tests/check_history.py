@@ -1,5 +1,7 @@
-"""Progression observations, real SQLite transactions, and bounded view contracts."""
+"""Progression and quest observations, real SQLite transactions, and bounded view contracts."""
 import unittest
+import json
+from pathlib import Path
 import check_package
 
 
@@ -15,6 +17,11 @@ class HistoryTests(unittest.TestCase):
             if path=='char' then gmcp.char=value else gmcp.char[path:match('%.(.+)')]=value end
             fire('gmcp.char','gmcp.'..path);fire('AardwolfToolbox.gmcp.updated',path)
           end
+          function quest(value)
+            gmcp=gmcp or {};gmcp.comm=gmcp.comm or {};gmcp.comm.quest=value
+            fire('gmcp.comm','gmcp.comm.quest');fire('AardwolfToolbox.gmcp.updated','comm.quest')
+          end
+          function enableQuests() assert(t.config.set('history','quests',true)) end
           function enable() assert(t.config.set('history','progression',true)) end
           function W(id) return assert(widgets['AardwolfToolbox.historyPane.'..id],id) end
           local open=io.open;io.open=function(...) local f,err,code=open(...);if f then f.flush=function() return true end end;return f,err,code end
@@ -178,4 +185,138 @@ class HistoryTests(unittest.TestCase):
           assert(W('next'):get_y()+W('next'):get_height()<=W('content'):get_height())
           assert(W('list'):get_y()+W('list'):get_height()<=W('next'):get_y())
           assert(W('clear').parent==W('toolbar') and W('clear'):get_height()>=32)
+        ''')
+
+    def test_quests_opt_in_identity_and_completion_only(self):
+        self.lua.execute('''
+          assert(not t.config.get('history','quests'))
+          quest({action='comp',totqp=50,gold=4831,completed=111})
+          enableQuests()
+          quest({action='comp',totqp=50,gold=4831,completed=111})
+          observe('char.base',{name='A',level=1})
+          assert(h.list('A',1,'quests').total==0 and h.list('A').total==0)
+          quest({action='status',status='ready',gold=999999})
+          quest({action='start',targ='a swamp ape',room='Enclosure',area='Zoo'})
+          quest({action='killed'});quest({action='warning',time=5})
+          assert(h.list('A',1,'quests').total==0)
+          quest({action='comp',qp=16,tierqp=9,totqp=50,gold=4831,pracs=0,completed=111,password='never saved'})
+          local result=h.list('A',1,'quests');assert(result.total==1)
+          local r=result.rows[1]
+          assert(r.quest.target=='a swamp ape' and r.quest.room=='Enclosure')
+          assert(r.rewards.totqp==50 and r.rewards.qp==16 and r.rewards.pracs==0 and r.rewards.tp==nil)
+          assert(r.rewards.password==nil and r.completed==111 and r.observed==clock)
+          r.rewards.gold=1;assert(h.list('A',1,'quests').rows[1].rewards.gold==4831)
+          quest({action='comp',totqp=50,completed=111});assert(h.list('A',1,'quests').total==1)
+          enable();observe('char.base',{name='A',level=1});assert(h.list('A').total==1)
+          assert(t.config.set('history','quests',false));observe('char.base',{name='A',level=2})
+          quest({action='comp',completed=112});assert(h.list('A',1,'quests').total==1)
+          assert(h.status().progression and not h.status().quests)
+        ''')
+
+    def test_quest_details_resets_duplicates_and_missing_rewards(self):
+        self.lua.execute('''
+          enableQuests();observe('char.base',{name='A'})
+          quest({action='start',targ='old',room='Old room',area='Old area'})
+          quest({action='status',targ='new',room='New room'})
+          quest({action='status',area='New area'})
+          quest({action='comp',gold=-1,totqp='50',qp=0,pracs='invalid'})
+          local r=h.list('A',1,'quests').rows[1]
+          assert(r.quest.target=='new' and r.quest.area=='New area')
+          assert(r.rewards.qp==0 and r.rewards.gold==nil and r.rewards.totqp==nil and r.rewards.pracs==nil)
+          quest({action='comp'});assert(h.list('A',1,'quests').total==1)
+          quest({action='ready'});quest({action='comp'})
+          r=h.list('A',1,'quests').rows[1];assert(next(r.quest)==nil and next(r.rewards)==nil)
+          for _,action in ipairs({'fail','timeout','reset'}) do
+            quest({action='start',targ='must clear'});quest({action=action});quest({action='comp'})
+            assert(next(h.list('A',1,'quests').rows[1].quest)==nil)
+          end
+          quest({action='start',targ='must clear'});fire('AardwolfToolbox.gmcp.cleared')
+          quest({action='comp',completed=10});assert(h.list('A',1,'quests').total==5)
+          observe('char.base',{name='B'});quest({action='comp',completed=10})
+          assert(next(h.list('B',1,'quests').rows[1].quest)==nil)
+          quest({action='start',targ='B target'});observe('char.base',{name='C'})
+          quest({action='comp',completed=10});assert(next(h.list('C',1,'quests').rows[1].quest)==nil)
+        ''')
+
+    def test_quest_storage_retention_clear_and_export_are_category_scoped(self):
+        self.lua.execute('''
+          enable();enableQuests();observe('char.base',{name='A',level=1})
+          quest({action='comp',completed=1,totqp=0,gold=0})
+          local path,err=h.export('A','quests');assert(path,err)
+          local data=yajl.to_value(files[path]);assert(data.category=='quests' and data.observations[1].rewards.gold==0)
+          assert(path:find('quests%-export'))
+          assert(h.clear('A',h.revision,'quests'));assert(h.list('A').total==1 and h.list('A',1,'quests').total==0)
+          s.configure({days=1,max_entries=100,max_kib=64})
+          for i=1,101 do assert(s.append('A',{kind='quest_reward',observed=clock,quest={},rewards={gold=i}},'quests')) end
+          assert(h.list('A',1,'quests').total==100 and h.list('A').total==0)
+          clock=clock+86401;assert(h.list('A',1,'quests').total==0)
+          assert(not pcall(h.list,'A',1,"quests'; DROP TABLE observations; --"))
+        ''')
+
+    def test_history_v1_migration_preserves_progression_ids_and_data(self):
+        self.lua.execute('''
+          local env=luasql.sqlite3();local db=env:connect(s.path)
+          assert(db:execute('CREATE TABLE progression (id INTEGER PRIMARY KEY AUTOINCREMENT, character TEXT NOT NULL, observed INTEGER NOT NULL, data TEXT NOT NULL, bytes INTEGER NOT NULL)'))
+          local entry=yajl.to_string({kind='snapshot',observed=clock,values={level=22},changes={}})
+          assert(db:execute("INSERT INTO progression VALUES(37,'a',"..clock..",'"..entry.."',"..#entry..")"))
+          assert(db:execute('PRAGMA user_version=1'));db:close();env:close()
+          local r=h.list('A');assert(r.total==1 and r.rows[1].id==37 and r.rows[1].values.level==22)
+          assert(h.list('A',1,'quests').total==0)
+          assert(s.append('A',{kind='quest_reward',observed=clock,quest={},rewards={}},'quests'))
+          assert(h.list('A',1,'quests').rows[1].id==38)
+          env=luasql.sqlite3();db=env:connect(s.path)
+          local c=db:execute('PRAGMA user_version');assert(c:fetch({},'a').user_version==2);c:close();db:close();env:close()
+        ''')
+
+    def test_history_migration_failure_rolls_back_schema_and_rows(self):
+        self.lua.execute('''
+          local original=luasql.sqlite3;local env=original();local db=env:connect(s.path)
+          assert(db:execute('CREATE TABLE progression (id INTEGER PRIMARY KEY AUTOINCREMENT, character TEXT NOT NULL, observed INTEGER NOT NULL, data TEXT NOT NULL, bytes INTEGER NOT NULL)'))
+          assert(db:execute("INSERT INTO progression VALUES(1,'a',"..clock..",'{}',2)"))
+          assert(db:execute('PRAGMA user_version=1'));db:close();env:close()
+          luasql.sqlite3=function()
+            local e=original();local connect=e.connect
+            e.connect=function(...)
+              local c=connect(...);local execute=c.execute
+              c.execute=function(self,sql)
+                if sql:find('ADD COLUMN',1,true) then return nil,'Injected migration failure' end
+                return execute(self,sql)
+              end;return c
+            end;return e
+          end
+          local result,err=h.list('A');assert(not result and err:find('Injected migration failure'))
+          env=original();db=env:connect(s.path)
+          local c=db:execute('PRAGMA user_version');assert(c:fetch({},'a').user_version==1);c:close()
+          c=db:execute('SELECT id,data FROM progression');local r=c:fetch({},'a');assert(r.id==1 and r.data=='{}');c:close()
+          c=db:execute("SELECT name FROM sqlite_master WHERE name='observations'");assert(c:fetch({},'a')==nil);c:close();db:close();env:close()
+        ''')
+
+    def test_quest_history_pane_categories_literal_render_and_clear(self):
+        self.lua.execute('''
+          enable();enableQuests();observe('char.base',{name='A',level=1})
+          quest({action='start',targ='<Éowyn>',room='A room',area='An area'})
+          quest({action='comp',totqp=50,gold=0,completed=1})
+          assert(p.open('quests'));assert(W('title').text:find('Quest rewards'))
+          assert(W('row.2').text:find('&lt;Éowyn&gt;') and W('row.2').text:find('Gold 0'))
+          W('clear').callback();W('progression').callback();W('clear').callback()
+          assert(h.list('A').total==1 and h.list('A',1,'quests').total==1)
+          W('quests').callback();W('clear').callback();W('clear').callback()
+          assert(h.list('A',1,'quests').total==0 and h.list('A').total==1)
+          assert(not p.open('unsupported'))
+          t.stop();assert(count(widgets)==0);assert(t.start() and t.config.get('history','quests'))
+        ''')
+
+    def test_documented_quest_completion_fields(self):
+        fixture=json.loads((Path(__file__).parent / 'fixtures/quest-history.json').read_text())
+        self.lua.globals().questStart=self.lua.table_from(fixture['start'])
+        self.lua.globals().questCompletion=self.lua.table_from(fixture['completion'])
+        self.lua.execute('''
+          enableQuests();observe('char.base',{name='Example'})
+          quest(questStart);quest(questCompletion)
+          local r=h.list('Example',1,'quests').rows[1]
+          for key,value in pairs(questCompletion) do
+            if key~='action' and key~='wait' and key~='completed' then assert(r.rewards[key]==value,key) end
+          end
+          assert(r.completed==111 and r.quest.room=='Swamp Ape Enclosure')
+          assert(r.rewards.wait==nil and r.rewards.action==nil)
         ''')

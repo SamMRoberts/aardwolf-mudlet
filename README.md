@@ -1,12 +1,12 @@
-# AardwolfToolbox 0.24.0-dev.12
+# AardwolfToolbox 0.24.0-dev.13
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-**Local progression history** is now available through **Tools → Open history**.
-Recording starts **off**; enable it in **aardwolf-config → Local history**. Browse
-observed progression per character, configure retention, export JSON, or clear a
-character's records. See [history controls](docs/history.md). This candidate is
+**Local progression and quest reward history** is now available through **Tools → Open history**.
+Both categories start **off**; enable them in **aardwolf-config → Local history**. Browse
+observed progression or reported quest rewards per character, configure retention,
+export JSON, or clear only the selected category. See [history controls](docs/history.md). This candidate is
 repository-tested only; native control and installation are awaiting approval.
 
 **Clan** and **Newbie** now have dedicated chat tabs and optional external windows.

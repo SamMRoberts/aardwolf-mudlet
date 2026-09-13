@@ -199,7 +199,9 @@ in session memory and are excluded from preference and diagnostic exports.
 ## Persistent history consumers
 
 Local history is separately opt-in and is not part of notification storage.
-See [progression storage and API](history.md). Preserve per-character identity,
+See [categorized history storage and API](history.md). Preserve per-character identity,
 bounded retention, transactional writes and explicit export/clear actions.
 Future categories require their own registered opt-in and verified source semantics;
-do not add raw protocol payloads or logs to progression observations.
+do not add raw protocol payloads or logs to history observations. Omitted category
+arguments keep the progression API default. Never clear another category as a
+side effect of category selection or disabling its recording preference.
