@@ -57,6 +57,10 @@ function searchRoomUserData(key, value)
   return found
 end
 function getAreaTable() return areas end
+function getAreaTableSwap()
+  local result={};for name,id in pairs(areas) do result[id]=name end;return result
+end
+function getSpecialExitsSwap(id) return rooms[id] and (rooms[id].special or {}) end
 function getAreaUserData(id, key) return areaData[id] and areaData[id][key] or "" end
 function addAreaName(name)
   assert(not areas[name])

@@ -1,3 +1,36 @@
+# 0.24.0-dev.7 map workspace candidate — 2026-09-13
+
+- **347 tests passed** with Muddler 1.1.0, Java 17.0.16+8, Python 3.14.6 /
+  Lupa 2.6. The 52-entry archive passed CRC, XML and source consistency checks.
+  Existing 10/50/200/512-mob benchmarks passed; no native rendering claim.
+- Package SHA256: `ec635b54bd80b11fe577a9d7f3f007bb796eed35f45d20b48807fb62cfbc365a`.
+- Backed up only the disconnected test profile/package/settings/database and
+  native map in `backups/offline-map-workspace-20260913-153835/` before installation.
+- Native mouse/keyboard: searched `Z regression 0`, selected its room, saved and
+  found `Éowyn <local>` with `Offline note <literal>`, preserving literal text and
+  the main input. The temporary bookmark was then removed through configuration.
+- Selected route start #1 and destination #2: native preview displayed `e`, one
+  step and cost 1. Health reported eight legacy native/game-ID differences in
+  the existing regression map. No repairs or movement occurred.
+- Native first Float exposed retained Geyser auto-hidden content. The shared
+  host now reveals moved content explicitly and opens existing detached hosts
+  on a placement transition without reopening them on unrelated configuration.
+  Final native retest showed the full room list immediately at 420×360.
+  Native close and automatic Return to workspace were also checked.
+- `native_map_workspace.lua` confirmed search/health, a native route, unchanged
+  speedwalk globals and zero intercepted gameplay dispatch against eight existing
+  rooms. Repeated startup/stop left no owned widgets or activation errors.
+- Restored foundation interceptors and tabbed placement. Before/after native maps
+  were byte-identical: `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+  Installed resources match the final artifact; the regular Aardwolf profile
+  was not controlled or installed into.
+- Native full-size/narrow/Retina/multi-monitor matrix, outer-scroll and keyboard
+  traversal, special-exit previews and live GMCP source selection remain unverified.
+  Service behavior for these map inputs is contract-tested. Prior item-menu
+  Escape and broader roadmap acceptance gaps remain open.
+
+---
+
 # 0.24.0-dev.6 item-action candidate — 2026-09-13
 
 - **338 tests passed**, including exact single-command dispatch, decimal IDs,

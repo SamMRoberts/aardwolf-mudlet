@@ -79,6 +79,7 @@ function Views.new(api,config,ui,settings)
     local e=entries[id]; if not e then return false,"Waiting for "..title(id).." view" end
     if self.mode(id)=="floating" then
       local window=windows[id]
+      local created=false
       if not window then
         assert(api.Geyser.UserWindow,"External windows require Geyser.UserWindow")
         local profile=api.getProfileName and api.getProfileName() or api.getMudletHomeDir()
@@ -95,12 +96,20 @@ function Views.new(api,config,ui,settings)
         window=api.Geyser.UserWindow:new({name=name,titleText=title(id).." — "..profile,autoDock=false,restoreLayout=false,
           x=saved.x or 40,y=saved.y or 100,width=saved.width or (e.chat and 580 or 420),height=saved.height or (id=="buffs" and 480 or 360)})
         windows[id]=window
+        created=true
         window:setColor("#101820")
         if not geometryTimer then geometryTimer=api.tempTimer(0.5,watchGeometry) end
 
       end
-      if e.parent~=window then moveContent(e.root,window); e.parent=window; e.root:move(0,0); e.root:resize("100%","100%"); e.root:show() end
-      if force then window:show(); if api.showWindow then api.showWindow(window.name) end; window:raise() end
+      local moved=e.parent~=window
+      if moved then moveContent(e.root,window); e.parent=window; e.root:move(0,0); e.root:resize("100%","100%") end
+      -- Reparenting retains Geyser's auto-hidden flag from the previous home.
+      -- Placement and explicit reopen reveal both the host and its content;
+      -- ordinary configure calls must leave a closed, unmoved host closed.
+      if force or created or moved then
+        window:show(); if api.showWindow then api.showWindow(window.name) end
+        e.root:show(true);e.root:show();window:raise()
+      end
     else
       if e.parent~=e.home then moveContent(e.root,e.home); e.parent=e.home end
       e.root:move(0,0); e.root:resize("100%","100%")

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.0-dev.7 — local map workspace
+
+- Add paged room/area search, identity-bound bookmarks and local notes through
+  shared settings, including stale-draft and failed-save protection.
+- Preview saved routes without travelling or replacing speedwalk globals.
+  Display special/unexplored/unverified steps as advisory observations.
+- Report identity conflicts, incomplete construction, provisional changes,
+  overlaps and missing exit destinations without modifying the native map.
+- Register an Atlas view with workspace/external placement and editor shortcut
+  suspension. Show newly created external hosts explicitly to clear native
+  Geyser auto-hidden state on the first Float action.
+- Add read-only native fixtures and map/service/UI regressions.
+
 ## 0.24.0-dev.6 — manual inventory actions and comparisons
 
 - Add exact object-ID previews for single Wear/Remove/Get/Put operations in the

@@ -232,7 +232,7 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) or (AardwolfToolbox.launcher and AardwolfToolbox.launcher.isEditing()) or (AardwolfToolbox.browser and AardwolfToolbox.browser.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) or (AardwolfToolbox.launcher and AardwolfToolbox.launcher.isEditing()) or (AardwolfToolbox.browser and AardwolfToolbox.browser.isEditing()) or (AardwolfToolbox.mapWorkspacePane and AardwolfToolbox.mapWorkspacePane.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))
@@ -246,15 +246,26 @@ local function initialize()
     end,AardwolfToolbox.itemActions),{"config","ui","views","inventory","abilities","readiness","itemActions"},"stop")
   config.registerFeature(Browser.definition(AardwolfToolbox.browser.configure))
 
+  local MapWorkspace=resource("map-workspace")
+  own("mapWorkspace",MapWorkspace.new(_G,config,AardwolfToolbox.gmcp),{"config","gmcp"},"stop")
+  own("mapWorkspacePane",resource("map-workspace-pane").new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.views,AardwolfToolbox.mapWorkspace,function()
+    AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select("map_workspace")
+  end),{"mapWorkspace","config","ui","views"},"stop")
+  config.registerFeature(MapWorkspace.definition(function(values)
+    local ok,why=AardwolfToolbox.mapWorkspace.configure(values)
+    if not ok then AardwolfToolbox.mapWorkspacePane.stop();return false,why end
+    return AardwolfToolbox.mapWorkspacePane.configure(values)
+  end))
+
   local Launcher=resource("launcher")
   local launcher=own("launcher",Launcher.new(_G,config,AardwolfToolbox.ui,AardwolfToolbox.utilityBar,function(feature)
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select(feature)
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities"}) do
+  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","inventory","equipment","abilities","atlas"}) do
     local view=id
-    launcher.register({id="view."..view,label="Open "..view,description="Open the existing sidebar or floating view",available=function()
+    launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
     end,callback=function() return AardwolfToolbox.views.open(view) end})
   end

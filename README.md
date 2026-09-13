@@ -1,9 +1,14 @@
-# AardwolfToolbox 0.24.0-dev.6
+# AardwolfToolbox 0.24.0-dev.7
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-This candidate adds a searchable **Tools** utility menu, an offline setup
+The new **Map workspace** adds local room/area search, bookmarks with notes,
+route previews and read-only map health. Open **Tools → Open map workspace**
+or **Views → Atlas**. Configure it under **aardwolf-config → Map workspace**.
+See [map workspace](docs/map-workspace.md).
+
+This candidate also includes a searchable **Tools** utility menu, an offline setup
 walkthrough, and an **Inventory / Equipment / Abilities** workspace. Open these
 from Tools or Views. Workspace tabs can float independently, and browsing does
 not execute an ability or change equipment. See [workspace controls](docs/workspace.md).
@@ -87,6 +92,7 @@ Toolbox mapping. Existing foreign map rooms are not automatically adopted.
 | Feature | What it provides |
 | --- | --- |
 | **Auto-mapper** | Maps fresh GMCP room observations, follows your position, colors terrain, and previews unexplored exits with gray **?** rooms or exit stubs. Uses game room IDs and authoritative reported fields. See [mapping behavior](#mapping-behavior-and-preservation). |
+| **Map workspace** | Local room/area search, persistent bookmarks and notes, route previews and a read-only health report. Works offline and never initiates travel or repairs. [Guide](docs/map-workspace.md). |
 | **Graphical and ASCII maps** | Switch map tabs or pop out the ASCII pane. Captured ASCII frames retain spacing and colors and are hidden from the game console. [Map and layout guide](docs/ui-dashboard.md). |
 | **Player dashboard** | Compact identity, total/base attributes, combat rolls, and conditions; base attributes are italic. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
 | **Quest and Group dashboards** | Quest state, target/location, approximate timer, and local map lookup; group membership, presence, and resource readings. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |

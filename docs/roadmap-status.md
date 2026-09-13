@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.6**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.7**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 is recorded in tests/verification.md.
@@ -100,10 +100,15 @@ See [workspace](workspace.md) and [item service](item-service.md).
 ### Journal and navigation workspace (0.27)
 
 Capture current campaign/global-quest responses before implementing parsers.
-No player-profile queries were sent in this work. Implement the journal,
-objective hints, map search/bookmarks/notes/route previews and read-only map-health
-report. Preserve authoritative room IDs and observed topology. The existing
-quest/group views and map-travel feature remain available.
+No player-profile queries were sent in this work. Journal capture and
+objective hints remain pending. The local map workspace now
+provides paged room/area search, 48 identity-bound bookmarks with notes,
+read-only route previews and categorized map-health observations. No repairs,
+travel, map edits or inferred reverse exits are performed. See
+[map workspace](map-workspace.md). The existing quest/group views and explicit
+map-travel feature remain available. Native offline search, bookmarks, route and
+health rendering, external placement and map-byte preservation passed; full
+size/scroll/keyboard and live route-source acceptance remain pending.
 
 ### Polish, notifications and history (0.28)
 
