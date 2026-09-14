@@ -20,6 +20,8 @@ function Mobs.definition(apply,Actions)
     {key='flags',label='Show mob flags and auras',type='boolean',default=true},
     {key='consider',label='Show observed consider ratings',type='boolean',default=true,
       description='Relative level ranges from consider output. Threat colors follow Use status colors; automatic rating requests are controlled separately.'},
+    {key='quest_hints',label='Show quest target candidates',type='boolean',default=true,
+      description='Exact name matches to the observed active quest get a Quest? label. These are candidates, not verified identities; no queries or actions are sent.'},
     {key='symbols',label='Show indicator symbols',type='boolean',default=true},
     {key='colors',label='Use status colors',type='boolean',default=true},
     {key='blink',label='Pulse observed attacker backgrounds',type='boolean',default=false},
@@ -36,7 +38,7 @@ function Mobs.definition(apply,Actions)
   for _,setting in ipairs(Actions.settings()) do definition.settings[#definition.settings+1]=setting end
   return definition
 end
-function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings,consider,Actions,config)
+function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings,consider,Actions,config,questSource)
   local self={enabled=false,last='Disabled'}
   local options,handlers={},{}
   local configuration=0; local actions; local view
@@ -83,9 +85,32 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       queries.release(OWNER)
     end
   end
+  local questHint,questKey
+  local function clean(value)
+    if type(value)~='string' or #value>512 or value:find('[%z\1-\31\127]') then return nil end
+    value=value:gsub('^%s+',''):gsub('%s+$',''):gsub('%s+',' ')
+    if value~='' then return value end
+  end
+  local function readQuest()
+    local q=questSource and questSource()
+    local target=type(q)=='table' and q.state=='Active' and q.targetKnown~=false and clean(q.target)
+    local hint=target and {source='quest',candidate=true,target=target,room=clean(q.room),area=clean(q.area)} or nil
+    local key=hint and table.concat({hint.target,hint.room or '',hint.area or ''},'\0') or ''
+    local changed=key~=questKey;questKey=key;questHint=hint
+    return changed
+  end
   function self.snapshot()
     local result=model.snapshot(options.attack_window or 12)
-    result.nearby=copy(nearby); result.ratings=copy(ratings); return result
+    result.nearby=copy(nearby); result.ratings=copy(ratings)
+    if options.quest_hints and result.fresh and questHint then
+      local matches={};local wanted=questHint.target:lower()
+      for _,r in ipairs(result.rows) do
+        local name=clean(r.name)
+        if r.alive>0 and r.killed==0 and r.missing==0 and not r.unclassified and name and name:lower()==wanted then matches[#matches+1]=r end
+      end
+      for _,r in ipairs(matches) do r.objective=copy(questHint);r.objective.matches=#matches end
+    end
+    return result
   end
   function self.status()
     local result=copy(diagnostics);result.enabled=self.enabled;result.last=self.last
@@ -101,7 +126,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     for _,r in ipairs(snapshot.rows) do
       local key=table.concat({r.name,r.flags,tostring(r.ordinal),tostring(r.selected),tostring(r.target),
         tostring(r.health),tostring(r.requested),tostring(r.attacking),r.alive,r.killed,r.missing,
-        r.consider and r.consider.id or ''},'|')
+        r.consider and r.consider.id or '',r.objective and questKey or '',r.objective and r.objective.matches or ''},'|')
       nextRows[r.id]=key
       if lastRows[r.id]~=key then changed[#changed+1]=r.id end
     end
@@ -450,16 +475,17 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end;handlers={}
     incoming.remove(OWNER)
     if api.gmod then for _,m in ipairs({'Char','Room'}) do api.gmod.disableModule(OWNER,m) end end
-    model.clear(nil);nearby={fresh=false,sections={}};view.destroy();self.last='Disabled'
+    model.clear(nil);nearby={fresh=false,sections={}};questHint=nil;questKey=nil;view.destroy();self.last='Disabled'
   end
   self.destroy=self.stop
   function self.start()
     if self.enabled then return true end
     local ok,err=pcall(function()
-      self.enabled=true;view.configure(options);reset()
+      self.enabled=true;readQuest();view.configure(options);reset()
       incoming.add(OWNER,17,receive,function(message) self.stop();self.last='Stopped: '..tostring(message);api.echo('Aardwolf mobs: '..self.last..'\n') end,nil,true)
       local function on(event,fn) handlers[#handlers+1]=event;assert(api.registerNamedEventHandler(OWNER,event,event,fn)) end
       on('AardwolfToolbox.gmcp.updated',gmcp);on('AardwolfToolbox.gmcp.cleared',reset);on('sysDisconnectionEvent',reset)
+      on('AardwolfToolbox.dashboardData.updated',function() if readQuest() and options.quest_hints then update() end end)
       on('AardwolfToolbox.queries.available',schedule);on('AardwolfToolbox.spellup.updated',schedule)
       on('AardwolfToolbox.settings.changed',function() if view.closeMenu then view.closeMenu() end end)
       on('AardwolfToolbox.settings.visibility',function(open) if view.closeMenu then view.closeMenu() end end)

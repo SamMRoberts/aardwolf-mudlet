@@ -1,10 +1,15 @@
-# AardwolfToolbox 0.24.0-dev.16
+# AardwolfToolbox 0.24.0-dev.21
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
+**Notification reader:** select with **Alt+J/K**, page with **Alt+H/L**, and mark
+only the selected notice read with **Alt+Enter**. Full text appears below the list;
+**Shift+Escape** closes the in-profile inbox.
+
 **Keyboard menus:** in Tools or an item-action menu, use **Alt+J/K** to select,
-**Alt+Enter** to activate, and **Shift+Escape** to close. Opening a menu does not
+**Alt+H/L** to page, **Alt+Enter** to activate, and **Shift+Escape** to close.
+Pages fit the available space, and keyboard selection stays visible. Opening a menu does not
 select an action. Ordinary Enter still filters search; input text is preserved.
 See [workspace controls](docs/workspace.md#keyboard-controls).
 
@@ -38,6 +43,8 @@ See [preference transfers](docs/preferences-transfer.md).
 The **Map workspace** adds local room/area search, bookmarks with notes,
 route previews and read-only map health. Open **Tools → Open map workspace**
 or **Views → Atlas**. Configure it under **aardwolf-config → Map workspace**.
+Use Alt+J/K to highlight map results, Alt+H/L to page, and Alt+Enter to inspect
+without traveling. Highlighting preserves unfinished bookmark edits.
 See [map workspace](docs/map-workspace.md).
 
 This candidate also includes a searchable **Tools** utility menu, an offline setup
@@ -131,7 +138,7 @@ Toolbox mapping. Existing foreign map rooms are not automatically adopted.
 | **Quest and Group dashboards** | Quest state, target/location, approximate timer, and local map lookup; group membership, presence, and resource readings. [Dashboard guide](docs/ui-dashboard.md#sidebar-views-0220). |
 | **Buffs and spellups** | Active effects, recoveries, expiry warnings, coverage, and a utility-bar indicator. Optional auto refresh uses `spellup learned retry`. [Spellup guide](docs/spellups.md). |
 | **External views and chat** | Move Player, Quest, Group, Buffs, or existing All/Tells/Channels chat views into separate native windows. Chat retains its history, with unread counts and Latest/Mark read controls. [View controls](docs/ui-dashboard.md#sidebar-views-0220). |
-| **Room mobs and Nearby scans** | Individual mob rows, observed consider ranges, target/attacker/kill indicators, and compact nearby scans. Configurable double-click actions and right-click command/alias menus. [Room mobs guide](docs/room-mobs.md). |
+| **Room mobs and Nearby scans** | Individual mob rows, observed consider ranges, optional Quest? target-candidate hints, target/attacker/kill indicators, and compact nearby scans. Configurable double-click actions and right-click command/alias menus. [Room mobs guide](docs/room-mobs.md). |
 | **Action and navigation bar** | Paged command/alias buttons, optional keybindings, a directional compass, door controls, and known special exits. [Action bar guide](docs/action-bar.md). |
 | **Ability catalog and smart buttons** | Locally stored learned skills/spells, filters and type corrections, and buttons for a specific ability or the highest-required-level eligible ability of a type. [Ability guide](docs/abilities.md). |
 | **Inventory and ability workspace** | Search observed inventory/equipment and learned abilities; inspect captured details, command verification and smart-button selections. Workspace tabs can float independently. [Workspace guide](docs/workspace.md). |

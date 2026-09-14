@@ -11,9 +11,13 @@ class WorkspaceBrowserTests(unittest.TestCase):
         self.lua = harness.lua
         self.lua.execute('''
           assert(AardwolfToolbox.start());t=AardwolfToolbox;b=t.browser
-          keys={};mudlet.key={Escape=16777216,J=74,K=75,Return=16777220};mudlet.keymodifier={Shift=4,Alt=2};local serial=0
-          function tempKey(mod,key,callback) serial=serial+1;keys[serial]=callback;return serial end
-          function killKey(key) keys[key]=nil end
+          keys={};keyCodes={};mudlet.key={Escape=16777216,J=74,K=75,H=72,L=76,Return=16777220};mudlet.keymodifier={Shift=4,Alt=2};local serial=0
+          function tempKey(mod,key,callback) serial=serial+1;keys[serial]=callback;keyCodes[serial]={mod,key};return serial end
+          function killKey(key) keys[key]=nil;keyCodes[key]=nil end
+          function press(key)
+            for id,code in pairs(keyCodes) do if code[1]==2 and code[2]==mudlet.key[key] then keys[id]();return end end
+            error('Missing key '..key)
+          end
           assert(b.enabled,b.last)
           function send() error('Unexpected gameplay dispatch') end
           function expandAlias() error('Unexpected alias dispatch') end
@@ -106,7 +110,10 @@ class WorkspaceBrowserTests(unittest.TestCase):
           local list=t.abilities.list;local reads=0;t.abilities.list=function(...) reads=reads+1;return list(...) end
           fire('AardwolfToolbox.abilities.updated');assert(reads==0)
           assert(b.open('abilities'));assert(reads==1)
-          assert(widgets['AardwolfToolbox.browser.abilities.row.24'] and not widgets['AardwolfToolbox.browser.abilities.row.25'])
+          local n=0;while widgets['AardwolfToolbox.browser.abilities.row.'..(n+1)] do n=n+1 end
+          assert(n>0 and n<=24)
+          local row=widgets['AardwolfToolbox.browser.abilities.row.'..n]
+          assert(row.y+row.height<=widgets['AardwolfToolbox.browser.abilities.list']:get_height())
           local click=widgets['AardwolfToolbox.browser.abilities.row.1'].callback
           widgets['AardwolfToolbox.browser.abilities.next'].callback();click()
           assert(widgets['AardwolfToolbox.browser.abilities.detail'].text=='Select a row for details.')
@@ -220,9 +227,86 @@ class WorkspaceBrowserTests(unittest.TestCase):
           assert(items.replace('carried',rows));assert(b.open('inventory'))
           widgets['AardwolfToolbox.browser.inventory.row.1'].callback()
           widgets['AardwolfToolbox.browser.inventory.actions'].callback()
-          assert(widgets['AardwolfToolbox.browser.menu.row.24'] and not widgets['AardwolfToolbox.browser.menu.row.25'])
+          local body=widgets['AardwolfToolbox.browser.menu.body'];local n=0
+          for i=1,60 do
+            local row=widgets['AardwolfToolbox.browser.menu.row.'..i]
+            if row then n=n+1;assert(row.y+row:get_height()<=body:get_height()) end
+          end
+          assert(n>0 and n<=24)
           widgets['AardwolfToolbox.browser.menu.page.3'].callback()
-          assert(widgets['AardwolfToolbox.browser.menu.row.25'] and not widgets['AardwolfToolbox.browser.menu.row.1'])
-          assert(count(keys)==5);local first;for id in pairs(keys) do first=math.min(first or id,id) end;keys[first]()
+          assert(widgets['AardwolfToolbox.browser.menu.row.'..(n+1)] and not widgets['AardwolfToolbox.browser.menu.row.1'])
+          assert(count(keys)==7);local first;for id in pairs(keys) do first=math.min(first or id,id) end;keys[first]()
           assert(b.isEditing() and not widgets['AardwolfToolbox.browser.menu'])
+        ''')
+
+    def test_workspace_keyboard_pages_and_selection_do_not_execute_abilities(self):
+        self.lua.execute('''
+          local rows={};for i=1,70 do rows[i]=ability(i) end;t.abilityStore.replace({abilities=rows})
+          assert(b.open('abilities'))
+          local detail=widgets['AardwolfToolbox.browser.abilities.detail']
+          local ordered=t.abilities.list()
+          press('Return');assert(detail.text=='Select a row for details.')
+          local n=0;while widgets['AardwolfToolbox.browser.abilities.row.'..(n+1)] do n=n+1 end
+          for i=1,n+1 do press('J') end
+          assert(widgets['AardwolfToolbox.browser.abilities.page'].text:match('^2 /'))
+          assert(detail.text:find(ordered[n+1].name..' · #',1,true))
+          press('Return');assert(not widgets['AardwolfToolbox.browser.menu'])
+          press('K');assert(widgets['AardwolfToolbox.browser.abilities.page'].text:match('^1 /'))
+          press('L');assert(detail.text=='Select a row for details.')
+          press('Return');assert(detail.text=='Select a row for details.')
+          press('J');assert(detail.text:find(ordered[n+1].name..' · #',1,true))
+          widgets['AardwolfToolbox.browser.abilities.search'].action('no matches')
+          press('J');press('Return');assert(detail.text=='Select a row for details.')
+        ''')
+
+    def test_workspace_keyboard_item_selection_only_opens_preview_then_guarded_action(self):
+        self.lua.execute('''
+          assert(b.open('inventory'));press('J');press('Return')
+          assert(widgets['AardwolfToolbox.browser.menu'])
+          assert(widgets['AardwolfToolbox.browser.menu.row.1'].text:find('wear 42',1,true))
+          press('Return');assert(widgets['AardwolfToolbox.browser.menu'])
+          press('J');press('Return');assert(not widgets['AardwolfToolbox.browser.menu'])
+          assert(widgets['AardwolfToolbox.browser.inventory.feedback'].text:find('Disconnected'))
+          assert(items.replace('carried',{}));fire('AardwolfToolbox.inventory.updated')
+          press('Return');assert(not widgets['AardwolfToolbox.browser.menu'])
+          assert(widgets['AardwolfToolbox.browser.inventory.detail'].text=='Select a row for details.')
+        ''')
+
+    def test_workspace_preserves_selected_identity_on_refresh_and_font_reflow(self):
+        self.lua.execute('''
+          local rows={};for i=1,70 do rows[i]=ability(i) end;t.abilityStore.replace({abilities=rows})
+          assert(b.open('abilities'));for i=1,8 do press('J') end
+          local selected=widgets['AardwolfToolbox.browser.abilities.detail'].text
+          local selectedName=t.abilities.list()[8].name
+          fire('AardwolfToolbox.abilities.updated')
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text==selected)
+          local metrics=t.ui.metrics;t.ui.metrics=function() local m=metrics();m.line=m.line+8;m.height=m.height+8;return m end
+          fire('AardwolfToolbox.ui.changed')
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text==selected)
+          local found=false
+          for name,w in pairs(widgets) do if name:find('AardwolfToolbox.browser.abilities.row.',1,true) and w.text:find(selectedName..'<br>',1,true) then found=true end end
+          assert(found,'Selected ability is off the visible page')
+          t.abilityStore.replace({abilities={[10]=ability(10)}});fire('AardwolfToolbox.abilities.updated')
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text=='Select a row for details.')
+        ''')
+
+    def test_same_page_selection_does_not_reload_catalog_or_replace_rows(self):
+        self.lua.execute('''
+          assert(b.open('abilities'))
+          local original=widgets['AardwolfToolbox.browser.abilities.row.1']
+          t.abilities.list=function() error('Unnecessary catalog read') end
+          press('J');press('K');press('J')
+          assert(widgets['AardwolfToolbox.browser.abilities.row.1']==original)
+          assert(widgets['AardwolfToolbox.browser.abilities.detail'].text:find('Éowyn',1,true))
+          b.close();assert(count(keys)==0 and not t.menuKeys.active())
+        ''')
+
+    def test_hidden_or_floating_tab_does_not_receive_workspace_shortcuts(self):
+        self.lua.execute('''
+          assert(b.open('abilities'));assert(t.views.setMode('abilities','floating'))
+          local detail=widgets['AardwolfToolbox.browser.abilities.detail']
+          press('J');press('Return');assert(detail.text=='Select a row for details.')
+          assert(t.views.setMode('abilities','tabbed'));press('J')
+          assert(detail.text~='Select a row for details.')
+          b.close();assert(count(keys)==0)
         ''')

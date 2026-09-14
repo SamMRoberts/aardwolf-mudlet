@@ -11,7 +11,7 @@ class LauncherTests(unittest.TestCase):
         self.lua = harness.lua
         self.lua.execute('''
           assert(AardwolfToolbox.start());t=AardwolfToolbox;l=t.launcher
-          keys={};mudlet.key={Escape=16777216,J=74,K=75,Return=16777220};mudlet.keymodifier={Shift=4,Alt=2}
+          keys={};mudlet.key={Escape=16777216,J=74,K=75,H=72,L=76,Return=16777220};mudlet.keymodifier={Shift=4,Alt=2}
           local serial=0
           function tempKey(mod,key,callback) serial=serial+1;keys[serial]=callback;return serial end
           function killKey(id) keys[id]=nil end
@@ -70,7 +70,7 @@ class LauncherTests(unittest.TestCase):
         self.lua.execute('''
           l.register({id='failure',label='Failure',callback=function() return nil,'Unavailable' end})
           assert(not l.activate('failure'));assert(l.last:find('Unavailable'))
-          assert(l.open());assert(count(keys)==5)
+          assert(l.open());assert(count(keys)==7)
           assert(t.config.set('launcher','enabled',false));assert(not l.isEditing() and count(keys)==0)
           assert(not l.open());assert(t.config.set('launcher','enabled',true))
           assert(t.start());assert(l.open())

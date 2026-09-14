@@ -34,9 +34,10 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   end
   local function visible(id) return self.enabled and not building and views.available(id) and (views.mode(id)=='floating' or active==id) and views.visible(id) end
   local function clearRows(e)
-    for _,w in ipairs(e.rows) do w:delete() end;e.rows={}
+    for _,w in ipairs(e.rows) do w:delete() end;e.rows={};e.rowWidgets={};e.ids={}
   end
   local function resetSelection(e)
+    if e.selected and e.rowWidgets[e.selected] then ui.style(e.rowWidgets[e.selected],true,false) end
     e.selected=nil;e.detailText=nil
     if e.detail then e.detail:echo('Select a row for details.') end
   end
@@ -78,41 +79,82 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     if e.detailText~=text then e.detail:echo(text);e.detailText=text end
     e.detail:resize('100%',math.max(ui.metrics().line*#lines+12,e.details:get_height()))
   end
-  local function choose(e,title,options,page)
+  local function selectRow(e,id)
+    if not visible(e.id) or not e.rowWidgets[id] then return end
+    if e.selected==id then return end
+    if e.rowWidgets[e.selected] then ui.style(e.rowWidgets[e.selected],true,false) end
+    e.selected=id;ui.style(e.rowWidgets[id],true,true);detail(e)
+  end
+  local function changePage(e,delta)
+    local page=math.max(1,math.min(e.pages or 1,e.page+delta))
+    if page==e.page then return end
+    resetSelection(e);e.page=page;render(e)
+  end
+  local function selectNext(e,delta)
+    if not visible(e.id) or #e.ids==0 then return end
+    local index
+    for i,id in ipairs(e.ids) do if id==e.selected then index=i;break end end
+    local target=math.max(1,math.min(#e.ids,index and index+delta or (e.page-1)*e.pageSize+1))
+    if target==index then return end
+    local id=e.ids[target];local page=math.ceil(target/e.pageSize)
+    if page~=e.page then e.selected=id;e.page=page;render(e) else selectRow(e,id) end
+  end
+  local function choose(e,title,options,page,selected)
     self.closeMenu();page=page or 1
     local token=menuEpoch;local h=ui.metrics().height
-    local choices,selected={},0
+    local choices={};selected=selected or 0
     local w,height=e.root:get_width(),e.root:get_height()
+    local bodyHeight=math.max(h,height-4*h)
+    local pageSize=math.max(1,math.min(PAGE,math.floor((bodyHeight-4)/h)))
+    local pages=math.max(1,math.ceil(#options/pageSize))
+    page=math.max(1,math.min(page,pages))
+    if selected>0 then page=math.ceil(selected/pageSize) end
     menu=api.Geyser.Container:new({name=OWNER..'.menu',x=0,y=0,width='100%',height='100%'},e.root)
     local bg=label('menu.background',menu,'');bg:resize('100%','100%');ui.style(bg)
     local header=label('menu.title',menu,ui.fit(title,math.max(1,w-80)));header:resize('100%-80',h)
     local close=label('menu.close',menu,'Close',self.closeMenu);close:move(w-80,0);close:resize(80,h)
-    local hint=label('menu.hint',menu,'Alt+J/K selects · Alt+Enter runs · Shift+Esc closes');hint:move(0,h);hint:resize('100%',h*2)
-    local body=api.Geyser.ScrollBox:new({name=OWNER..'.menu.body',x=0,y=h*3,width='100%',height=math.max(h,height-4*h)},menu)
-    for index=(page-1)*PAGE+1,math.min(page*PAGE,#options) do
+    local hint=label('menu.hint',menu,'');hint:echo('Alt+J/K selects · Alt+H/L pages<br>Alt+Enter runs · Shift+Esc closes');hint:move(0,h);hint:resize('100%',h*2)
+    local body=api.Geyser.ScrollBox:new({name=OWNER..'.menu.body',x=0,y=h*3,width='100%',height=bodyHeight},menu)
+    for index=(page-1)*pageSize+1,math.min(page*pageSize,#options) do
       local option=options[index]
       local function run()
         if token~=menuEpoch or not visible(e.id) then return end
         self.closeMenu();option.run()
       end
       local button=label('menu.row.'..index,body,ui.fit(option.label,math.max(1,w-16)),run)
-      choices[#choices+1]={widget=button,run=run,label=option.label}
-      button:move(0,(index-(page-1)*PAGE-1)*h);button:resize('100%',h)
+      choices[index]={widget=button,run=run,label=option.label}
+      ui.style(button,true,index==selected)
+      button:move(0,(index-(page-1)*pageSize-1)*h);button:resize('100%',h)
       button:setToolTip(ui.escape(option.tooltip or option.label))
     end
-    local pages=math.max(1,math.ceil(#options/PAGE))
     for i,entry in ipairs({{'‹ Previous',math.max(1,page-1)},{page..' / '..pages,page},{'Next ›',math.min(pages,page+1)}}) do
-      local button=label('menu.page.'..i,menu,entry[1],function() if token==menuEpoch then choose(e,title,options,entry[2]) end end)
+      local button=label('menu.page.'..i,menu,entry[1],function() if token==menuEpoch and entry[2]~=page then choose(e,title,options,entry[2]) end end)
       button:move((i-1)*w/3,height-h);button:resize(w/3,h)
+      if i~=2 then
+        if ui.measure(entry[1])>w/3-12 then button:echo(i==1 and '‹' or '›') end
+        button:setToolTip(i==1 and 'Previous page (Alt+H)' or 'Next page (Alt+L)')
+      end
+    end
+    local function selectionMessage()
+      if choices[selected] then hint:echo(ui.escape(choices[selected].label)..'<br>Alt+Enter runs · Shift+Esc closes') end
+    end
+    local function changePage(delta)
+      local target=math.max(1,math.min(pages,page+delta))
+      if token==menuEpoch and target~=page then choose(e,title,options,target) end
     end
     local function highlight(delta)
-      if #choices==0 then return end
-      selected=math.max(1,math.min(#choices,selected+delta))
-      for i,choice in ipairs(choices) do ui.style(choice.widget,true,i==selected) end
-      hint:echo(ui.escape(choices[selected].label)..'<br>Alt+Enter runs · Shift+Esc closes')
+      if token~=menuEpoch or #options==0 then return end
+      local target=selected>0 and selected+delta or (page-1)*pageSize+1
+      target=math.max(1,math.min(#options,target))
+      if target==selected then return end
+      if math.ceil(target/pageSize)~=page then choose(e,title,options,page,target);return end
+      if choices[selected] then ui.style(choices[selected].widget,true,false) end
+      selected=target;ui.style(choices[selected].widget,true,true);selectionMessage()
     end
+    selectionMessage()
     local why
     menuHandle,why=ui.menuKeys.push(OWNER..'.menu',{close=self.closeMenu,next=function() highlight(1) end,previous=function() highlight(-1) end,
+      pageNext=function() changePage(1) end,pagePrevious=function() changePage(-1) end,
       activate=function() local choice=choices[selected];if choice then choice.run() end end})
     if not menuHandle then self.closeMenu();message(e,why);return end
     menu:raiseAll()
@@ -190,18 +232,24 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       else keywords=keywords..' '..(row.flags or '')..' '..value(row.type) end
       if keywords:lower():find(query,1,true) then matches[#matches+1]={id=row.id,name=name,row=row} end
     end
-    local pages=math.max(1,math.ceil(#matches/PAGE));e.page=math.min(e.page,pages)
-    e.pageLabel:echo(e.page..' / '..pages);e.pages=pages
     local rowHeight=ui.metrics().line*2+12
-    for i=(e.page-1)*PAGE+1,math.min(e.page*PAGE,#matches) do
+    local pageSize=math.max(1,math.min(PAGE,math.floor((e.list:get_height()-4)/rowHeight)))
+    e.pageSize=pageSize;local selectedIndex
+    for i,item in ipairs(matches) do e.ids[i]=item.id;if item.id==e.selected then selectedIndex=i end end
+    if e.selected and not selectedIndex then resetSelection(e) end
+    local pages=math.max(1,math.ceil(#matches/pageSize))
+    e.page=selectedIndex and math.ceil(selectedIndex/pageSize) or math.min(e.page,pages)
+    e.pageLabel:echo(e.page..' / '..pages);e.pages=pages
+    for i=(e.page-1)*pageSize+1,math.min(e.page*pageSize,#matches) do
       local item=matches[i];local r=item.row;local subtitle
       if e.id=='abilities' then
         subtitle='#'..r.id..' · Lv '..value(r.level)..' · '..value(r.cost)..' '..(r.resource or '?')..' · '..(r.passive and 'Passive' or r.command and 'Verified' or 'Unverified')
       else subtitle='#'..r.id..' · Lv '..value(r.level)..' · Type '..value(r.type)..' · '..(r.fresh and 'Observed' or 'Stale') end
       local w=label(e.id..'.row.'..(#e.rows+1),e.list,'',function()
-        if self.enabled and e.revision==token and entries[e.id]==e then e.selected=item.id;detail(e) end
+        if self.enabled and e.revision==token and entries[e.id]==e then selectRow(e,item.id) end
       end)
       w:move(0,#e.rows*rowHeight);w:resize('100%',rowHeight);e.rows[#e.rows+1]=w
+      e.rowWidgets[item.id]=w;ui.style(w,true,e.selected==item.id)
       w:echo(ui.escape(ui.fit(item.name,math.max(1,e.root:get_width()-28)))..'<br>'..ui.escape(ui.fit(subtitle,math.max(1,e.root:get_width()-28))))
       w:setToolTip(ui.escape(item.name)..'<br>'..ui.escape(subtitle))
     end
@@ -273,7 +321,16 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       if views.mode(key)=='tabbed' then if key==id then e.root:show() else e.root:hide();clearRows(e);e.dirty=true end end
     end
     if not workspaceHandle and api.tempKey and api.mudlet and api.mudlet.key then
-      workspaceHandle=assert(ui.menuKeys.push(OWNER,{close=self.close}))
+      local function current() return active and views.mode(active)=='tabbed' and visible(active) and entries[active] end
+      workspaceHandle=assert(ui.menuKeys.push(OWNER,{close=self.close,
+        next=function() local e=current();if e then selectNext(e,1) end end,
+        previous=function() local e=current();if e then selectNext(e,-1) end end,
+        pageNext=function() local e=current();if e then changePage(e,1) end end,
+        pagePrevious=function() local e=current();if e then changePage(e,-1) end end,
+        activate=function()
+          local e=current();if not e or not e.selected or not e.rowWidgets[e.selected] then return end
+          if e.id=='abilities' then detail(e) else itemMenu(e,false) end
+        end}))
     end
     if workspaceHandle then workspaceHandle.raise() end
     layout();local e=entries[id];if e.dirty then render(e) end
@@ -322,7 +379,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       closeButton:setToolTip('Close workspace (Shift+Escape)')
       for _,id in ipairs(IDS) do
         local key=id
-        local e={id=id,rows={},search='',page=1,revision=0,dirty=true,scope=id=='equipment' and 'equipped' or 'carried'};entries[id]=e
+        local e={id=id,rows={},rowWidgets={},ids={},search='',page=1,revision=0,dirty=true,scope=id=='equipment' and 'equipped' or 'carried'};entries[id]=e
         tabs[id]=label('tab.'..id,root,LABELS[id],function() if epoch==owned then self.open(key) end end)
         e.home=api.Geyser.Container:new({name=OWNER..'.'..id..'.home',x=0,y=64,width='100%',height='100%-64'},root)
         e.root=api.Geyser.Container:new({name=OWNER..'.'..id,x=0,y=0,width='100%',height='100%'},e.home)
@@ -331,7 +388,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         ui.apply(e.input);e.input:setAction(function(text)
           if epoch~=owned then return end
           if type(text)~='string' or #text>256 or text:find('[%z\1-\31\127]') then message(e,'Search up to 256 characters.');return end
-          e.search=text;e.page=1;render(e)
+          self.closeMenu();resetSelection(e);e.search=text;e.page=1;render(e)
         end);e.input:print('')
         local function click(fn) return function() if epoch==owned then fn() end end end
         e.refresh=label(id..'.refresh',e.root,'Refresh',click(function() request(e) end))
@@ -355,9 +412,10 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         e.details=api.Geyser.ScrollBox:new({name=OWNER..'.'..id..'.details',x=0,y=314,width='100%',height=180},e.root)
         e.detail=label(id..'.detail',e.details,'Select a row for details.')
         e.feedback=label(id..'.feedback',e.root,'Open to read stored observations.')
-        e.previous=label(id..'.previous',e.root,'‹ Previous',click(function() e.page=math.max(1,e.page-1);render(e) end))
+        e.previous=label(id..'.previous',e.root,'‹ Previous',click(function() changePage(e,-1) end))
         e.pageLabel=label(id..'.page',e.root,'1 / 1')
-        e.next=label(id..'.next',e.root,'Next ›',click(function() e.page=math.min(e.pages or 1,e.page+1);render(e) end))
+        e.pageLabel:setToolTip('Workspace tabs: Alt+J/K selects, Alt+H/L pages, Alt+Enter opens item actions or reads ability details. Enter in search filters locally. No ability is cast.')
+        e.next=label(id..'.next',e.root,'Next ›',click(function() changePage(e,1) end))
         e.root:hide()
         assert(views.register(id,{root=e.root,home=e.home,homeLabel='workspace',settings=function() openSettings('browser') end,select=function() selectView(key) end,placement={feature='browser',key=id}}))
         e.mode=views.mode(id)

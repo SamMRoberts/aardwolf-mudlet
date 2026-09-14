@@ -173,9 +173,9 @@ class NotificationTests(unittest.TestCase):
           W('all').callback();assert(W('row.'..id));W('clear').callback();advance(0.05);assert(#n.list()==0 and not W('empty').hidden)
         ''')
 
-    def test_close_does_not_bind_reserved_escape_or_discard_notices(self):
+    def test_close_without_native_key_support_preserves_notices(self):
         self.lua.execute('''
-          tempKey=function() error('Notification inbox must not bind reserved Escape') end
+          mudlet.key=nil;tempKey=function() error('Native keys unavailable') end
           post();assert(p.open());W('close').callback()
           assert(not t.views.visible('notifications') and #n.list()==1)
           assert(p.open());assert(t.views.visible('notifications') and #n.list()==1)
@@ -186,9 +186,11 @@ class NotificationTests(unittest.TestCase):
           local renders=p.renderCount
           for i=1,40 do post('info','Notice '..i) end
           advance(0.1);assert(p.renderCount==renders)
-          p.open();renders=p.renderCount;assert(W('page').text=='1 / 2')
-          local rows=0;for name in pairs(widgets) do if name:find('AardwolfToolbox.notificationPane.row.',1,true) then rows=rows+1 end end;assert(rows==20)
-          W('next').callback();assert(W('page').text=='2 / 2')
+          p.open();renders=p.renderCount
+          local capacity=math.max(1,math.min(20,math.floor(W('list'):get_height()/(t.ui.metrics().line*3+14))))
+          local pages=math.ceil(40/capacity);assert(W('page').text=='1 / '..pages)
+          local rows=0;for name in pairs(widgets) do if name:find('AardwolfToolbox.notificationPane.row.',1,true) then rows=rows+1 end end;assert(rows==capacity)
+          W('next').callback();assert(W('page').text=='2 / '..pages)
           for i=41,48 do post('info','Notice '..i) end;local before=p.renderCount
           advance(0.05);assert(p.renderCount==before+1)
           p.close();before=p.renderCount;post('warning');advance(1);assert(p.renderCount==before)
@@ -278,4 +280,119 @@ class NotificationTests(unittest.TestCase):
           local scan=false;for _,cmd in ipairs(sent) do if cmd=='scan here' then scan=true end end
           assert(scan,'Room scan did not resume at spellup completion')
           t.stop();assert(count(timers)==0)
+        ''')
+
+    def keyboard(self, count=15):
+        self.lua.execute('''
+          keys={};local serial=0
+          mudlet.key={Escape=16777216,Return=16777220,J=74,K=75,H=72,L=76}
+          mudlet.keymodifier={Alt=2,Shift=4}
+          function tempKey(mod,key,fn)
+            serial=serial+1;keys[serial]={mod=mod,key=key,fn=fn};return serial
+          end
+          function killKey(id) keys[id]=nil end
+          function press(mod,key)
+            for _,k in pairs(keys) do if k.mod==mod and k.key==mudlet.key[key] then k.fn();return end end
+            error('Missing key '..key)
+          end
+        ''')
+        self.lua.execute(f"for i=1,{count} do assert(post('info','Notice '..i)) end;assert(p.open());advance(0.05)")
+
+    def test_keyboard_reads_full_literal_text_without_marking_read(self):
+        self.keyboard(2)
+        self.lua.execute('''
+          local newest=n.list()[1].id;local other=n.list()[2].id
+          local first=W('row.'..newest);local second=W('row.'..other)
+          local before=n.status().unread;local reads=0;local original=n.list
+          n.list=function(...) reads=reads+1;return original(...) end
+          press(2,'Return');assert(n.status().unread==before)
+          press(2,'J');assert(W('detail').text:find('Notice 2') and W('detail').text:find('&lt;message&gt;',1,true))
+          local selectedStyle=first.style
+          assert(n.status().unread==before and W('detail').renderedFontSize>=12)
+          press(2,'J');assert(first.style~=selectedStyle and second.style==selectedStyle)
+          assert(W('row.'..newest)==first and reads==0 and n.status().unread==before)
+          press(2,'Return');advance(0.05);assert(n.status().unread==before-1 and n.get(other).read)
+          assert(W('detail').text:find('Read') and not n.get(newest).read)
+        ''')
+
+    def test_keyboard_cross_page_no_offscreen_selection_and_explicit_page_reset(self):
+        self.keyboard()
+        self.lua.execute('''
+          local capacity=math.floor(W('list'):get_height()/(t.ui.metrics().line*3+14))
+          local initial=n.list();local total=n.status().unread
+          for i=1,capacity+1 do press(2,'J') end
+          assert(W('page').text:find('2 /',1,true))
+          assert(W('detail').text:find(initial[capacity+1].title,1,true))
+          assert(W('row.'..initial[capacity+1].id):get_height()<=W('list'):get_height())
+          press(2,'K');assert(W('page').text:find('1 /',1,true))
+          assert(W('detail').text:find(initial[capacity].title,1,true))
+          press(2,'L');press(2,'Return');assert(n.status().unread==total)
+          assert(W('detail').text:find('Alt%+J/K selects'))
+          press(2,'K');assert(W('detail').text:find(initial[2*capacity].title,1,true))
+          press(2,'H');press(2,'Return');assert(n.status().unread==total)
+        ''')
+
+    def test_selection_follows_identity_across_new_notices_and_reflow(self):
+        self.keyboard()
+        self.lua.execute('''
+          local capacity=math.floor(W('list'):get_height()/(t.ui.metrics().line*3+14))
+          for i=1,capacity do press(2,'J') end
+          local selected=n.list()[capacity];local row=W('row.'..selected.id)
+          post('warning','Arrival');advance(0.05)
+          assert(W('page').text:find('2 /',1,true) and W('row.'..selected.id)==row)
+          assert(W('detail').text:find(selected.title,1,true))
+          getMainWindowSize=function() return 600,600 end;fire('sysWindowResizeEvent')
+          assert(W('detail').text:find(selected.title,1,true))
+          assert(W('row.'..selected.id))
+          press(2,'Return');advance(0.05);assert(n.get(selected.id).read)
+          W('warning').callback();press(2,'Return');assert(n.status().unread==15)
+          assert(W('detail').text:find('Alt%+J/K selects'))
+        ''')
+
+    def test_repeat_before_render_stale_callback_filter_and_reset_guards(self):
+        self.keyboard(0)
+        self.lua.execute('''
+          post('warning','Repeat','same');advance(0.05)
+          local id=n.list()[1].id;local old=W('row.'..id).callback
+          press(2,'J');advance(1);post('warning','Repeat','same')
+          press(2,'Return');assert(not n.get(id).read and n.get(id).count==2)
+          assert(W('detail').text:find('×2',1,true))
+          press(2,'Return');advance(0.05);assert(n.get(id).read)
+          W('unread').callback();old();assert(W('detail').text:find('Alt%+J/K selects'))
+          post();advance(0.05);press(2,'J');press(2,'Return');advance(0.05)
+          post('combat','Another');advance(0.05);press(2,'Return');assert(n.status().unread==1)
+          press(2,'J');raiseEvent('AardwolfToolbox.gmcp.cleared');press(2,'Return')
+          advance(0.05);assert(#n.list()==0 and W('detail').text:find('Alt%+J/K selects'))
+        ''')
+
+    def test_shortcut_scope_cleanup_nested_menus_and_floating_mode(self):
+        self.keyboard(2)
+        self.lua.execute('''
+          assert(count(keys)==7 and p.isEditing());assert(p.open());assert(count(keys)==7)
+          assert(t.launcher.open());press(4,'Escape');assert(p.isEditing() and not t.launcher.isEditing())
+          local old;for _,k in pairs(keys) do if k.key==mudlet.key.J then old=k.fn end end
+          press(4,'Escape');assert(not p.isEditing() and count(keys)==0)
+          assert(not widgets['AardwolfToolbox.notificationPane.row.'..n.list()[1].id])
+          assert(p.open());local text=W('detail').text;old();assert(W('detail').text==text)
+          assert(t.views.setMode('notifications','floating'));assert(count(keys)==0)
+          assert(t.views.setMode('notifications','tabbed'));assert(count(keys)==7)
+          t.stop();assert(count(keys)==0 and count(widgets)==0)
+          assert(t.start());assert(t.notificationPane.open());assert(count(keys)==7)
+          t.notificationPane.close();assert(count(keys)==0)
+        ''')
+
+    def test_keyboard_selection_unchanged_update_has_no_widget_writes(self):
+        self.keyboard(2)
+        self.lua.execute('''
+          press(2,'J');local row=W('row.'..n.list()[1].id);local changes=0
+          for _,widget in ipairs({row,(W('detail'))}) do
+            for _,method in ipairs({'echo','setStyleSheet','move','resize'}) do
+              local previous=widget[method]
+              widget[method]=function(...) changes=changes+1;return previous(...) end
+            end
+          end
+          raiseEvent('AardwolfToolbox.notifications.updated');advance(0.05)
+          assert(changes==0)
+          press(2,'K');assert(changes==0)
+          p.close();local renders=p.renderCount;post();advance(0.05);assert(p.renderCount==renders)
         ''')

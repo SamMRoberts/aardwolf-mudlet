@@ -1,3 +1,200 @@
+# 0.24.0-dev.21 notification reader — 2026-09-13
+
+- Pinned Muddler build and all **451 tests** passed, including seven new contracts
+  for keyboard reading, page crossings, identity retention on arrivals/reflow,
+  stale-repeat read guards, reset/filter behavior, zero unchanged-row writes,
+  lifecycle and action-key suspension. Existing fixed-page assertions now check
+  measured page capacity. `/private/tmp/awtb-dev21-check.log` records the run.
+- CRC/XML/source checks passed. The separate package inspector found 60 members,
+  no diagnostics. SHA256:
+  `ac0f586e9809f1eacd792634273046311531dad9e40a145146bef28ea28081c6`.
+- Backed up AardwolfToolboxSettingsTest profile, package, settings, databases and
+  native map under `backups/offline-notification-keys-20260913/`. Installed only
+  in this disconnected profile. No player profile was controlled.
+- With foundation dispatch intercepted, `native_notifications.lua` created 26
+  session notices. Native Alt+J highlighted a row and showed complete details
+  while retaining 26 unread. Alt+Enter reduced unread to 25. Alt+L then
+  Alt+Enter left 25 unread because paging cleared selection. Alt+J/K crossed
+  backward across a six-row page; the highlighted row remained visible.
+- Injecting one more fixture notice retained selected Notice 18 and moved its
+  page to keep it visible. A long Unicode/angle-bracket notice rendered literally
+  in the reader, with a vertical scrollbar. A scroll gesture did not provide a
+  confirmed changed scrollbar value, so actual reader scrolling remains pending.
+- Shift+Escape hid the inbox and retained unsent main input. Reopen, fixture
+  cleanup, stop/start twice, native widget/ScrollBox cleanup and key-scope release
+  passed. The presentation pass dispatched zero commands; teardown/startup
+  dispatch was restricted to Core.Supports. Interceptors and fixture data were
+  removed and the command input cleared.
+- Before/after native maps are byte-identical (eight rooms). Existing settings
+  values are preserved; restoring fixture placement materialized the already
+  registered Room mobs quest_hints=true default that was absent from the saved
+  file. No other preference or metadata differences. Installed Lua resources
+  match source and archive.
+- Detached row keyboard routing is not implemented. Native external focus,
+  Unread-filter keyboard interactions, short/large window matrix, full-text
+  scrolling and audio remain acceptance gaps; relevant state/geometry contracts
+  pass. Live notification sources were not exercised.
+
+# 0.24.0-dev.20 map workspace keyboard navigation — 2026-09-13
+
+- Pinned Muddler build, archive CRC/XML/source checks and all **444 tests** passed.
+  The standalone inspector reports 60 members with no diagnostics. Check output:
+  `/private/tmp/awtb-dev20-check.log`.
+- SHA256: `cd95f96a3f9ef552cabc4a41d830fed40af4ab6f48910461fe8e9453de8bbce3`.
+- Added contracts for bounded optional page sizes (24 by default), page-fit rows,
+  next/previous crossings, stable same-page widgets, no repeated map search while
+  highlighting, notes preserved until inspection, stale identity rejection,
+  Bookmarks/Areas, nested scopes, float/return and stop/recompile key cleanup.
+- Backed up the disconnected AardwolfToolboxSettingsTest profile, settings,
+  databases, package and native map under
+  `backups/offline-map-keys-20260913/` before replacement. No player profile
+  was controlled or installed.
+- Native checks used the existing eight-room map and intercepted dispatch.
+  Alt+J/K visibly highlighted rows and crossed a three-row page in both
+  directions. Alt+L cleared highlighting; Alt+Enter then did nothing until
+  another row was selected. Unfinished note and main-input text were retained.
+  Deliberate Alt+Enter inspected room 4 and loaded its bookmark editors; it
+  sent no command, saved no bookmark and started no travel.
+- Shift+Escape closed the workspace and returned to the unchanged unsent main
+  input. Reopen, stop/start twice and key/widget cleanup passed. The presentation
+  pass dispatched nothing; lifecycle traffic was restricted to Core.Supports.
+  Dispatch interceptors were restored and temporary input cleared afterward.
+- Native map exports before/after are byte-identical; parsed settings are equal.
+  Installed Lua resources match both source and the rebuilt artifact.
+- This pass does not establish external-window keyboard focus routing, native
+  Bookmarks/Areas interaction, all display sizes or other live features. Those
+  keyboard modes have contract coverage; the detached row-key scope remains
+  intentionally unavailable. See `native_map_workspace.lua` for the manual
+  checklist. Live protocol and gameplay acceptance remains separate.
+
+# 0.24.0-dev.19 quest-candidate hints — 2026-09-13
+
+- **439 tests passed** after the pinned Muddler build. Five new cases cover exact
+  names/ASCII case/whitespace, Unicode and literal markup, separate duplicates,
+  defensive copies, missing/invalid objectives, disable/enable, dead/missing/stale
+  rows, Nearby exclusion, reconnect lifecycle, unchanged timing events, coalesced
+  location updates, shared quest event integration, settings and combat colors.
+- CRC/XML/source consistency passed; read-only inspector reports 60 entries,
+  no diagnostics. Artifact SHA256:
+  `a2adc5feb6882049b65919cad3e4ca8d457e6b52758b9a814cf8b693f4921a88`.
+  Indexed ordinary-line timings for 10/50/200/512 mobs were
+  0.88/0.85/0.83/0.81 ms (97.4/99.5/99.9/99.9% improvement).
+  These are Lua measurements, not native render timings.
+- Backed up the disconnected AardwolfToolboxSettingsTest profile, package,
+  databases, settings and native map under `backups/offline-quest-hints-20260913/`
+  before installing dev.19. No player profile was controlled or installed.
+- Ran `native_quest_hints.lua` with foundation dispatch interceptors. This is
+  explicitly a **presentation-only** fixture: two individual Quest? candidates,
+  a third noncandidate, and combined Fighting/Attacking/Tough indications on the
+  second duplicate. Native screenshots and accessibility state confirmed those
+  labels; show(false) removed only hints and show(true) restored them.
+- Native stored tooltip assertions verified escaped `<Literal hall>` and the
+  two-candidate ambiguity explanation. Mouse hover/pop-up placement was not
+  exercised. No synthetic GMCP, server queries, readiness changes or fixture
+  persistence were needed for this presentation check.
+- The first fixture cleanup assertion incorrectly assumed zero lifecycle traffic.
+  Observed only intercepted Core.Supports.Remove/Add for the owned Room module.
+  Corrected the fixture to permit those exact stop/restore messages while still
+  requiring zero presentation dispatch; reran show/hide and cleanup successfully.
+- Removed the fixture, restored normal mob tracking and dispatch functions, and
+  verified repeated stop/start without runtime activation errors. Map exports are
+  byte-identical (eight rooms); parsed settings are identical and installed Lua
+  matches source. Main input was cleared afterward.
+- Live quest matching, real duplicate identity, campaign/global-quest formats,
+  mouse tooltip presentation and the full size/Retina matrix remain unverified.
+  The hint intentionally makes no identity or completion claim.
+
+# 0.24.0-dev.18 workspace row keyboard browsing — 2026-09-13
+
+- Pinned Muddler build, archive CRC/XML/source consistency and **434 tests passed**.
+  Five new cases cover row/page selection, read-only ability activation, item-preview
+  guards, identity retention on refresh/reflow, removal/search invalidation,
+  same-page catalog-read avoidance, detached-tab isolation and key cleanup.
+  The former fixed-24-row assertion now checks actual native-style height bounds
+  and retains its stale-click/hidden-loading assertions.
+- Package inspector: 60 entries, no diagnostics. SHA256:
+  `2a24e19abc70c69c26910a51d1c0f5ec135cf6aa9dfd9d306eef4ac66309dcb1`.
+  Indexed ordinary-line benchmark at 10/50/200/512 occupants:
+  0.88/0.85/0.88/0.86 ms (97.3/99.5/99.9/99.9% reduction).
+  These are Lua benchmarks, not native rendering measurements.
+- Confirmed only disconnected AardwolfToolboxSettingsTest was loaded. Saved its
+  profile/package/settings/databases and native map to
+  `backups/offline-workspace-keys-20260913/`, then installed dev.18.
+- With intercepted dispatch and view-only workspace fixtures, native Alt+J/K
+  crossed a five-row page boundary in both directions. The selected row used the
+  shared highlight and its details matched. Alt+H/L cleared selection; Alt+Enter
+  on an unselected page did nothing. Ability activation issued no commands.
+  Main input remained `Workspace input preserved` during keyboard interaction.
+- Applying the Large appearance preset while ability 6 was selected retained its
+  identity and highlight across a data update. Native row geometry and effective
+  Geyser font size assertions passed (four rows, at least 14-point fonts, all row
+  bounds inside the list). Restored the original preset afterward.
+- Native Inventory Alt+J/Enter opened the item preview unselected. Repeated
+  Alt+Enter did nothing until a menu action was selected. Deliberate activation
+  then showed `Disconnected or GMCP disabled` and sent nothing. Main input was
+  preserved. No database fixture writes or simulated readiness were used.
+- Restored fixtures/services, verified zero intercepted gameplay, removed menu
+  scopes/widgets, and passed stop/start twice without activation errors.
+  Lifecycle dispatch contained only intercepted Core.Supports messages. Restored
+  interceptors and cleared input. Installed resources match source; both eight-room
+  map exports are byte-identical and parsed settings match their backup.
+- Remaining: physical row clicks, main-window resize matrix, external row-keyboard
+  focus routing, multi-monitor behavior and live execution. No player profile was
+  controlled or installed. Existing floating views retain mouse row selection and
+  item-menu shortcuts; the new row-keyboard behavior is explicitly tabbed-only.
+
+# 0.24.0-dev.17 height-aware menu paging — 2026-09-13
+
+- **429 tests passed** after the pinned Muddler build. Five new behavioral cases
+  cover row bounds, keyboard page-boundary transitions, explicit page changes
+  clearing selection, current-page selection, zero-result filtering, stable
+  selected identity after font/window reflow, stale callbacks, unchanged geometry
+  and boundary-key writes, and item-target revalidation after paging.
+- Updated the existing menu-size assertion to check actual available height and
+  the 24-row maximum, rather than assuming every menu always holds 24 rows.
+  Kept its stale page/menu dismissal and lifecycle checks.
+- Archive CRC/XML/source checks passed. The read-only package inspector reports
+  60 entries and no diagnostics. Package SHA256:
+  `f1444b187d2e2a0da369bcb8b038c509a4aac6aa0a733ab3e64ee44d22bc3653`.
+- Ordinary-line indexed benchmark at 10/50/200/512 mobs:
+  0.89/0.84/0.82/0.86 ms; 97.4/99.5/99.9/99.9% reduction from the snapshot
+  baseline. These are Lua measurements, not native rendering timings.
+- `native_menu_paging.lua` passed Lua 5.1 syntax validation. It registers 30
+  removable local-only utility callbacks, requires the disconnected named test
+  profile and foundation interceptors, and verifies no dispatch during cleanup.
+- Follow-up native acceptance: confirmed **AardwolfToolboxSettingsTest** was
+  disconnected and the only loaded profile before installing dev.17. Backed up
+  its profile/package/settings/databases and exported the native map under
+  `backups/offline-menu-paging-20260913/`. Installed Lua resources match source.
+- Tools displayed 30 synthetic local utilities over three pages (11 visible
+  rows per page). Alt+J/K crossed both directions across a page boundary;
+  explicit Alt+L cleared selection, so Alt+Enter did nothing until reselected.
+  One subsequent activation invoked exactly fixture 12 once. Literal Unicode
+  labels rendered and the unsent main command input remained unchanged.
+- Extended the view-only inventory fixture temporarily with 40 carried bags.
+  After native layout settled, invoked the row/menu callbacks locally to open
+  the chooser; this is not evidence of physical row-click handling. The chooser
+  displayed three pages (15 visible rows per page). Alt+J crossed to container
+  9016; the native Previous control returned to page one without activation.
+  Alt+L/J/Enter then attempted the selected action and showed
+  `Disconnected or GMCP disabled`, with no intercepted gameplay dispatch and
+  unchanged command input. No item storage or readiness state was modified.
+- Removed all temporary fixtures, restored original services, and verified
+  menu-scope/widget cleanup plus repeated stop/start. No feature activation
+  errors remained. Lifecycle dispatch was limited to intercepted Core.Supports
+  messages. Restored interceptors and cleared the command input afterward.
+- Both native map exports contain eight rooms and are byte-identical (8,376
+  bytes), SHA256
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+  Parsed settings are identical; JSON serialization ordering changed. No player
+  profile was controlled, installed, or supplied fixtures.
+- Remaining native gaps: physical inventory-row and Tools paging-button clicks,
+  Large-preset and window-resize selection reflow, external windows, and the
+  full size/Retina matrix. Coordinate-based inventory clicks did not change
+  selection in this control session; keyboard and AX-targeted Previous checks
+  above succeeded. Font/window reflow is covered by behavioral tests, not yet
+  this native pass. Live gameplay acceptance remains pending.
+
 # 0.24.0-dev.16 contextual menu keyboard controls — 2026-09-13
 
 - **424 tests passed** after the pinned Muddler build. Six new cases cover

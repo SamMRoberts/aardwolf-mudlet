@@ -28,3 +28,10 @@ function AardwolfToolboxNotificationAcceptance.restore()
 end
 echo('NOTIFICATIONS_NATIVE: 26 synthetic notices; check literal names, filters, paging, read/clear, resize, Float/Return and close/reopen.\n')
 echo('Restore notification fixture before foundation interceptors. No gameplay or audio is needed.\n')
+-- In-profile keyboard checklist (dev.21): keep unsent main-input text, Alt+J/K
+-- to select and cross pages, Alt+H/L to clear selection, Alt+Enter to mark only
+-- the selected notice read. Selection alone must not change unread counts.
+-- While selected, post another fixture notice: retain the selected identity.
+-- Read a long literal notice in the detail region; check its scrollbars, then
+-- Shift+Escape and reopen. No closed row widgets or active menu key scope remain.
+-- Repeat in Unread: marking read must remove that row without selecting another.

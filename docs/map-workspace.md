@@ -10,8 +10,17 @@ repairs links, changes the mapper's center, or sends gameplay commands.
 Enter a literal search and press Enter. **Rooms** searches room names and native
 room IDs; **Areas** lists rooms whose saved area name/ID matches. **Bookmarks**
 searches saved labels, notes and IDs. Matching ignores ASCII case; Unicode text
-is retained literally. Results are sorted by native ID and paged 24 at a time.
-Select a row to inspect its area, coordinates, identity and saved exits.
+is retained literally. Results are sorted by native ID. Pages fit the list height without reducing fonts
+(up to 24 rows).
+Click a row to inspect its area, coordinates, identity and saved exits.
+
+In the tabbed workspace, **Alt+J/K** highlights the next/previous row, crossing
+pages when needed. **Alt+H/L** changes pages and clears highlighting.
+**Alt+Enter** inspects the highlighted room after checking its identity. Merely
+highlighting leaves unfinished bookmark labels and notes unchanged; inspection
+loads the selected room into those editors. **Shift+Escape** closes the workspace.
+These keys never preview a route, save a bookmark, or travel. Detached windows
+retain mouse interaction until native window focus routing is supported.
 
 Edit the bookmark label and the note beneath the details, then click
 **Save bookmark**. Enter in either editor does not save or send text. Notes are
@@ -72,9 +81,10 @@ preserves bookmarks. Toolbox shortcuts pause while the editor is visible.
 ## Public APIs
 
 `AardwolfToolbox.mapWorkspace` provides defensive-copy `get(id)`,
-`search(text, "rooms" | "areas", page)`, `bookmarks()`, `current()`,
+`search(text, "rooms" | "areas", page, pageSize)`, `bookmarks()`, `current()`,
 `preview(fromId, toId, fromIdentity, toIdentity)` and `health()` observations.
-Calls return a result or `nil, reason`. `save(id, identity, label, note, revision,
+The optional `pageSize` is an integer from 1–24, defaulting to 24 for existing
+callers. Calls return a result or `nil, reason`. `save(id, identity, label, note, revision,
 remove)` validates the selected identity and shared configuration revision.
 
 ```lua

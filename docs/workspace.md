@@ -1,6 +1,6 @@
 # Tools, setup and the inventory/ability workspace
 
-Updated in **0.24.0-dev.16**, a development candidate with partial native
+Updated in **0.24.0-dev.17**, a development candidate with partial native
 acceptance recorded in [verification](../tests/verification.md).
 
 ## Find a feature
@@ -133,13 +133,21 @@ keys while open:
 
 | Key | Behavior |
 | --- | --- |
-| Alt+J / Alt+K | Select next / previous entry; the current entry appears in the fixed feedback area. |
+| Alt+J / Alt+K | Select next / previous entry, crossing pages to keep it visible. |
+| Alt+H / Alt+L | Previous / next page without selecting or executing an entry. |
 | Alt+Enter | Activate the explicitly selected entry through its usual guards. |
 | Shift+Escape | Close the current menu; press again to close the workspace underneath. |
 
 On macOS, Alt means Option. No action is selected initially, and filtering or
-rebuilding a menu clears keyboard selection. Mouse activation remains available.
-Page controls and scrolling retain their existing mouse behavior. Ordinary
+changing its registry clears keyboard selection. Explicit Previous/Next paging
+also clears it. Tools preserves the selected utility across font/window resizing;
+without a selection, it keeps the first visible utility on the resulting page.
+Item menus close on resize or freshness changes as before.
+
+Tools and item menus render only a page that fits the list height, with at most
+24 rows. Fonts stay unchanged. Both keyboard and mouse paging are available;
+long labels retain complete tooltips. Selection inside the same page only
+restyles the old/new selection; repeated keys at a boundary do no rendering work. Ordinary
 letters, arrows, Tab and Enter are not bound; Enter in a search field filters
 locally. Neither keyboard path changes or submits the main command input.
 
@@ -152,12 +160,30 @@ removed; external collisions can be inspected in Mudlet's Keys editor.
 One shared scope stack dispatches to the most recently opened Tools/workspace
 menu. Settings, Views, mob context menus and chat search suspend those keys to
 avoid activating a covered item. Other menu families keep their existing Close
-controls. Closing all these menus releases the five temporary keys; package
+controls. Closing all these menus releases the seven temporary keys; package
 teardown also invalidates retained callbacks. This service introduces no timers,
 requests, persistent preferences, or gameplay automation.
 
 Developers can use `AardwolfToolbox.menuKeys.push(owner, callbacks)` with `close`
-and optional `next`, `previous`, `activate` functions. Keep its returned handle,
+and optional `next`, `previous`, `activate`, `pageNext`, `pagePrevious` functions. Keep its returned handle,
 call `handle.raise()` when raising an existing surface, and `handle.release()`
 before deleting it. Callbacks must revalidate their own selected row and source
 revision. The service does not grant action readiness or evaluate commands.
+
+### Workspace row browsing
+
+In tabbed Inventory, Equipment and Abilities views, Alt+J/K selects the next or
+previous row and shows its details. Alt+H/L changes pages and clears selection.
+Pages fit the available height, up to 24 rows; changing fonts or window size
+keeps a still-present selection visible. Matching updates preserve selection by
+item/ability ID. Filtering or removing the selected record clears it.
+
+Alt+Enter on an item opens its action-preview menu without selecting an action.
+Select a menu action separately before activating it through the existing guards.
+On an ability, Alt+Enter only displays details: it never casts or runs a skill.
+Search Enter remains local, and neither path changes main command-input text.
+
+Detached workspace views retain mouse row selection and their existing item-menu
+keyboard controls; row navigation keys currently operate only on the active
+workspace tab. This avoids treating a floating view as the active tab without
+verified native focus routing. All controls retain the shared Appearance sizes.

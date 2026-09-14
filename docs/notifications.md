@@ -21,15 +21,17 @@ added. Notices do not invoke actions, casts, movement, quests or retries.
 
 ## Reading and presentation
 
-- Filter by All, Unread, Info, Warning or Combat. Each page holds at most 20
-  retained rows; scroll within the list. Hover a shortened row for its full text.
+- Filter by All, Unread, Info, Warning or Combat. Pages fit the available list height, with at most
+  20 retained rows. The full selected notice appears in the scrollable reading
+  area below the page controls; hover tooltips remain available.
 - Click a row to mark it read, or choose **Mark all read**. Opening the view does
   not mark unseen pages read. **Clear** removes the session inbox.
 - Labels and category colors remain separate: turning colors off keeps explicit
   Info/Warning/Combat text. Typography follows shared Appearance preferences.
 - **View** offers an external window or return to the in-profile window.
   Use **Close** in the profile or the external window’s native close button.
-  Mudlet reserves unmodified Escape, so the inbox does not bind it.
+  Use **Shift+Escape** to close while typing; Mudlet consumes plain Escape
+  in command inputs.
   Closing hides the view while tracking and unread counts continue. Settings
   remain accessible through the shared settings window if the utility bar is off.
 - The center retains 100 notices by default, configurable from 20–500. Matching
@@ -48,6 +50,28 @@ per ten seconds, and coalesced repeats do not replay the sound. Unavailable
 files/API or failed playback appear in notification status; actual audible
 playback depends on native audio support. No sound is bundled. See Diagnostics
 for service status. Audio must be tested separately with explicit preferences.
+
+## Keyboard reading
+
+In the in-profile inbox:
+
+| Shortcut | Behavior |
+|---|---|
+| Alt+J / Alt+K | Highlight next / previous notice and read its complete text; cross pages as needed. |
+| Alt+H / Alt+L | Previous / next page; clear selection. |
+| Alt+Enter | Mark only the explicitly selected notice read. |
+| Shift+Escape | Close the inbox and release its keys. |
+
+New arrivals and resizing retain the selected notification by identity. Selection
+clears when its filter excludes it or it is evicted/reset. A repeated notice
+arriving before the queued redraw is displayed first; press Alt+Enter again to
+mark that updated observation read. Marking a notice read in Unread removes its
+row without automatically selecting the next unread notice.
+
+These controls never send commands or edit the main command-input text. Toolbox
+action/navigation shortcuts pause while the inbox is open. External windows
+retain mouse controls until native window focus routing is available. Very short
+windows scroll the whole inbox to keep controls and full text accessible.
 
 ## Consumer API
 

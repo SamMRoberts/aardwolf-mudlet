@@ -1,12 +1,15 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.16**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.21**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This keyboard-menu candidate is installed in the backed-up disconnected test
-profile. Item-action and Tools keyboard checks passed; earlier synthetic chat
-and history evidence remains recorded separately.
+Dev.21 is installed in the backed-up disconnected test profile. Notification
+keyboard selection, explicit marking as read, identity retention on arrivals,
+literal long-text rendering, dismissal and cleanup passed native checks. All
+eight map rooms and existing preferences were preserved; a previously unsaved
+quest-hint default was materialized during fixture placement restoration.
+Earlier acceptance records remain separate; live sources remain unverified.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -14,6 +17,15 @@ controls. Outgoing messages remain visible without increasing unread or mention
 counts, including outgoing tells that identify the recipient.
 
 ## Implemented and covered by local contract tests
+
+- Notification inbox keyboard reading: stable selected identity, explicit read
+  action, full-text reader, height-aware pages, stale-repeat guards and key cleanup.
+  Existing action/navigation shortcuts suspend while the reader is open.
+
+- Local map workspace keyboard navigation for Rooms, Areas and Bookmarks:
+  visible highlighting, bounded pages, identity-checked inspection, preserved
+  note drafts, and owned contextual keys. Detached-window row keys are deferred
+  until native focus routing is available.
 
 - Component ownership, dependency checks, reverse-order isolated cleanup,
   partial-initialization rollback, and retry without duplicate resources.
@@ -123,8 +135,10 @@ See [workspace](workspace.md) and [item service](item-service.md).
 ### Journal and navigation workspace (0.27)
 
 Capture current campaign/global-quest responses before implementing parsers.
-No player-profile queries were sent in this work. Journal capture and
-objective hints remain pending. The local map workspace now
+No player-profile queries were sent in this work. Campaign/global-quest journal capture and hints remain pending. Active quest
+name hints are now implemented for fresh current-room mobs, with explicit
+candidate labeling, duplicate ambiguity, optional settings and no additional
+queries or actions. Shared quest timing-only events do not redraw the roster. The local map workspace now
 provides paged room/area search, 48 identity-bound bookmarks with notes,
 read-only route previews and categorized map-health observations. No repairs,
 travel, map edits or inferred reverse exits are performed. See
@@ -155,8 +169,15 @@ replay passed in the disconnected profile; live ordering remains unverified. All
 messages once, respects hidden-channel filters and labels truncated plain text;
 it does not backfill scrollback. Native synthetic capture, export/clear,
 settings and lifecycle checks passed. Live capture and broad acceptance remain pending. Tools/item menus now support contextual keyboard selection, guarded activation
-and Shift+Escape dismissal. Broader keyboard navigation, automatic scroll-to-selection
-and larger-list virtualization remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
+and Shift+Escape dismissal. Tools/item menus now page to keep keyboard selection
+visible, with bounded row counts and no writes on unchanged Tools geometry.
+Inventory, Equipment and Abilities workspace tabs now have keyboard row selection,
+height-aware pages and preserved selected identities across matching refreshes.
+Alt+Enter opens item previews or reads ability details without casting.
+Notification inbox keyboard reading and stable selection are implemented, including
+full literal details and explicit read activation. Detached-view row focus routing,
+broader keyboard navigation and larger mob-list
+virtualization remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 
 ## Acceptance and release gate

@@ -25,3 +25,11 @@ echo('MAP_WORKSPACE: '..count..' native rooms; health/search passed; route avail
 -- Mouse checklist: Rooms/Areas search, select start/destination, Preview route,
 -- Map health, bookmark Unicode/literal text, stale settings and save, float/return.
 -- Remove temporary bookmarks through the UI. Restore foundation when finished.
+-- Tabbed keyboard checklist (dev.20): set an unfinished bookmark label/note
+-- and unsent main-input text. Alt+J/K must visibly highlight, cross pages in
+-- both directions, and preserve those editors. Alt+H/L clears highlighting;
+-- Alt+Enter must then do nothing until another row is highlighted. Deliberate
+-- Alt+Enter inspects and loads the selected room's editors without travel/save.
+-- Check Rooms, Areas and Bookmarks, font/window reflow, nested Tools dismissal,
+-- Shift+Escape, reopening and float/return. Close removes the owned key scope.
+-- Compare native map export and parsed settings before/after this read-only pass.

@@ -7,7 +7,8 @@ function Pane.new(api,config,ui,views,map,openSettings)
   local title,closeButton,previous,pageLabel,nextButton,saveButton,removeButton
   local building,epoch,revision=false,0,0
   local page,pages,query,mode=1,1,'','rooms'
-  local selected,source,editRevision,escapeKey
+  local selected,source,editRevision,keyScope
+  local items,highlighted={},nil
   local placement
   local render,layout,choose
   local function say(message) if feedback then feedback:echo(ui.escape(message or 'Unavailable')) end end
@@ -19,7 +20,7 @@ function Pane.new(api,config,ui,views,map,openSettings)
   end
   local function clearRows()
     revision=revision+1
-    for _,r in ipairs(rows) do r:delete() end;rows={}
+    for _,r in ipairs(rows) do r:delete() end;rows={};items={};highlighted=nil
   end
   local function showText(lines)
     local width=math.max(80,details:get_width()-20);local output={}
@@ -57,34 +58,67 @@ function Pane.new(api,config,ui,views,map,openSettings)
     for _,b in ipairs(records) do if (b.label..' '..b.note..' '..b.room):lower():find(query:lower(),1,true) then matches[#matches+1]=b end end
     return matches
   end
+  local function highlight(index)
+    if index==highlighted then return end
+    if highlighted and rows[highlighted] then ui.style(rows[highlighted],true,false) end
+    highlighted=index
+    if index and rows[index] then
+      ui.style(rows[index],true,true)
+      say('Highlighted #'..items[index].id..' · Alt+Enter inspects; bookmark edits unchanged')
+    end
+  end
+  local function inspect(index)
+    local item=items[index]
+    if not item then return end
+    highlight(index)
+    if item.available then choose(item.id,item.identity)
+    else say('Bookmark identity changed or room missing; review it in Settings') end
+  end
+  local function changePage(delta)
+    local nextPage=math.max(1,math.min(pages,page+delta))
+    if nextPage==page then return end
+    page=nextPage;highlighted=nil;render()
+  end
+  local function selectNext(delta)
+    if #items==0 then return end
+    local index=highlighted and highlighted+delta or (delta>0 and 1 or #items)
+    if index<1 and page>1 then changePage(-1);index=#items
+    elseif index>#items and page<pages then changePage(1);index=1 end
+    if index>=1 and index<=#items then highlight(index) end
+  end
   render=function()
     if not self.enabled or building or not views.visible(VIEW) then return end
-    clearRows();local token=revision;local items,total={},0
+    local wanted=highlighted and items[highlighted]
+    clearRows();local token=revision;local total=0
+    local height=ui.metrics().line*2+12
+    local pageSize=math.max(1,math.min(24,math.floor(list:get_height()/height)))
     if mode=='bookmarks' then
       local matches,why=bookmarks();if not matches then say(why);return end
-      total=#matches;pages=math.max(1,math.ceil(total/24));page=math.min(page,pages)
-      for i=(page-1)*24+1,math.min(total,page*24) do
+      total=#matches;pages=math.max(1,math.ceil(total/pageSize));page=math.min(page,pages)
+      for i=(page-1)*pageSize+1,math.min(total,page*pageSize) do
         local b=matches[i];items[#items+1]={id=b.room,identity=b.identity,name=b.label,subtitle=b.available and ('#'..b.room..' · '..b.note) or ('#'..b.room..' · Missing or changed identity'),available=b.available}
       end
     else
-      local result,why=map.search(query,mode,page);if not result then say(why);return end
+      local result,why=map.search(query,mode,page,pageSize);if not result then say(why);return end
       if page>result.pages then page=result.pages;return render() end
       total=result.total;pages=result.pages
       for _,r in ipairs(result.rows) do items[#items+1]={id=r.id,identity=r.identity,name=r.name~='' and r.name or 'Unexplored',subtitle='#'..r.id..' · '..(r.zone or 'Unknown area'),available=true} end
     end
-    local height=ui.metrics().line*2+12
     for i,item in ipairs(items) do
       local w=label('row.'..i,list,'',function()
         if token==revision and self.enabled and views.visible(VIEW) then
-          if item.available then choose(item.id,item.identity) else say('Bookmark identity changed or room missing; review it in Settings') end
+          inspect(i)
         end
       end)
       rows[#rows+1]=w;w:move(0,(i-1)*height);w:resize('100%',height)
       w:echo(ui.escape(ui.fit(item.name,math.max(1,list:get_width()-24)))..'<br>'..ui.escape(ui.fit(item.subtitle,math.max(1,list:get_width()-24))))
-      w:setToolTip(ui.escape(item.name)..'<br>'..ui.escape(item.subtitle))
+      w:setToolTip(ui.escape(item.name)..'<br>'..ui.escape(item.subtitle)..'<br>Click or Alt+Enter to inspect. No movement.')
     end
     for _,c in ipairs(controls) do ui.style(c.widget,true,c.mode==mode) end
-    pageLabel:echo(page..' / '..pages);say(total..' matching rooms · '..mode..' · Enter searches locally')
+    pageLabel:echo(page..' / '..pages);say(total..' matches · Alt+J/K highlight · Alt+H/L page · Alt+Enter inspect')
+    if wanted then
+      for i,item in ipairs(items) do if item.id==wanted.id and item.identity==wanted.identity then highlight(i);break end end
+    end
   end
   local function preview()
     if not selected then say('Select a destination first');return end
@@ -129,7 +163,7 @@ function Pane.new(api,config,ui,views,map,openSettings)
     ui.style(feedback);feedback:move(4,y);feedback:resize('100%-8',row*2)
     if views.mode(VIEW)=='floating' then
       root:hide()
-      if escapeKey then api.killKey(escapeKey);escapeKey=nil end
+      if keyScope then keyScope.release();keyScope=nil end
     end
     render()
   end
@@ -137,7 +171,7 @@ function Pane.new(api,config,ui,views,map,openSettings)
     clearRows()
     if root then root:hide() end
     if content then content:hide() end
-    if escapeKey then api.killKey(escapeKey);escapeKey=nil end
+    if keyScope then keyScope.release();keyScope=nil end
   end
   function self.isEditing() return self.enabled and not building and views.visible(VIEW) end
   function self.open() if not self.enabled then return false,'Map workspace disabled' end;return views.open(VIEW) end
@@ -175,13 +209,13 @@ function Pane.new(api,config,ui,views,map,openSettings)
       search=input('search','',function()
         local value=search:getText()
         if #value>256 or value:find('[%z\1-\31\127]') then say('Search up to 256 single-line characters');return end
-        query=value;page=1;render()
+        query=value;page=1;highlighted=nil;render()
       end)
       local function control(id,text,fn,selectedMode)
         controls[#controls+1]={widget=label(id,body,text,click(fn)),label=text,mode=selectedMode}
       end
       for _,kind in ipairs({'rooms','areas','bookmarks'}) do
-        local key=kind;control(kind,kind:gsub('^%l',string.upper),function() mode=key;page=1;render() end,kind)
+        local key=kind;control(kind,kind:gsub('^%l',string.upper),function() mode=key;page=1;highlighted=nil;render() end,kind)
       end
       control('health','Map health',function()
         local report,err=map.health();if not report then say(err);return end
@@ -202,13 +236,22 @@ function Pane.new(api,config,ui,views,map,openSettings)
       saveButton=label('save',body,'Save bookmark',click(function() save(false) end))
       removeButton=label('remove',body,'Remove bookmark',click(function() save(true) end))
       feedback=label('feedback',body,'Local map data only')
-      previous=label('previous',body,'‹ Previous',click(function() page=math.max(1,page-1);render() end))
+      previous=label('previous',body,'‹ Previous',click(function() changePage(-1) end))
       pageLabel=label('page',body,'1 / 1')
-      nextButton=label('next',body,'Next ›',click(function() page=math.min(pages,page+1);render() end))
+      nextButton=label('next',body,'Next ›',click(function() changePage(1) end))
       content:hide();root:hide()
       assert(views.register(VIEW,{root=content,home=home,homeLabel='workspace',placement={feature='map_workspace',key='placement'},settings=openSettings,select=function()
         root:show();content:show();root:raiseAll()
-        if not escapeKey and api.tempKey and api.mudlet and api.mudlet.key then escapeKey=api.tempKey(api.mudlet.key.Escape,self.close) end
+        if views.mode(VIEW)=='tabbed' and not keyScope and api.tempKey and api.mudlet and api.mudlet.key then
+          local function current() return self.isEditing() and views.mode(VIEW)=='tabbed' end
+          keyScope=assert(ui.menuKeys.push(OWNER,{close=function() if current() then self.close() end end,
+            next=function() if current() then selectNext(1) end end,
+            previous=function() if current() then selectNext(-1) end end,
+            pageNext=function() if current() then changePage(1) end end,
+            pagePrevious=function() if current() then changePage(-1) end end,
+            activate=function() if current() and highlighted then inspect(highlighted) end end}))
+        end
+        if keyScope then keyScope.raise() end
         layout()
       end}))
       for _,event in ipairs({'sysWindowResizeEvent','sysUserWindowResizeEvent','AardwolfToolbox.ui.changed','AardwolfToolbox.views.changed','sysDisconnectionEvent','AardwolfToolbox.gmcp.cleared'}) do

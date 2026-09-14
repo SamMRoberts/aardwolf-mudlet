@@ -19,7 +19,8 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
   local root,title,input,body,feedback,closeButton,previous,nextButton,settingsButton,menuHandle
   local rows,handlers={},{}
   local generation,mode,step,filter=0,'menu',1,''
-  local selected=0;local choices={}
+  local selected;local choices,filtered={},{}
+  local page,pageSize,pages=1,1,1;local geometry
   local layout,render
   local function say(text) if feedback then feedback:echo(ui.escape(text)) end end
   function self.close()
@@ -27,7 +28,7 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
     if menuHandle then menuHandle.release();menuHandle=nil end
     if root then root:delete() end
     root,title,input,body,feedback,closeButton,previous,nextButton,settingsButton=nil,nil,nil,nil,nil,nil,nil,nil,nil
-    rows={};choices={};selected=0
+    rows={};choices={};filtered={};selected=nil;page=1;geometry=nil
   end
   function self.isEditing() return root~=nil end
   function self.register(def)
@@ -85,16 +86,35 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
     for i,value in ipairs(lines) do lines[i]=ui.escape(value) end
     return table.concat(lines,'<br>'),#lines
   end
-  local function highlight(delta)
-    if #choices==0 then return end
-    selected=math.max(1,math.min(#choices,selected+delta))
-    for i,choice in ipairs(choices) do ui.style(choice.widget,true,i==selected) end
-    local choice=choices[selected]
-    say(choice.label.." · Alt+Enter opens · Shift+Esc closes")
+  local function selectionMessage()
+    local choice=selected and choices[selected]
+    if choice then say(choice.label.." · Alt+Enter opens · Shift+Esc closes")
+    end
   end
-  render=function()
+  local function changePage(delta)
+    if mode~='menu' then return end
+    local target=math.max(1,math.min(pages,page+delta))
+    if target==page then return end
+    page=target;render()
+  end
+  local function highlight(delta)
+    if mode~='menu' or #filtered==0 then return end
+    local index=0
+    for i,item in ipairs(filtered) do if item.id==selected then index=i;break end end
+    local target=math.max(1,math.min(#filtered,index>0 and index+delta or (page-1)*pageSize+1))
+    local id=filtered[target].id
+    if id==selected then return end
+    local previousChoice=selected and choices[selected]
+    selected=id
+    if math.ceil(target/pageSize)~=page then render(true);return end
+    if previousChoice then ui.style(previousChoice.widget,true,false) end
+    ui.style(choices[selected].widget,true,true);selectionMessage()
+  end
+  render=function(preserve)
+    local anchor=preserve and rows[1] and rows[1].itemId
+    if not preserve then selected=nil end
     generation=generation+1;local token=generation
-    choices={};selected=0
+    choices={}
     for _,row in ipairs(rows) do row:delete() end;rows={}
     if mode=='setup' then
       local entry=STEPS[step]
@@ -104,33 +124,49 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
       nextButton:echo(step==#STEPS and 'Finish' or 'Next ›')
       say('Settings keep their usual Apply / Cancel draft. This guide sends no commands.')
     else
-      title:echo('Toolbox utilities')
-      local list={}
+      filtered={}
       for _,id in ipairs(order) do
         local item=items[id]
-        if (item.label..' '..(item.description or '')):lower():find(filter:lower(),1,true) then list[#list+1]=item end
+        if (item.label..' '..(item.description or '')):lower():find(filter:lower(),1,true) then filtered[#filtered+1]=item end
       end
-      table.sort(list,function(a,b) if a.label==b.label then return a.id<b.id end;return a.label<b.label end)
-      for i,item in ipairs(list) do
+      table.sort(filtered,function(a,b) if a.label==b.label then return a.id<b.id end;return a.label<b.label end)
+      pageSize=math.max(1,math.min(24,math.floor((body:get_height()-4)/ui.metrics().height)))
+      pages=math.max(1,math.ceil(#filtered/pageSize))
+      local found=false
+      for i,item in ipairs(filtered) do
+        if item.id==(selected or anchor) then page=math.ceil(i/pageSize);found=true;break end
+      end
+      if selected and not found then selected=nil end
+      page=math.min(page,pages)
+      title:echo('Toolbox utilities · '..page..' / '..pages)
+      previous:echo(ui.measure('‹ Previous')<=previous:get_width()-12 and '‹ Previous' or '‹')
+      nextButton:echo(ui.measure('Next ›')<=nextButton:get_width()-12 and 'Next ›' or '›')
+      previous:setToolTip('Previous page (Alt+H)');nextButton:setToolTip('Next page (Alt+L)')
+      ui.style(previous,page>1);ui.style(nextButton,page<pages)
+      for index=(page-1)*pageSize+1,math.min(page*pageSize,#filtered) do
+        local item=filtered[index]
         local ready,reason=available(item)
-        local row=label('action.'..i,body,'',function()
+        local function activate()
           if generation==token and items[item.id]==item then self.activate(item.id) end
-        end)
-        choices[#choices+1]={widget=row,label=item.label,run=function()
-          if generation==token and items[item.id]==item then self.activate(item.id) end
-        end}
-        rows[#rows+1]=row;row:move(0,(i-1)*ui.metrics().height)
-        row:resize('100%',ui.metrics().height)
+        end
+        local row=label('action.'..(#rows+1),body,'',activate)
+        row.itemId=item.id
+        choices[item.id]={widget=row,label=item.label,run=activate}
+        row:move(0,#rows*ui.metrics().height);rows[#rows+1]=row
+        row:resize('100%',ui.metrics().height);ui.style(row,true,item.id==selected)
         row:echo(ui.escape(ui.fit(item.label,math.max(1,root:get_width()-32))))
         row:setToolTip(ui.escape(item.description or item.label)..(not ready and '<br>Unavailable: '..ui.escape(reason) or ''))
       end
-      say(#list..' actions · Enter filters · Alt+J/K selects · Alt+Enter opens · Shift+Esc closes.')
+      if selected then selectionMessage()
+      else say(#filtered..' actions · Enter filters · Alt+J/K selects · Alt+H/L pages · Alt+Enter opens · Shift+Esc closes.') end
     end
   end
   layout=function()
     if not root then return end
     local w,h=api.getMainWindowSize();local row=ui.metrics().height
     local width,height=math.min(580,math.max(240,w-32)),math.min(560,math.max(240,h-48))
+    local m=ui.metrics();local signature=table.concat({w,h,m.font,m.size,row,mode},':')
+    if geometry==signature then return end;geometry=signature
     root:move(math.max(0,(w-width)/2),math.max(0,(h-height)/2));root:resize(width,height)
     ui.style(title);title:resize('100%',row*2)
     ui.apply(input);input:move(8,row*2);input:resize('100%-16',row)
@@ -142,8 +178,12 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
       ui.style(widget,true);widget:move((i-1)*width/4,height-row);widget:resize(width/4,row)
       if mode=='setup' or widget==closeButton then widget:show() else widget:hide() end
     end
-    if mode=='menu' then closeButton:move(0,height-row);closeButton:resize('100%',row) end
-    render();root:raiseAll()
+    if mode=='menu' then
+      for i,widget in ipairs({previous,nextButton,closeButton}) do
+        widget:move((i-1)*width/3,height-row);widget:resize(width/3,row);widget:show()
+      end
+    end
+    render(true);root:raiseAll()
   end
   function self.open(kind)
     if not self.enabled then return false,'Utility menu is disabled' end
@@ -160,17 +200,21 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
       input:setAction(function(value)
         if root~=owned or mode~='menu' then return end
         if type(value)~='string' or #value>256 or value:find('[%z\1-\31\127]') then say('Enter up to 256 characters.');return end
-        filter=value;render()
+        filter=value;page=1;render()
       end);input:print('')
       body=api.Geyser.ScrollBox:new({name=OWNER..'.body',x=8,y=96,width='100%-16',height=300},root)
       feedback=label('feedback',root,'')
-      previous=label('previous',root,'‹ Back',function() if root==owned then step=math.max(1,step-1);render() end end)
+      previous=label('previous',root,'‹ Back',function()
+        if root~=owned then return end
+        if mode=='menu' then changePage(-1) else step=math.max(1,step-1);render() end
+      end)
       settingsButton=label('settings',root,'Settings',function()
         if root~=owned then return end
         local feature=STEPS[step].feature;self.close();openSettings(feature)
       end)
       nextButton=label('next',root,'Next ›',function()
         if root~=owned then return end
+        if mode=='menu' then changePage(1);return end
         if step<#STEPS then step=step+1;render();return end
         local saved,why=config.setMetadata('setupWalkthroughCompleted',true)
         if saved then step=1;self.close() else say('Could not save completion: '..tostring(why)) end
@@ -179,7 +223,8 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
       closeButton:setToolTip('Close (Shift+Escape)')
       if api.tempKey and api.mudlet and api.mudlet.key then
         menuHandle=assert(ui.menuKeys.push(OWNER,{close=self.close,next=function() highlight(1) end,previous=function() highlight(-1) end,
-          activate=function() local choice=choices[selected];if choice then choice.run() end end}))
+          pageNext=function() changePage(1) end,pagePrevious=function() changePage(-1) end,
+          activate=function() local choice=selected and choices[selected];if choice then choice.run() end end}))
       end
       layout()
     end)

@@ -255,3 +255,38 @@ known-mob death observations per character, off by default. Browse **Tools → O
 history → Kills** for names and observed locations. This reuses the room-mob death
 parser and does not add commands or infer deaths from disappearance. Kill credit
 is unknown; identical mob identity remains heuristic. See [history](history.md).
+
+
+## Quest target candidates
+
+**aardwolf-config → Room mobs → Show quest target candidates** is enabled by
+default. A fresh, living current-room mob whose full name matches the observed
+active quest receives **Quest?**. Hover its card for the supplied target, room,
+area and the number of matching mobs. This is a name-based candidate, never a
+confirmed server identity. All matching duplicates stay separate and get the
+same hint; no mob is automatically selected or attacked.
+
+Matching ignores ASCII case and repeated/outer spaces, but preserves punctuation
+and non-ASCII characters. It does not remove articles, match the last word, infer
+aliases or match fragments. Missing/invalid targets and unclassified opponents
+get no hint. Nearby entries, dead/missing mobs and stale rosters get no hint.
+Completed/failed/reset quests and disconnected sessions clear candidates.
+
+Hints reuse existing dashboard quest tracking, including partial updates. No
+additional requests or monitoring are enabled. If dashboard data is disabled or
+unavailable, hints wait for that shared source. Countdown expiry does not prove
+quest completion. Combat and consider colors keep their established meaning;
+Quest? remains readable with status colors or indicator symbols disabled.
+
+`mobs.snapshot().rows[i].objective`, when present, is a defensive copy containing
+`source="quest"`, `candidate=true`, `target`, optional `room`/`area`, and `matches`.
+`dashboardData.questSnapshot()` returns a copy of the shared observed quest state.
+Consumers must retain the candidate distinction and existing action guards.
+
+For disconnected native presentation checks, run `native_foundation.lua`, close
+settings, then `native_quest_hints.lua`. Inspect individual duplicate cards,
+combined threat/combat information and literal tooltips. Use
+`AardwolfQuestHintsAcceptance.show(false)` / `.show(true)` to compare presentation,
+then `.restore()` before restoring foundation interceptors. This fixture changes
+no saved settings and is presentation evidence only; live quest matching remains
+separate acceptance.

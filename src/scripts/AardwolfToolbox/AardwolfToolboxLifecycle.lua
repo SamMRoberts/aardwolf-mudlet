@@ -231,7 +231,10 @@ local function initialize()
     AardwolfToolbox.queries,AardwolfToolbox.spellup,resource("mob-state"),resource("mob-protocol"),resource("mob-pane"),
     AardwolfToolbox.ui,AardwolfToolbox.borders,function()
       AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("mobs")
-    end,AardwolfToolbox.consider,MobActions,config),{"config","gmcp","incoming","queries"})
+    end,AardwolfToolbox.consider,MobActions,config,function()
+      local data=AardwolfToolbox.dashboardData
+      if data and data.enabled then return data.questSnapshot() end
+    end),{"config","gmcp","incoming","queries"})
   config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure,MobActions))
 
   local Shortcuts=resource("shortcuts")
@@ -240,7 +243,7 @@ local function initialize()
     Shortcuts,resource("navigation"),function(id,add)
       AardwolfToolbox.openSettings()
       AardwolfToolbox.settingsWindow.editRecord("actions","buttons",id,add)
-    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) or (AardwolfToolbox.launcher and AardwolfToolbox.launcher.isEditing()) or (AardwolfToolbox.browser and AardwolfToolbox.browser.isEditing()) or (AardwolfToolbox.mapWorkspacePane and AardwolfToolbox.mapWorkspacePane.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
+    end,function() return (AardwolfToolbox.settingsWindow and AardwolfToolbox.settingsWindow.opened) or (AardwolfToolbox.mobs and AardwolfToolbox.mobs.menuOpen) or (AardwolfToolbox.views and AardwolfToolbox.views.isEditing()) or (AardwolfToolbox.dashboard and AardwolfToolbox.dashboard.isEditing()) or (AardwolfToolbox.launcher and AardwolfToolbox.launcher.isEditing()) or (AardwolfToolbox.browser and AardwolfToolbox.browser.isEditing()) or (AardwolfToolbox.mapWorkspacePane and AardwolfToolbox.mapWorkspacePane.isEditing()) or (AardwolfToolbox.notificationPane and AardwolfToolbox.notificationPane.isEditing()) end,AardwolfToolbox.abilities),{"config","gmcp","borders","ui"})
   AardwolfToolbox.navigation=AardwolfToolbox.actionBar.navigation
   AardwolfToolbox.shortcuts=AardwolfToolbox.actionBar.shortcuts
   config.registerFeature(Actions.definition(Shortcuts,AardwolfToolbox.actionBar.configure,AbilityFields.buttons()))

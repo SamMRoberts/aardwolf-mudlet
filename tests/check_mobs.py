@@ -202,7 +202,7 @@ class MobTests(unittest.TestCase):
           spellup={status=function() return {inflight=false} end}
           Pane={new=function() return {configure=function() end,destroy=function() end,layout=function() end,update=function(s,m) displayed=s; message=m end} end}
           options={}; for _,s in ipairs(Mobs.definition(function() end,MobActions).settings) do options[s.key]=s.default end
-          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end,Consider,MobActions)
+          m=Mobs.new(_G,cache,incoming,tags,queries,spellup,State,Protocol,Pane,{}, {},function() end,Consider,MobActions,nil,function() return questData end)
           assert(m.configure(options))
           function room(id) cache.values['room.info']={num=id}; handlers['AardwolfToolbox.gmcp.updated']('', 'room.info') end
           function status(data) for k,v in pairs(data) do cache.values['char.status.'..k]=v end; cache.values['char.status']=data; handlers['AardwolfToolbox.gmcp.updated']('', 'char.status') end

@@ -175,3 +175,95 @@ class MapWorkspaceTests(unittest.TestCase):
           assert(created.shown>count and not created.hidden)
           created:hide();assert(t.views.configure());assert(created.hidden)
         ''')
+
+    def keyboard(self):
+        self.lua.execute('''
+          keys={};local serial=0
+          mudlet.key={Escape=16777216,Return=16777220,J=74,K=75,H=72,L=76}
+          mudlet.keymodifier={Alt=2,Shift=4}
+          function tempKey(mod,key,fn)
+            serial=serial+1;keys[serial]={mod=mod,key=key,fn=fn};return serial
+          end
+          function killKey(id) keys[id]=nil end
+          function press(mod,key)
+            for _,k in pairs(keys) do if k.mod==mod and k.key==mudlet.key[key] then k.fn();return end end
+            error('Missing key '..key)
+          end
+          for i=200,230 do rooms[i]={name='Extra '..i,area=1,data={},exits={},x=i,y=0,z=0} end
+          assert(p.open());W('search'):print('Extra');W('search').action()
+        ''')
+
+    def test_optional_page_size_is_bounded_and_preserves_default(self):
+        self.lua.execute('''
+          assert(#m.search('','rooms',1,2).rows==2)
+          local second=m.search('','rooms',2,2);assert(second.rows[1].id==103 and second.pages==2)
+          for _,bad in ipairs({0,-1,1.5,25,'bad',math.huge}) do assert(not m.search('','rooms',1,bad)) end
+          assert(not m.search('','rooms',1,0/0))
+          assert(#m.search('','rooms',1).rows==3)
+        ''')
+
+    def test_keys_highlight_without_inspecting_saving_or_reloading_rows(self):
+        self.keyboard()
+        self.lua.execute('''
+          W('note'):print('Unfinished note');W('bookmarkLabel'):print('Unfinished label')
+          local detail=W('detail').text;local first=W('row.1');local second=W('row.2')
+          local reads=0;local search=m.search;m.search=function(...) reads=reads+1;return search(...) end
+          local rev=t.config.revision
+          press(2,'Return');assert(W('detail').text==detail)
+          press(2,'J');assert(W('feedback').text:find('Highlighted #200',1,true))
+          local selectedStyle=first.style
+          press(2,'J');assert(W('feedback').text:find('Highlighted #201',1,true))
+          assert(first.style~=selectedStyle and second.style==selectedStyle)
+          assert(W('row.1')==first and reads==0)
+          assert(W('note'):getText()=='Unfinished note' and W('bookmarkLabel'):getText()=='Unfinished label')
+          assert(W('detail').text==detail and t.config.revision==rev and writes==beforeWrites)
+          press(2,'Return');assert(W('detail').text:find('Room 201',1,true))
+          assert(W('note'):getText()=='' and t.config.revision==rev)
+        ''')
+
+    def test_keys_page_crossings_clear_selection_and_fit_rows(self):
+        self.keyboard()
+        self.lua.execute('''
+          local capacity=math.max(1,math.floor(W('list'):get_height()/W('row.1'):get_height()))
+          assert(not widgets['AardwolfToolbox.mapWorkspacePane.row.'..(capacity+1)])
+          for i=1,capacity+1 do press(2,'J') end
+          assert(W('page').text:find('2 /',1,true))
+          assert(W('feedback').text:find('Highlighted #'..(200+capacity),1,true))
+          press(2,'K');assert(W('page').text:find('1 /',1,true))
+          assert(W('feedback').text:find('Highlighted #'..(199+capacity),1,true))
+          local detail=W('detail').text
+          press(2,'L');press(2,'Return');assert(W('detail').text==detail)
+          press(2,'K');assert(W('feedback').text:find('Highlighted #'..(199+2*capacity),1,true))
+          press(2,'H');press(2,'Return');assert(W('detail').text==detail)
+          assert(writes==beforeWrites)
+        ''')
+
+    def test_keyboard_identity_filters_and_bookmarks(self):
+        self.keyboard()
+        self.lua.execute('''
+          press(2,'J');rooms[200].name='Replaced';press(2,'Return')
+          assert(W('feedback').text:find('identity changed',1,true))
+          assert(m.save(101,a.identity,'Saved home','Keep note',t.config.revision))
+          W('search'):print('');W('search').action();W('bookmarks').callback()
+          local detail=W('detail').text;press(2,'Return');assert(W('detail').text==detail)
+          press(2,'J');press(2,'Return');assert(W('note'):getText()=='Keep note')
+          W('areas').callback();press(2,'Return');assert(W('note'):getText()=='Keep note')
+          press(2,'J');fire('sysWindowResizeEvent')
+          assert(W('feedback').text:find('Highlighted #',1,true))
+          press(2,'Return');assert(W('detail').text:find('Room 101',1,true))
+        ''')
+
+    def test_key_scope_nested_close_float_and_recompile_cleanup(self):
+        self.keyboard()
+        self.lua.execute('''
+          assert(count(keys)==7);assert(p.open());assert(count(keys)==7)
+          assert(t.launcher.open());press(4,'Escape');assert(p.isEditing() and not t.launcher.isEditing())
+          local old;for _,k in pairs(keys) do if k.key==mudlet.key.J then old=k.fn end end
+          press(4,'Escape');assert(not p.isEditing() and count(keys)==0)
+          assert(p.open());local text=W('feedback').text;old();assert(W('feedback').text==text)
+          assert(t.views.setMode('atlas','floating'));assert(count(keys)==0)
+          assert(t.views.setMode('atlas','tabbed'));assert(count(keys)==7)
+          t.stop();assert(count(keys)==0 and not t.menuKeys.active())
+          assert(t.start());assert(t.mapWorkspacePane.open());assert(count(keys)==7)
+          t.mapWorkspacePane.close();assert(count(keys)==0)
+        ''')

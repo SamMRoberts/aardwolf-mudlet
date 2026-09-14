@@ -66,10 +66,12 @@ function Map.new(api,config,cache)
     table.sort(list);return list
   end
   function self.get(id) return guarded(room,id) end
-  function self.search(query,kind,page)
+  function self.search(query,kind,page,pageSize)
     return guarded(function()
       if not text(query,256) or (kind~='rooms' and kind~='areas') then return nil,'Invalid search' end
-      page=number(page) or 1;local offset=(page-1)*24
+      pageSize=pageSize==nil and 24 or number(pageSize)
+      if not pageSize or pageSize>24 then return nil,'Page size must be an integer from 1 to 24' end
+      page=number(page) or 1;local offset=(page-1)*pageSize
       local areas=api.getAreaTableSwap();local matches,total={},0
       local needle=query:lower()
       for _,id in ipairs(ids()) do
@@ -77,10 +79,10 @@ function Map.new(api,config,cache)
         local haystack=kind=='areas' and (tostring(areas[area] or '')..' '..tostring(area)) or (name..' '..id)
         if haystack:lower():find(needle,1,true) then
           total=total+1
-          if total>offset and #matches<24 then matches[#matches+1]=assert(room(id,areas)) end
+          if total>offset and #matches<pageSize then matches[#matches+1]=assert(room(id,areas)) end
         end
       end
-      return {rows=matches,total=total,page=page,pages=math.max(1,math.ceil(total/24))}
+      return {rows=matches,total=total,page=page,pages=math.max(1,math.ceil(total/pageSize))}
     end)
   end
   function self.bookmarks()

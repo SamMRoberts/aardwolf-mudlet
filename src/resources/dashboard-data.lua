@@ -29,6 +29,11 @@ function Data.new(api,cache)
     if ok and result~=false and not (result==nil and err) then groupSetup='requested'
     else groupSetup='failed'; self.last='Group monitoring setup failed: '..tostring(err or result) end
   end
+  function self.questSnapshot()
+    local result={}
+    for key,value in pairs(self.quest) do if type(value)~='table' then result[key]=value end end
+    return result
+  end
   function self.status() return {enabled=self.enabled,last=self.last,groupMonitoring=groupSetup,questRequested=requested} end
   function self.elapsed(kind)
     local stamp
@@ -49,7 +54,7 @@ function Data.new(api,cache)
     elseif action=="killed" or (action=="status" and q.target=="killed") then self.quest.state="Target defeated"
     elseif action=="warning" then
       if self.quest.state=="Unknown" then self.quest.state="Active" end
-    elseif action=="status" and q.targ=="missing" then self.quest={state="Active",target="Missing target"}
+    elseif action=="status" and q.targ=="missing" then self.quest={state="Active",target="Missing target",targetKnown=false}
     elseif action=="status" and (q.timer~=nil or q.time~=nil) then
       -- Timing-only status messages update the current quest, not its identity.
     else return end

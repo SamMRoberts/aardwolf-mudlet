@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.24.0-dev.21 — keyboard-accessible notification reader
+
+- Add Alt+J/K selection, Alt+H/L paging, Alt+Enter to mark the selected notice
+  read, and Shift+Escape dismissal in the in-profile notification center.
+- Show complete literal notification text in a scrollable reading area. Merely
+  selecting or opening the inbox never changes unread counts.
+- Fit up to 20 rows to the available list height, preserving selected identity
+  through incoming notices and reflow. Explicit paging/filtering clears selection.
+- Refuse stale read activations after repeats, eviction or reset; release closed
+  row widgets and owned keys. Toolbox action shortcuts pause while reading.
+- Keep existing mouse read controls, quiet alert defaults, session-only data,
+  utility APIs and external placement. Detached row keyboard routing is deferred.
+
+## 0.24.0-dev.20 — keyboard navigation for the local map workspace
+
+- Rooms, Areas and Bookmarks support Alt+J/K highlighting, Alt+H/L paging,
+  Alt+Enter inspection and Shift+Escape dismissal in the tabbed workspace.
+- Highlighting leaves unfinished bookmark labels and notes unchanged. Inspection
+  revalidates room identity; saving notes and previewing routes remain explicit.
+- Size result pages to the visible list using shared font metrics. Retain row
+  widgets during same-page selection and release keys when closed or detached.
+- Add an optional bounded page-size argument to mapWorkspace.search; existing
+  callers retain the 24-result default.
+
+## 0.24.0-dev.19 — observed quest hints in Room mobs
+
+- Add optional Quest? hints for exact active-quest name matches in the fresh
+  current-room roster. Duplicate mobs remain individual unverified candidates;
+  tooltips show the supplied target, room and area.
+- Preserve combat/consider colors, targeting ordinals, selection and roster
+  revision. Hints disappear on stale room data, death, disappearance, quest
+  completion/reset, or disabled tracking; Nearby never receives these hints.
+- Reuse shared quest state and coalesced mob rendering. Timing-only quest events
+  do not redraw the roster; no new queries, timers, or gameplay actions are added.
+- Register Show quest target candidates in Room mobs settings and expose an
+  additive defensive-copy dashboardData.questSnapshot() accessor.
+
+## 0.24.0-dev.18 — keyboard browsing for inventory and abilities
+
+- Inventory, Equipment and Abilities workspace tabs support Alt+J/K row selection
+  and Alt+H/L paging, with visible selection and pages sized to the available
+  list height. No font shrinking or offscreen keyboard selection.
+- Alt+Enter opens the selected item’s action preview; abilities remain read-only.
+  Item menus start unselected and retain their existing execution guards.
+- Preserve selected identity across observations and font/window reflow; clear
+  selection on filtering, explicit page changes, or removal. Same-page keys
+  retain row widgets and avoid loading the catalog again.
+- This row-keyboard scope applies to workspace tabs. Detached views retain
+  mouse selection and existing item-menu keys until native focus routing is added.
+
+## 0.24.0-dev.17 — visible keyboard selection and paged menus
+
+- Tools renders only the current page, sized from shared font metrics and the
+  available list height, with a maximum of 24 rows. Previous/Next controls and
+  Alt+H/L change pages without selecting or executing an action.
+- Alt+J/K crosses page boundaries in Tools and item-action/comparison menus,
+  keeping the selected entry visible. Item menus use the same bounded,
+  height-aware paging while preserving object-ID targeting and readiness guards.
+- Preserve selected utility identity during font/window reflow; retain the
+  first visible utility when no entry is selected. Search/registry changes and
+  explicit paging clear selection and invalidate old callbacks.
+- Unchanged Tools geometry and keys pressed at list/page boundaries perform no
+  row writes. Same-page selection only restyles the old and new selected rows.
+
 ## 0.24.0-dev.16 — contextual menu keyboard controls
 
 - Tools and workspace item-action menus support Alt+J/K selection and explicit

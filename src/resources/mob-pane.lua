@@ -198,6 +198,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
         if r.killed>0 then badges[#badges+1]=r.uncertainDeath and 'Killed · duplicate identity unknown' or 'Killed'; color=options.killed_color; symbol='† ' end
         if r.missing>0 then badges[#badges+1]='No longer seen'; color='#93a4b4'; symbol='? ' end
         if r.unclassified then badges[#badges+1]='Opponent · type unknown' end
+        if options.quest_hints and r.objective then badges[#badges+1]='Quest?' end
         local name=r.name..(r.duplicates and r.duplicates>1 and '  #'..r.ordinal or '')
         local title=(options.symbols and symbol or '')..name
         entries[#entries+1]={row=r,title=title,detail=table.concat(badges,' · '),rating=rating,color=options.colors and color or '#bac8d5'}
@@ -255,7 +256,14 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
       end
       paint(card,html,r and r.killed>0 and '#acbac6' or '#edf3f8',nil,'QLabel { background: '..bg..'; color: #edf3f8; border: 1px solid #2b3d4b; border-left: 3px solid '..entry.color..'; border-radius: 4px; padding: 5px; qproperty-wordWrap: true; } QLabel:hover { border-color: #7a9db8; background: #263a4a; }')
       if r then
-        tip(card,ui.escape(r.name..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\n'..(actions and actions.describe() or 'Double-click: kill')..' · '..(r.ordinal or 1)..'.'..r.name:match('%S+$')..(options.context_menu and '\nRight-click for actions' or '') or '\n'..entry.detail)))
+        local objective=''
+        if options.quest_hints and r.objective then
+          local q=r.objective
+          objective='\nQuest candidate: exact name match only; identity is unverified.'..
+            '\nTarget: '..q.target..(q.room and '\nRoom: '..q.room or '')..(q.area and '\nArea: '..q.area or '')..
+            ((q.matches or 0)>1 and '\n'..q.matches..' matching mobs; none is confirmed as the quest target.' or '')
+        end
+        tip(card,ui.escape(r.name..objective..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\n'..(actions and actions.describe() or 'Double-click: kill')..' · '..(r.ordinal or 1)..'.'..r.name:match('%S+$')..(options.context_menu and '\nRight-click for actions' or '') or '\n'..entry.detail)))
       end
       geometry(card,8,y,math.max(1,width-30),card.rowHeight); visible(card,true); y=y+card.rowHeight+4
       card.entry=r and r.alive>0 and not r.unclassified and {id=r.id,revision=latest.revision} or nil

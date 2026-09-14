@@ -27,6 +27,7 @@ function Menus.new(api,blocked)
       add(mods.Shift,'Escape','close')
       add(mods.Alt,'J','next');add(mods.Alt,'K','previous')
       add(mods.Alt,'Return','activate')
+      add(mods.Alt,'H','pagePrevious');add(mods.Alt,'L','pageNext')
     end)
     if not ok then clearKeys();error(why) end
   end

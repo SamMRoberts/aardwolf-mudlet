@@ -184,3 +184,17 @@ class ActionTests(unittest.TestCase):
           for _,key in pairs(keys) do key.fn() end
           assert(#sent==n and #aliasSent==0)
         ''')
+
+    def test_notifications_suspend_action_keys_without_changing_bindings(self):
+        self.lua.execute('''
+          mudlet.key.Escape=16777216;mudlet.key.Return=16777220
+          assert(c.set('actions','buttons',{action('test','fixture command','F8')}));ready()
+          local key;for _,entry in pairs(keys) do if entry.key==mudlet.key.F8 then key=entry end end
+          local p=AardwolfToolbox.notificationPane;local before=#sent
+          assert(p.open());key.fn();assert(#sent==before)
+          assert(AardwolfToolbox.views.setMode('notifications','floating'))
+          for _,entry in pairs(keys) do if entry.key==mudlet.key.F8 then key=entry end end
+          key.fn();assert(#sent==before)
+          p.close();key.fn();assert(#sent==before+1 and sent[#sent]=='fixture command')
+          assert(not commandLineChanged)
+        ''')
