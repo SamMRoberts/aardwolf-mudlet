@@ -11,8 +11,8 @@ class WorkspaceBrowserTests(unittest.TestCase):
         self.lua = harness.lua
         self.lua.execute('''
           assert(AardwolfToolbox.start());t=AardwolfToolbox;b=t.browser
-          keys={};mudlet.key={Escape=16777216};local serial=0
-          function tempKey(key,callback) serial=serial+1;keys[serial]=callback;return serial end
+          keys={};mudlet.key={Escape=16777216,J=74,K=75,Return=16777220};mudlet.keymodifier={Shift=4,Alt=2};local serial=0
+          function tempKey(mod,key,callback) serial=serial+1;keys[serial]=callback;return serial end
           function killKey(key) keys[key]=nil end
           assert(b.enabled,b.last)
           function send() error('Unexpected gameplay dispatch') end
@@ -223,6 +223,6 @@ class WorkspaceBrowserTests(unittest.TestCase):
           assert(widgets['AardwolfToolbox.browser.menu.row.24'] and not widgets['AardwolfToolbox.browser.menu.row.25'])
           widgets['AardwolfToolbox.browser.menu.page.3'].callback()
           assert(widgets['AardwolfToolbox.browser.menu.row.25'] and not widgets['AardwolfToolbox.browser.menu.row.1'])
-          assert(count(keys)==1);for _,callback in pairs(keys) do callback() end
+          assert(count(keys)==5);local first;for id in pairs(keys) do first=math.min(first or id,id) end;keys[first]()
           assert(b.isEditing() and not widgets['AardwolfToolbox.browser.menu'])
         ''')

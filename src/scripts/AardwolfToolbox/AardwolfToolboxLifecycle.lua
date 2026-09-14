@@ -27,6 +27,11 @@ local function initialize()
   local config = resource("configuration").new(_G,preferenceFiles)
   own("config",config,{"preferencesFiles"},"deactivate")
   own("ui",resource("appearance").new(_G,config),{},"stop")
+  AardwolfToolbox.ui.menuKeys=own("menuKeys",resource("menu-keys").new(_G,function()
+    local t=AardwolfToolbox
+    return (t.settingsWindow and t.settingsWindow.opened) or (t.views and t.views.isEditing())
+      or (t.mobs and t.mobs.menuOpen) or (t.dashboard and t.dashboard.isEditing())
+  end),{"ui"},"stop")
   config.registerFeature({id="appearance",label="Appearance",description="Shared readable fonts for Toolbox, console, input, and chat. Larger existing console text is preserved.",settings={
     {key="enabled",type="boolean",default=true,label="Manage console and input fonts"},
     {key="preset",type="choice",default="comfortable",label="Reading preset",options={{value="comfortable",label="Comfortable"},{value="large",label="Large"}}},
@@ -74,8 +79,9 @@ local function initialize()
     end,
   })
   own("borders",resource("borders").new(_G,config),{},"stop")
+  own("incoming",resource("incoming").new(_G),{},"destroy")
   local Shell=resource("sidebar-shell")
-  own("shell",Shell.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.ui,resource("console-text")),{"config","gmcp","ui"})
+  own("shell",Shell.new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.ui,resource("console-text"),AardwolfToolbox.incoming),{"config","gmcp","ui","incoming"})
   config.registerFeature(Shell.definition(function(values)
     local shell=AardwolfToolbox.shell
     local changed=shell.configuredMode and shell.configuredMode~=values.mode
@@ -87,7 +93,6 @@ local function initialize()
     if running then local draft=config.draft();return dashboard.configure(draft.dashboard) end
     return true
   end))
-  own("incoming",resource("incoming").new(_G),{},"destroy")
   own("help",resource("help-pane").new(_G,AardwolfToolbox.incoming,AardwolfToolbox.ui),{"incoming","ui"},"stop")
   config.registerFeature({id="help",label="Help pane",
     description="Open tagged help in a floating window, titled with its keywords.",settings={

@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.24.0-dev.16 — contextual menu keyboard controls
+
+- Tools and workspace item-action menus support Alt+J/K selection and explicit
+  Alt+Enter activation. No item is selected when a menu opens. Keep literal
+  previews, stale callback rejection and the same action-readiness guards.
+- Add Shift+Escape dismissal: Mudlet 5.0.1 consumes plain Escape in command
+  inputs. Close one menu layer at a time; preserve input text and typing keys.
+- Share five temporary bindings across the active menu scopes; clean them up
+  on close and teardown. Suspend these interactions while settings, Views, mob
+  menus or chat search own the interaction. Other menu families retain their
+  existing controls; this is not a full keyboard accessibility release.
+
+## 0.24.0-dev.15 — optional local chat history
+
+- Record accepted GMCP chat once through the existing router, independently
+  opt-in. Respect hidden channels, retain outgoing messages without unread
+  changes, and avoid importing existing scrollback or starter-only text.
+- Add a Chat history category with per-character pages, literal plain text,
+  labeled truncation, JSON export and category-only clearing. Reuse schema 2
+  retention, atomic operations, shared settings and view placement.
+- Discard deferred chat observations across reset/character changes. No new
+  triggers, game commands or automatic actions. Offline native capture/UI and
+  lifecycle checks passed with map preservation; live acceptance remains pending.
+
 ## 0.24.0-dev.14 — optional observed kill history
 
 - Add an opt-in Kills category to Local history, using explicit death transitions

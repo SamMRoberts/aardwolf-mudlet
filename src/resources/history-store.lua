@@ -7,7 +7,7 @@ local function quote(value)
 end
 local function category(value)
   value=value or 'progression'
-  assert(value=='progression' or value=='quests' or value=='kills','Invalid history category')
+  assert(value=='progression' or value=='quests' or value=='kills' or value=='chat','Invalid history category')
   return value
 end
 function Store.new(api)
@@ -122,7 +122,13 @@ function Store.new(api)
         local entry=api.yajl.to_value(row.data)
         assert(type(entry)=='table' and type(entry.observed)=='number'
           and entry.observed>=0 and entry.observed%1==0,'Invalid saved history record')
-        if kind=='kills' then
+        if kind=='chat' then
+          local function short(v) return type(v)=='string' and #v<=128 and not v:find('[%z\1-\31\127]') end
+          assert(entry.kind=='chat_message' and short(entry.channel) and (entry.peer==nil or short(entry.peer))
+            and type(entry.text)=='string' and #entry.text>0 and #entry.text<=4096
+            and not entry.text:find('[%z\1-\8\11\12\14-\31\127]')
+            and type(entry.outgoing)=='boolean' and type(entry.truncated)=='boolean','Invalid saved chat observation')
+        elseif kind=='kills' then
           local function text(v) return type(v)=='string' and #v<=512 and not v:find('[%z\1-\31\127]') end
           assert(entry.kind=='mob_death' and entry.source=='room-mobs' and text(entry.name) and entry.name~=''
             and text(entry.flags) and type(entry.uncertain)=='boolean' and type(entry.room)=='table','Invalid saved kill observation')

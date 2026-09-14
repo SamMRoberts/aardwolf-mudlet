@@ -1,14 +1,14 @@
 # Tools, setup and the inventory/ability workspace
 
-Available in **0.24.0-dev.6**, a development candidate with partial native
+Updated in **0.24.0-dev.16**, a development candidate with partial native
 acceptance recorded in [verification](../tests/verification.md).
 
 ## Find a feature
 
 Click **Tools** on the utility bar (or its overflow menu). Enter text and press
 Enter to filter views, settings and manual informational requests. Enter never
-executes a result: click the matching row. Tooltips explain unavailable refreshes.
-Opening Tools again retains its search. Close or Escape dismisses it. Toolbox
+executes a result: click the matching row or explicitly select it with the menu keys. Tooltips explain unavailable refreshes.
+Opening Tools again retains its search. Close or Shift+Escape dismisses it. Toolbox
 shortcuts pause while the menu or workspace editor is open.
 
 **Setup walkthrough** explains layout/migration, fonts, monitoring, shortcuts
@@ -124,3 +124,40 @@ ownership, then restores the prior placement mode. This does not replace mouse
 dragging or multi-monitor acceptance. Workspace search/details, Tools/guide,
 borrowed chat search, geometry and cleanup have partial native evidence; see
 the verification record for the remaining checks. Live behavior is unverified.
+
+
+## Keyboard controls
+
+Tools and the workspace's Item actions / Compare menus share these contextual
+keys while open:
+
+| Key | Behavior |
+| --- | --- |
+| Alt+J / Alt+K | Select next / previous entry; the current entry appears in the fixed feedback area. |
+| Alt+Enter | Activate the explicitly selected entry through its usual guards. |
+| Shift+Escape | Close the current menu; press again to close the workspace underneath. |
+
+On macOS, Alt means Option. No action is selected initially, and filtering or
+rebuilding a menu clears keyboard selection. Mouse activation remains available.
+Page controls and scrolling retain their existing mouse behavior. Ordinary
+letters, arrows, Tab and Enter are not bound; Enter in a search field filters
+locally. Neither keyboard path changes or submits the main command input.
+
+Plain Escape works only where Mudlet forwards it to Lua. Mudlet 5.0.1's
+[TCommandLine implementation](https://github.com/Mudlet/Mudlet/blob/Mudlet-5.0.1/src/TCommandLine.cpp#L509)
+uses it for completion before consulting user bindings, so use Shift+Escape
+when a command input has focus. Existing bindings from other packages are never
+removed; external collisions can be inspected in Mudlet's Keys editor.
+
+One shared scope stack dispatches to the most recently opened Tools/workspace
+menu. Settings, Views, mob context menus and chat search suspend those keys to
+avoid activating a covered item. Other menu families keep their existing Close
+controls. Closing all these menus releases the five temporary keys; package
+teardown also invalidates retained callbacks. This service introduces no timers,
+requests, persistent preferences, or gameplay automation.
+
+Developers can use `AardwolfToolbox.menuKeys.push(owner, callbacks)` with `close`
+and optional `next`, `previous`, `activate` functions. Keep its returned handle,
+call `handle.raise()` when raising an existing surface, and `handle.release()`
+before deleting it. Callbacks must revalidate their own selected row and source
+revision. The service does not grant action readiness or evaluate commands.

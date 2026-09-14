@@ -26,6 +26,14 @@ class HistoryTests(unittest.TestCase):
               uncertain=true,source='room-mobs',room={num=12,name='A room',area='academy'}}
             fire('AardwolfToolbox.mobs.death',event);return event
           end
+          function chat(message)
+            gmcp=gmcp or {};gmcp.comm=gmcp.comm or {};gmcp.comm.channel=message
+            fire('gmcp.comm','gmcp.comm.channel');if not consumer then fire('AardwolfToolbox.gmcp.updated','comm.channel') end
+          end
+          function enableChat()
+            assert(t.config.set('history','chat',true))
+            consumer=function(event,value) fire(event,value) end
+          end
           function enableKills() assert(t.config.set('history','kills',true)) end
           function enableQuests() assert(t.config.set('history','quests',true)) end
           function enable() assert(t.config.set('history','progression',true)) end
@@ -432,4 +440,124 @@ class HistoryTests(unittest.TestCase):
           s.append=append;t.incoming.remove('death-test')
           incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==1)
           assert(count(triggers)==1)
+        """)
+
+
+    def test_chat_opt_in_router_fanout_literal_colors_and_own_messages(self):
+        self.lua.execute("""
+          observe('char.base',{name='A'});chat({chan='clantalk',msg='before'})
+          enableChat();chat({chan='clantalk',msg='waiting for identity'});assert(h.list('A',1,'chat').total==0)
+          observe('char.base',{name='A'});local b=t.shell.getBase();local unread=b.unread.clan or 0
+          chat({chan='clantalk',player='Friend',msg=string.char(27)..'[31mFriend: <Éowyn> & hi'})
+          local rows=h.list('A',1,'chat');assert(rows.total==1 and rows.rows[1].text=='Friend: <Éowyn> & hi')
+          assert(rows.rows[1].peer=='Friend' and not rows.rows[1].outgoing and b.unread.clan==unread+1)
+          local counts={};for k,v in pairs(b.unread) do counts[k]=v end
+          chat({chan='tell',player='Friend',msg='You tell Friend: hi'})
+          assert(h.list('A',1,'chat').total==2 and h.list('A',1,'chat').rows[1].outgoing)
+          for k,v in pairs(b.unread) do assert(v==(counts[k] or 0),k) end
+          assert(t.config.set('shell','hidden_channels','clantalk'))
+          chat({chan='clantalk',msg='hidden'});assert(h.list('A',1,'chat').total==2)
+        """)
+
+    def test_chat_equal_messages_are_distinct_and_ansi_raw_settings(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'})
+          chat({chan='newbie',msg='same'});chat({chan='newbie',msg='same'})
+          assert(h.list('A',1,'chat').total==2)
+          chat({chan='gossip',msg='me@gmail.com'});assert(h.list('A',1,'chat').rows[1].text=='me@gmail.com')
+          assert(t.config.set('shell','chat_colors','raw'))
+          chat({chan='gossip',msg='@RRed @@literal@w'})
+          assert(h.list('A',1,'chat').rows[1].text=='Red @literal')
+          assert(t.config.set('shell','timestamps',true));chat({chan='gossip',msg='no added time'})
+          assert(h.list('A',1,'chat').rows[1].text=='no added time')
+        """)
+
+    def test_chat_reset_character_reenable_and_stale_callbacks(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'});chat({chan='tell',msg='first'})
+          local old=handlers['AardwolfToolbox.history:chat'].fn
+          fire('AardwolfToolbox.gmcp.cleared');chat({chan='tell',msg='no identity'})
+          assert(h.list('A',1,'chat').total==1)
+          observe('char.base',{name='B'});chat({chan='tell',msg='second'})
+          assert(h.list('B',1,'chat').total==1)
+          assert(t.config.set('history','chat',false));chat({chan='tell',msg='disabled'})
+          old('',{text='stale',channel='tell',outgoing=false});assert(h.list('B',1,'chat').total==1)
+          enableChat();old('',{text='stale',channel='tell',outgoing=false});chat({chan='tell',msg='waiting'})
+          assert(h.list('B',1,'chat').total==1)
+          observe('char.base',{name='B'});chat({chan='tell',msg='fresh'});assert(h.list('B',1,'chat').total==2)
+          t.stop();assert(not handlers['AardwolfToolbox.history:chat']);assert(t.start() and t.config.get('history','chat'))
+        """)
+
+    def test_chat_bounds_control_removal_utf8_and_json_expansion(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'})
+          chat({chan='tell',msg=string.rep('x',4095)..'Éowyn'})
+          local row=h.list('A',1,'chat').rows[1];assert(#row.text==4095 and row.truncated)
+          chat({chan='tell',msg=string.rep('x',4094)..'Éowyn'})
+          row=h.list('A',1,'chat').rows[1];assert(#row.text==4096 and row.text:sub(-2)=='É')
+          chat({chan='tell',msg=string.rep(string.char(10),4096)})
+          assert(not h.status().paused and h.list('A',1,'chat').rows[1].truncated)
+          chat({chan='tell',msg='hello'..string.char(0,7)..'world'})
+          assert(h.list('A',1,'chat').rows[1].text=='helloworld')
+          local count=h.list('A',1,'chat').total
+          chat({chan='tell',msg=string.char(0,7)});chat({chan='tell',msg=string.rep('a',65401)})
+          fire('AardwolfToolbox.chat.message',{text='bad',channel='tell',outgoing='false'})
+          assert(h.list('A',1,'chat').total==count)
+        """)
+
+    def test_chat_export_category_retention_corruption_and_write_failure(self):
+        self.lua.execute("""
+          enable();enableChat();observe('char.base',{name='A',level=1})
+          chat({chan='tell',msg='secret'});local path=assert(h.export('A','chat'))
+          local data=yajl.to_value(files[path]);assert(data.category=='chat' and data.observations[1].text=='secret')
+          local append=s.append;s.append=function() return nil,'Disk full' end
+          chat({chan='tell',msg='failure'});assert(h.status().paused)
+          s.append=append;chat({chan='tell',msg='not retried'});assert(h.list('A',1,'chat').total==1)
+          assert(h.clear('A',h.revision,'chat'));assert(h.list('A').total==1)
+          assert(s.append('A',{observed=clock,kind='chat_message',channel='tell',text=string.char(27),outgoing=false,truncated=false},'chat'))
+          local result,why=h.list('A',1,'chat');assert(not result and why:find('Invalid saved chat'))
+        """)
+
+    def test_chat_view_literal_paging_clear_and_no_diagnostic_content(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'})
+          for i=1,26 do chat({chan='tell',player='Friend',msg='<PRIVATE> & '..i}) end
+          assert(p.open('chat'));assert(W('page').text=='1 / 2')
+          assert(W('row.26').text:find('&lt;PRIVATE&gt;') and W('row.26').text:find('Received'))
+          W('next').callback();assert(W('page').text=='2 / 2')
+          assert(not yajl.to_string(t.health()):find('PRIVATE'))
+          W('clear').callback();W('refresh').callback();assert(h.list('A',1,'chat').total==26)
+          W('clear').callback();W('clear').callback();assert(h.list('A',1,'chat').total==0)
+          p.close();local read=s.read;s.read=function() error('Hidden history read') end
+          chat({chan='gossip',msg='new'});s.read=read
+        """)
+
+    def test_chat_notification_after_capture_rejects_reset_and_character_switch(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'});local stage=1;local before=gagCount
+          t.incoming.add('chat-test',1,function(text)
+            if text~='fixture' then return false end
+            chat({chan='tell',msg='deferred'})
+            if stage==1 then fire('AardwolfToolbox.gmcp.cleared')
+            elseif stage==2 then observe('char.base',{name='B'}) end
+            return true,true
+          end,error)
+          incoming('fixture');assert(h.list('A',1,'chat').total==0)
+          stage=2;observe('char.base',{name='A'});incoming('fixture')
+          assert(h.list('A',1,'chat').total==0 and h.list('B',1,'chat').total==0)
+          stage=3;local append=s.append;s.append=function(...) assert(gagCount==before+3);return append(...) end
+          incoming('fixture');assert(h.list('B',1,'chat').total==1)
+          s.append=append;t.incoming.remove('chat-test')
+        """)
+
+    def test_chat_starter_reconciled_message_records_once(self):
+        self.lua.execute("""
+          enableChat();observe('char.base',{name='A'});local b=t.shell.getBase()
+          b.chats.all:echo('previous text copy');b.recentCaptures={{text='same message',time=clock}}
+          local before=b.chats.all.text
+          chat({chan='gossip',player='Friend',msg='same message'})
+          assert(b.chats.all.text==before and h.list('A',1,'chat').total==1)
+          chat({chan='gossip',player='Friend',msg='same message'})
+          assert(h.list('A',1,'chat').total==2)
+          assert(h.clear('A',h.revision,'chat'));assert(b.chats.all.text:find('previous text copy'))
         """)

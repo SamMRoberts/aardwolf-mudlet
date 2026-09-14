@@ -12,12 +12,12 @@ function Shell.definition(apply)
     {key='mention_words',type='text',default='',maxLength=512,label='Additional mention words (comma separated)'},
   },apply=apply}
 end
-function Shell.new(api,config,cache,ui,Text)
+function Shell.new(api,config,cache,ui,Text,incoming)
   local self={last='Waiting for sidebar',enabled=false}
   local options={mode='automatic',timestamps=false,hidden_channels=''}
   local base,borrowed,handlers
   local chatBase,ownedChats,chatWrappers,authoritative=nil,{},{},false
-  local chatActive,generation=nil,0
+  local chatActive,generation,chatSession=nil,0,0
   handlers={}
   local function wanted()
     return options.mode=='toolbox' or options.mode=='automatic' and not api.BaseUI
@@ -155,10 +155,20 @@ function Shell.new(api,config,cache,ui,Text)
           Text.write(api,target.chats[id],text,options.chat_colors);target.noteChatActivity(id,mention,outgoing)
         end
       end
+      -- One accepted message, regardless of how many chat views receive it.
+      local observation={channel=type(message.chan)=='string' and channel or '',text=Text.plain(message.msg,options.chat_colors),
+        peer=type(message.player)=='string' and message.player or nil,outgoing=outgoing}
+      local session,character=chatSession,cache.get('char.base.name')
+      local function notify()
+        if owned==generation and session==chatSession and character==cache.get('char.base.name') and chatBase==target and cache.enabled then
+          api.raiseEvent('AardwolfToolbox.chat.message',observation)
+        end
+      end
+      if incoming then incoming.defer(notify) else notify() end
     end),'Cannot register chat handler')
     api.gmod.enableModule(OWNER,'Comm')
     handlers[#handlers+1]='chatReset'
-    assert(api.registerNamedEventHandler(OWNER,'chatReset','AardwolfToolbox.gmcp.cleared',function() authoritative=false end))
+    assert(api.registerNamedEventHandler(OWNER,'chatReset','AardwolfToolbox.gmcp.cleared',function() authoritative=false;chatSession=chatSession+1 end))
   end
   function self.stop()
     self.enabled=false;generation=generation+1

@@ -1,14 +1,13 @@
-# Local progression, quest reward and kill history
+# Local progression, quest reward, kill and chat history
 
 Open **Tools → Open history** or **Views → History**. Configure it under
-**aardwolf-config → Local history**. **Record progression history**, **Record quest reward history**, and **Record observed kill history** all start off.
+**aardwolf-config → Local history**. **Record progression history**, **Record quest reward history**, **Record observed kill history**, and **Record chat history** all start off.
 The browser remains available when recording is off, including offline.
 
 This step of the roadmap records observed level, tier, remort, redo, current
-powerup and total-powerup values. A separate category records documented quest-completion rewards. A third category records explicit deaths from the room-mob tracker. Chat
-history is still a future step; no raw output or chat messages are saved by this service.
+powerup and total-powerup values. A separate category records documented quest-completion rewards. A third category records explicit deaths from the room-mob tracker. Accepted GMCP chat can be saved separately as plain text; unrelated game output is never logged.
 No queries, additional monitoring requests, gameplay commands, timers for polling,
-or automatic actions are added. Recording consumes the existing GMCP stream and room-mob death events.
+or automatic actions are added. Recording consumes the existing GMCP stream room-mob death events and accepted chat-router messages.
 
 ## Observations and identity
 
@@ -83,6 +82,39 @@ The recorder deduplicates the latest 512 session/visit/row tokens; these tokens
 are not persisted. Disconnect, character changes, disable and teardown clear
 that bounded session state. Turning history off leaves the room tracker intact.
 
+## Chat
+
+Enable **Record chat history** to save future messages accepted by the shared
+Aardwolf GMCP chat router. This includes incoming tells, channels and your outgoing
+messages. Recording is off by default. The Chat category shows the observed time,
+channel, received/outgoing indicator and plain message; hover for its retained text.
+The **Reported player** field is server metadata: outgoing tells may name the
+recipient, so it is not always the speaker.
+
+- One history observation is created per accepted `comm.channel` message, even
+  when All, Channels/Tells and a dedicated Clan/Newbie view display it. Equal
+  repeated messages remain separate. Starter text/GMCP display deduplication
+  does not discard the single GMCP history observation.
+- **Hidden chat channels** in Sidebar and setup are also excluded from history.
+  Existing scrollback and starter-only text without Aardwolf GMCP are not imported.
+  Detached or closed chat views do not stop recording when their router is active.
+- ANSI/raw Aardwolf colors are decoded using the shared chat-format preference.
+  The saved text has no color formatting or executable markup. Terminal controls
+  are removed; tabs and line breaks remain. The display adds no timestamps to the
+  saved message itself.
+- Messages retain at most 4 KiB of UTF-8 text, shortened further if JSON escaping
+  would exceed the shared record-size limit. Truncated records are labeled; a
+  split UTF-8 code point is not retained. Invalid metadata or oversized protocol
+  messages are skipped. Truncation affects history only, not live chat buffers.
+- Enabling or reconnecting waits for fresh character identity. There is no cached
+  replay. Deferred events crossing session/character changes are discarded.
+  Turning recording off does not stop chat routing or change unread counts.
+
+Private messages are stored locally when this option is enabled and are included
+in explicit Chat exports. Retention and Clear apply to the database, not separate
+exports or live chat buffers. Diagnostics and preference exports exclude message
+contents. No log files, server commands or additional monitoring are introduced.
+
 ## Storage, retention, and privacy
 
 Data is stored outside the installed package at
@@ -99,10 +131,10 @@ on writes and reads; changing retention takes effect at the next access/write.
 There is no idle retention timer. The text limit excludes SQLite indexes, page
 and journal overhead, so it is not an exact file-size cap.
 
-History database schema **2** supports all three categories without another migration. On first access, schema **1** is
+History database schema **2** supports all four categories without another migration. On first access, schema **1** is
 migrated in one transaction, retaining progression row IDs and data. A migration
 failure rolls back the schema and rows. Settings remain format **3**. Back up the
-profile database before installing this candidate: packages predating dev.13 reject schema 2. Dev.13 can still read progression/quest categories but does not expose Kills; retention applies across all stored categories.
+profile database before installing this candidate: packages predating dev.13 reject schema 2. Dev.13 can still read progression/quest categories but does not expose Kills or Chat; retention applies across all stored categories.
 To roll back, stop Toolbox and restore its package and the pre-upgrade database
 backup together; export any newer records first if they should be retained.
 
@@ -114,7 +146,7 @@ preferences, not this database.
 
 ## Browser, export, and clear
 
-Choose **Progression**, **Quest rewards**, or **Kills**, then use **‹ Character / Character ›**
+Choose **Progression**, **Quest rewards**, **Kills**, or **Chat**, then use **‹ Character / Character ›**
 to choose a saved character in that category. Pages contain
 25 observations, newest first. Hover shortened rows for all changes or reward fields and quest details.
 In short/narrow windows, scroll the action area to reach all controls.
@@ -123,7 +155,7 @@ shared Appearance settings and supports profile/external placement.
 
 **Export JSON** writes all retained observations for the selected character and category to a
 new `AardwolfToolbox-progression-export-NNN.json`,
-`AardwolfToolbox-quests-export-NNN.json`, or `AardwolfToolbox-kills-export-NNN.json` in the profile directory. The
+`AardwolfToolbox-quests-export-NNN.json`, `AardwolfToolbox-kills-export-NNN.json`, or `AardwolfToolbox-chat-export-NNN.json` in the profile directory. The
 export includes the character name and observed values. The filename is shown
 in the feedback tooltip. Exports use checked temporary writes and atomic rename;
 existing exports are not overwritten. Exports are separate files and are not
@@ -155,6 +187,9 @@ end
 -- history.list("Tesobi", 1, "kills") -> observed deaths
 -- history.export("Tesobi", "kills")  -> death observation export
 -- history.clear("Tesobi", page.revision, "kills") -> clear deaths only
+-- history.list("Tesobi", 1, "chat") -> accepted chat page
+-- history.export("Tesobi", "chat")  -> plain-text message JSON export
+-- history.clear("Tesobi", page.revision, "chat") -> clear chat history only
 -- history.status()                  -> defensive status snapshot, no raw records
 ```
 
@@ -169,6 +204,10 @@ Kill rows have `kind="mob_death"`, `observed`, `name`, `flags`, `uncertain`,
 The shared producer event `AardwolfToolbox.mobs.death` carries this source data
 plus ephemeral `session`, `visit`, and `rowId` tokens, after capture completes.
 Consumers must not treat these tokens as persistent mob identities.
+Chat rows have `kind="chat_message"`, `observed`, `channel`, `text`, optional
+`peer`, `outgoing` and `truncated`. The shared `AardwolfToolbox.chat.message` event
+is emitted once after accepted chat routing; it carries plain text and metadata
+without persistent storage IDs.
 
 ## Acceptance
 
@@ -190,3 +229,10 @@ exercise native death parsing. After clearing its Kills category, run
 native trigger engine with an isolated tracker. Its dispatch is blocked and no
 map data is changed. These synthetic checks are distinct from live acceptance.
 The history fixture restores preferences and deletes only its uniquely named test records.
+
+For Chat, use `tests/native_chat_history.lua` with foundation interception. It
+creates a unique test character, emits four accepted GMCP messages and one hidden
+message, and checks outgoing unread behavior. Verify literal rendering, export,
+category clear and settings; call its `.restore()` before restoring foundation
+interceptors. Synthetic chat remains in the disposable profile's scrollback;
+existing chat history is never erased to clean up tests.

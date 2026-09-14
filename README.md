@@ -1,15 +1,20 @@
-# AardwolfToolbox 0.24.0-dev.14
+# AardwolfToolbox 0.24.0-dev.16
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
 
-**Local progression, quest reward and observed kill history** is now available through **Tools → Open history**.
-All three categories start **off**; enable them in **aardwolf-config → Local history**. Browse
-observed progression, reported quest rewards or explicit mob deaths per character, configure retention,
+**Keyboard menus:** in Tools or an item-action menu, use **Alt+J/K** to select,
+**Alt+Enter** to activate, and **Shift+Escape** to close. Opening a menu does not
+select an action. Ordinary Enter still filters search; input text is preserved.
+See [workspace controls](docs/workspace.md#keyboard-controls).
+
+**Local progression, quest reward, observed kill and chat history** is now available through **Tools → Open history**.
+All four categories start **off**; enable them in **aardwolf-config → Local history**. Browse
+observed progression, reported quest rewards explicit mob deaths or accepted chat per character, configure retention,
 export JSON, or clear only the selected category. See [history controls](docs/history.md).
-This candidate passed repository checks and partial native acceptance in the
-disconnected test profile, including synthetic death-parser replay. Live behavior
-and player-profile installation remain pending; see [verification details](tests/verification.md).
+Chat history is opt-in and includes private tells and outgoing messages. It passed
+repository checks and synthetic acceptance in the offline test profile. Live
+behavior and player-profile installation remain pending; see [verification details](tests/verification.md).
 
 **Clan** and **Newbie** now have dedicated chat tabs and optional external windows.
 Open them through **Views**, or set their placement in **aardwolf-config → Dashboard

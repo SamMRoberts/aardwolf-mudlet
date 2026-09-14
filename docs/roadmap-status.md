@@ -1,11 +1,12 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.14**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.16**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-This observed-kill-history candidate is installed in the backed-up disconnected
-test profile, with partial native UI acceptance and synthetic death-parser replay.
+This keyboard-menu candidate is installed in the backed-up disconnected test
+profile. Item-action and Tools keyboard checks passed; earlier synthetic chat
+and history evidence remains recorded separately.
 External mouse/keyboard behavior, the full size matrix and live sources still have gaps.
 
 Clan and Newbie chat views now share sidebar/external placement, search and unread
@@ -66,7 +67,7 @@ counts, including outgoing tells that identify the recipient.
 - Explicit item-ID Wear/Remove/Get/Put actions with previews, manual readiness,
   stale-selection rejection, bounded menus and no optimistic state mutation.
   Local comparisons show observed numeric values without inventing missing stats.
-- Separately opt-in progression, quest reward and observed kill history with shared bounded
+- Separately opt-in progression, quest reward, observed kill and chat history with shared bounded
   SQLite retention, category pages, export and clear. Schema-1 progression rows
   migrate transactionally with stable IDs. Quest records use reported completion
   rewards only; no quest actions or balance-difference estimates. Death records use
@@ -112,7 +113,9 @@ commands remain single, manual and guarded. Containers must be fresh and
 directly carried. Local comparisons cover levels, value, weight and unambiguous
 numeric stat modifiers from fresh details, with missing data left unknown.
 Native tests confirmed menus/previews, offline refusal, comparison rendering and
-Close; injected Escape did not dismiss the menu and needs keyboard investigation.
+Close. Mudlet consumes unmodified Escape in command inputs; the new
+Shift+Escape path passed native item-menu and workspace dismissal checks.
+Alt+J/K selection and Alt+Enter guarded activation also passed.
 Real item-command execution, container variants, full sizing and live detail
 format acceptance remain pending. No ability-execution controls ship here.
 See [workspace](workspace.md) and [item service](item-service.md).
@@ -139,7 +142,8 @@ disconnected test profile. See [preference transfers](preferences-transfer.md).
 The notification center is implemented and contract-tested. Offline native filters,
 paging, scrolling, unread counts, external close/reopen/reflow and lifecycle checks
 passed. External mouse interaction and audio remain unverified. It uses existing
-events and defaults to quiet presentation. Opt-in local progression and quest reward history now includes transactional
+events and defaults to quiet presentation. Opt-in local progression, quest reward,
+kill and chat history now includes transactional
 SQLite storage, retention, category paging, export and clear. Native SQLite
 migration, paging, scrolling, category export/clear and close/reopen passed in
 the disconnected profile. External mouse interaction and live rewards remain
@@ -147,8 +151,12 @@ unverified; see [history](history.md) and [acceptance details](../tests/verifica
 
 Observed kill history is now implemented with explicit opt-in, bounded event
 deduplication and category browsing/export/clear. Native category controls, settings, lifecycle cleanup and synthetic death-parser
-replay passed in the disconnected profile; live ordering remains unverified. Chat history is the remaining category, also requiring explicit opt-in. Keyboard improvements and larger-list virtualization
-remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
+replay passed in the disconnected profile; live ordering remains unverified. All four history categories are implemented. Chat records accepted GMCP router
+messages once, respects hidden-channel filters and labels truncated plain text;
+it does not backfill scrollback. Native synthetic capture, export/clear,
+settings and lifecycle checks passed. Live capture and broad acceptance remain pending. Tools/item menus now support contextual keyboard selection, guarded activation
+and Shift+Escape dismissal. Broader keyboard navigation, automatic scroll-to-selection
+and larger-list virtualization remain outstanding. Preserve current mob row identity, heuristic duplicate tracking,
 manual-action responsiveness and no-autonomous-combat policy.
 
 ## Acceptance and release gate
@@ -157,7 +165,7 @@ Use `python3 tools/check.py` for the real Muddler build, archive validation,
 Lua 5.1 suite and ordinary-line benchmark. Mocks do not establish native Geyser
 geometry or live transport correctness.
 
-After receiving renewed approval for Mudlet control, use `tests/native_foundation.lua` in the
+For authorized Mudlet control, use `tests/native_foundation.lua` in the
 **disconnected AardwolfToolboxSettingsTest profile only**. Perform the manual
 checks below; the fixture intercepts command dispatch and must never run in a
 player profile:
@@ -183,5 +191,5 @@ player profile:
 
 Before any later player-profile installation, back up package, profile,
 preferences, database and native map. This development candidate is built
-in the repository; the offline profile has this dev.14 candidate.
+in the repository; the offline profile version is recorded in the current verification entry.
 None of the 1.0 completion gates are waived.

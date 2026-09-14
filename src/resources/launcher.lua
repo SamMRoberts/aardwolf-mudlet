@@ -16,17 +16,18 @@ end
 function Launcher.new(api,config,ui,bar,openSettings,readiness)
   local self={enabled=false,last='Disabled'}
   local items,order={},{}
-  local root,title,input,body,feedback,closeButton,previous,nextButton,settingsButton,escapeKey
+  local root,title,input,body,feedback,closeButton,previous,nextButton,settingsButton,menuHandle
   local rows,handlers={},{}
   local generation,mode,step,filter=0,'menu',1,''
+  local selected=0;local choices={}
   local layout,render
   local function say(text) if feedback then feedback:echo(ui.escape(text)) end end
   function self.close()
     generation=generation+1
-    if escapeKey then api.killKey(escapeKey);escapeKey=nil end
+    if menuHandle then menuHandle.release();menuHandle=nil end
     if root then root:delete() end
     root,title,input,body,feedback,closeButton,previous,nextButton,settingsButton=nil,nil,nil,nil,nil,nil,nil,nil,nil
-    rows={}
+    rows={};choices={};selected=0
   end
   function self.isEditing() return root~=nil end
   function self.register(def)
@@ -84,8 +85,16 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
     for i,value in ipairs(lines) do lines[i]=ui.escape(value) end
     return table.concat(lines,'<br>'),#lines
   end
+  local function highlight(delta)
+    if #choices==0 then return end
+    selected=math.max(1,math.min(#choices,selected+delta))
+    for i,choice in ipairs(choices) do ui.style(choice.widget,true,i==selected) end
+    local choice=choices[selected]
+    say(choice.label.." · Alt+Enter opens · Shift+Esc closes")
+  end
   render=function()
     generation=generation+1;local token=generation
+    choices={};selected=0
     for _,row in ipairs(rows) do row:delete() end;rows={}
     if mode=='setup' then
       local entry=STEPS[step]
@@ -107,12 +116,15 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
         local row=label('action.'..i,body,'',function()
           if generation==token and items[item.id]==item then self.activate(item.id) end
         end)
+        choices[#choices+1]={widget=row,label=item.label,run=function()
+          if generation==token and items[item.id]==item then self.activate(item.id) end
+        end}
         rows[#rows+1]=row;row:move(0,(i-1)*ui.metrics().height)
         row:resize('100%',ui.metrics().height)
         row:echo(ui.escape(ui.fit(item.label,math.max(1,root:get_width()-32))))
         row:setToolTip(ui.escape(item.description or item.label)..(not ready and '<br>Unavailable: '..ui.escape(reason) or ''))
       end
-      say(#list..' actions · Enter filters; click to open. Refreshes require fresh login data.')
+      say(#list..' actions · Enter filters · Alt+J/K selects · Alt+Enter opens · Shift+Esc closes.')
     end
   end
   layout=function()
@@ -135,9 +147,9 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
   end
   function self.open(kind)
     if not self.enabled then return false,'Utility menu is disabled' end
-    local selected=kind=='setup' and 'setup' or 'menu'
-    if root and selected==mode then root:show();root:raiseAll();return true end
-    self.close();mode=selected;filter=''
+    local selectedMode=kind=='setup' and 'setup' or 'menu'
+    if root and selectedMode==mode then root:show();root:raiseAll();if menuHandle then menuHandle.raise() end;return true end
+    self.close();mode=selectedMode;filter=''
     local ok,err=pcall(function()
       root=api.Geyser.Container:new({name=OWNER..'.root',x=0,y=0,width=580,height=560})
       local owned=root
@@ -164,7 +176,11 @@ function Launcher.new(api,config,ui,bar,openSettings,readiness)
         if saved then step=1;self.close() else say('Could not save completion: '..tostring(why)) end
       end)
       closeButton=label('close',root,'Close',function() if root==owned then self.close() end end)
-      if api.tempKey and api.mudlet and api.mudlet.key then escapeKey=assert(api.tempKey(api.mudlet.key.Escape,self.close),'Cannot register utility dismissal') end
+      closeButton:setToolTip('Close (Shift+Escape)')
+      if api.tempKey and api.mudlet and api.mudlet.key then
+        menuHandle=assert(ui.menuKeys.push(OWNER,{close=self.close,next=function() highlight(1) end,previous=function() highlight(-1) end,
+          activate=function() local choice=choices[selected];if choice then choice.run() end end}))
+      end
       layout()
     end)
     if not ok then self.close();self.last='Utility menu failed: '..tostring(err);return false,self.last end

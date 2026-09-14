@@ -1,3 +1,88 @@
+# 0.24.0-dev.16 contextual menu keyboard controls — 2026-09-13
+
+- **424 tests passed** after the pinned Muddler build. Six new cases cover
+  topmost scope dispatch, stale native callbacks, partial key-registration
+  rollback, reserved typing keys, nested menus, settings suspension, literal
+  filtering/selection, explicit activation, disconnected item-action guards and
+  teardown without deleting unrelated keys.
+- CRC/XML/source consistency and the read-only package inspector passed:
+  60 archive entries, no diagnostics. Package SHA256:
+  `4f8949c7294553056319189d3b330ecb895de6667d66bdcc41b7b49a97ab2735`.
+- Ordinary-line indexed timings at 10/50/200/512 mobs were
+  0.98/0.88/0.96/0.91 ms, with 97.2/99.5/99.9/99.9% reductions against the
+  snapshot baseline. These are Lua benchmark results, not native latency.
+- Backed up the complete disconnected **AardwolfToolboxSettingsTest** profile,
+  settings, databases, package and map to `backups/offline-menu-keyboard-20260913/`.
+  Reproduced plain Escape leaving the old workspace open while selecting the
+  command-input text. Mudlet 5.0.1 source confirms its completion handler
+  intercepts this key before user keybindings.
+- Installed dev.16 in that profile only. Using intercepted dispatch and the
+  existing `native_foundation.lua` / `native_workspace.lua` fixtures, mouse-opened
+  Item actions; Alt+Enter before selection did nothing; Alt+J selected Wear;
+  Alt+Enter closed the menu and reported disconnected without dispatch.
+  Shift+Escape closed the menu alone, then the workspace on the next press.
+- Typed `Open inventory` into Tools search and pressed Enter: it filtered
+  locally. Alt+J visibly selected the result; Alt+Enter opened the workspace.
+  The main input retained `Keyboard preservation fixture` throughout these
+  checks. Subsequent Lua cleanup commands intentionally replaced that test text.
+- Native fixture restoration, shutdown, widget removal and repeated startup
+  passed with no feature activation errors or remaining menu scopes. Zero
+  gameplay/informational commands were dispatched; only intercepted
+  Core.Supports messages occurred during the lifecycle check. All source Lua
+  resources match the archive and installed files. Settings are identical to
+  the backup, and all eight native map rooms are preserved byte-for-byte:
+  8,376 bytes, SHA256 `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- `native_menu_keyboard.lua` provides a reusable offline checklist and guarded
+  restoration. Its Lua 5.1 syntax passed; the equivalent interactions above
+  were performed through the existing fixtures. External-window focus,
+  multi-monitor behavior, other menu families, all size presets and broad
+  keyboard accessibility remain pending. No player profile was controlled,
+  no movement/casting/item commands were tested live, and no preferences changed.
+
+# 0.24.0-dev.15 local chat history — 2026-09-13
+
+- **418 tests passed** after the pinned Muddler build, including eight new chat
+  history cases: opt-in/fresh identity, one router event across multiple views,
+  hidden channels, own-message unread behavior, identical repeated messages,
+  ANSI/raw decoding, UTF-8 and JSON-size bounds, reset/stale callbacks, storage
+  errors, export/clear, literal paging, diagnostics privacy and deferred capture.
+- Archive CRC/XML/source consistency passed. The read-only package inspector
+  reports 59 entries without diagnostics; config.lua was not executed.
+- Package SHA256: `7247679c441871f3d91f0ddbcdd8b82c227b4d07d2884525fd8a14b0111b2727`.
+- Ordinary-line indexed benchmark at 10/50/200/512 mobs: 0.86/0.85/0.90/0.85 ms,
+  with 97.5/99.5/99.9/99.9% reductions against the snapshot baseline. These are
+  Lua timings, not native rendering or network latency.
+- With renewed user authorization for control, backed up and installed only in
+  disconnected **AardwolfToolboxSettingsTest**. Backup:
+  `backups/offline-chat-history-20260913/` includes the complete prior profile,
+  settings, package, databases and native map. Installed resources match source
+  and archive. The Aardwolf player profile was not controlled or modified.
+- `tests/native_chat_history.lua` emitted synthetic GMCP chat into the existing
+  native router: four accepted messages produced four history records, a hidden
+  channel produced none, and an outgoing tell did not increase unread counts.
+  Literal Unicode/angle brackets and received/outgoing labels rendered correctly.
+- Native mouse checks passed for Chat JSON export, clear cancellation, confirmed
+  clear and Settings Apply disabling recording. Export contents were checked and
+  copied to the backup folder. External Float, native Close, reopen with the same
+  window/content and return to profile passed. No product-code changes were
+  needed during acceptance.
+- Cleared fixture database rows and removed the profile export; restored history,
+  chat-format/filter and placement preferences. Unread/mention counters returned
+  to their initial zero state. Synthetic messages remain in disposable chat
+  scrollback; existing buffers were not erased. Recording is off. Stop/start,
+  repeated startup and native window-tree cleanup passed without runtime errors.
+  Intercepted dispatch was limited to Core.Supports negotiation; no gameplay
+  commands or connection were sent. The fixture now snapshots counters for future
+  cleanup rather than assuming zero; that helper change received syntax validation.
+- Before/after native map files are byte-identical: 8 rooms, 8,376 bytes; SHA256
+  `c25b7815bdda0938fd46118039a367a620daf0487fffa7c7420aeaa0e661c33c`.
+- Pending: naturally arriving server chat, starter-only text history (not in this
+  feature), full size/Retina matrix, external content mouse/keyboard and tooltip
+  acceptance, Windows/Linux and player-profile installation. The four optional
+  history categories are implemented; broader roadmap acceptance is unfinished.
+
+---
+
 # 0.24.0-dev.14 observed kill history candidate — 2026-09-13
 
 - **410 tests passed** after the pinned Muddler build. Nine new tests cover kill

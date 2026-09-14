@@ -13,10 +13,10 @@ function Browser.definition(apply)
 end
 function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,openSettings,itemActions)
   local self={enabled=false,last='Disabled'}
-  local root,header,closeButton,active,escapeKey
+  local root,header,closeButton,active,workspaceHandle
   local entries,tabs,handlers={}, {}, {}
   local epoch,building=0,false
-  local menu,menuKey,menuEpoch=nil,nil,0
+  local menu,menuHandle,menuEpoch=nil,nil,0
   local layout,render,selectView
   local function label(name,parent,text,callback)
     local w=api.Geyser.Label:new({name=OWNER..'.'..name,x=0,y=0,width='100%',height=32},parent)
@@ -29,7 +29,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   local function message(e,text) e.feedback:echo(ui.escape(text)) end
   function self.closeMenu()
     menuEpoch=menuEpoch+1
-    if menuKey then api.killKey(menuKey);menuKey=nil end
+    if menuHandle then menuHandle.release();menuHandle=nil end
     if menu then menu:delete();menu=nil end
   end
   local function visible(id) return self.enabled and not building and views.available(id) and (views.mode(id)=='floating' or active==id) and views.visible(id) end
@@ -81,18 +81,22 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
   local function choose(e,title,options,page)
     self.closeMenu();page=page or 1
     local token=menuEpoch;local h=ui.metrics().height
+    local choices,selected={},0
     local w,height=e.root:get_width(),e.root:get_height()
     menu=api.Geyser.Container:new({name=OWNER..'.menu',x=0,y=0,width='100%',height='100%'},e.root)
     local bg=label('menu.background',menu,'');bg:resize('100%','100%');ui.style(bg)
     local header=label('menu.title',menu,ui.fit(title,math.max(1,w-80)));header:resize('100%-80',h)
     local close=label('menu.close',menu,'Close',self.closeMenu);close:move(w-80,0);close:resize(80,h)
-    local body=api.Geyser.ScrollBox:new({name=OWNER..'.menu.body',x=0,y=h,width='100%',height=math.max(h,height-2*h)},menu)
+    local hint=label('menu.hint',menu,'Alt+J/K selects · Alt+Enter runs · Shift+Esc closes');hint:move(0,h);hint:resize('100%',h*2)
+    local body=api.Geyser.ScrollBox:new({name=OWNER..'.menu.body',x=0,y=h*3,width='100%',height=math.max(h,height-4*h)},menu)
     for index=(page-1)*PAGE+1,math.min(page*PAGE,#options) do
       local option=options[index]
-      local button=label('menu.row.'..index,body,ui.fit(option.label,math.max(1,w-16)),function()
+      local function run()
         if token~=menuEpoch or not visible(e.id) then return end
         self.closeMenu();option.run()
-      end)
+      end
+      local button=label('menu.row.'..index,body,ui.fit(option.label,math.max(1,w-16)),run)
+      choices[#choices+1]={widget=button,run=run,label=option.label}
       button:move(0,(index-(page-1)*PAGE-1)*h);button:resize('100%',h)
       button:setToolTip(ui.escape(option.tooltip or option.label))
     end
@@ -101,10 +105,16 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       local button=label('menu.page.'..i,menu,entry[1],function() if token==menuEpoch then choose(e,title,options,entry[2]) end end)
       button:move((i-1)*w/3,height-h);button:resize(w/3,h)
     end
-    if not escapeKey then
-      menuKey=api.tempKey(api.mudlet.key.Escape,self.closeMenu)
-      if not menuKey then self.closeMenu();message(e,'Cannot register menu dismissal');return end
+    local function highlight(delta)
+      if #choices==0 then return end
+      selected=math.max(1,math.min(#choices,selected+delta))
+      for i,choice in ipairs(choices) do ui.style(choice.widget,true,i==selected) end
+      hint:echo(ui.escape(choices[selected].label)..'<br>Alt+Enter runs · Shift+Esc closes')
     end
+    local why
+    menuHandle,why=ui.menuKeys.push(OWNER..'.menu',{close=self.closeMenu,next=function() highlight(1) end,previous=function() highlight(-1) end,
+      activate=function() local choice=choices[selected];if choice then choice.run() end end})
+    if not menuHandle then self.closeMenu();message(e,why);return end
     menu:raiseAll()
   end
   local function itemMenu(e,comparison)
@@ -254,7 +264,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
         if views.mode(id)~='floating' then clearRows(e);resetSelection(e);e.dirty=true end
       end
     end
-    if escapeKey then api.killKey(escapeKey);escapeKey=nil end
+    if workspaceHandle then workspaceHandle.release();workspaceHandle=nil end
   end
   selectView=function(id)
     self.closeMenu()
@@ -262,9 +272,10 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
     for key,e in pairs(entries) do
       if views.mode(key)=='tabbed' then if key==id then e.root:show() else e.root:hide();clearRows(e);e.dirty=true end end
     end
-    if not escapeKey and api.tempKey and api.mudlet and api.mudlet.key then
-      escapeKey=api.tempKey(api.mudlet.key.Escape,function() if menu then self.closeMenu() else self.close() end end)
+    if not workspaceHandle and api.tempKey and api.mudlet and api.mudlet.key then
+      workspaceHandle=assert(ui.menuKeys.push(OWNER,{close=self.close}))
     end
+    if workspaceHandle then workspaceHandle.raise() end
     layout();local e=entries[id];if e.dirty then render(e) end
   end
   function self.open(id)
@@ -308,6 +319,7 @@ function Browser.new(api,config,ui,views,inventory,abilities,readiness,Text,open
       local bg=label('background',root,'');bg:resize('100%','100%');bg:setStyleSheet('QLabel { background: #151c23; border: 1px solid #83bde8; }')
       header=label('title',root,'Inventory and ability workspace')
       closeButton=label('close',root,'Close',function() if epoch==owned then self.close() end end)
+      closeButton:setToolTip('Close workspace (Shift+Escape)')
       for _,id in ipairs(IDS) do
         local key=id
         local e={id=id,rows={},search='',page=1,revision=0,dirty=true,scope=id=='equipment' and 'equipped' or 'carried'};entries[id]=e
