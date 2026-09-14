@@ -67,7 +67,14 @@ function Coordinator.new(api)
     requestSerial=requestSerial+1
     local entry={id=requestSerial,name=name,spec=spec,state='queued',queued=now(),reason='Queued'}
     local captured={}
-    for _,key in ipairs({'session','progression','visit'}) do captured[key]=spec[key]~=nil and spec[key] or context[key] end
+    -- Room-independent collectors opt out explicitly; legacy callers retain all contexts.
+    local keys=spec.contextKeys or {'session','progression','visit'}
+    assert(type(keys)=='table','Invalid query context keys')
+    local included={}
+    for _,key in ipairs(keys) do
+      assert((key=='session' or key=='progression' or key=='visit') and not included[key],'Invalid query context key')
+      included[key]=true; captured[key]=spec[key]~=nil and spec[key] or context[key]
+    end
     local handle={id=entry.id}
     entry.handle=handle; requests[name]=entry
     local function finish(ok,reason)

@@ -3,7 +3,7 @@ local Panels={}
 local function finite(n) return type(n)=="number" and n==n and math.abs(n)<math.huge end
 local function num(n) return finite(n) and string.format("%.0f",n) or "--" end
 local function duration(n) return string.format("%d:%02d",math.floor(n/60),n%60) end
-function Panels.new(api,config,cache,data,ui,spells,spellup,views)
+function Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
   local self={}; local panes={}
   local function notify(message) if message then api.echo("Aardwolf dashboard: "..tostring(message).."\n") end end
   local function widget(p,id,parent,button,fn)
@@ -11,9 +11,10 @@ function Panels.new(api,config,cache,data,ui,spells,spellup,views)
     if not b then
       b=api.Geyser.Label:new({name="AardwolfToolbox.dashboard."..p.id.."."..id,x=0,y=0,width=1,height=1},parent)
       p.widgets[id]=b
-      b.selectable=p.id=="quest" and not button
-      if fn then b:setClickCallback(function() if panes[p.id]==p then fn() end end) end
+      b.selectable=(p.id=="quest" or p.id=="campaign" or p.id=="globalQuest") and not button
+      if fn then b:setClickCallback(function() if panes[p.id]==p and b.action then b.action() end end) end
     end
+    b.action=fn
     return b
   end
   local function paint(b,text,x,y,w,h,color,button,rich,alignment)
@@ -130,6 +131,100 @@ function Panels.new(api,config,cache,data,ui,spells,spellup,views)
           local key="match_"..match.id; used[key]=true
           local b=widget(p,key,p.body,true,function() if p.questIdentity==identity then api.centerview(match.id) end end)
           paint(b,match.name.." · "..tostring(match.area or "Unknown area").." #"..match.id,0,y,width,m.height,"#8fcaf0",true); y=y+m.height
+        end
+      end
+    elseif objectives and objectives[id] then
+      local service=objectives[id];local q=service.snapshot();local report=service.status()
+      status=(id=="campaign" and "Campaign" or "Global Quest").." · "..q.state..(q.fresh and "" or " · Stale")
+      p.statusTip=report.last
+      statusColor=q.fresh and "#8fcaf0" or "#abbcca"
+      if finite(q.remainingSeconds) then
+        local remaining=math.max(0,math.ceil(q.remainingSeconds-(api.getEpoch()-(q.reported or api.getEpoch()))))
+        status=status.." · "..(remaining>0 and "~"..duration(remaining) or "Awaiting update")
+      end
+      line("source",report.last,nil,"#abbcca")
+      if q.today~=nil then line("today","Campaigns today",num(q.today)) end
+      if id=="globalQuest" then
+        line("participation",q.fresh and q.participating and ("Participating · #"..tostring(q.eventId or "?")) or "Participation unconfirmed",nil,"#abbcca")
+      end
+      local function choose(key,text,fn,tip)
+        used[key]=true;local b=widget(p,key,p.body,true,fn)
+        local h=math.max(m.height,math.ceil(ui.measure(text)/math.max(30,width-12))*row)
+        paint(b,text,0,y,width,h,"#8fcaf0",true);b:setToolTip(ui.escape(tip or text));y=y+h
+      end
+      for _,e in ipairs(q.events or {}) do
+        local number=e.id
+        choose("event_"..number,"#"..number.." · "..(e.state or "Unknown")..(e.minLevel and " · Lv "..e.minLevel.."–"..tostring(e.maxLevel or "?") or ""),function()
+          p.details=true;local ok,why=service.inspect(number);if not ok then notify(why) end
+        end,"Request informational event details; never joins")
+      end
+      if id=="globalQuest" and q.availabilityKnown and #(q.events or {})==0 then line("none","No events in last availability response",nil,"#abbcca") end
+      local visibleObjectives=id=="campaign" or q.fresh and q.participating
+      local function displayed(current)
+        if id=="globalQuest" and current.selected and p.details~=false then return current.selected end
+        return current
+      end
+      local shown=displayed(q)
+      if id=="globalQuest" and q.selected and p.details~=false then
+        visibleObjectives=true
+        line("selectedEvent","Event details · #"..q.selected.eventId.." · "..q.selected.state..(q.selected.fresh and "" or " · Stale"),nil,"#8fcaf0")
+        line("selectedScope","Public event objectives; not personal progress",nil,"#abbcca")
+      end
+      local identity=api.yajl.to_string({shown.eventId or false,shown.objectives or {},shown.fresh})
+      if identity~=p.objectiveIdentity then p.matches=nil;p.selected=nil;p.objectiveIdentity=identity end
+      if visibleObjectives then
+        for index,o in ipairs(shown.objectives or {}) do
+          choose("objective_"..index,(p.selected==index and "› " or "")..o.name..
+            (o.remaining~=nil and " · "..o.remaining.." remaining" or o.quantity and " · "..o.quantity.." required" or "")..
+            (o.unavailable and " · Unavailable (not credited)" or ""),function()
+              p.selected=index;p.matches=nil;self.render(id)
+            end,"Select for local map lookup; identity is unverified")
+          line("location_"..index,o.room and "Room: "..o.room or o.area and "Area: "..o.area or o.location and "Location (type unknown): "..o.location or "Location unknown",nil,"#abbcca")
+        end
+      end
+      for _,key in ipairs({"rewards","awards"}) do
+        local rewards=shown[key] or {}
+        for _,field in ipairs({"qp","gold","tp","trains","pracs"}) do
+          if rewards[field]~=nil then line(key..field,(key=="rewards" and "Advertised " or "Observed award ")..field,num(rewards[field])) end
+        end
+      end
+      if id=="globalQuest" and q.selected then
+        action("scope",p.details==false and "Event details" or "My progress",function() p.details=p.details==false;self.render(id) end,"Switch between inspected public details and personal progress")
+      end
+      action("refresh","Refresh",function() local ok,why=service.refresh();if not ok then notify(why) end end,"Informational refresh; unsupported formats stay visible")
+      action("copy","Copy",function()
+        local current=displayed(service.snapshot());local lines={status}
+        for _,o in ipairs(current.objectives or {}) do lines[#lines+1]=o.name.." · "..(o.room or o.area or o.location or "Unknown location") end
+        if api.setClipboardText then api.setClipboardText(table.concat(lines,"\n")) else notify("Clipboard unavailable") end
+      end,"Copy last observed details")
+      action("find","Find on map",function()
+        local current=displayed(service.snapshot());local o=current.objectives and current.objectives[p.selected or 0]
+        if not o then notify("Select an objective first");return end
+        p.matches={};local areas=api.getAreaTableSwap and api.getAreaTableSwap() or {}
+        local query=o.room or o.location
+        if query and api.searchRoom then
+          for roomId,name in pairs(api.searchRoom(query,false,true) or {}) do
+            local areaName=areas[api.getRoomArea(roomId)]
+            if not o.area or areaName and areaName:lower()==o.area:lower() then p.matches[#p.matches+1]={id=roomId,name=name,area=areaName} end
+          end
+        end
+        if o.area and api.getAreaRooms then
+          for areaId,name in pairs(areas) do if name:lower()==o.area:lower() then
+            local roomIds=api.getAreaRooms(areaId) or {};local first
+            for _,roomId in pairs(roomIds) do if not first or roomId<first then first=roomId end end
+            if first and not o.room then p.matches[#p.matches+1]={id=first,name="Area: "..name,area=name} end
+          end end
+        end
+        table.sort(p.matches,function(a,b) return a.id<b.id end);self.render(id)
+      end,"Find the selected reported location in the saved map; never walks")
+      if p.matches then
+        if #p.matches==0 then line("noMatches","No matching location in the saved map",nil,"#abbcca") end
+        for index,match in ipairs(p.matches) do
+          if index>200 then line("matchLimit","First 200 matches shown");break end
+          choose("match_"..match.id,match.name.." · "..tostring(match.area or "Unknown area").." #"..match.id,function()
+            local latest=displayed(service.snapshot())
+            if api.yajl.to_string({latest.eventId or false,latest.objectives or {},latest.fresh})==identity then api.centerview(match.id) end
+          end,"Center the saved map here; no movement")
         end
       end
     elseif id=="group" then

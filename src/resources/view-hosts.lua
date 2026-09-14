@@ -2,7 +2,7 @@
 local Views={}
 local IDS={"player","quest","group","buffs","all","tells","channels","clan","newbie"}
 local function finite(n) return type(n)=="number" and n==n and math.abs(n)<math.huge end
-local function title(id) return id:sub(1,1):upper()..id:sub(2) end
+local function title(id) return id=="globalQuest" and "Global Quest" or id:sub(1,1):upper()..id:sub(2) end
 function Views.definition(apply)
   local settings={}
   for _,id in ipairs(IDS) do settings[#settings+1]={key=id,type="choice",default="tabbed",label=title(id).." placement",

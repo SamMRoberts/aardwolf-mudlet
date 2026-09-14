@@ -31,7 +31,7 @@ class ViewTests(unittest.TestCase):
     def test_detaching_sections_reallocates_space_without_recreating_map(self):
         self.lua.execute('''
           local map=BaseUI.map; local initial=BaseUI.sections.map:get_height()
-          for _,id in ipairs({'player','quest','group','buffs','all','tells','channels','clan','newbie'}) do assert(v.setMode(id,'floating')) end
+          for _,id in ipairs({'player','quest','campaign','globalQuest','group','buffs','all','tells','channels','clan','newbie'}) do assert(v.setMode(id,'floating')) end
           flushEvents()
           assert(BaseUI.sections.chat.hidden and widgets['AardwolfToolbox.dashboard.root'].hidden)
           assert(BaseUI.sections.map:get_height()>initial and BaseUI.map==map)

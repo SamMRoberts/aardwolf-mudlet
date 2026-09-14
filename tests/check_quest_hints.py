@@ -108,3 +108,26 @@ class QuestHintUITests(unittest.TestCase):
           quest({action='status',targ='missing'});assert(not m.snapshot().rows[1].objective)
           assert(#sent==n)
         ''')
+
+class CampaignHintUITests(unittest.TestCase):
+    setUp = actions.MobActionUITests.setUp
+
+    def test_individual_candidates_location_exclusions_and_reset(self):
+        self.lua.execute('''
+          local hints={{source='campaign',candidate=true,target='a small bat'},
+            {source='globalQuest',candidate=true,target='a small bat'}}
+          t.campaign.hints=function() return hints end
+          fire('AardwolfToolbox.campaign.updated');m.clearSelection()
+          local s=m.snapshot();local row=s.rows[1];local card=mobCard(row.id)
+          assert(#row.objectives==2 and not row.objective)
+          assert(card.text:find('CP?',1,true) and card.text:find('GQ?',1,true))
+          assert(card.tip:find('identity is unverified',1,true))
+          local before=#sent;local revision=s.revision
+          hints[1].room='Not the current room';gmcp.room={info={num=321,name='Current room',zone='academy'}}
+          fire('gmcp.room','gmcp.room.info');fire('AardwolfToolbox.campaign.updated');m.clearSelection()
+          -- Location matching is presentation only; no commands or fighting evidence.
+          assert(#sent==before and m.snapshot().revision==revision)
+          assert(not card.text:find('CP?',1,true) and card.text:find('GQ?',1,true))
+          hints={};fire('AardwolfToolbox.campaign.reset');m.clearSelection()
+          assert(not card.text:find('CP?',1,true) and not card.text:find('GQ?',1,true))
+        ''')

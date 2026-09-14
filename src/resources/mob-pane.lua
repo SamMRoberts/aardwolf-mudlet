@@ -199,6 +199,12 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
         if r.missing>0 then badges[#badges+1]='No longer seen'; color='#93a4b4'; symbol='? ' end
         if r.unclassified then badges[#badges+1]='Opponent · type unknown' end
         if options.quest_hints and r.objective then badges[#badges+1]='Quest?' end
+        local seen={}
+        for _,hint in ipairs(r.objectives or {}) do
+          if hint.source~='quest' and not seen[hint.source] then
+            badges[#badges+1]=hint.source=='campaign' and 'CP?' or 'GQ?';seen[hint.source]=true
+          end
+        end
         local name=r.name..(r.duplicates and r.duplicates>1 and '  #'..r.ordinal or '')
         local title=(options.symbols and symbol or '')..name
         entries[#entries+1]={row=r,title=title,detail=table.concat(badges,' · '),rating=rating,color=options.colors and color or '#bac8d5'}
@@ -262,6 +268,12 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
           objective='\nQuest candidate: exact name match only; identity is unverified.'..
             '\nTarget: '..q.target..(q.room and '\nRoom: '..q.room or '')..(q.area and '\nArea: '..q.area or '')..
             ((q.matches or 0)>1 and '\n'..q.matches..' matching mobs; none is confirmed as the quest target.' or '')
+        end
+        for _,hint in ipairs(r.objectives or {}) do
+          if hint.source~='quest' then
+            objective=objective..'\n'..(hint.source=='campaign' and 'Campaign' or 'Global Quest')..' candidate: exact name match only; identity is unverified.'..
+              (hint.room and '\nRoom: '..hint.room or '')..(hint.area and '\nArea: '..hint.area or '')
+          end
         end
         tip(card,ui.escape(r.name..objective..(r.flags~='' and '\n'..r.flags or '')..(entry.rating and '\nConsider: '..entry.rating.label..' · '..entry.rating.range..' relative to you' or '')..(r.alive>0 and not r.unclassified and '\n'..(actions and actions.describe() or 'Double-click: kill')..' · '..(r.ordinal or 1)..'.'..r.name:match('%S+$')..(options.context_menu and '\nRight-click for actions' or '') or '\n'..entry.detail)))
       end

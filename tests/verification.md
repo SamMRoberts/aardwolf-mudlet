@@ -1,3 +1,32 @@
+# 0.24.0-dev.22 campaign/GQ groundwork — 2026-09-14
+
+- Pinned toolchain bootstrap restored the missing local Java runtime. Muddler
+  build, archive CRC/XML/resource consistency and all **467 tests** passed.
+  `/private/tmp/aardwolf-objectives-check.log` records the final run.
+- New contracts cover the supplied inactive/available campaign response, session-only
+  broker contexts, suppression and foreign-frame ownership, deadlines, cancellation,
+  identity changes, normalized-state validation, transactional SQLite failures,
+  independent GQ inspection, stale participation, lifecycle, external-view hosting,
+  local map lookup and individual candidate mob badges. Synthetic transport/model
+  fixtures are explicitly distinguished from the one user-provided response.
+- The existing history test now counts connections to its own database, preserving
+  its no-history-writes assertion while allowing the independent latest-observation
+  database. Dashboard section-collapse coverage includes both new views. Archive
+  inventory includes the four new resources.
+- Ordinary-line benchmark at 10/50/200/512 mobs remained under 1 ms per 2,000 lines
+  for the indexed path in this run. This is a Lua benchmark, not native rendering.
+- **No Mudlet control, installation, server queries, or map/profile mutations.**
+  `native_objectives.lua` is provided for later authorized disconnected-profile
+  presentation acceptance; it has not been executed in Mudlet.
+- Active campaign objectives/terminal events and all GQ wire formats remain
+  unsupported pending current observed examples. Automatic echo boundaries have
+  no native acceptance. The manual inactive campaign path can establish boundaries
+  for that operation during a later user-initiated refresh. The full requested
+  capture feature and the roadmap milestone are not complete.
+- See [capture status, APIs and missing fixtures](../docs/campaign-global-quest.md).
+  Dev.21 remains the previously installed offline candidate; no installation state
+  is inferred from building dev.22.
+
 # 0.24.0-dev.21 notification reader — 2026-09-13
 
 - Pinned Muddler build and all **451 tests** passed, including seven new contracts

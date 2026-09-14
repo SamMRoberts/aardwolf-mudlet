@@ -1,7 +1,13 @@
-# AardwolfToolbox 0.24.0-dev.21
+# AardwolfToolbox 0.24.0-dev.22
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).
+
+**Campaign / Global Quest groundwork:** separate tabs, external placement, latest-observation
+storage, informational request coordination and candidate mob hints are available.
+Only the supplied **inactive/available campaign response** has an observed fixture.
+Active campaign and all GQ capture remain gated pending complete server samples;
+automatic request boundaries still need native acceptance. See [capture status and controls](docs/campaign-global-quest.md).
 
 **Notification reader:** select with **Alt+J/K**, page with **Alt+H/L**, and mark
 only the selected notice read with **Alt+Enter**. Full text appears below the list;

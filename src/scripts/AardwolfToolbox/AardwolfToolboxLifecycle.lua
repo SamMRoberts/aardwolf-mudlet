@@ -194,6 +194,22 @@ local function initialize()
     return AardwolfToolbox.spellup.configure(values)
   end})
 
+  local ObjectiveState=resource("objective-state")
+  own("objectiveStore",resource("objective-store").new(_G,ObjectiveState),{},"destroy")
+  local ObjectiveTracker=resource("objective-tracker")
+  local objectiveSources={}
+  for _,id in ipairs({"campaign","globalQuest"}) do
+    local service=own(id,ObjectiveTracker.new(_G,id,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
+      AardwolfToolbox.queries,AardwolfToolbox.readiness,AardwolfToolbox.objectiveStore,ObjectiveState,
+      resource("objective-protocol")),{"gmcp","incoming","queries","readiness","objectiveStore"},"stop")
+    objectiveSources[id]=service
+    config.registerFeature(ObjectiveTracker.definition(id,function(values)
+      local ok,why=service.configure(values)
+      if AardwolfToolbox.views then AardwolfToolbox.views.configure() end
+      return ok,why
+    end))
+  end
+
   local Views=resource("view-hosts")
   own("views",Views.new(_G,config,AardwolfToolbox.ui,function()
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("views")
@@ -202,7 +218,7 @@ local function initialize()
   own("dashboardData",resource("dashboard-data").new(_G,AardwolfToolbox.gmcp),{"gmcp"},"stop")
   own("dashboard",resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
     AardwolfToolbox.dashboardData,AardwolfToolbox.ui,AardwolfToolbox.borders,
-    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell,resource("chat-search")),{"gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
+    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell,resource("chat-search"),objectiveSources),{"campaign","globalQuest","gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
   config.registerFeature({id="dashboard",label="Dashboard and layout",description="Tabbed maps and gameplay views above chat. Drag the dividers to resize. Reset layout restores placement without clearing data.",settings={
     {key="enabled",type="boolean",default=true,label="Enable tabbed sidebar"},
     {key="automatic_data",type="boolean",default=true,label="Automatic GMCP data setup"},
@@ -214,7 +230,7 @@ local function initialize()
     {key="dashboard_percent",type="number",default=30,min=20,max=60,integer=true,label="Dashboard height share (%)"},
     {key="map_tab",type="choice",default="graphical",label="Map view",options={{value="graphical",label="Graphical"},{value="ascii",label="ASCII"}}},
     {key="ascii_popout",type="boolean",default=false,label="Pop out ASCII map"},
-    {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="group",label="Group"},{value="buffs",label="Buffs"}}},
+    {key="tab",type="choice",default="player",label="Dashboard view",options={{value="player",label="Player"},{value="quest",label="Quest"},{value="campaign",label="Campaign"},{value="globalQuest",label="Global Quest"},{value="group",label="Group"},{value="buffs",label="Buffs"}}},
   },validate=function(values) return values.map_percent+values.dashboard_percent<=80,"Map and dashboard shares must leave at least 20% for chat." end,apply=AardwolfToolbox.dashboard.configure})
 
   config.registerFeature({id="diagnostics",label="Diagnostics",description="Feature activation, freshness and request status. Reports contain no raw gameplay logs.",settings={
@@ -234,7 +250,13 @@ local function initialize()
     end,AardwolfToolbox.consider,MobActions,config,function()
       local data=AardwolfToolbox.dashboardData
       if data and data.enabled then return data.questSnapshot() end
-    end),{"config","gmcp","incoming","queries"})
+    end,function()
+      local hints={}
+      for _,id in ipairs({"campaign","globalQuest"}) do
+        for _,hint in ipairs(AardwolfToolbox[id].hints()) do hints[#hints+1]=hint end
+      end
+      return hints
+    end),{"config","gmcp","incoming","queries","campaign","globalQuest"})
   config.registerFeature(Mobs.definition(AardwolfToolbox.mobs.configure,MobActions))
 
   local Shortcuts=resource("shortcuts")
@@ -298,7 +320,7 @@ local function initialize()
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications","history"}) do
+  for _,id in ipairs({"player","quest","campaign","globalQuest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications","history"}) do
     local view=id
     launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
@@ -320,6 +342,8 @@ local function initialize()
     {"inventory","Refresh carried inventory","inventory","refresh","carried"},
     {"equipment","Refresh equipment","inventory","refresh","equipped"},
     {"quest","Refresh quest status","dashboardData","requestQuest"},
+    {"campaign","Refresh campaign","campaign","refresh"},
+    {"globalQuest","Refresh global quests","globalQuest","refresh"},
   }) do
     local request=entry
     launcher.register({id="refresh."..request[1],label=request[2],policy="information",
@@ -378,7 +402,7 @@ function AardwolfToolbox.openSettings()
           " · Actual: "..(mapper.enabled and "running" or "stopped").." · "..mapper.last
       end
       if id=="spellups" then return AardwolfToolbox.spells.last.." · "..AardwolfToolbox.spellup.last end
-      local key=id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
+      local key=id=="global_quest" and "globalQuest" or id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
       local component=AardwolfToolbox[key]
       return AardwolfToolbox.config.runtimeErrors[id] or (component and component.last) or "Settings ready"
     end,AardwolfToolbox.ui,function() return AardwolfToolbox.dashboard.resetLayout() end,AardwolfToolbox.abilities,resource("ability-picker"),AardwolfToolbox.health,AardwolfToolbox.exportDiagnostics),{"config","mapper","spells","spellup","ui","dashboard","abilities"},"stop")
@@ -423,6 +447,8 @@ function AardwolfToolbox.health()
   end
   if AardwolfToolbox.queries then result.queries=AardwolfToolbox.queries.snapshot() end
   if AardwolfToolbox.abilities then result.catalog=AardwolfToolbox.abilities.status() end
+  if AardwolfToolbox.campaign then result.campaign=AardwolfToolbox.campaign.status() end
+  if AardwolfToolbox.globalQuest then result.globalQuest=AardwolfToolbox.globalQuest.status() end
   if result.catalog then result.catalog.character=nil end
   if AardwolfToolbox.inventory then result.inventory=AardwolfToolbox.inventory.status() end
   if AardwolfToolbox.spells then result.spells=AardwolfToolbox.spells.status() end

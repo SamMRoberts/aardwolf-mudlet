@@ -38,7 +38,7 @@ function Mobs.definition(apply,Actions)
   for _,setting in ipairs(Actions.settings()) do definition.settings[#definition.settings+1]=setting end
   return definition
 end
-function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings,consider,Actions,config,questSource)
+function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui,borders,settings,consider,Actions,config,questSource,objectiveSource)
   local self={enabled=false,last='Disabled'}
   local options,handlers={},{}
   local configuration=0; local actions; local view
@@ -86,6 +86,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     end
   end
   local questHint,questKey
+  local objectiveHints,objectiveKey={},""
   local function clean(value)
     if type(value)~='string' or #value>512 or value:find('[%z\1-\31\127]') then return nil end
     value=value:gsub('^%s+',''):gsub('%s+$',''):gsub('%s+',' ')
@@ -99,6 +100,18 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     local changed=key~=questKey;questKey=key;questHint=hint
     return changed
   end
+  local function readObjectives()
+    local hints=objectiveSource and objectiveSource() or {}
+    local kept,keys={},{}
+    for _,h in ipairs(hints) do
+      if (h.source=='campaign' or h.source=='globalQuest') and clean(h.target) then
+        kept[#kept+1]={source=h.source,target=clean(h.target),room=clean(h.room),area=clean(h.area),candidate=true}
+        keys[#keys+1]=table.concat({h.source,h.target,h.room or '',h.area or ''},'\0')
+      end
+    end
+    local key=table.concat(keys,'|');local changed=key~=objectiveKey
+    objectiveHints=kept;objectiveKey=key;return changed
+  end
   function self.snapshot()
     local result=model.snapshot(options.attack_window or 12)
     result.nearby=copy(nearby); result.ratings=copy(ratings)
@@ -109,6 +122,24 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
         if r.alive>0 and r.killed==0 and r.missing==0 and not r.unclassified and name and name:lower()==wanted then matches[#matches+1]=r end
       end
       for _,r in ipairs(matches) do r.objective=copy(questHint);r.objective.matches=#matches end
+    end
+    if result.fresh then
+      local room=cache.get('room.info') or {}
+      for _,hint in ipairs(objectiveHints) do
+        local matches={}
+        if (not hint.room or not room.name or hint.room:lower()==room.name:lower())
+            and (not hint.area or not room.zone or hint.area:lower()==room.zone:lower()) then
+          for _,r in ipairs(result.rows) do
+            if r.alive>0 and r.killed==0 and r.missing==0 and not r.unclassified and clean(r.name) and clean(r.name):lower()==hint.target:lower() then matches[#matches+1]=r end
+          end
+        end
+        for _,r in ipairs(matches) do
+          r.objectives=r.objectives or {};local h=copy(hint);h.matches=#matches;r.objectives[#r.objectives+1]=h
+        end
+      end
+    end
+    for _,r in ipairs(result.rows) do
+      if r.objective then r.objectives=r.objectives or {};table.insert(r.objectives,1,copy(r.objective)) end
     end
     return result
   end
@@ -126,7 +157,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     for _,r in ipairs(snapshot.rows) do
       local key=table.concat({r.name,r.flags,tostring(r.ordinal),tostring(r.selected),tostring(r.target),
         tostring(r.health),tostring(r.requested),tostring(r.attacking),r.alive,r.killed,r.missing,
-        r.consider and r.consider.id or '',r.objective and questKey or '',r.objective and r.objective.matches or ''},'|')
+        r.consider and r.consider.id or '',r.objective and questKey or '',r.objective and r.objective.matches or '',r.objectives and objectiveKey or ''},'|')
       nextRows[r.id]=key
       if lastRows[r.id]~=key then changed[#changed+1]=r.id end
     end
@@ -475,17 +506,20 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     for _,event in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,event) end;handlers={}
     incoming.remove(OWNER)
     if api.gmod then for _,m in ipairs({'Char','Room'}) do api.gmod.disableModule(OWNER,m) end end
-    model.clear(nil);nearby={fresh=false,sections={}};questHint=nil;questKey=nil;view.destroy();self.last='Disabled'
+    model.clear(nil);nearby={fresh=false,sections={}};questHint=nil;questKey=nil;objectiveHints={};objectiveKey='';view.destroy();self.last='Disabled'
   end
   self.destroy=self.stop
   function self.start()
     if self.enabled then return true end
     local ok,err=pcall(function()
-      self.enabled=true;readQuest();view.configure(options);reset()
+      self.enabled=true;readQuest();readObjectives();view.configure(options);reset()
       incoming.add(OWNER,17,receive,function(message) self.stop();self.last='Stopped: '..tostring(message);api.echo('Aardwolf mobs: '..self.last..'\n') end,nil,true)
       local function on(event,fn) handlers[#handlers+1]=event;assert(api.registerNamedEventHandler(OWNER,event,event,fn)) end
       on('AardwolfToolbox.gmcp.updated',gmcp);on('AardwolfToolbox.gmcp.cleared',reset);on('sysDisconnectionEvent',reset)
       on('AardwolfToolbox.dashboardData.updated',function() if readQuest() and options.quest_hints then update() end end)
+      for _,event in ipairs({'AardwolfToolbox.campaign.updated','AardwolfToolbox.campaign.reset','AardwolfToolbox.globalQuest.updated','AardwolfToolbox.globalQuest.reset'}) do
+        on(event,function() if readObjectives() then update() end end)
+      end
       on('AardwolfToolbox.queries.available',schedule);on('AardwolfToolbox.spellup.updated',schedule)
       on('AardwolfToolbox.settings.changed',function() if view.closeMenu then view.closeMenu() end end)
       on('AardwolfToolbox.settings.visibility',function(open) if view.closeMenu then view.closeMenu() end end)

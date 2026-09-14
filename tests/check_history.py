@@ -46,7 +46,14 @@ class HistoryTests(unittest.TestCase):
     def test_default_off_no_database_or_cached_replay(self):
         self.lua.execute('''
           local opens=0;local old=luasql.sqlite3
-          luasql.sqlite3=function() opens=opens+1;return old() end
+          luasql.sqlite3=function()
+            local env=old();local connect=env.connect
+            env.connect=function(self,path)
+              if path==s.path then opens=opens+1 end
+              return connect(self,path)
+            end
+            return env
+          end
           observe('char.base',{name='Tesobi',level=120});assert(not h.enabled and opens==0)
           enable();assert(opens==0)
           observe('char.status',{level=121});assert(opens==0)

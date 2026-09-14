@@ -4,13 +4,13 @@ local OWNER="AardwolfToolbox.dashboard"
 local function number(value)
   return type(value)=="number" and value==value and math.abs(value)<math.huge and string.format("%.0f",value) or "--"
 end
-function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell,ChatSearch)
+function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell,ChatSearch,objectives)
   local self={enabled=false,last="Disabled"}
   local options,adapter,timer,refreshTimer,drag
   local root,mapTabs,mapHost,body,playerHost,split1,split2,widthHandle,tabStrip
   local tabs,rows,handlers={},{},{}
   local hosts,chatHosts={},{}
-  local panels=Panels.new(api,config,cache,data,ui,spells,spellup,views)
+  local panels=Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
   local search=ChatSearch and ChatSearch.new(api,ui)
   local searchView
   function self.isEditing() return search and search.isEditing() or false end
@@ -22,6 +22,8 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   end
   local chatFirst=1
   local DASH={"player","quest","group","buffs"}
+  if objectives then DASH={"player","quest","campaign","globalQuest","group","buffs"} end
+  local function title(id) return id=="globalQuest" and "Global Quest" or id:sub(1,1):upper()..id:sub(2) end
   local CHAT={"all","tells","channels","clan","newbie"}
   local function docked(id) return id~=nil and views.mode(id)=="tabbed" and (id~="buffs" or config.get("spellups","show_tab")) end
   local busy=false
@@ -45,14 +47,14 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     local metrics=ui.metrics()
     local sizeKey=tostring(root:get_width())..metrics.font..metrics.size
     local key=table.concat({tostring(root:get_width()),metrics.font,tostring(metrics.size),options.tab,options.map_tab,
-      tostring(options.ascii_popout),tostring(config.get("spellups","show_tab")),views.mode("player"),views.mode("quest"),views.mode("group"),views.mode("buffs")},"|")
+      tostring(options.ascii_popout),tostring(config.get("spellups","show_tab")),views.mode("player"),views.mode("quest"),views.mode("group"),views.mode("buffs"),objectives and views.mode("campaign") or "",objectives and views.mode("globalQuest") or ""},"|")
     if tabPaintKey==key then return end
     tabPaintKey=key
     local h=metrics.height
     local entries,total={},0
     for _,name in ipairs(DASH) do
       if docked(name) then
-        local width=math.max(64,ui.measure(name:sub(1,1):upper()..name:sub(2))+24)
+        local width=math.max(64,ui.measure(title(name))+24)
         entries[#entries+1]={name=name,width=width}; total=total+width
       else tabs[name]:hide() end
     end
@@ -69,7 +71,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     local x=0
     for index,entry in ipairs(entries) do
       local b=tabs[entry.name]
-      ui.style(b,true,options.tab==entry.name); b:echo(entry.name:sub(1,1):upper()..entry.name:sub(2))
+      ui.style(b,true,options.tab==entry.name); b:echo(title(entry.name))
       if index>=tabFirst and (not overflow or x+entry.width<=available) then
         b:move(x,0); b:resize(entry.width,h); b:show(); x=x+entry.width
       else b:hide() end
@@ -105,7 +107,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       end
     end
     player.setVisible(views.visible("player"))
-    for _,id in ipairs({"quest","group","buffs"}) do panels.render(id) end
+    for _,id in ipairs(DASH) do if id~="player" then panels.render(id) end end
   end
 
   local function divider(name,parent,kind)
@@ -151,8 +153,8 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     tabs.popout=label("popout",mapTabs,"↗",function() save({ascii_popout=not options.ascii_popout}) end)
     tabs.popout:setToolTip("Pop out / dock ASCII map")
     tabStrip=api.Geyser.ScrollBox:new({name=OWNER..".tabStrip",x=0,y=0,width="100%",height=52},root)
-    for _,entry in ipairs({{"player","Player"},{"quest","Quest"},{"group","Group"},{"buffs","Buffs"}}) do
-      local key=entry[1]; tabs[key]=label(key,tabStrip,entry[2],function(event) views.open(key) end)
+    for _,key in ipairs(DASH) do
+      tabs[key]=label(key,tabStrip,title(key),function(event) views.open(key) end)
       tabs[key]:setClickCallback(function(event) if event and event.button=="RightButton" then views.menu(key) else views.open(key) end end)
     end
     for index,name in ipairs({"tabPrevious","tabNext"}) do
@@ -167,7 +169,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     for _,id in ipairs(DASH) do
       local host=api.Geyser.Container:new({name=OWNER..".host."..id,x=0,y=0,width="100%",height="100%"},body)
       hosts[id]=host
-      assert(views.register(id,{root=host,home=body,select=function() save({tab=id}) end}))
+      assert(views.register(id,{root=host,home=body,placement=objectives and objectives[id] and {feature=id=="globalQuest" and "global_quest" or id,key="placement"} or nil,select=function() save({tab=id}) end}))
       if id=="player" then playerHost=api.Geyser.ScrollBox:new({name=OWNER..".playerScroll",x=0,y=0,width="100%",height="100%"},host) else panels.mount(id,host) end
     end
     for _,id in ipairs(CHAT) do
@@ -465,7 +467,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       for i,item in ipairs({{"quest","Quest"},{"tick","Tick ago"},{"repop","Repop ago"}}) do
         bar.registerItem({id=item[1],label=item[2],order=20+i,overflowPriority=i,tooltip="Session-only server observations"})
       end
-      for _,event in ipairs({"AardwolfToolbox.actions.layout","AardwolfToolbox.views.changed","sysUserWindowResizeEvent","AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
+      for _,event in ipairs({"AardwolfToolbox.actions.layout","AardwolfToolbox.views.changed","sysUserWindowResizeEvent","AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.campaign.updated","AardwolfToolbox.campaign.reset","AardwolfToolbox.globalQuest.updated","AardwolfToolbox.globalQuest.reset","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,refresh),"Cannot register dashboard handler")
       end
