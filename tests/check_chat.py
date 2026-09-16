@@ -118,6 +118,60 @@ class ChatTests(unittest.TestCase):
           t.stop();assert(count(widgets)==0 and count(handlers)==0 and count(timers)==0)
         ''')
 
+    def test_tab_wheel_reveals_without_selecting_and_preserves_anchor(self):
+        self.lua.execute('''
+          assert(c.set('dashboard','width',360));settle();b.selectChatTab('all')
+          local function first()
+            for _,r in ipairs(c.get('chat','tabs')) do
+              local label=b.chatTabLabels[r.id]
+              if label and not label.hidden and label.x==0 then return r.id end
+            end
+          end
+          local wheel=b.chatTabLabels.all.wheelCallback
+          wheel({angleDeltaY=-40});wheel({angleDeltaY=-40});assert(first()=='all')
+          wheel({angleDeltaY=-40});assert(first()=='tells' and b.activeChatTab=='all')
+          wheel({angleDeltaX=-120});assert(first()=='clan' and b.activeChatTab=='all')
+          message('gossip','keep position');assert(first()=='clan')
+          local tabs=c.get('chat','tabs');tabs[2],tabs[3]=tabs[3],tabs[2]
+          assert(c.set('chat','tabs',tabs));settle();assert(first()=='clan')
+          assert(t.views.setMode('clan','floating'));settle();assert(first()=='tells')
+          widgets['AardwolfToolbox.dashboard.chatScrollSpace'].wheelCallback({angleDeltaY=12000})
+          assert(first()=='all');wheel({angleDeltaY=120});assert(first()=='all')
+          wheel({angleDeltaY=-12000});assert(not b.chatTabLabels.local_chat.hidden)
+          local last=first();wheel({angleDeltaY=-120});assert(first()==last)
+          assert(t.views.open('all'));assert(first()=='all')
+          wheel({angleDeltaY=-120});assert(first()~='all')
+          widgets['AardwolfToolbox.dashboard.chatNext'].callback()
+          widgets['AardwolfToolbox.views.menu.1'].callback();assert(first()=='all')
+          local console=b.chats.all;assert(not console.wheelCallback)
+          assert(c.set('dashboard','width',600));settle()
+          assert(b.activeChatTab=='all' and b.chats.all==console)
+          tabs={tabs[1]};assert(c.set('chat','tabs',tabs));settle()
+          wheel({angleDeltaY=-120});assert(first()=='all')
+          wheel(nil);wheel({angleDeltaY=0/0});wheel({angleDeltaX=math.huge})
+          t.stop();wheel({angleDeltaY=-120});assert(count(widgets)==0)
+        ''')
+
+    def test_tab_wheel_restores_borrowed_callbacks(self):
+        self.lua.execute('t.stop()')
+        self.lua.execute((check_package.ROOT/'tests/dashboard_api.lua').read_text())
+        self.lua.execute('''
+          dashboardStarter()
+          local label=BaseUI.chatTabLabels.all
+          local unbound=BaseUI.chatTabLabels.tells
+          local original=function() end
+          label:setWheelCallback(original,'borrowed',7)
+          assert(t.start());c=t.config;settle()
+          local owned=label.wheelCallback;assert(owned~=original)
+          assert(c.set('dashboard','enabled',false));settle()
+          assert(label.wheelCallback==original and label.wheelArgs[1]=='borrowed' and label.wheelArgs[2]==7)
+          assert(unbound.wheelCallback==nil)
+          owned({angleDeltaY=-120})
+          assert(c.set('dashboard','enabled',true));settle()
+          local replacement=function() end;label:setWheelCallback(replacement)
+          assert(c.set('dashboard','enabled',false));settle();assert(label.wheelCallback==replacement)
+        ''')
+
     def test_composer_never_expands_aliases_preserves_failed_drafts_and_awaits_echo(self):
         self.lua.execute('''
           local sent={};send=function(command,echo) assert(echo==false);sent[#sent+1]=command;return true end

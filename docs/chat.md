@@ -1,5 +1,9 @@
 # Chat and communications
 
+Scroll the horizontal tab row with a mouse wheel or trackpad to reveal earlier
+or later docked tabs. Scrolling does not switch conversations; click a tab to
+select it. Small gestures accumulate, and the strip stops at either end.
+
 When chat tabs overflow the sidebar, click **›** to choose from all enabled tabs
 in configured order. The popup includes floating tabs and unread/mention counts;
 selecting an entry opens that tab directly. Use **Close** or Escape to dismiss it.

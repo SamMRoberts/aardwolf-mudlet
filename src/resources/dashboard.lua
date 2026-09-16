@@ -21,6 +21,41 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     return search.open(chatHosts[id],adapter.base.chats[id])
   end
   local chatFirst,chatSelected=1,nil
+  local chatAnchor,chatWheelDelta,chatWheelAxis=nil,0,nil
+  local chatAvailable,chatLimit={},1
+  local chatWheelBindings={}
+  local chatFonts
+  local function restoreChatWheel(widget)
+    local saved=chatWheelBindings[widget]
+    if not saved then return end
+    if widget.wheelCallback==saved.callback then
+      widget:setWheelCallback(saved.original,unpack(saved.args or {}))
+    end
+    chatWheelBindings[widget]=nil
+  end
+  local function bindChatWheel(widget)
+    if chatWheelBindings[widget] then return end
+    local saved={original=widget.wheelCallback,args=widget.wheelArgs}
+    saved.callback=function(event)
+      if not self.enabled or not adapter or chatWheelBindings[widget]~=saved or type(event)~='table' then return end
+      if chatLimit<=1 then chatWheelDelta=0;return end
+      local x,y=tonumber(event.angleDeltaX) or 0,tonumber(event.angleDeltaY) or 0
+      local axis=math.abs(x)>math.abs(y) and 'x' or 'y'
+      local delta=axis=='x' and x or y
+      if delta~=delta or math.abs(delta)==math.huge or delta==0 then return end
+      if axis~=chatWheelAxis or chatWheelDelta*delta<0 then chatWheelDelta=0 end
+      chatWheelAxis=axis;chatWheelDelta=chatWheelDelta+delta
+      local steps=math.floor(math.abs(chatWheelDelta)/120)
+      if steps==0 then return end
+      local direction=chatWheelDelta>0 and -1 or 1
+      chatWheelDelta=chatWheelDelta+direction*steps*120
+      chatFirst=math.max(1,math.min(chatLimit,chatFirst+direction*steps))
+      if chatFirst==1 or chatFirst==chatLimit then chatWheelDelta=0 end
+      chatAnchor=chatAvailable[chatFirst]
+      chatFonts(adapter.base)
+    end
+    chatWheelBindings[widget]=saved;widget:setWheelCallback(saved.callback)
+  end
   local DASH={"player","quest","group","buffs"}
   if objectives then DASH={"player","quest","campaign","globalQuest","group","buffs"} end
   local function title(id) return id=="globalQuest" and "Global Quest" or id:sub(1,1):upper()..id:sub(2) end
@@ -145,6 +180,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     local wanted={};for _,id in ipairs(CHAT) do wanted[id]=true end
     for id,host in pairs(chatHosts) do
       if not wanted[id] then
+        restoreChatWheel(base.chatTabLabels[id])
         if workspace then workspace.unmount(id) end
         views.unregister(id);base.chats[id]:changeContainer(base.sections.chat.Inside)
         base.chats[id]:hide();base.chatTabLabels[id]:hide();host:delete();chatHosts[id]=nil
@@ -211,7 +247,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     widthHandle:setStyleSheet("QLabel { border: none; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 transparent,stop:0.46 transparent,stop:0.5 #344b60,stop:0.54 transparent,stop:1 transparent); }")
     player.setHost(playerHost)
   end
-  local function chatFonts(base)
+  chatFonts=function(base)
     local h=ui.metrics().height; local width=base.sections.chat.Inside:get_width()
     local available={}
     local chatLabels={}
@@ -226,12 +262,30 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       tabWidth=tabWidth+math.max(64,ui.measure(chatLabels[id])+16)
     end
     local overflow=tabWidth>tabSpace
+    local stripWidth=math.max(1,tabSpace-(overflow and h or 0))
+    chatAvailable=available;chatLimit=1
+    if overflow then
+      local used=0
+      chatLimit=#available
+      for i=#available,1,-1 do
+        local size=math.min(stripWidth,math.max(64,ui.measure(chatLabels[available[i]])+16))
+        if used+size>stripWidth then break end
+        used=used+size;chatLimit=i
+      end
+    end
+    for i,id in ipairs(available) do if id==chatAnchor then chatFirst=i;break end end
     if overflow and chatSelected~=base.activeChatTab then
       for i,id in ipairs(available) do if id==base.activeChatTab then chatFirst=i end end
     end
     chatSelected=base.activeChatTab
-    if #available>0 then chatFirst=math.max(1,math.min(chatFirst,#available)) end
-    if not overflow then chatFirst=1 end
+    chatFirst=math.max(1,math.min(chatFirst,chatLimit))
+    chatAnchor=available[chatFirst]
+    if not overflow then chatWheelDelta=0 end
+    if not tabs.chatScrollSpace then
+      tabs.chatScrollSpace=label('chatScrollSpace',base.sections.chat.Inside,'')
+      tabs.chatScrollSpace:setToolTip('Scroll to reveal chat tabs; click a tab to select it')
+      bindChatWheel(tabs.chatScrollSpace)
+    end
     if not tabs.chatNext then
       tabs.chatNext=label("chatNext",base.sections.chat.Inside,"›",function() views.menu(nil,CHAT) end)
       tabs.chatNext:setToolTip("Select a chat tab")
@@ -264,19 +318,22 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
         local menu=tabs["chatMenu."..id]; ui.style(menu,true); menu:echo("⋮"); menu:move(ww-h,0); menu:resize(h,h)
         if floating then latest:show(); menu:show() else latest:hide(); menu:hide() end
         local b=base.chatTabLabels[id]
+        bindChatWheel(b)
         b:setClickCallback(function(event) if event and event.button=="RightButton" then views.menu(id) else base.selectChatTab(id) end end)
         local position; for i,key in ipairs(available) do if key==id then position=i end end
         local count=(base.unread or {})[id] or 0
         local mentions=(base.mentions or {})[id] or 0
         b:setToolTip(count..' unread · '..mentions..' mentions')
-        local bw=math.max(64,ui.measure(chatLabels[id] or id)+16)
+        local bw=math.min(stripWidth,math.max(64,ui.measure(chatLabels[id] or id)+16))
         if position and position>=chatFirst and x+bw<=tabSpace-(overflow and h or 0) then
           local count=(base.unread or {})[id] or 0
           local mentions=(base.mentions or {})[id] or 0
-          ui.style(b,true,active); b:move(x,0); b:resize(bw,h); b:echo(chatLabels[id]); b:setToolTip(count..' unread · '..mentions..' mentions'); b:show(); x=x+bw
+          ui.style(b,true,active); b:move(x,0); b:resize(bw,h); b:echo(chatLabels[id]); b:setToolTip(count..' unread · '..mentions..' mentions · Scroll to reveal tabs'); b:show(); x=x+bw
         else b:hide() end
       end
     end
+    tabs.chatScrollSpace:move(x,0);tabs.chatScrollSpace:resize(math.max(1,stripWidth-x),h)
+    if stripWidth>x then tabs.chatScrollSpace:show() else tabs.chatScrollSpace:hide() end
     if search then
       if search.isEditing() and not views.visible(searchView) then search.close() end
       search.layout()
@@ -351,6 +408,9 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if not ok then error(err,0) end
   end
   local function restore()
+    for widget in pairs(chatWheelBindings) do restoreChatWheel(widget) end
+    chatFirst,chatSelected,chatAnchor,chatWheelDelta,chatWheelAxis=1,nil,nil,0,nil
+    chatAvailable,chatLimit={},1
     if search then search.stop() end
     if workspace then workspace.stop() end
     if not adapter then return end
@@ -367,7 +427,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       if a.base.chats[id] then a.base.chats[id]:changeContainer(a.base.sections.chat.Inside) end
       if chatHosts[id] then chatHosts[id]:delete() end
     end
-    for _,key in ipairs({"chatNext","chatLatest","chatViews"}) do if tabs[key] then tabs[key]:delete() end end
+    for _,key in ipairs({"chatNext","chatLatest","chatViews","chatScrollSpace"}) do if tabs[key] then tabs[key]:delete() end end
     hosts,chatHosts={},{}
     for _,id in ipairs(CHAT) do
       if a.originalSelect then a.base.chatTabLabels[id]:setClickCallback(a.originalSelect,id) end
@@ -434,6 +494,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       a.selectChat=function(key)
         if not base.chats[key] then return end
         if views.mode(key)=="floating" then views.open(key); return end
+        chatSelected=nil;chatWheelDelta=0
         base.activeChatTab=key; base.unread[key]=0; if base.mentions then base.mentions[key]=0 end; chatFonts(base)
       end
       a.noteChat=function(key,mention,outgoing)

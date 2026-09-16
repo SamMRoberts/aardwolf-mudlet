@@ -1,3 +1,31 @@
+# 0.25.0-dev.3 horizontal chat strip — 2026-09-16
+
+- `python3 tools/check.py` passed: Muddler 1.1.0 build, archive/XML/resource
+  checks, 507 built-package Lua 5.1 tests, and mob benchmarks. The package
+  inspector passed; `tests/native_chat_scroll.lua` passed Lua 5.1 syntax loading.
+- Regression coverage includes both wheel axes, accumulated small deltas,
+  boundaries, unchanged selection, incoming messages, reordered/floating tabs,
+  resizing, popup selection, and borrowed callback restoration.
+- Backed up disconnected `AardwolfToolboxSettingsTest` to
+  `/tmp/awtb-scroll-offline-profile-before.tgz`, then installed the explicit
+  built artifact. Native Mudlet 5.0.1 observations confirmed vertical scrolling
+  in both directions over labels/unused strip space, retained active console,
+  preserved scrolled chat position and `UNSENT SCROLL CHECK` main-input text,
+  and direct popup selection of Local.
+- Automated horizontal gestures delivered `angleDeltaX=0, angleDeltaY=0` in
+  native callbacks. An injected horizontal delta moved the strip in native Lua
+  without selecting another conversation; physical trackpad interaction remains
+  unverified. This is not a claim that physical trackpads deliver zero deltas.
+- Restored fixture preferences and dispatch functions, removed diagnostic
+  callbacks, and verified native nil-callback removal. Reinstalled the final
+  artifact after the cleanup adjustment and observed `FINAL_SCROLL_RESTART_OK`
+  after stop, stale-callback invocation, and restart. No player upgrade, map
+  mutation, or live test chat was performed.
+- Final artifact SHA-256:
+  `4e0abed75bbb41f8b4a22561029564c2dce2d0261ba8444492ff77ce32b96cf4`.
+  Logs: `/tmp/awtb-chat-scroll-check.log` and
+  `/tmp/awtb-chat-scroll-inspection.json`.
+
 # 0.25.0-dev.2 chat tab popup — 2026-09-16
 
 - `python3 tools/check.py` passed: Muddler 1.1.0 build, archive/XML/resource

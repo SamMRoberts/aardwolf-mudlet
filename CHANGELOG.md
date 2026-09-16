@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.25.0-dev.3 — scrollable chat tab strip
+
+- Reveal docked chat tabs with the mouse wheel or horizontal trackpad gestures,
+  without changing conversations; retain the `>` selection popup.
+- Accumulate small scroll deltas, clamp at the ends, preserve the visible tab
+  position during arrivals, and restore borrowed wheel callbacks on teardown.
+
 ## 0.25.0-dev.2 — chat tab selection menu
 
 - Replace chat overflow paging with a popup listing all enabled chat tabs in
