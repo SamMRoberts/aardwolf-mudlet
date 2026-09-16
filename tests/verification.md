@@ -1,3 +1,34 @@
+# 0.25.0-dev.1 GMCP communications — 2026-09-16
+
+- Built with pinned Muddler 1.1.0 using `python3 tools/check.py`.
+- **504 built-package Lua 5.1/Lupa tests passed**; archive/source checks, XML,
+  Lua resource/native-fixture syntax and existing mob benchmarks passed.
+  Build log: `/tmp/awtb-chat-check.log`.
+- Mudlet Toolbox package inspector reported no diagnostics. All three bundled
+  original mono PCM WAV files are valid and shorter than one second. This checks
+  file structure, not audible playback. Inspector: `/tmp/awtb-chat-inspection.json`.
+- Artifact: `build/AardwolfToolbox.mpackage`, SHA-256
+  `eb5e777b854faec2efe60c26d6e88dabe05a69944ab65590799b3f25645533bd`.
+- Added contracts cover grouped/unknown channel routing, repeated packets,
+  hidden/muted/highlighted/routed messages, previews, composer readiness and
+  rejection, drafts/conversations, alerts/cooldown, dynamic/record-backed views,
+  compatibility aliases, exact migration backup/failure, identity fencing,
+  lifecycle teardown and fail-safe rendering errors.
+- **Native and live acceptance blocked:** initial UI inspection identified
+  `AardwolfToolboxSettingsTest - Mudlet 5.0.1`; the next native operation failed
+  with `Sky Computer Use native pipe closed before response`. Recovery reported
+  `The Mac is locked and automatic unlock could not unlock it`.
+- No package installation, player-profile upgrade, map mutation, or live chat
+  send was performed. Native regex execution/limits, actual UI geometry, pointer
+  and keyboard behavior, audible previews, desktop notifications, live GMCP-only
+  negotiation/mirroring, and native cleanup remain **not verified**.
+- To resume: unlock the Mac; back up the disconnected test profile and map;
+  install this explicit artifact; run `native_foundation.lua` followed by
+  `native_communications.lua`; exercise controls and restore ChatQA before
+  foundation. Only after offline native acceptance, back up/upgrade Aardwolf,
+  assert map preservation and observe naturally arriving chat. No live test
+  messages are authorized by this acceptance plan.
+
 # 0.24.0-dev.30 Room mobs status tooltip — 2026-09-16
 
 - Removed the separate status label above the roster. The count/age summary

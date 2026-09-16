@@ -1,5 +1,7 @@
 -- Schema-driven, profile-local preferences. Construction never creates widgets.
 local Config = {}
+local CHAT_KEYS={timestamps=true,chat_colors=true,hidden_channels=true,mentions=true,mention_words=true}
+local CHAT_VIEWS={all=true,tells=true,channels=true,clan=true,newbie=true}
 local function copy(value)
   if type(value) ~= "table" then return value end
   local result = {}; for k,v in pairs(value) do result[k] = copy(v) end; return result
@@ -214,9 +216,9 @@ function Config.new(api, preferenceFiles)
     if self.active then notify(feature.id) end
   end
 
-  function self.recordOptions(id,key,fields)
+  function self.recordOptions(id,key,fields,field)
     local feature=assert(self.features[id],'Unknown feature')
-    for _,setting in ipairs(feature.settings) do
+    for _,setting in ipairs(field and {field} or feature.settings) do
       if setting.key==key and setting.recordSource then
         local result=copy(setting.options or {})
         for _,record in ipairs(fields[setting.recordSource] or {}) do
@@ -229,6 +231,11 @@ function Config.new(api, preferenceFiles)
   end
 
   function self.get(id, key)
+    if self.features.chat and id=='shell' and CHAT_KEYS[key] then return self.get('chat',key) end
+    if self.features.chat and id=='views' and CHAT_VIEWS[key] then
+      for _,tab in ipairs(self.get('chat','tabs')) do if tab.id==key then return tab.placement end end
+      return 'tabbed'
+    end
     assert(self.features[id], "Unknown feature: " .. tostring(id))
     local result = featureValues(id)
     assert(result[key] ~= nil, "Unknown setting: " .. tostring(key))
@@ -272,6 +279,40 @@ function Config.new(api, preferenceFiles)
     local renamed, renameError = api.os.rename(temporary, path)
     if not renamed then api.os.remove(temporary); return nil, "Cannot replace settings: " .. tostring(renameError) end
     legacyBytes=nil
+    return true
+  end
+  -- One-time additive chat migration, preserving exact old bytes before replacement.
+  function self.migrateChat(definition)
+    if self.readError then
+      for _,setting in ipairs(definition.settings) do if setting.key=='enabled' then setting.default=false end end
+      return true
+    end
+    if metadata.chatSchema==1 then return true end
+    local nextValues,nextMetadata=copy(values),copy(metadata)
+    local chat=nextValues.chat or {};nextValues.chat=chat
+    for _,setting in ipairs(definition.settings) do if chat[setting.key]==nil then chat[setting.key]=copy(setting.default) end end
+    for _,key in ipairs({'timestamps','chat_colors','hidden_channels','mentions','mention_words'}) do
+      if not (values.chat and values.chat[key]~=nil) and values.shell and values.shell[key]~=nil then chat[key]=copy(values.shell[key]) end
+    end
+    if not (values.chat and values.chat.tabs) then
+      for _,tab in ipairs(chat.tabs) do
+        local placement=values.views and values.views[tab.id]
+        if placement=='tabbed' or placement=='floating' then tab.placement=placement end
+      end
+    end
+    local ok,why=definition.validate(chat);if not ok then return nil,'Chat migration: '..tostring(why) end
+    nextMetadata.chatSchema=1
+    local f,err,code=api.io.open(path,'rb')
+    if f then
+      local original=f:read(1048577);local closed=f:close()
+      if not original or not closed then return nil,'Cannot read settings for chat migration' end
+      if not preferenceFiles then return nil,'Chat migration backup service unavailable' end
+      local backup;backup,why=preferenceFiles.backup(path,original)
+      if not backup then return nil,'Chat migration backup: '..tostring(why) end
+      nextMetadata.chatMigrationBackup=backup
+      ok,why=persist(nextValues,nextMetadata);if not ok then return nil,why end
+    elseif code~=2 then return nil,'Cannot inspect chat migration settings: '..tostring(err) end
+    values,metadata=nextValues,nextMetadata;self.revision=self.revision+1
     return true
   end
   function self.getMetadata(key) return copy(metadata[key]) end
@@ -432,6 +473,12 @@ function Config.new(api, preferenceFiles)
   end
 
   function self.set(id, key, value)
+    if self.features.chat and id=='shell' and CHAT_KEYS[key] then return self.set('chat',key,value) end
+    if self.features.chat and id=='views' and CHAT_VIEWS[key] then
+      local tabs=self.get('chat','tabs')
+      for _,tab in ipairs(tabs) do if tab.id==key then tab.placement=value;return self.set('chat','tabs',tabs) end end
+      return nil,'Chat tab is no longer configured'
+    end
     self.get(id, key) -- reject unknown keys before writing
     local draft, revision = self.draft(); draft[id][key] = value
     return self.apply(draft, revision)

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.25.0-dev.1 — configurable GMCP communications
+
+- Move Aardwolf channel reception into an owned communications service with
+  GMCP-only negotiation, main-console mirrors and reconnect/teardown handling.
+- Add eight editable starter tabs, record-backed floating placement, a local
+  composer, session drafts/sent recall, and private conversations.
+- Add ordered literal/regex filters, bounded regex matching, rule preview,
+  per-channel alert policies, quiet hours and opt-in desktop/audio alerts.
+- Bundle three original short tones with previews and local-file overrides.
+- Migrate existing chat preferences and placements with an exact backup; retain
+  optional history, literal rendering, starter buffers and shared UI ownership.
+- Add communications contract tests and a disconnected native acceptance fixture.
+  Native/live acceptance is tracked separately in tests/verification.md.
+
 ## 0.24.0-dev.21 — keyboard-accessible notification reader
 
 - Add Alt+J/K selection, Alt+H/L paging, Alt+Enter to mark the selected notice

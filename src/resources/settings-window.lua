@@ -161,6 +161,7 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
           end)
           y=y+controlHeight+4
           if recordSelection[key]==record.id then
+            if setting.editId then field({key='id',type='text',label='Channel identifier (server name)',maxLength=80},record) end
             local function abilityPicker()
             if selected=="actions" and key=="buttons" and picker and abilities then
               pickerViews[record.id]=pickerViews[record.id] or {}
@@ -209,10 +210,10 @@ function Window.new(api, config, runtimeStatus, ui, resetLayout, abilities, pick
           feedback("Unsaved changes")
         end)
       elseif setting.recordSource then
-        local function choices() return config.recordOptions(selected,key,draft[selected]) end
+        local function choices() return config.recordOptions(selected,key,draft[selected],setting) end
         local function display()
           for _,option in ipairs(choices()) do if option.value==target[key] then return option.label..'  ▸' end end
-          return 'Action deleted — choose another  ▸'
+          return (selected=='chat' and 'Record' or 'Action')..' deleted — choose another  ▸'
         end
         local button
         button=label(body,'reference',display(),4,y,'-8px',controlHeight,function()

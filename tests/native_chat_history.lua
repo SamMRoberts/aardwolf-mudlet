@@ -28,7 +28,7 @@ function AardwolfToolboxChatHistoryAcceptance.restore()
 end
 local draft,revision=t.config.draft()
 draft.history.progression=false;draft.history.quests=false;draft.history.kills=false;draft.history.chat=true
-draft.shell.chat_colors='ansi';draft.shell.hidden_channels='gossip'
+draft.chat.chat_colors='ansi';draft.chat.hidden_channels='gossip'
 assert(t.config.apply(draft,revision))
 gmcp=gmcp or {};gmcp.char={base={name=character}};raiseEvent('gmcp.char','gmcp.char.base')
 local function chat(channel,player,message)

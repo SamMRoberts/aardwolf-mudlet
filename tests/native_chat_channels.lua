@@ -14,7 +14,7 @@ gmcp=gmcp or {};gmcp.char={base={name='ChatFixture'}}
 raiseEvent('gmcp.char','gmcp.char.base')
 assert(t.views.open('all'))
 local beforeClan,beforeNewbie=b.unread.clan or 0,b.unread.newbie or 0
-local color=t.config.get('shell','chat_colors')=='raw' and '@G' or '\27[32m'
+local color=t.config.get('chat','chat_colors')=='raw' and '@G' or '\27[32m'
 message('clantalk','Friend',color..'Friend: Clan fixture — Éowyn <literal>')
 message('newbie','Newcomer','Newcomer: Newbie fixture — welcome!')
 message('clantalk','ChatFixture','You clantalk: own reply (no unread increment)')

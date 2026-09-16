@@ -68,9 +68,9 @@ recovers an inaccessible window. Toolbox records each native window's settled ge
 
 All/Tells/Channels move their existing MiniConsoles, retaining their buffer and
 capture pipeline. Latest / Mark read returns to the end without changing game input.
-Unread detached chat is shown in Views. No new chat or command capture is introduced.
+Unread detached chat is shown in Views. Chat reception is owned by the communications service; see [chat](chat.md).
 
-Preferences are under **Dashboard and chat views** in `aardwolf-config`. Saved
+Dashboard preferences are under **Dashboard views**; chat placement is under **Chat and communications → Tabs** in `aardwolf-config`. Saved
 sidebar shares are redistributed when entire sections float. Slim dividers remain
 draggable; exact shares are also available in settings. Navigation owns a full-width
 bottom reservation above Vitals, and becomes a Navigate menu on short/narrow windows.
@@ -110,11 +110,10 @@ Returning to compatibility mode restores the original objects and callbacks.
 Unsupported starter APIs produce an activation diagnostic and preserve the
 original pane. No starter package files are edited.
 
-Standalone chat consumes fresh `comm.channel` updates once, uses literal native
-color rendering, and supports optional timestamps/channel exclusions. Native
-migration/rendering acceptance and the rest of the 0.25 workflow remain
-outstanding. See `roadmap-status.md`.
-
+Chat is owned by the dedicated communications service, independently of open
+views. The dashboard borrows its ordered tab catalog and remains the only layout
+coordinator. See [Chat and communications](chat.md) for protocol ownership,
+configuration, composer, conversations, filters, history, notifications and sounds.
 
 ## Chat search, colors and mentions
 
@@ -128,7 +127,7 @@ Search typing stays local and suspends Toolbox action shortcuts. Hidden/changed
 chat tabs close the search; results are never saved or automatically refreshed.
 Unicode is matched literally; this is not locale-aware case folding.
 
-Under **Sidebar and setup**, choose the incoming chat format that matches the
+Under **Chat and communications**, choose the incoming chat format that matches the
 server: **ANSI / plain text** (default) or **Raw Aardwolf colors**. This local
 preference sends no server configuration. Raw mode understands the documented
 `@r`/`@R` color family, `@x000`–`@x255`, `@@` and `@-`. Unsupported codes, including
@@ -143,21 +142,21 @@ comma-separated **Additional mention words** with a quiet **!** badge. A mention
 is a literal whole-word match; ASCII letters ignore case, while Unicode letters
 retain case. Messages reported as sent by the player are excluded. Tab tooltips
 and the Views menu show counts; selecting a sidebar tab or Latest / Mark read
-clears them. No sound, blinking, message recoloring or second capture pipeline is
-added. Aardwolf GMCP capture uses these preferences in both Toolbox and starter
-compatibility modes. The starter retains its own preferences for text fallback.
+clears them. Additional highlighting and optional sound/desktop alerts are configured
+through the communications service. Competing starter capture is suspended while
+that service is enabled and restored on teardown.
 
-## Clan and Newbie chat (0.24.0-dev.10)
+## Clan and Newbie/Q&A chat
 
-Clan receives `clantalk`; Newbie receives `newbie` (also accepting `newbietalk`).
+Clan receives `clantalk`; Newbie/Q&A receives `newbie`, `newbietalk`, `question` and `answer`.
 These are Aardwolf's [documented GMCP channels](https://aardwolf.com/wiki/index.php/Clients/GMCP).
-Both also appear in All and Channels. Other clan-related channels such as `gclan`
+Both also appear in All. Other clan-related channels such as `gclan`
 and `claninfo` remain in the aggregate feed. Hidden-channel preferences apply
 before routing into any view.
 
 Open **Views → Clan / Newbie**, or scroll the chat tab strip using **›**. Each
 view supports local search, Latest/Mark read, and independent floating placement
-in **aardwolf-config → Dashboard and chat views**. The same views work with the
+in **aardwolf-config → Chat and communications → Tabs**. The same views work with the
 Toolbox sidebar and the starter-compatible sidebar without replacing existing buffers.
 
 Your own messages stay visible but do not increase unread or mention badges, even

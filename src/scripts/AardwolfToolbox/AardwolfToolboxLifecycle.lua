@@ -215,10 +215,21 @@ local function initialize()
     AardwolfToolbox.openSettings(); AardwolfToolbox.settingsWindow.select("views")
   end),{"config","ui"})
   config.registerFeature(Views.definition(AardwolfToolbox.views.configure))
+  AardwolfToolbox.chatText=resource("console-text")
+  local ChatModel=resource("chat-model")
+  own("chat",resource("chat").new(_G,config,AardwolfToolbox.gmcp,AardwolfToolbox.incoming,
+    AardwolfToolbox.readiness,resource("console-text"),ChatModel),{"gmcp","incoming","readiness","config"},"stop")
+  AardwolfToolbox.shell.setChat(AardwolfToolbox.chat)
+  local chatDefinition=ChatModel.definition(AardwolfToolbox.chat.configure,_G)
+  local migrated,migrationError=config.migrateChat(chatDefinition)
+  if not migrated then error(migrationError) end
+  config.registerFeature(chatDefinition)
+  own("chatWorkspace",resource("chat-workspace").new(_G,AardwolfToolbox.ui,AardwolfToolbox.chat,AardwolfToolbox.views,
+    function() AardwolfToolbox.openSettings();AardwolfToolbox.settingsWindow.select("chat") end),{"chat","ui","views"},"stop")
   own("dashboardData",resource("dashboard-data").new(_G,AardwolfToolbox.gmcp),{"gmcp"},"stop")
   own("dashboard",resource("dashboard").new(_G,config,AardwolfToolbox.gmcp,
     AardwolfToolbox.dashboardData,AardwolfToolbox.ui,AardwolfToolbox.borders,
-    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell,resource("chat-search"),objectiveSources),{"campaign","globalQuest","gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
+    AardwolfToolbox.ascii,AardwolfToolbox.player,AardwolfToolbox.utilityBar,AardwolfToolbox.spells,AardwolfToolbox.spellup,AardwolfToolbox.views,resource("dashboard-panels"),AardwolfToolbox.shell,resource("chat-search"),objectiveSources,AardwolfToolbox.chat,AardwolfToolbox.chatWorkspace),{"chat","chatWorkspace","campaign","globalQuest","gmcp","dashboardData","ui","borders","ascii","player","utilityBar","spells","spellup"},"stop")
   config.registerFeature({id="dashboard",label="Dashboard and layout",description="Tabbed maps and gameplay views above chat. Drag the dividers to resize. Reset layout restores placement without clearing data.",settings={
     {key="enabled",type="boolean",default=true,label="Enable tabbed sidebar"},
     {key="automatic_data",type="boolean",default=true,label="Automatic GMCP data setup"},
@@ -320,7 +331,7 @@ local function initialize()
   end,AardwolfToolbox.readiness),{"config","ui","utilityBar","readiness"},"stop")
   config.registerFeature(Launcher.definition(launcher.configure))
   launcher.register({id="setup",label="Setup walkthrough",description="Offline guide to layout, fonts, monitoring, shortcuts and chat",callback=function() return launcher.open("setup") end})
-  for _,id in ipairs({"player","quest","campaign","globalQuest","group","buffs","all","tells","channels","clan","newbie","inventory","equipment","abilities","atlas","notifications","history"}) do
+  for _,id in ipairs({"player","quest","campaign","globalQuest","group","buffs","all","tells","channels","clan","newbie","chat_group","trade","local_chat","inventory","equipment","abilities","atlas","notifications","history"}) do
     local view=id
     launcher.register({id="view."..view,label="Open "..(view=="atlas" and "map workspace" or view),description="Open the existing sidebar or floating view",available=function()
       return AardwolfToolbox.views.available(view),"View is disabled or unavailable"
@@ -401,6 +412,7 @@ function AardwolfToolbox.openSettings()
         return "Saved: "..(AardwolfToolbox.config.get("mapper","enabled") and "enabled" or "disabled")..
           " · Actual: "..(mapper.enabled and "running" or "stopped").." · "..mapper.last
       end
+      if id=="chat" then local s=AardwolfToolbox.chat.status();return s.last.." · GMCP-only requested: "..s.requested.." · Received: "..s.received end
       if id=="spellups" then return AardwolfToolbox.spells.last.." · "..AardwolfToolbox.spellup.last end
       local key=id=="global_quest" and "globalQuest" or id=="actions" and "actionBar" or id=="appearance" and "ui" or id=="utility" and "utilityBar" or id
       local component=AardwolfToolbox[key]
@@ -454,6 +466,7 @@ function AardwolfToolbox.health()
   if AardwolfToolbox.spells then result.spells=AardwolfToolbox.spells.status() end
   if AardwolfToolbox.mobs then result.mobs=AardwolfToolbox.mobs.status() end
   if AardwolfToolbox.dashboardData then result.dashboard=AardwolfToolbox.dashboardData.status() end
+  if AardwolfToolbox.chat then result.chat=AardwolfToolbox.chat.status() end
   if AardwolfToolbox.notifications then result.notifications=AardwolfToolbox.notifications.status() end
   if AardwolfToolbox.history then result.history=AardwolfToolbox.history.status() end
   return result

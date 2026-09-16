@@ -512,7 +512,7 @@ class HistoryTests(unittest.TestCase):
           chat({chan='tell',player='Friend',msg='You tell Friend: hi'})
           assert(h.list('A',1,'chat').total==2 and h.list('A',1,'chat').rows[1].outgoing)
           for k,v in pairs(b.unread) do assert(v==(counts[k] or 0),k) end
-          assert(t.config.set('shell','hidden_channels','clantalk'))
+          assert(t.config.set('chat','hidden_channels','clantalk'))
           chat({chan='clantalk',msg='hidden'});assert(h.list('A',1,'chat').total==2)
         """)
 
@@ -522,10 +522,10 @@ class HistoryTests(unittest.TestCase):
           chat({chan='newbie',msg='same'});chat({chan='newbie',msg='same'})
           assert(h.list('A',1,'chat').total==2)
           chat({chan='gossip',msg='me@gmail.com'});assert(h.list('A',1,'chat').rows[1].text=='me@gmail.com')
-          assert(t.config.set('shell','chat_colors','raw'))
+          assert(t.config.set('chat','chat_colors','raw'))
           chat({chan='gossip',msg='@RRed @@literal@w'})
           assert(h.list('A',1,'chat').rows[1].text=='Red @literal')
-          assert(t.config.set('shell','timestamps',true));chat({chan='gossip',msg='no added time'})
+          assert(t.config.set('chat','timestamps',true));chat({chan='gossip',msg='no added time'})
           assert(h.list('A',1,'chat').rows[1].text=='no added time')
         """)
 
@@ -607,13 +607,13 @@ class HistoryTests(unittest.TestCase):
           s.append=append;t.incoming.remove('chat-test')
         """)
 
-    def test_chat_starter_reconciled_message_records_once(self):
+    def test_chat_gmcp_keeps_identical_messages_and_records_once(self):
         self.lua.execute("""
           enableChat();observe('char.base',{name='A'});local b=t.shell.getBase()
           b.chats.all:echo('previous text copy');b.recentCaptures={{text='same message',time=clock}}
           local before=b.chats.all.text
           chat({chan='gossip',player='Friend',msg='same message'})
-          assert(b.chats.all.text==before and h.list('A',1,'chat').total==1)
+          assert(b.chats.all.text==before..'same message\\n' and h.list('A',1,'chat').total==1)
           chat({chan='gossip',player='Friend',msg='same message'})
           assert(h.list('A',1,'chat').total==2)
           assert(h.clear('A',h.revision,'chat'));assert(b.chats.all.text:find('previous text copy'))

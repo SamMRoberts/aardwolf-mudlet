@@ -59,8 +59,10 @@ end
 function Text.plain(text,mode)
   local parts={};render(text,mode,function(value) parts[#parts+1]=value end);return table.concat(parts)
 end
-function Text.write(api,console,text,mode)
+function Text.write(api,console,text,mode,highlight)
   render(text,mode,function(value,fg,bg)
+    local colors={yellow={255,220,100},cyan={100,230,255},green={130,245,150},magenta={245,150,245}}
+    fg=colors[highlight] or fg
     api.setFgColor(console.name,unpack(fg));api.setBgColor(console.name,unpack(bg));console:echo(value)
   end)
   api.setFgColor(console.name,224,230,236);api.setBgColor(console.name,0,0,0)

@@ -1,7 +1,7 @@
 -- Session-only notices. Producers supply data, never commands or callbacks.
 local Notifications={}
 local OWNER='AardwolfToolbox.notifications'
-local CATEGORIES={info=true,warning=true,combat=true}
+local CATEGORIES={info=true,warning=true,combat=true,chat=true}
 local function copy(t) local r={};for k,v in pairs(t) do r[k]=v end;return r end
 local function text(value,limit)
   if type(value)~='string' then return '' end
@@ -17,6 +17,7 @@ function Notifications.definition(apply)
     {key='enabled',type='boolean',default=true,label='Enable notification center'},
     {key='info',type='boolean',default=true,label='Collect informational notices'},
     {key='warning',type='boolean',default=true,label='Collect warning notices'},
+    {key='chat',type='boolean',default=true,label='Collect chat notices'},
     {key='combat',type='boolean',default=true,label='Collect combat notices'},
     {key='colors',type='boolean',default=true,label='Use category colors'},
     {key='blink',type='boolean',default=false,label='Pulse indicator for new warnings/combat',description='Briefly pulses for six seconds; no continuous flashing.'},
@@ -110,7 +111,7 @@ function Notifications.new(api,cache,incoming,config,queries,spellup,dashboard)
       end
       records[#records+1]={id=id,source=data.source,category=data.category,title=data.title,message=data.message,key=data.key,
         session=session,created=now(),updated=now(),count=1,read=false}
-      trim();local alert=data.category~='info'
+      trim();local alert=data.category=='warning' or data.category=='combat'
       if alert then sound() end
       changed(id,alert)
     end)

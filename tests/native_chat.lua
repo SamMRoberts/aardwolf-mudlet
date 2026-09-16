@@ -7,7 +7,7 @@ assert(t.shell.enabled,'Use the disposable standalone sidebar or explicitly migr
 assert(t.gmcp.enabled,'Enable the shared GMCP cache in this disposable profile')
 local old=gmcp and gmcp.comm
 gmcp=gmcp or {}
-local raw=t.config.get('shell','chat_colors')=='raw'
+local raw=t.config.get('chat','chat_colors')=='raw'
 local text=raw and '@GÉowyn: @x196red @@ literal <red> @Wwhite' or '\27[32mÉowyn: \27[38;5;196mred @ literal <red> \27[97mwhite\27[0m'
 local ok,err=pcall(function()
   for _,message in ipairs({text,'LOCAL CHAT FIXTURE: search literal [brackets] and 100%.','LOCAL CHAT FIXTURE: second Éowyn message.'}) do

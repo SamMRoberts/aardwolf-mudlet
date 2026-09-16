@@ -1,8 +1,8 @@
 -- One retained inbox, moved between the profile and the shared external host.
 local Pane={}
 local OWNER,VIEW='AardwolfToolbox.notificationPane','notifications'
-local COLORS={info='#B6C9DB',warning='#FFCC66',combat='#FF8899'}
-local LABELS={info='Info',warning='Warning',combat='Combat'}
+local COLORS={info='#B6C9DB',warning='#FFCC66',combat='#FF8899',chat='#99DDCC'}
+local LABELS={info='Info',warning='Warning',combat='Combat',chat='Chat'}
 function Pane.new(api,ui,views,bar,notices,openSettings)
   local self={enabled=false,last='Disabled',renderCount=0}
   local root,home,content,body,header,closeButton,list,empty,pageLabel,previous,nextButton,reader,detail
@@ -233,7 +233,7 @@ function Pane.new(api,ui,views,bar,notices,openSettings)
       content=api.Geyser.Container:new({name=OWNER..'.content',x=0,y=0,width='100%',height='100%'},home)
       body=api.Geyser.ScrollBox:new({name=OWNER..'.body',x=0,y=0,width='100%',height='100%'},content)
       local function control(id,title,fn,kind) controls[#controls+1]={widget=label(id,body,title,click(fn)),text=title,filter=kind} end
-      for _,kind in ipairs({'all','unread','info','warning','combat'}) do
+      for _,kind in ipairs({'all','unread','info','warning','combat','chat'}) do
         local key=kind;control(key,LABELS[key] or key:gsub('^%l',string.upper),function() filter=key;page=1;selected=nil;render(true) end,key)
       end
       control('read','Mark all read',function() notices.markRead() end)

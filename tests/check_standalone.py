@@ -66,13 +66,13 @@ class StandaloneTests(unittest.TestCase):
     def test_raw_chat_setting_persists_without_sending_configuration(self):
         self.lua.execute('''
           assert(AardwolfToolbox.start());local t=AardwolfToolbox
-          assert(t.config.set('shell','chat_colors','raw'))
+          assert(t.config.set('chat','chat_colors','raw'))
           t.stop();assert(t.start());local b=t.shell.getBase()
           gmcp=gmcp or {};gmcp.comm={channel={chan='gossip',msg='@GHello @@everyone'}}
           fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
           assert(b.chats.all.text=='Hello @everyone\\n')
           assert(b.chats.all.runs[1].fg[2]==255)
-          assert(t.config.set('shell','chat_colors','ansi'))
+          assert(t.config.set('chat','chat_colors','ansi'))
           gmcp.comm.channel={chan='gossip',msg='name@gmail.com'};fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
           assert(b.chats.all.text:find('name@gmail.com',1,true))
         ''')
@@ -80,7 +80,7 @@ class StandaloneTests(unittest.TestCase):
     def test_mentions_use_literal_words_and_clear_with_mark_read(self):
         self.lua.execute('''
           assert(AardwolfToolbox.start());local t=AardwolfToolbox;local b=t.shell.getBase()
-          assert(t.config.set('shell','mention_words','raid, Éowyn'))
+          assert(t.config.set('chat','mention_words','raid, Éowyn'))
           gmcp={char={base={name='Tesobi'}}};fire('gmcp.char','gmcp.char.base')
           local function chat(text,player)
             gmcp.comm={channel={chan='gossip',msg=text,player=player or 'Friend'}}
@@ -90,9 +90,9 @@ class StandaloneTests(unittest.TestCase):
           chat('Tesobi says hello','Tesobi')
           assert(b.mentions.channels==3 and b.unread.channels==4)
           assert(b.chatTabLabels.channels.tooltip:find('3 mentions'))
-          t.views.menu();assert(widgetContaining('Channels · 4 unread · 3 mentions !'))
+          t.views.menu();assert(widgetContaining('Public · 4 unread · 3 mentions !'))
           t.views.closeMenu();b.selectChatTab('channels');assert(b.mentions.channels==0 and b.unread.channels==0)
-          assert(t.config.set('shell','mentions',false));b.selectChatTab('all');chat('Tesobi RAID')
+          assert(t.config.set('chat','mentions',false));b.selectChatTab('all');chat('Tesobi RAID')
           assert(b.mentions.channels==0 and b.unread.channels==1)
         ''')
 
@@ -107,23 +107,23 @@ class StandaloneTests(unittest.TestCase):
           b.selectChatTab('tells')
           chat('clantalk','Friend','Friend clantalks: hello Tesobi')
           chat('newbie','Newcomer','Newcomer: hello')
-          assert(b.unread.clan==1 and b.unread.newbie==1 and b.unread.all==2 and b.unread.channels==2)
+          assert(b.unread.clan==1 and b.unread.newbie==1 and b.unread.all==2 and (b.unread.channels or 0)==0)
           assert(b.chats.clan.text=='Friend clantalks: hello Tesobi\\n')
           assert(b.chats.newbie.text=='Newcomer: hello\\n')
           chat('clantalk','tEsObI','Tesobi: my reply')
           chat('newbie','Tesobi','You newbie: hello')
           chat('tell','Friend',string.char(27)..'[32mYou tell Friend: hello')
-          assert(b.unread.clan==1 and b.unread.newbie==1 and b.unread.all==2 and b.unread.channels==2)
+          assert(b.unread.clan==1 and b.unread.newbie==1 and b.unread.all==2 and (b.unread.channels or 0)==0)
           assert(b.chats.clan.text:find('my reply') and b.chats.tells.text:find('You tell Friend'))
           assert(t.views.setMode('clan','floating'))
           chat('clantalk','Tesobi','You clantalk: reply while floating')
           assert(b.unread.clan==1)
           chat('clantalk','Friend',[[Friend says 'You clantalk: quoted text']])
           assert(b.unread.clan==2)
-          assert(t.config.set('shell','hidden_channels','clantalk,newbie'))
+          assert(t.config.set('chat','hidden_channels','clantalk,newbie'))
           local before=b.chats.clan.text;chat('clantalk','Friend','hidden');assert(b.chats.clan.text==before)
           t.stop();assert(count(widgets)==0 and count(handlers)==0)
-          assert(t.start());assert(t.config.get('views','clan')=='floating' and t.views.available('newbie'))
+          assert(t.start());assert(t.views.mode('clan')=='floating' and t.views.available('newbie'))
         ''')
 
     def test_compatibility_chat_routes_once_and_restores_starter(self):
@@ -147,13 +147,13 @@ class StandaloneTests(unittest.TestCase):
           assert(t.views.open('tells'))
           function b.chats.clan:appendBuffer() self:echo(line..'\\n') end
           lineNumber=1;line='Friend clantalks: hello';b.routeTaggedChatLine('clantalk')
-          assert(b.unread.clan==1 and b.unread.all==1)
-          b.routeTaggedChatLine('clantalk');assert(b.unread.clan==1)
+          assert((b.unread.clan or 0)==0)
+          b.routeTaggedChatLine('clantalk');assert((b.unread.clan or 0)==0)
           gmcp={comm={channel={chan='clantalk',player='Friend',msg=line}}}
           fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
           assert(b.unread.clan==1 and b.unread.all==1)
           lineNumber=2;line='Friend clantalks: second';b.routeTaggedChatLine('clantalk')
-          gmcp.comm.channel.msg=line;fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
+          gmcp.comm.channel={chan='clantalk',player='Friend',msg=line};fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
           assert(b.unread.clan==2 and b.unread.all==2)
           fire('AardwolfToolbox.gmcp.cleared')
           lineNumber=3;line='You clantalk: reply';b.routeTaggedChatLine('clantalk')
@@ -169,7 +169,7 @@ class StandaloneTests(unittest.TestCase):
     def test_missing_identity_and_colored_outgoing_tells(self):
         self.lua.execute('''
           assert(AardwolfToolbox.start());local t=AardwolfToolbox;local b=t.shell.getBase()
-          assert(t.config.set('shell','chat_colors','raw'))
+          assert(t.config.set('chat','chat_colors','raw'))
           local function chat(msg)
             gmcp={comm={channel={chan='tell',msg=msg}}}
             fire('gmcp.comm','gmcp.comm.channel');fire('AardwolfToolbox.gmcp.updated','comm.channel')
@@ -183,14 +183,15 @@ class StandaloneTests(unittest.TestCase):
         self.lua.execute('''
           dashboardStarter();assert(AardwolfToolbox.start());local t=AardwolfToolbox;local b=BaseUI
           local callback
-          for name,h in pairs(handlers) do if name=='AardwolfToolbox.shell:chat' then callback=h.fn end end
+          for name,h in pairs(handlers) do if name=='AardwolfToolbox.chat:receive' then callback=h.fn end end
           assert(callback);assert(t.views.open('newbie'));assert(b.activeChatTab=='newbie')
           t.stop();assert(b.activeChatTab=='all' and not b.chats.newbie)
           assert(t.start());local text=b.chats.newbie.text
           gmcp={comm={channel={chan='newbie',player='Friend',msg='fresh'}}}
           fire('gmcp.comm','gmcp.comm.channel')
+          local fresh=b.chats.newbie.text
           callback('AardwolfToolbox.gmcp.updated','comm.channel')
-          assert(b.chats.newbie.text==text)
+          assert(b.chats.newbie.text==fresh)
         ''')
 
     def test_failed_added_chat_constructor_preserves_borrowed_buffers(self):

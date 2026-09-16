@@ -89,9 +89,10 @@ Useful starting sections:
 | Section | Controls |
 | --- | --- |
 | **Appearance** | Shared UI/reading fonts, sizes, and presets. |
-| **Sidebar and setup** | Sidebar ownership, migration, chat colors, timestamps, and filters. |
+| **Sidebar and setup** | Sidebar ownership and migration. |
+| **Chat and communications** | GMCP channels, editable tabs, composer, private conversations, filters, notifications, sounds, and scrollback. See [chat guide](docs/chat.md). |
 | **Dashboard and layout** | Sidebar width, section proportions, and layout controls. |
-| **Dashboard and chat views** | Tabbed or external placement, Buffs recoveries, and expiry warnings. |
+| **Dashboard views** | Tabbed or external placement, Buffs recoveries, and expiry warnings. |
 | **Room mobs** | Entry refresh, on-demand Nearby, ratings, indicators, and double-click/right-click actions. |
 | **Action bar** | Commands, aliases, ability selections, and shortcuts. |
 | **Spellups** | Tracking, monitoring setup, and optional automatic refresh. |

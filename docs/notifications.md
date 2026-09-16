@@ -10,6 +10,7 @@ The inbox collects session-only observations from existing Toolbox services:
 |---|---|
 | Info | Quest state/target changes; server spellup batch started/finished |
 | Warning | Failed broker requests; changed feature activation errors; paused spellups |
+| Chat | Incoming tell/mention or rule-requested chat notices |
 | Combat | Entry into the fighting state reported by fresh character GMCP |
 
 Combat entry does not identify every attacker, infer kills, or claim combat has
@@ -21,7 +22,7 @@ added. Notices do not invoke actions, casts, movement, quests or retries.
 
 ## Reading and presentation
 
-- Filter by All, Unread, Info, Warning or Combat. Pages fit the available list height, with at most
+- Filter by All, Unread, Info, Warning, Combat or Chat. Pages fit the available list height, with at most
   20 retained rows. The full selected notice appears in the scrollable reading
   area below the page controls; hover tooltips remain available.
 - Click a row to mark it read, or choose **Mark all read**. Opening the view does
@@ -72,6 +73,9 @@ These controls never send commands or edit the main command-input text. Toolbox
 action/navigation shortcuts pause while the inbox is open. External windows
 retain mouse controls until native window focus routing is available. Very short
 windows scroll the whole inbox to keep controls and full text accessible.
+
+Chat notices use their own sound/desktop policy in **Chat and communications**;
+notification-center warning/combat audio is not replayed for chat. See [chat](chat.md).
 
 ## Consumer API
 

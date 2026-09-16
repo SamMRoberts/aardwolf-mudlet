@@ -28,7 +28,7 @@ local function pathParts(path)
   return parts,path
 end
 function Cache.new(api)
-  local self={data={},enabled=false,last="Disabled",session=0}
+  local self={data={},enabled=false,last="Disabled",session=0,revision=0}
   local handlers,seen={},{}
   local suspended=false
   local function reset()
@@ -84,6 +84,7 @@ function Cache.new(api)
     end
     target[parts[#parts]]=snapshot
     if type(value)=="table" then seen[path]=value end
+    self.revision=self.revision+1
     self.last="Received "..path
     api.raiseEvent("AardwolfToolbox.gmcp.updated",path,self.session)
   end

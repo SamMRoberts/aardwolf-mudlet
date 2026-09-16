@@ -205,3 +205,16 @@ Future categories require their own registered opt-in and verified source semant
 do not add raw protocol payloads or logs to history observations. Omitted category
 arguments keep the progression API default. Never clear another category as a
 side effect of category selection or disabling its recording preference.
+
+## Communications record controls (0.25.0)
+
+Record fields may use `recordSource` to select another record in the same feature.
+The shared editor resolves labels against the current draft, including unsaved
+additions. `recordOptions(feature, key, draft, fieldDefinition)` accepts the field
+schema as its optional fourth argument. Chat validates enabled routing destinations
+and writable send channels before persistence.
+
+An ordered record setting may declare `editId=true` when its identifier is user
+input from an external protocol. Chat channels use this to edit server channel
+names. The ordinary identifier and uniqueness checks still apply; tabs retain
+stable generated IDs and label-based references. This does not change format 3.

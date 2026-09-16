@@ -4,7 +4,7 @@ local OWNER="AardwolfToolbox.dashboard"
 local function number(value)
   return type(value)=="number" and value==value and math.abs(value)<math.huge and string.format("%.0f",value) or "--"
 end
-function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell,ChatSearch,objectives)
+function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,spellup,views,Panels,shell,ChatSearch,objectives,chat,workspace)
   local self={enabled=false,last="Disabled"}
   local options,adapter,timer,refreshTimer,drag
   local root,mapTabs,mapHost,body,playerHost,split1,split2,widthHandle,tabStrip
@@ -13,14 +13,14 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   local panels=Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
   local search=ChatSearch and ChatSearch.new(api,ui)
   local searchView
-  function self.isEditing() return search and search.isEditing() or false end
+  function self.isEditing() return workspace and workspace.isEditing() or search and search.isEditing() or false end
   function self.searchChat(id)
     if not search or not adapter or not chatHosts[id] then return false,'Chat is unavailable' end
     local ok,reason=views.open(id);if not ok then return false,reason end
     searchView=id
     return search.open(chatHosts[id],adapter.base.chats[id])
   end
-  local chatFirst=1
+  local chatFirst,chatSelected=1,nil
   local DASH={"player","quest","group","buffs"}
   if objectives then DASH={"player","quest","campaign","globalQuest","group","buffs"} end
   local function title(id) return id=="globalQuest" and "Global Quest" or id:sub(1,1):upper()..id:sub(2) end
@@ -141,6 +141,39 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     end)
     return widget
   end
+  local function syncChatHosts(base)
+    local wanted={};for _,id in ipairs(CHAT) do wanted[id]=true end
+    for id,host in pairs(chatHosts) do
+      if not wanted[id] then
+        if workspace then workspace.unmount(id) end
+        views.unregister(id);base.chats[id]:changeContainer(base.sections.chat.Inside)
+        base.chats[id]:hide();base.chatTabLabels[id]:hide();host:delete();chatHosts[id]=nil
+        tabs['latest.'..id]=nil;tabs['chatMenu.'..id]=nil
+        if shell then shell.releaseChat(id) end
+      end
+    end
+    for _,id in ipairs(CHAT) do
+      if chatHosts[id] then views.update(id,chat and chat.title(id)) end
+      if not chatHosts[id] then
+        local home=base.sections.chat.Inside
+        local host=api.Geyser.Container:new({name=OWNER..".chatHost."..id,x=0,y=0,width="100%",height="100%"},home)
+        chatHosts[id]=host
+        local console=base.chats[id]
+        console:changeContainer(host)
+        assert(views.register(id,{root=host,home=home,chat=true,label=chat and chat.title(id),placement=chat and {feature='chat',key='tabs',record=id},unread=function() return (base.unread or {})[id] or 0 end,
+          mentions=function() return (base.mentions or {})[id] or 0 end,
+          search=function() return self.searchChat(id) end,
+          select=function() base.selectChatTab(id) end}))
+        if workspace then workspace.mount(id,host,base) end
+        local latest=label("latest."..id,host,"Latest / Mark read",function()
+          if console.scrollTo then console:scrollTo() end
+          base.unread[id]=0; if base.mentions then base.mentions[id]=0 end; base.refreshChatTabs()
+        end)
+        local menu=label("chatMenu."..id,host,"⋮",function() views.menu(id) end)
+        tabs["latest."..id]=latest; tabs["chatMenu."..id]=menu
+      end
+    end
+  end
   local function build(base)
     local parent=base.container.Inside
     if root then return end
@@ -172,23 +205,6 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       assert(views.register(id,{root=host,home=body,placement=objectives and objectives[id] and {feature=id=="globalQuest" and "global_quest" or id,key="placement"} or nil,select=function() save({tab=id}) end}))
       if id=="player" then playerHost=api.Geyser.ScrollBox:new({name=OWNER..".playerScroll",x=0,y=0,width="100%",height="100%"},host) else panels.mount(id,host) end
     end
-    for _,id in ipairs(CHAT) do
-      local home=base.sections.chat.Inside
-      local host=api.Geyser.Container:new({name=OWNER..".chatHost."..id,x=0,y=0,width="100%",height="100%"},home)
-      chatHosts[id]=host
-      local console=base.chats[id]
-      console:changeContainer(host)
-      assert(views.register(id,{root=host,home=home,chat=true,unread=function() return (base.unread or {})[id] or 0 end,
-        mentions=function() return (base.mentions or {})[id] or 0 end,
-        search=function() return self.searchChat(id) end,
-        select=function() base.selectChatTab(id) end}))
-      local latest=label("latest."..id,host,"Latest / Mark read",function()
-        if console.scrollTo then console:scrollTo() end
-        base.unread[id]=0; if base.mentions then base.mentions[id]=0 end; base.refreshChatTabs()
-      end)
-      local menu=label("chatMenu."..id,host,"⋮",function() views.menu(id) end)
-      tabs["latest."..id]=latest; tabs["chatMenu."..id]=menu
-    end
     split1=divider("splitMap",parent,"map"); split2=divider("splitChat",parent,"dashboard")
     widthHandle=divider("width",api.Geyser,"width")
     widthHandle:echo(""); widthHandle:setToolTip("Drag to resize the sidebar")
@@ -206,10 +222,14 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     for _,id in ipairs(available) do
       local count=(base.unread or {})[id] or 0
       local mentions=(base.mentions or {})[id] or 0
-      chatLabels[id]=id:sub(1,1):upper()..id:sub(2)..(count>0 and ' · '..math.min(99,count) or '')..(mentions>0 and ' !' or '')
+      chatLabels[id]=(chat and chat.title(id) or id:sub(1,1):upper()..id:sub(2))..(count>0 and ' · '..math.min(99,count) or '')..(mentions>0 and ' !' or '')
       tabWidth=tabWidth+math.max(64,ui.measure(chatLabels[id])+16)
     end
     local overflow=tabWidth>tabSpace
+    if overflow and chatSelected~=base.activeChatTab then
+      for i,id in ipairs(available) do if id==base.activeChatTab then chatFirst=i end end
+    end
+    chatSelected=base.activeChatTab
     if #available>0 then chatFirst=math.max(1,math.min(chatFirst,#available)) end
     if not overflow then chatFirst=1 end
     if not tabs.chatNext then
@@ -235,7 +255,8 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
           if active then host:show() else host:hide() end
         end
         local ww=host:get_width()
-        ui.apply(console,"reading"); console:move(0,floating and h or 0); console:resize("100%",floating and "100%-"..h or "100%")
+        local bottom=workspace and workspace.layout(id) or 0
+        ui.apply(console,"reading"); console:move(0,floating and h or 0); console:resize("100%","100%-"..((floating and h or 0)+bottom))
         if console.enableAutoWrap then console:enableAutoWrap() end
         console:show()
         local latest=tabs["latest."..id]; ui.style(latest,true); latest:echo("Latest / Mark read"); latest:move(0,0); latest:resize(math.max(1,ww-h),h)
@@ -244,6 +265,9 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
         local b=base.chatTabLabels[id]
         b:setClickCallback(function(event) if event and event.button=="RightButton" then views.menu(id) else base.selectChatTab(id) end end)
         local position; for i,key in ipairs(available) do if key==id then position=i end end
+        local count=(base.unread or {})[id] or 0
+        local mentions=(base.mentions or {})[id] or 0
+        b:setToolTip(count..' unread · '..mentions..' mentions')
         local bw=math.max(64,ui.measure(chatLabels[id] or id)+16)
         if position and position>=chatFirst and x+bw<=tabSpace-(overflow and h or 0) then
           local count=(base.unread or {})[id] or 0
@@ -261,7 +285,9 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if busy or not self.enabled or not adapter then return end
     busy=true
     local ok,err=pcall(function()
-      local base=adapter.base; build(base)
+      local base=adapter.base
+      if shell then shell.syncChat();CHAT=shell.chatIds() end
+      build(base);syncChatHosts(base)
       local w,h=api.getMainWindowSize(); local row=ui.metrics().height
       local collapsed=w<1000 and options.collapsed and bar.enabled
       if collapsed then
@@ -325,6 +351,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
   end
   local function restore()
     if search then search.stop() end
+    if workspace then workspace.stop() end
     if not adapter then return end
     local a=adapter; adapter=nil
     if a.base.AardwolfToolboxDashboard==self then a.base.AardwolfToolboxDashboard=nil end
@@ -467,7 +494,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       for i,item in ipairs({{"quest","Quest"},{"tick","Tick ago"},{"repop","Repop ago"}}) do
         bar.registerItem({id=item[1],label=item[2],order=20+i,overflowPriority=i,tooltip="Session-only server observations"})
       end
-      for _,event in ipairs({"AardwolfToolbox.actions.layout","AardwolfToolbox.views.changed","sysUserWindowResizeEvent","AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.campaign.updated","AardwolfToolbox.campaign.reset","AardwolfToolbox.globalQuest.updated","AardwolfToolbox.globalQuest.reset","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
+      for _,event in ipairs({"AardwolfToolbox.actions.layout","AardwolfToolbox.views.changed","AardwolfToolbox.chat.configured","sysUserWindowResizeEvent","AardwolfToolbox.ui.changed","AardwolfToolbox.dashboardData.updated","AardwolfToolbox.campaign.updated","AardwolfToolbox.campaign.reset","AardwolfToolbox.globalQuest.updated","AardwolfToolbox.globalQuest.reset","AardwolfToolbox.spells.updated","AardwolfToolbox.spellup.updated","sysWindowResizeEvent","sysInstallPackage","sysUninstallPackage"}) do
         handlers[#handlers+1]=event
         assert(api.registerNamedEventHandler(OWNER,event,event,refresh),"Cannot register dashboard handler")
       end

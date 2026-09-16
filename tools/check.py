@@ -75,7 +75,9 @@ def inspect():
             if '..' in Path(name).parts or name.startswith('/') or '.DS_Store' in name or '__MACOSX' in name:
                 raise RuntimeError('Unexpected archive entry: ' + name)
         ElementTree.fromstring(package.read('AardwolfToolbox.xml'))
-        for path in (ROOT / 'src/resources').glob('*.lua'):
+        for path in (ROOT / 'src/resources').iterdir():
+            if not path.is_file():
+                continue
             if package.read(path.name) != path.read_bytes():
                 raise RuntimeError('Artifact/source mismatch: ' + path.name)
     print('Archive integrity, XML and resources verified.', flush=True)

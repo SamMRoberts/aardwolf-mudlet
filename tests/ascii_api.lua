@@ -22,8 +22,8 @@ function Geyser.MiniConsole:echo(text)
   self.text=(self.text or '')..text
   self.runs=self.runs or {}; self.runs[#self.runs+1]={text=text,fg=self.fg,bg=self.bg}
 end
-function setFgColor(name,r,g,b) widgets[name].fg={r,g,b} end
-function setBgColor(name,r,g,b) widgets[name].bg={r,g,b} end
+function setFgColor(name,r,g,b) if name=='main' then mainFg={r,g,b} else widgets[name].fg={r,g,b} end end
+function setBgColor(name,r,g,b) if name=='main' then mainBg={r,g,b} else widgets[name].bg={r,g,b} end end
 function selectSection(index) selected=index; return true end
 function getFgColor() return selected==0 and 255 or 40,50,60 end
 function getBgColor() return 10,20,30 end

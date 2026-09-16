@@ -5,19 +5,14 @@ local CHAT={'all','tells','channels','clan','newbie'}
 function Shell.definition(apply)
   return {id='shell',label='Sidebar and setup',description='Automatic keeps an existing starter UI and supplies a complete sidebar on fresh profiles. Toolbox mode moves existing chat buffers and the mapper after a layout backup.',settings={
     {key='mode',type='choice',default='automatic',label='Sidebar owner',options={{value='automatic',label='Automatic'},{value='legacy',label='Starter compatibility'},{value='toolbox',label='Toolbox standalone'}}},
-    {key='timestamps',type='boolean',default=false,label='Chat timestamps'},
-    {key='chat_colors',type='choice',default='ansi',label='Incoming chat color format',description='Match the server GMCP format. ANSI preserves literal @ characters; Raw decodes Aardwolf @ color codes. This does not change server preferences.',options={{value='ansi',label='ANSI / plain text'},{value='raw',label='Raw Aardwolf colors'}}},
-    {key='hidden_channels',type='text',default='',maxLength=1024,label='Hidden chat channels (comma separated)'},
-    {key='mentions',type='boolean',default=true,label='Mark chat mentions',description='Show a quiet ! badge when unread chat mentions your character or a configured word. Message colors remain unchanged.'},
-    {key='mention_words',type='text',default='',maxLength=512,label='Additional mention words (comma separated)'},
   },apply=apply}
 end
 function Shell.new(api,config,cache,ui,Text,incoming)
   local self={last='Waiting for sidebar',enabled=false}
-  local options={mode='automatic',timestamps=false,hidden_channels=''}
+  local options={mode='automatic'}
   local base,borrowed,handlers
-  local chatBase,ownedChats,chatWrappers,authoritative=nil,{},{},false
-  local chatActive,generation,chatSession=nil,0,0
+  local chatBase,ownedChats,chatWrappers=nil,{},{}
+  local chatActive
   handlers={}
   local function wanted()
     return options.mode=='toolbox' or options.mode=='automatic' and not api.BaseUI
@@ -26,154 +21,80 @@ function Shell.new(api,config,cache,ui,Text,incoming)
   local function section(name,parent)
     return api.Adjustable.Container:new({name=OWNER..'.'..name,x=0,y=0,width='100%',height='100%',autoSave=false,autoLoad=false},parent)
   end
-  local function channelView(channel)
-    channel=tostring(channel or ''):lower()
-    if channel=='clantalk' then return 'clan' end
-    if channel=='newbie' or channel=='newbietalk' then return 'newbie' end
+  local chat
+  local displayed,bufferSizes={},{}
+  function self.setChat(service) chat=service end
+  function self.chatIds()
+    if not chat then return CHAT end
+    local ids={};for _,t in ipairs(chat.tabs()) do if t.enabled then ids[#ids+1]=t.id end end;return ids
   end
-  local function isOwn(text,sender)
-    local name=cache.get('char.base.name')
-    if type(name)=='string' and name~='' and type(sender)=='string' and sender:lower()==name:lower() then return true end
-    -- Aardwolf outgoing tells may identify the recipient rather than the sender.
-    return Text.plain(text or '',options.chat_colors):match('^You%s+')~=nil
-  end
-  local function attachChat(target)
-    if chatBase==target then return end
-    assert(not chatBase,'Previous chat host must be stopped before replacement')
-    local owned=generation
-    local dedicatedCaptures=setmetatable({},{__mode='k'})
-    chatActive=target.activeChatTab
-    chatBase=target;target.unread=target.unread or {};target.mentions=target.mentions or {}
-    for _,id in ipairs(CHAT) do
+  function self.syncChat()
+    local target=chatBase;if not target then return end
+    for _,id in ipairs(self.chatIds()) do
       if not target.chats[id] then
         local entry={};ownedChats[id]=entry
         entry.console=api.Geyser.MiniConsole:new({name=OWNER..'.chat.'..id,x=0,y=32,width='100%',height='100%-32'},target.sections.chat.Inside)
         target.chats[id]=entry.console
-        ui.apply(entry.console,'reading');entry.console:enableScrollBar();entry.console:setBufferSize(10000,500)
+        ui.apply(entry.console,'reading');entry.console:enableScrollBar()
         entry.tab=api.Geyser.Label:new({name=OWNER..'.tab.'..id,x=0,y=0,width='20%',height=32},target.sections.chat.Inside)
         target.chatTabLabels[id]=entry.tab
       end
+      local size=chat and chat.options().buffer_lines or 10000
+      if bufferSizes[id]~=size then target.chats[id]:setBufferSize(size,500);bufferSizes[id]=size end
     end
-    -- Keep the starter's formatted-text capture and deduplication until Aardwolf
-    -- GMCP takes over. Wrappers are restored without editing starter files.
-    local tagged
-    local function wrap(name,fn)
-      if type(target[name])~='function' then return end
-      local original=target[name]
-      local wrapper=function(...)
-        if owned~=generation then return original(...) end
-        return fn(original,...)
+    if chat and self.renderer then chat.attach(self.renderer) end
+  end
+  function self.releaseChat(id)
+    local entry=ownedChats[id]
+    if not entry or not chatBase then return end
+    entry.console:delete();entry.tab:delete()
+    chatBase.chats[id]=nil;chatBase.chatTabLabels[id]=nil
+    chatBase.unread[id]=nil;chatBase.mentions[id]=nil
+    ownedChats[id]=nil;displayed[id]=nil;bufferSizes[id]=nil
+  end
+  local function attachChat(target)
+    if chatBase==target then self.syncChat();return end
+    assert(not chatBase,'Previous chat host must be stopped before replacement')
+    chatBase=target;chatActive=target.activeChatTab
+    target.unread=target.unread or {};target.mentions=target.mentions or {}
+    self.syncChat()
+    -- Aardwolf has one channel producer. Disable competing starter capture only
+    -- while Toolbox owns reception, and restore exact borrowed functions later.
+    for _,name in ipairs({'routeTaggedChatLine','routeChatLine','addChatMessage'}) do
+      if type(target[name])=='function' then
+        local original=target[name]
+        local wrapper=function(...) if not chat or not chat.enabled then return original(...) end end
+        chatWrappers[name]={original=original,wrapper=wrapper};target[name]=wrapper
       end
-      chatWrappers[name]={original=original,wrapper=wrapper};target[name]=wrapper
     end
-    wrap('routeTaggedChatLine',function(original,tag,...)
-      if authoritative then return end
-      local previous=tagged;tagged=channelView(tag)
-      local ok,result=pcall(original,tag,...);tagged=previous
-      if not ok then error(result,0) end
-      return result
-    end)
-    wrap('routeChatLine',function(original,...)
-      if authoritative then return end
-      local before=target.lastChatLine
-      local own=isOwn(api.line);local unread,mentions={},{}
-      if own then for k,v in pairs(target.unread) do unread[k]=v end;for k,v in pairs(target.mentions) do mentions[k]=v end end
-      local ok,result=pcall(original,...)
-      if own then
-        for k in pairs(target.unread) do target.unread[k]=unread[k] end
-        for k in pairs(target.mentions) do target.mentions[k]=mentions[k] end
-      end
-      if ok and tagged and target.lastChatLine~=before then
-        target.chats[tagged]:appendBuffer();target.noteChatActivity(tagged,false,own)
-        local entry=target.recentCaptures and target.recentCaptures[#target.recentCaptures]
-        if entry then dedicatedCaptures[entry]=tagged end
-      end
-      target.refreshChatTabs()
-      if not ok then error(result,0) end
-      return result
-    end)
-    wrap('addChatMessage',function(original,...)
-      if authoritative then return end
-      local message=api.gmcp and api.gmcp.Comm and api.gmcp.Comm.Channel and api.gmcp.Comm.Channel.Text
-      local own=type(message)=='table' and isOwn(message.text,message.player)
-      local unread,mentions={},{}
-      if own then for k,v in pairs(target.unread) do unread[k]=v end;for k,v in pairs(target.mentions) do mentions[k]=v end end
-      local ok,result=pcall(original,...)
-      if own then
-        for k in pairs(target.unread) do target.unread[k]=unread[k] end
-        for k in pairs(target.mentions) do target.mentions[k]=mentions[k] end
-        target.refreshChatTabs()
-      end
-      if not ok then error(result,0) end
-      return result
-    end)
-    local name='chat';handlers[#handlers+1]=name
-    assert(api.registerNamedEventHandler(OWNER,name,'AardwolfToolbox.gmcp.updated',function(_,path)
-      if path~='comm.channel' or owned~=generation or chatBase~=target or not cache.enabled then return end
-      local message=cache.get(path)
-      if type(message)~='table' or type(message.msg)~='string' or #message.msg>65400 then return end
-      authoritative=true
-      local channel=tostring(message.chan or ''):lower()
-      for hidden in (options.hidden_channels or ''):gmatch('[^,]+') do
-        if hidden:match('^%s*(.-)%s*$'):lower()==channel then return end
-      end
-      local text=(options.timestamps and os.date('[%H:%M] ') or '')..message.msg..'\n'
-      local family=channel:find('tell',1,true) and 'tells' or 'channels'
-      local outgoing=isOwn(message.msg,message.player)
-      local mention=false
-      if options.mentions and not outgoing then
-        local character=cache.get('char.base.name')
-        if type(character)~='string' then character='' end
-        if character=='' or tostring(message.player or ''):lower()~=character:lower() then
-          local plain=Text.plain(message.msg,options.chat_colors):lower()
-          for word in (character..','..(options.mention_words or '')):gmatch('[^,]+') do
-            word=word:match('^%s*(.-)%s*$'):lower()
-            if word~='' then
-              local at=1
-              while at<=#plain do
-                local first,last=plain:find(word,at,true);if not first then break end
-                local before,after=plain:sub(first-1,first-1),plain:sub(last+1,last+1)
-                if not before:find('[%w_\128-\255]') and not after:find('[%w_\128-\255]') then mention=true;break end
-                at=last+1
-              end
-            end
-            if mention then break end
+    if chat then
+      handlers[#handlers+1]='character'
+      api.registerNamedEventHandler(OWNER,'character','AardwolfToolbox.chat.characterChanged',function()
+        for id,console in pairs(target.chats) do console:clear();target.unread[id]=0;target.mentions[id]=0 end
+        displayed={};target.refreshChatTabs()
+      end)
+      self.renderer=function(m,replay)
+        local settings=chat.options()
+        local prefix=(settings.timestamps and os.date('[%H:%M] ',m.timestamp) or '')
+        for id in pairs(m.destinations) do
+          local console=target.chats[id]
+          displayed[id]=displayed[id] or 0
+          if console and m.id>displayed[id] then
+            Text.write(api,console,prefix..m.colored..'\n',settings.chat_colors,m.highlight)
+            displayed[id]=m.id
+            if not replay then target.noteChatActivity(id,m.mention,m.outgoing) end
           end
         end
       end
-      local destinations={'all',family}
-      local dedicated=channelView(channel);if dedicated then destinations[#destinations+1]=dedicated end
-      local captured,capturedView=false,nil
-      for i=#(target.recentCaptures or {}),1,-1 do
-        local entry=target.recentCaptures[i]
-        if api.getEpoch()-entry.time<=2 and entry.text==Text.plain(message.msg,options.chat_colors) then
-          table.remove(target.recentCaptures,i);captured=true;capturedView=dedicatedCaptures[entry];break
-        end
-      end
-      for _,id in ipairs(destinations) do
-        if not captured or id==dedicated and capturedView~=dedicated then
-          Text.write(api,target.chats[id],text,options.chat_colors);target.noteChatActivity(id,mention,outgoing)
-        end
-      end
-      -- One accepted message, regardless of how many chat views receive it.
-      local observation={channel=type(message.chan)=='string' and channel or '',text=Text.plain(message.msg,options.chat_colors),
-        peer=type(message.player)=='string' and message.player or nil,outgoing=outgoing}
-      local session,character=chatSession,cache.get('char.base.name')
-      local function notify()
-        if owned==generation and session==chatSession and character==cache.get('char.base.name') and chatBase==target and cache.enabled then
-          api.raiseEvent('AardwolfToolbox.chat.message',observation)
-        end
-      end
-      if incoming then incoming.defer(notify) else notify() end
-    end),'Cannot register chat handler')
-    api.gmod.enableModule(OWNER,'Comm')
-    handlers[#handlers+1]='chatReset'
-    assert(api.registerNamedEventHandler(OWNER,'chatReset','AardwolfToolbox.gmcp.cleared',function() authoritative=false;chatSession=chatSession+1 end))
+      chat.attach(self.renderer)
+    end
   end
   function self.stop()
-    self.enabled=false;generation=generation+1
+    if chat then chat.attach(nil) end
+    self.renderer=nil
+    self.enabled=false
     for _,name in ipairs(handlers) do api.deleteNamedEventHandler(OWNER,name) end;handlers={}
-    if api.gmod then api.gmod.disableModule(OWNER,'Comm') end
+
     for name,saved in pairs(chatWrappers) do if chatBase[name]==saved.wrapper then chatBase[name]=saved.original end end
     chatWrappers={}
     if chatBase and ownedChats[chatBase.activeChatTab] then chatBase.activeChatTab=chatActive or 'all' end
@@ -182,7 +103,7 @@ function Shell.new(api,config,cache,ui,Text,incoming)
       if chatBase.chatTabLabels[id]==entry.tab then chatBase.chatTabLabels[id]=nil end
       if entry.console then entry.console:delete() end;if entry.tab then entry.tab:delete() end;chatBase.unread[id]=nil;chatBase.mentions[id]=nil
     end
-    ownedChats={};chatBase=nil;authoritative=false
+    ownedChats={};chatBase=nil;displayed={};bufferSizes={}
     if borrowed then
       for key,saved in pairs(borrowed.sections) do
         saved.widget:changeContainer(saved.parent);saved.widget:move(saved.x,saved.y);saved.widget:resize(saved.width,saved.height)

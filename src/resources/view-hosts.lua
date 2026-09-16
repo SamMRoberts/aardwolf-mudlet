@@ -5,11 +5,11 @@ local function finite(n) return type(n)=="number" and n==n and math.abs(n)<math.
 local function title(id) return id=="globalQuest" and "Global Quest" or id:sub(1,1):upper()..id:sub(2) end
 function Views.definition(apply)
   local settings={}
-  for _,id in ipairs(IDS) do settings[#settings+1]={key=id,type="choice",default="tabbed",label=title(id).." placement",
+  for _,id in ipairs({'player','quest','group','buffs'}) do settings[#settings+1]={key=id,type="choice",default="tabbed",label=title(id).." placement",
     options={{value="tabbed",label="Sidebar tab"},{value="floating",label="External window"}}} end
   settings[#settings+1]={key="recoveries",type="boolean",default=true,label="Show buff recoveries"}
   settings[#settings+1]={key="expiry_warning",type="number",default=60,min=0,max=600,integer=true,label="Buff expiry warning (seconds)"}
-  return {id="views",label="Dashboard and chat views",description="Move each view into an external window. Closing hides it; use Views to reopen. Returning chat preserves its buffer.",settings=settings,apply=apply}
+  return {id="views",label="Dashboard views",description="Move each view into an external window. Closing hides it; use Views to reopen. Returning chat preserves its buffer.",settings=settings,apply=apply}
 end
 function Views.new(api,config,ui,settings)
   local self={last="Waiting for sidebar"}
@@ -18,10 +18,17 @@ function Views.new(api,config,ui,settings)
   local menu,escapeKey,generation,geometryTimer
   local observedGeometry,stableGeometry={},{}
   generation=0
+  local baseTitle=title
+  local function title(id) return entries[id] and entries[id].label or baseTitle(id) end
+  local function placementValue(p)
+    local value=config.get(p.feature,p.key)
+    if p.record then for _,row in ipairs(value) do if row.id==p.record then return row[p.field or 'placement'] end end;return 'tabbed' end
+    return value
+  end
   local function changed() api.raiseEvent("AardwolfToolbox.views.changed") end
   function self.mode(id)
     local entry=entries[id]
-    if entry and entry.placement then return config.get(entry.placement.feature,entry.placement.key) or 'tabbed' end
+    if entry and entry.placement then return placementValue(entry.placement) or 'tabbed' end
     for _,builtin in ipairs(IDS) do
       if id==builtin then return config.get("views",id) or "tabbed" end
     end
@@ -127,13 +134,18 @@ function Views.new(api,config,ui,settings)
       assert(placement and config.features[placement.feature],'Custom views require a registered placement setting')
       local setting
       for _,candidate in ipairs(config.features[placement.feature].settings) do if candidate.key==placement.key then setting=candidate end end
-      assert(setting and setting.type=='choice','Custom views require a choice placement setting')
+      assert(setting and (setting.type=='choice' or setting.type=='records' and placement.record),'Custom views require a choice or record placement setting')
       order[#order+1]=id
     end
     definition.parent=definition.home; entries[id]=definition
     local ok,err=pcall(mount,id,true)
     if not ok then self.last=tostring(err); return false,self.last end
     return true
+  end
+  function self.update(id,label)
+    if not entries[id] then return end
+    entries[id].label=label
+    return mount(id)
   end
   function self.visible(id)
     local e=entries[id]; if not e then return false end
@@ -155,7 +167,15 @@ function Views.new(api,config,ui,settings)
     local found=false; for _,key in ipairs(order) do if key==id then found=true end end
     if not found then return false,"Unknown view" end
     local entry=entries[id]
-    if entry and entry.placement then return config.set(entry.placement.feature,entry.placement.key,mode) end
+    if entry and entry.placement then
+      local p=entry.placement
+      if p.record then
+        local value=config.get(p.feature,p.key)
+        for _,row in ipairs(value) do if row.id==p.record then row[p.field or 'placement']=mode;return config.set(p.feature,p.key,value) end end
+        return false,'Chat tab was removed'
+      end
+      return config.set(p.feature,p.key,mode)
+    end
     return config.set("views",id,mode)
   end
   function self.resetPlacement(id)
