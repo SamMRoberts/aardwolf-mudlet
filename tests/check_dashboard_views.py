@@ -54,6 +54,21 @@ class ViewTests(unittest.TestCase):
           assert(c.set('views','expiry_warning',30)); flushEvents(); assert(not row.style:find('#ffcb70',1,true))
         ''')
 
+    def test_paused_outstanding_spellup_is_not_rendered_as_running(self):
+        self.lua.execute('''
+          AardwolfToolbox.spellup.status=function() return {inflight=true,uncertain=true,
+            paused='Batch completion unconfirmed',last='Paused: Batch completion unconfirmed',
+            automatic=true,coverage={known=false}} end
+          assert(c.set('dashboard','tab','buffs'));flushEvents()
+          local status=widgets['AardwolfToolbox.dashboard.buffs.status']
+          assert(status.text:find('Paused',1,true) and not status.text:find('Spellup running',1,true))
+          assert(status.style:find('#ffcb70',1,true))
+          AardwolfToolbox.spellup.status=function() return {inflight=true,last='Spellup running',
+            automatic=false,coverage={known=false}} end
+          fire('AardwolfToolbox.spellup.updated');flushEvents()
+          assert(status.text:find('Spellup running',1,true) and not status.text:find('Paused',1,true))
+        ''')
+
     def test_quest_countdown_zero_and_safe_map_lookup(self):
         self.lua.execute('''
           AardwolfToolbox.dashboardData.quest={state='Active',target='<dragon>',room='Hall',area='Academy',remaining=1,reported=940}

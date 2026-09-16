@@ -192,7 +192,7 @@ function Controller.new(api,cache,spells,queries)
         local found
         for _,spell in ipairs(spells.findByName(name)) do
           local id=spell.id
-          if spell.name==name then
+          if spell.name:lower()==name:lower() then
             if found then unknown=true end
             found=id
           end

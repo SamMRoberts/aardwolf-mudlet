@@ -57,8 +57,9 @@ function Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
     local function action(id,text,fn,tip) actions[#actions+1]={id,text,fn,tip} end
     if id=="buffs" then
       local s=spells.snapshot(false); local state=spellup.status(); local coverage=state.coverage or {}
-      status=(state.inflight and "Spellup running" or state.paused and "Paused" or state.pending and "Refresh pending" or state.automatic and "Auto on" or "Auto off")..
+      status=(state.paused and ("Paused: "..state.paused) or state.inflight and "Spellup running" or state.pending and "Refresh pending" or state.automatic and "Auto on" or "Auto off")..
         " · "..(coverage.known and (coverage.active.."/"..coverage.total.." buffed") or "Coverage unknown")
+      if state.paused then statusColor="#ffcb70" end
       p.statusTip=state.last.."\n"..tostring(s.last or "")
       action("buffSync","Sync",function() local ok,err=spellup.sync(); if not ok then notify(err) end end,"Request spell data; does not cast")
       action("buffCast","Spellup now",function() local ok,err=spellup.runOnce(); if not ok then notify(err) end end,"Uses the existing spellup readiness guards")

@@ -179,6 +179,13 @@ class AbilityTests(unittest.TestCase):
           assert(next(spells.snapshot(false).catalog)==nil)
           assert(spells.snapshot().catalog[72].name=='Éowyn <red>')
           assert(spells.findByName('Éowyn <red>')[1].id==72)
+          assert(spells.findByName('DETECT MAGIC')[1].id==35)
+          assert(spells.findByName('detect magic')[1].name=='Detect magic')
+          assert(#spells.findByName('Detect magic%')==0)
+          assert(#spells.findByName("Detect magic' OR 1=1 --")==0)
+          local duplicate=store.get('spells',35);duplicate.id=999;duplicate.name='detect magic'
+          store.put('spells',999,duplicate)
+          assert(#spells.findByName('DETECT MAGIC')==2,'Ambiguous names must remain ambiguous')
           spells.stop(); queries.destroy()
           assert(not spells.get(72)); assert(store.get('spells',72))
         ''')

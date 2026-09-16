@@ -1,3 +1,23 @@
+# 0.24.0-dev.29 spellup status and queue-name matching — 2026-09-16
+
+- Reproduced the Buffs header rendering an outstanding paused batch as running.
+  Paused state now takes precedence and displays its reason in amber. A manual
+  active batch still renders as running even with automatic refresh disabled.
+- Reproduced a queued name differing only in ASCII capitalization failing to
+  resolve, preventing completion after fresh effects were received. Both stored
+  and in-memory lookup now ignore ASCII case; original names remain unchanged.
+  The user's saved spell catalog was inspected read-only and uses lowercase names;
+  current queued-output capitalization has not been supplied or observed live.
+- Tests retain ambiguity protection for duplicate names and cover literal SQL
+  punctuation, SQLite lookup and completion from fresh active/recovery snapshots.
+  No new casting commands, completion markers or automatic retries were added.
+- Rechecked official Spellup, Spelltags and SLIST references; these do not provide
+  a current contract for the retry option's completion output. Existing unknown
+  responses remain unconfirmed rather than being treated as successful casts.
+- Muddler build, archive CRC/XML/resource consistency and **487 tests passed**.
+  Log: `/private/tmp/awtb-spellup-status-check.log`. No Mudlet control, installation,
+  live casting or profile changes. Live completion acceptance remains pending.
+
 # 0.24.0-dev.28 unconfirmed spellup cannot strand mob scans — 2026-09-16
 
 - User-supplied live diagnostics identified `queued = Spellup in progress` with

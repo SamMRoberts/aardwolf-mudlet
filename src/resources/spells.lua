@@ -283,8 +283,9 @@ function Spells.new(api,cache,incoming,tags,store,queries)
     r.active=copy(active[id]); r.spellup=classification[id] or false; return r
   end
   function self.findByName(label)
-    if store then return catalogAvailable and store.rows("spells",label) or {} end
-    local rows={}; for _,r in pairs(catalog) do if r.name==label then rows[#rows+1]=copy(r) end end
+    if type(label)~='string' or #label>1024 then return {} end
+    if store then return catalogAvailable and store.rows("spells",label,true) or {} end
+    local rows={}; for _,r in pairs(catalog) do if r.name:lower()==label:lower() then rows[#rows+1]=copy(r) end end
     return rows
   end
   function self.snapshot(includeCatalog)

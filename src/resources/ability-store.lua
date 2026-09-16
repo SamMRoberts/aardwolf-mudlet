@@ -74,9 +74,9 @@ function Store.new(api)
     local row=query('SELECT data FROM ability_records WHERE '..where(bucket)..' AND id='..id)[1]
     return row and api.yajl.to_value(row.data) or nil
   end
-  function self.rows(bucket,name)
+  function self.rows(bucket,name,ignoreCase)
     if not connection or not character then return {} end
-    return query('SELECT data FROM ability_records WHERE '..where(bucket)..(name and ' AND name='..quote(name) or '')..' ORDER BY id',function(r) return api.yajl.to_value(r.data) end)
+    return query('SELECT data FROM ability_records WHERE '..where(bucket)..(name and ' AND name='..quote(name)..(ignoreCase and ' COLLATE NOCASE' or '') or '')..' ORDER BY id',function(r) return api.yajl.to_value(r.data) end)
   end
   function self.replace(buckets)
     assert(connection and character,'No character selected')

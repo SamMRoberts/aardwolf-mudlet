@@ -164,6 +164,14 @@ that set partial. A new completed batch replaces the baseline, allowing changed
 server exclusions. It is session-only. Unknown queue names and unresolved effects
 remain uncertain instead of being declared successful from elapsed time alone.
 
+Queued names are matched without ASCII case sensitivity against both the stored
+catalog and the in-memory fallback. Original names and Unicode bytes remain
+unchanged; punctuation is literal, and multiple matching IDs remain ambiguous.
+The Buffs header gives paused/error state precedence over an outstanding batch,
+showing the pause reason in amber rather than claiming casting is still running.
+Coverage remains unknown until completion is actually confirmed. This does not
+clear an uncertain batch or allow another automatic cast.
+
 ## Visible casting status (0.14.4)
 
 The utility badge displays blue **↻ Casting** while a spellup is outstanding,

@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.28**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.29**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
@@ -15,6 +15,11 @@ Dev.28 addresses the user's diagnostic report: an unconfirmed spellup batch left
 room scans blocked indefinitely. After the completion timeout, informational mob
 requests may resume while casting stays paused and the batch remains unconfirmed.
 The pane now displays its queued reason. Offline tested only; not installed here.
+
+Dev.29 fixes the Buffs header incorrectly showing a paused outstanding batch as
+running. Queue-name matching now ignores ASCII capitalization in both SQLite
+and in-memory catalogs. Unknown/ambiguous names still cannot confirm completion.
+Build and offline verification are separate from live completion acceptance.
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,

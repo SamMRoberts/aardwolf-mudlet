@@ -79,6 +79,31 @@ class SpellTests(unittest.TestCase):
           assert(not controller.coverage().known)
         ''')
 
+    def test_queue_name_case_matches_catalog_and_finishes_from_fresh_effects(self):
+        self.lua.execute('''
+          synchronize();assert(controller.runOnce())
+          feed('Queueing spell : DETECT MAGIC.')
+          advance(5)
+          spellRows('affected',{'72,Éowyn <red>,2,100,100,-1,1','35,Detect magic,2,100,100,1,1'})
+          feed('{recoveries recoveries noprompt}');feed('1,Suppression,0');feed('{/recoveries}')
+          assert(not controller.status().inflight,'Capitalization must not leave a resolved batch casting')
+          local c=controller.coverage();assert(c.known and c.active==2 and c.total==2)
+          assert(casts()==1)
+        ''')
+
+    def test_case_insensitive_duplicate_queue_names_do_not_prove_completion(self):
+        self.lua.execute('''
+          synchronize()
+          spellRows('',{'72,Éowyn <red>,2,0,100,-1,1','35,Detect magic,2,0,100,1,1',
+            '999,detect magic,2,0,100,-1,1'})
+          assert(controller.runOnce());feed('Queueing spell : DETECT MAGIC.')
+          advance(5)
+          spellRows('affected',{'35,Detect magic,2,100,100,1,1','999,detect magic,2,100,100,-1,1'})
+          feed('{recoveries recoveries noprompt}');feed('1,Suppression,0');feed('{/recoveries}')
+          assert(controller.status().inflight and not controller.coverage().known)
+          assert(not controller.runOnce() and casts()==1)
+        ''')
+
     def test_terminal_failure_completes_with_partial_coverage_and_wait_reason(self):
         self.lua.execute('''
           synchronize(); assert(controller.runOnce()); feed('Queueing spell : Detect magic.')
