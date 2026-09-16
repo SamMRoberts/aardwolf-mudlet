@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.29**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.30**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
@@ -20,6 +20,9 @@ Dev.29 fixes the Buffs header incorrectly showing a paused outstanding batch as
 running. Queue-name matching now ignores ASCII capitalization in both SQLite
 and in-memory catalogs. Unknown/ambiguous names still cannot confirm completion.
 Build and offline verification are separate from live completion acceptance.
+
+Dev.30 moves Room mobs status into the count/age summary's tooltip. Status-only
+updates no longer add or remove space above the roster or shift Nearby.
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,

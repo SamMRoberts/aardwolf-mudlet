@@ -1,3 +1,15 @@
+# 0.24.0-dev.30 Room mobs status tooltip — 2026-09-16
+
+- Removed the separate status label above the roster. The count/age summary
+  retains its caption and receives the full escaped status as its hover tooltip.
+- Extended layout regression coverage: normal, refreshing, blocked and long
+  markup-like status messages preserve roster geometry, Nearby position and card
+  identity. Unchanged updates still perform no widget writes.
+- Muddler build, archive integrity/XML/source consistency, **487 tests**, and
+  benchmarks passed. The final tooltip assertion was also checked through the
+  31-test Room mobs suite. Log: `/private/tmp/awtb-mobs-tooltip-check.log`.
+- No Mudlet control or installation; native hover behavior remains unverified.
+
 # 0.24.0-dev.29 spellup status and queue-name matching — 2026-09-16
 
 - Reproduced the Buffs header rendering an outstanding paused batch as running.

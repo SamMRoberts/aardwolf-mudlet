@@ -31,8 +31,9 @@ wait for this informational queue. Sleep, combat, AFK, running, editors, pagers,
 and active spellups defer informational requests. After a spellup completion
 timeout, mob requests may resume when command-ready even though casting remains
 paused and completion is unconfirmed. This does not confirm the batch or send a
-new spellup. The pane displays its queued reason, such as **Spellup in progress**,
-instead of leaving the generic **Waiting for room scan** message visible.
+new spellup. Hover over the count/age summary (for example, **1 here · 50s ago**)
+to see the current status or queued reason, such as **Spellup in progress**.
+Status updates do not add a row or shift the roster and Nearby content.
 
 The ten-second response timeout starts when a mob request is sent, not while it
 is queued behind other collectors or waiting for readiness. Unsent room-entry

@@ -608,10 +608,21 @@ class MobUITests(unittest.TestCase):
           assert(not row.text:find('In room') and row.height>=32)
           assert(body.height<=row.height+16 and header.y==body.y+body.height+4)
           header.callback(); assert(not scan.hidden)
-          assert(scan.height>200 and widgets['AardwolfToolbox.mobs.status'].hidden)
+          assert(scan.height>200 and not widgets['AardwolfToolbox.mobs.status'])
           local scanY=header.y
           header.callback(); assert(scan.hidden and header.y==scanY,'Collapsing a short roster moved the scan heading')
           header.callback(); assert(not scan.hidden and header.y==scanY)
+          local summary=widgets['AardwolfToolbox.mobs.summary'];local bodyY,bodyHeight=body.y,body.height
+          local summaryText=summary.text
+          for _,message in ipairs({'Refreshing room mobs','Spellup in progress',
+              'Waiting: <literal> & '..string.rep('long status ',40),'Visible mobs · current visit'}) do
+            pane.update(s,message)
+            assert(summary.tooltip==t.ui.escape(message),'Summary tooltip must contain the full status')
+            assert(summary.text==summaryText,'Status must not change the summary caption')
+            assert(body.y==bodyY and body.height==bodyHeight and header.y==scanY,
+              'Status changes must not move the roster or Nearby')
+            assert(mobCard(1)==row,'Status changes must retain cards')
+          end
           local measures,mutations=0,0; local old=t.ui.measure
           t.ui.measure=function(...) measures=measures+1; return old(...) end
           for name,w in pairs(widgets) do

@@ -3,7 +3,7 @@ local Pane={}
 local OWNER='AardwolfToolbox.mobs'
 local scanColors={North='#80dfff',South='#9fe3a8',East='#ffda85',West='#d4b0ff',Up='#9bbcff',Down='#ffad99'}
 function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refreshNearby,rateRoom,actions)
-  local self={}; local root,body,heading,status,button,optionsButton,summary,hint,clearButton
+  local self={}; local root,body,heading,button,optionsButton,summary,hint,clearButton
   local scanHeading,scanBody,scanRefresh,rateButton; local scanLabels={}; local scanExpanded=false
   local labels={}; local cardSerial=0; local options={}; local latest={rows={}}
   local menu,menuToken; local menuKeys={};local menuGeneration=0
@@ -124,20 +124,12 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
     local counts=present..' here'..(killed>0 and ' · '..killed..' killed' or '')..(attacking>0 and ' · '..attacking..' attacking' or '')
     local caption=counts..' · '..freshness
     paint(summary,ui.escape(caption),'#b8cbd9','secondary')
+    tip(summary,ui.escape(message))
     local summaryKey=caption..'|'..width..'|'..small.size..small.font
     if summary.key~=summaryKey then summary.rows=math.max(1,math.ceil(ui.measure(caption,'secondary')/math.max(60,width-24))); summary.key=summaryKey end
     local summaryHeight=summary.rows*small.line+8
     geometry(summary,4,ch+6,width-8,summaryHeight)
     local bodyY=ch+summaryHeight+14
-    local normal=message=='Visible mobs · current visit'
-    local sh=0
-    if not normal then
-      local statusKey=message..'|'..width..'|'..small.size..small.font
-      if status.key~=statusKey then status.fitText=ui.fit(message,width-24,'secondary'); status.key=statusKey end
-      paint(status,ui.escape(status.fitText),'#ddc292','secondary'); sh=small.line+8
-      geometry(status,4,bodyY,width-8,sh); tip(status,ui.escape(message)); visible(status,true)
-      bodyY=bodyY+sh+4
-    else visible(status,false) end
     local footer=selected and ('Selected #'..(selected.ordinal or 1)..' · '..selected.name:match('%S+$')) or (actions and actions.describe() or 'Double-click to attack')
     local footerWidth=selected and width-76 or width-16
     local footerKey=footer..'|'..footerWidth..'|'..small.size..small.font
@@ -316,7 +308,7 @@ function Pane.new(api,ui,borders,refresh,settings,selectMob,clearSelection,refre
       generation=generation+1
       root=api.Geyser.Container:new({name=OWNER..'.pane',x=0,y=0,width=260,height=400})
       local background=label('background',root); background:resize('100%','100%'); background:setStyleSheet('background: #0e1720;')
-      heading=label('heading',root); summary=label('summary',root); status=label('status',root); hint=label('hint',root)
+      heading=label('heading',root); summary=label('summary',root); hint=label('hint',root)
       button=label('refresh',root); button:setClickCallback(refresh); button:setToolTip('Refresh room mobs')
       optionsButton=label('settings',root); optionsButton:setClickCallback(settings); optionsButton:setToolTip('Room mob settings')
       if rateRoom then rateButton=label('rate',root);rateButton:setClickCallback(rateRoom);rateButton:setToolTip('Rate room: consider all (also verifies completion for automatic ratings this session)') end
