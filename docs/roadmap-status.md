@@ -1,10 +1,10 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.24**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.25**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-Dev.24 fixes history identity initialization when recording is enabled during a session. Dev.24 has not been installed or controlled in Mudlet. Campaign/GQ services, storage, tabs and candidate hints are implemented behind explicit format/transport gates. The user-supplied inactive campaign and active info/check responses are supported. GQ formats, campaign terminal events and native echo-boundary acceptance remain pending. See [capture acceptance](campaign-global-quest.md).
+Dev.25 uses fresh GMCP target health of zero for Room mobs killed indicators and history; death text is no longer required. Dev.25 has not been installed or controlled in Mudlet. Campaign/GQ services, storage, tabs and candidate hints are implemented behind explicit format/transport gates. The user-supplied inactive campaign and active info/check responses are supported. GQ formats, campaign terminal events and native echo-boundary acceptance remain pending. See [capture acceptance](campaign-global-quest.md).
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,

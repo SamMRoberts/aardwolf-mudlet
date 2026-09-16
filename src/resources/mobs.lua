@@ -53,6 +53,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local setupConfirmed=false
   local lastSpellupInflight
   local lastRequest=-math.huge; local settle=0; local status={}
+  local defeatedTarget
   local schedule,drive,update,armEvidence,armPeriodic,fail
   local function copy(v)
     if type(v)~='table' then return v end
@@ -322,6 +323,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local function reset()
     if view.closeMenu then view.closeMenu() end
     session=session+1;visit=visit+1;cancelAll();setup=false;setupConfirmed=false;autoRated=false;status={}
+    defeatedTarget=nil
     model.clear(nil);nearby={fresh=false,sections={}};lastRows={}
     ratings={fresh=false,verified=false,last='Use Rate room to verify completion this session'}
     self.last='Waiting for fresh room data';update()
@@ -447,33 +449,39 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if frame then frame.events[#frame.events+1]={'consider',rating} end
     else
       local event,name=Protocol.combat(text,model.known)
-      if event then
-        local changed,row=model[event](name)
+      if event=='attack' then
+        local changed=model.attack(name)
         if changed then update() end
-        if event=='kill' and row and not row.unclassified and model.room then
-          local room=cache.get('room.info') or {}
-          local observed={session=session,visit=visit,rowId=row.id,name=row.name,flags=row.flags,
-            uncertain=row.uncertainDeath==true,room={num=tonumber(model.room)},source='room-mobs'}
-          if tostring(room.num)==model.room then observed.room.name=room.name;observed.room.area=room.zone end
-          local ownedSession,ownedVisit=session,visit
-          local function notify()
-            if self.enabled and connected() and session==ownedSession and visit==ownedVisit then
-              api.raiseEvent(OWNER..'.death',observed)
-            end
-          end
-          if context and context.defer then context.defer(notify) else notify() end
-        end
         if frame then frame.events[#frame.events+1]={event,name} end
       end
     end
     if frame and #frame.events>512 then fail('Too many interleaved room events') end
     return false
   end
+  local function recordDefeat(name)
+    if not model.room or not connected() then return end
+    local id=model.deathCandidate(name)
+    if not id then return end
+    local changed,row=model.kill(name)
+    if not changed then return end
+    local room=cache.get('room.info') or {}
+    local observed={session=session,visit=visit,rowId=row.id,name=row.name,flags=row.flags,
+      uncertain=row.uncertainDeath==true,room={num=tonumber(model.room)},source='room-mobs',evidence='gmcp-target-zero'}
+    if tostring(room.num)==model.room then observed.room.name=room.name;observed.room.area=room.zone end
+    local ownedSession,ownedVisit=session,visit
+    local function notify()
+      if self.enabled and connected() and session==ownedSession and visit==ownedVisit then
+        api.raiseEvent(OWNER..'.death',observed)
+      end
+    end
+    if incoming.defer then incoming.defer(notify) else notify() end
+  end
   local function gmcp(_,path)
     if path=='room.info' then
       local room=cache.get(path)
       local key=type(room)=='table' and type(room.num)=='number' and room.num>0 and room.num<2147483648 and room.num%1==0 and tostring(room.num) or nil
       if key==model.room and key~=nil then return end
+      defeatedTarget=nil
       if view.closeMenu then view.closeMenu() end
       visit=visit+1;pending={};kill(wake);wake=nil
       -- A sent response still owns its boundary. Drain it before acquiring again.
@@ -490,11 +498,21 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if levelChanged then ratings.fresh=false;ratings.last='Player level changed; Rate room to refresh' end
       local changed=levelChanged or false
       if path=='char.status' then
-        local s=cache.get(path) or {};local was=status.state==8
+        local s=cache.get(path) or {};local was=status.state==8;local oldEnemy=State.name(status.enemy)
         for _,key in ipairs({'state','enemy','enemypct','level'}) do
           if s[key]~=nil and status[key]~=s[key] then status[key]=s[key];changed=true end
         end
-        if changed then model.enemy(status.enemy,status.state==8,status.enemypct) end
+        local name=State.name(status.enemy)
+        local key=name and name:lower()
+        if status.state==8 and (not was or (oldEnemy and oldEnemy:lower())~=key or type(s.enemypct)=='number' and s.enemypct>0) then defeatedTarget=nil end
+        -- A fresh zero for a named current opponent is the configured death signal.
+        -- Repeated zero packets must not select/kill the next identical room mob.
+        if changed and not (key and key==defeatedTarget and status.state==8 and status.enemypct==0) then
+          model.enemy(status.enemy,status.state==8,status.enemypct)
+        end
+        if s.enemypct==0 and status.state==8 and key and key~=defeatedTarget then
+          defeatedTarget=key;recordDefeat(name);changed=true
+        end
         if was and status.state==3 and options.after_combat then queue('room',false) end
         if active and (s.state==5 or s.state==6 or s.state==7) then active.discard=true end
       else changed=level~=nil end

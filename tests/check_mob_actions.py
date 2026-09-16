@@ -149,7 +149,7 @@ class MobActionUITests(unittest.TestCase):
           card.callback({button='LeftButton'});assert(c.set('mobs','double_click','consider'))
           card.doubleClickCallback({button='LeftButton'});assert(#sent==n)
           right(s.rows[2].id);old=menuItem('Attack').callback
-          incoming('a large bat is DEAD!!');assert(not m.menuOpen);old();assert(#sent==n)
+          gmcp.char.status={state=8,enemy='a large bat',enemypct=0};fire('gmcp.char','gmcp.char.status');assert(not m.menuOpen);old();assert(#sent==n)
           assert(not m.activateAction('attack',s.rows[2].id,s.revision))
           right(s.rows[1].id);old=menuItem('Attack').callback
           gmcp.room.info={num=322};fire('gmcp.room','gmcp.room.info');assert(not m.menuOpen);old();assert(#sent==n)
@@ -251,7 +251,7 @@ class MobActionUITests(unittest.TestCase):
           assert(c.set('actions','keys_enabled',false));assert(not m.menuOpen);old();assert(#sent==n)
           local oldCard=mobCard(s.rows[2].id);oldCard.callback({button='LeftButton'})
           fire('AardwolfToolbox.gmcp.cleared');oldCard.doubleClickCallback({button='LeftButton'});assert(#sent==n)
-          s=roster({'a small bat','a large bat'});incoming('a large bat is DEAD!!');m.clearSelection();n=#sent
+          s=roster({'a small bat','a large bat'});gmcp.char.status={state=8,enemy='a large bat',enemypct=0};fire('gmcp.char','gmcp.char.status');m.clearSelection();n=#sent
           right(s.rows[1].id);assert(m.menuOpen)
           local dead=mobCard(s.rows[2].id)
           -- Dead cards keep their presentation but carry no actionable entry.

@@ -449,6 +449,32 @@ class HistoryTests(unittest.TestCase):
           c:close();db:close();env:close()
         """)
 
+    def test_gmcp_kill_history_ignores_variable_combat_messages(self):
+        fixture=json.loads((Path(__file__).parent/'fixtures/mob-fire-death.json').read_text())
+        self.lua.execute('''
+          connected=true;observe('char.base',{name='A'});enableKills()
+          for _,key in ipairs({'on_entry','automatic_setup','automatic_consider','after_combat'}) do
+            assert(t.config.set('mobs',key,false))
+          end
+          consumer=function(event,value) fire(event,value) end
+          gmcp.room={info={num=12,name='Room',zone='test'}};fire('gmcp.room','gmcp.room.info')
+          incoming('{scan}');incoming('Right here you see:');incoming('     - A worshipper');incoming('{/scan}')
+          observe('char.status',{state=8,enemy='a worshipper',enemypct=1})
+        ''')
+        for i,line in enumerate(fixture['lines']):
+            self.lua.globals().sample=line
+            self.lua.execute('incoming(sample)')
+            if i<4:
+                self.lua.execute("assert(h.list('A',1,'kills').total==0)")
+        self.lua.execute('''
+          assert(h.list('A',1,'kills').total==0)
+          observe('char.status',{enemypct=0})
+          observe('char.status',{enemypct=0})
+          local r=h.list('A',1,'kills');assert(r.total==1 and r.rows[1].name=='A worshipper')
+          assert(t.mobs.snapshot().rows[1].killed==1)
+          assert(not r.rows[1].xp and r.rows[1].evidence=='gmcp-target-zero')
+        ''')
+
     def test_kills_shared_dispatcher_and_capture_ownership(self):
         self.lua.execute("""
           connected=true;observe('char.base',{name='A'});enableKills()
@@ -465,12 +491,11 @@ class HistoryTests(unittest.TestCase):
           assert(h.list('A',1,'kills').total==0)
           incoming('<MAPSTART>');incoming('A bat is DEAD!!');incoming('<MAPEND>')
           assert(h.list('A',1,'kills').total==0)
-          t.incoming.add('death-test',18,function(text) return text=='A bat is DEAD!!',true end,error)
-          local append=s.append
-          s.append=function(...) assert(gagCount==before+7,'Death notification preceded suppression');return append(...) end
-          incoming('A bat is DEAD!!')
+          incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==0)
+          incoming('{unfamiliar}')
+          observe('char.status',{state=8,enemy='a bat',enemypct=0})
+          incoming('{/unfamiliar}')
           assert(h.list('A',1,'kills').total==1 and t.mobs.snapshot().rows[1].killed==1)
-          s.append=append;t.incoming.remove('death-test')
           incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==1)
           assert(count(triggers)==1)
         """)

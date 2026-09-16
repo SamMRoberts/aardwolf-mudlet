@@ -11,9 +11,11 @@ local online=false
 local api=setmetatable({getConnectionInfo=function() return 'offline.fixture',0,online end,
   gmod={enableModule=function() end,disableModule=function() end},
   send=function() error('Unexpected fixture command') end,sendGMCP=function() error('Unexpected fixture GMCP') end},{__index=_G})
+local status={state=3,pos='Standing'}
 local cache={enabled=true,get=function(path)
   if path=='room.info' then return {num=123,name='Engine room',zone='Fixture area'} end
-  if path=='char.status.state' then return 3 end
+  if path=='char.status' then return status end
+  if path=='char.status.state' then return status.state end
   if path=='char.status.pos' then return 'Standing' end
 end}
 local Pane={new=function() return {configure=function() end,destroy=function() end,layout=function() end,update=function() end} end}
@@ -27,13 +29,20 @@ local ok,why=pcall(function()
   feedTriggers('{scan}\nRight here you see:\n     - (Hidden) A fixture bat\n     - (Hidden) A fixture bat\n{/scan}\n')
   assert(#test.snapshot().rows==2)
   feedTriggers('\27[31mA fixture bat is DEAD!!\27[0m\n')
+  assert(t.history.list(character,1,'kills').total==0)
+  status={state=8,enemy='A fixture bat',enemypct=0}
+  raiseEvent('AardwolfToolbox.gmcp.updated','char.status')
   local rows=t.history.list(character,1,'kills');assert(rows.total==1)
-  assert(rows.rows[1].name=='A fixture bat' and rows.rows[1].uncertain)
+  assert(rows.rows[1].name=='A fixture bat' and rows.rows[1].evidence=='gmcp-target-zero')
   feedTriggers('A fixture bat is DEAD!!\nA fixture bat is DEAD!!\n')
+  raiseEvent('AardwolfToolbox.gmcp.updated','char.status')
+  assert(t.history.list(character,1,'kills').total==1)
+  status={state=3,enemy=''};raiseEvent('AardwolfToolbox.gmcp.updated','char.status')
+  status={state=8,enemy='A fixture bat',enemypct=0};raiseEvent('AardwolfToolbox.gmcp.updated','char.status')
   rows=t.history.list(character,1,'kills');assert(rows.total==2)
   assert(test.snapshot().rows[1].killed==1 and test.snapshot().rows[2].killed==1)
 end)
 test.stop();if active then assert(t.mobs.start()) end
 assert(ok,why)
 assert(t.historyPane.open('kills'))
-echo('KILLS_ENGINE: ANSI death parsed; two individual deaths; extra death ignored; original tracker restored.\n')
+echo('KILLS_ENGINE: text ignored; two GMCP target defeats; duplicate zero ignored; original tracker restored.\n')

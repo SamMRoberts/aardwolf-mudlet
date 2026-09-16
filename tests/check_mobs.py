@@ -213,34 +213,46 @@ class MobTests(unittest.TestCase):
           end
         ''')
 
-    def test_death_events_deferred_once_with_literal_identity(self):
+    def test_gmcp_death_events_deferred_once_with_literal_identity(self):
         self.service()
         self.lua.execute("""
           local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
           room(12);pulse();cache.values['room.info']={num=12,name='Literal <room>',zone='academy'}
           scan({'(Hidden) A bat','(Hidden) A bat'});local deferred={}
-          local context={defer=function(fn) deferred[#deferred+1]=fn end}
-          receive('A bat is DEAD!!',context);assert(#deaths==0 and #deferred==1)
+          incoming.defer=function(fn) deferred[#deferred+1]=fn end
+          handlers.sysDataSendRequest('', 'kill 2.bat')
+          status({state=8,enemy='a bat',enemypct=40});status({enemypct=0})
+          assert(#deaths==0 and #deferred==1)
           deferred[1]();assert(#deaths==1 and deaths[1].name=='A bat' and deaths[1].flags=='(Hidden)')
-          assert(deaths[1].uncertain and deaths[1].room.name=='Literal <room>')
-          receive('A bat is DEAD!!',context);deferred[2]();assert(#deaths==2 and deaths[1].rowId~=deaths[2].rowId)
-          receive('A bat is DEAD!!',context);assert(#deferred==2)
-          deaths[1].name='changed';assert(m.snapshot().rows[1].name=='A bat')
+          assert(not deaths[1].uncertain and deaths[1].room.name=='Literal <room>')
+          assert(deaths[1].evidence=='gmcp-target-zero' and m.snapshot().rows[2].killed==1)
+          status({enemypct=0});status({state=8,enemy='a bat',enemypct=0});status({level=123})
+          receive('A bat is DEAD!!');receive('You receive 75 experience points.')
+          assert(#deferred==1 and m.snapshot().rows[1].alive==1)
+          status({state=3,enemy=''});status({state=8,enemy='a bat',enemypct=0})
+          deferred[2]();assert(#deaths==2 and deaths[1].rowId~=deaths[2].rowId)
+          status({enemypct=0});assert(#deferred==2)
+          deaths[1].name='changed';assert(m.snapshot().rows[2].name=='A bat')
         """)
 
-    def test_death_events_reject_stale_room_unknown_and_enclosed_text(self):
+    def test_gmcp_deaths_reject_stale_room_unknown_and_missing_health(self):
         self.service()
         self.lua.execute("""
           local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
           room(12);pulse();scan({'A bat'});local notify
-          receive('A bat is DEAD!!',{defer=function(fn) notify=fn end})
+          incoming.defer=function(fn) notify=fn end
+          status({state=8,enemy='a bat',enemypct=0})
           room(13);notify();assert(#deaths==0)
-          pulse();scan({'A bat'});tags.isCapturing=function() return true end
-          receive('A bat is DEAD!!');assert(#deaths==0)
-          tags.isCapturing=function() return false end
-          receive('Unknown mob is DEAD!!');receive('A bat leaves east.');status({state=3,enemy=''})
+          pulse();scan({'A bat'})
+          receive('A bat is DEAD!!');receive('A bat screams as the flames engulf it!!')
+          receive('You receive 75 experience points.');assert(#deaths==0 and m.snapshot().rows[1].alive==1)
+          status({state=8,enemy='a bat',enemypct=1});status({state=3,enemy='',enemypct=0})
           assert(#deaths==0 and m.snapshot().rows[1].alive==1)
-          receive('A bat is DEAD!!',{defer=function(fn) notify=fn end})
+          status({state=8,enemy='a bat'}) -- Cached zero is not a fresh zero report.
+          for _,value in ipairs({'0',-1,0/0,math.huge}) do status({enemypct=value}) end
+          assert(m.snapshot().rows[1].alive==1)
+          status({enemy='Unknown mob',enemypct=0});assert(#deaths==0)
+          status({state=3,enemy=''});status({state=8,enemy='a bat',enemypct=0})
           m.stop();notify();assert(#deaths==0)
         """)
 
@@ -249,10 +261,10 @@ class MobTests(unittest.TestCase):
         self.lua.execute('''
           room(12); pulse(); assert(sent[1]=='tags scan on' and sent[2]=='scan here')
           scan({'a rat','a rat'}); assert(m.snapshot().fresh and m.snapshot().rows[1].alive==1 and #m.snapshot().rows==2)
-          status({state=8,enemy='a rat',enemypct=30}); status({enemypct=0})
-          assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==0)
+          status({state=8,enemy='a rat',enemypct=30}); status({enemypct=1})
+          assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==1)
           receive("A rat's bite hits you."); assert(m.snapshot().rows[1].attacking and not m.snapshot().rows[2].attacking)
-          receive('A rat is DEAD!!'); assert(m.snapshot().rows[1].killed==1)
+          status({state=8,enemy='a rat',enemypct=0}); assert(m.snapshot().rows[1].killed==1)
           m.start(); assert(calls==1)
           handlers['sysDisconnectionEvent'](); assert(#m.snapshot().rows==0)
           m.stop(); m.stop(); pulse(0); assert(next(handlers)==nil and next(timers)==nil)

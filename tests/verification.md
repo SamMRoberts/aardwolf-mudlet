@@ -1,3 +1,24 @@
+# 0.24.0-dev.25 GMCP target defeat tracking — 2026-09-16
+
+- Read-only profile inspection confirmed dev.24 and its identity fix were already
+  installed, with recording enabled. The user's supplied fire-kill output has
+  no `is DEAD!!` line. Saved as an observed text fixture; its GMCP sequence was
+  not supplied and is not represented as observed evidence.
+- Per the user's requested policy, fresh numeric `char.status.enemypct == 0`
+  for a named known opponent in combat marks the matched row killed and emits
+  one history observation. Death/XP text no longer changes killed state.
+  History labels these entries `Target defeated · GMCP 0%`; older text-derived
+  records remain readable. Missing health or clearing the opponent is not zero.
+- Regression coverage now uses synthetic GMCP for defeat-dependent menu, rating,
+  and objective-hint invalidation. It retains literal names, duplicate targeting,
+  stale deferred notification rejection, reset/teardown and SQLite assertions.
+  Repeated zero packets do not consume subsequent same-named mobs.
+- Muddler build, archive CRC/XML/resource consistency, all **475 tests** and mob
+  benchmarks passed. Log: `/private/tmp/awtb-gmcp-kills-check.log`.
+- Updated the disconnected native fixture, but did not run it, control Mudlet,
+  or install this candidate. Live named-opponent zero delivery remains unverified;
+  a defeat that never reports that GMCP signal cannot be recorded by this policy.
+
 # 0.24.0-dev.24 history identity initialization — 2026-09-16
 
 - Reproduced a dropped kill when recording was enabled after the connected

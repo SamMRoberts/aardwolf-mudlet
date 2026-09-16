@@ -233,6 +233,12 @@ function State.new(clock)
     if not key or #living(key)==0 then return false end
     attacks[key]=clock(); return self.combat
   end
+  function self.deathCandidate(name)
+    name=State.name(name);local candidates=name and living(name:lower()) or {}
+    local r=candidates[1]
+    for _,candidate in ipairs(candidates) do if candidate.id==targetId then r=candidate;break end end
+    if r and not r.unclassified then return r.id end
+  end
   function self.kill(name)
     name=State.name(name); local key=name and name:lower(); local candidates=key and living(key) or {}
     if #candidates==0 then return false end

@@ -5,7 +5,7 @@ Open **Tools → Open history** or **Views → History**. Configure it under
 The browser remains available when recording is off, including offline.
 
 This step of the roadmap records observed level, tier, remort, redo, current
-powerup and total-powerup values. A separate category records documented quest-completion rewards. A third category records explicit deaths from the room-mob tracker. Accepted GMCP chat can be saved separately as plain text; unrelated game output is never logged.
+powerup and total-powerup values. A separate category records documented quest-completion rewards. A third category records GMCP target defeats from the room-mob tracker. Accepted GMCP chat can be saved separately as plain text; unrelated game output is never logged.
 No queries, additional monitoring requests, gameplay commands, timers for polling,
 or automatic actions are added. Recording consumes the existing GMCP stream room-mob death events and accepted chat-router messages.
 
@@ -56,33 +56,36 @@ persistent server quest identities; duplicate protection does not span sessions.
 ## Observed kills
 
 Enable **Record observed kill history** and keep **Room mobs** enabled. Select
-**Kills** in History. The existing combat parser recognizes a complete
-`<known mob> is DEAD!!` line (case-insensitive). No new death-message variants,
-queries, triggers or automatic attacks are introduced. A name must match a
-living current-room observation; nearby mobs, unknown names, player-flagged or
-unclassified rows are excluded. ASCII, help and generic-tag frame ownership
-continues to take precedence.
+**Kills** in History. Fresh `char.status.enemypct == 0` for a named opponent
+in combat marks its current-room row **Killed** and creates one history entry.
+Death messages and XP lines are not used; no new queries, triggers or automatic
+attacks are introduced. The name must match a living current-room observation;
+nearby mobs, unknown names, player-flagged or unclassified rows are excluded.
+GMCP processing works independently of ASCII/help/tag capture.
 
-Rows say **Death observed**, not “You killed.” Kill credit is unknown: neither
-attack intent nor a current target proves that the player dealt the killing blow.
-No XP, loot, reward or kill-count gains are inferred. Disappearance, zero target
-health, combat ending and room changes do not create records.
+New rows say **Target defeated · GMCP 0%** and retain `evidence="gmcp-target-zero"`.
+This deliberately uses the reported target percentage as the indicator, not a
+separate server kill-credit event. Kill credit stays unknown; no XP, loot or
+reward gains are inferred. Missing/invalid health, a cleared opponent name,
+combat ending, disappearance and room changes do not create records. Existing
+text-derived records remain readable as **Death observed**.
 
-Each record retains only the observed name, flags, room number, optional room/area
-names, and whether duplicate selection was uncertain. Same-named mobs remain
-separate observations. Identity is local and heuristic, never a server instance ID.
-The existing tracker chooses the current matching target, otherwise its first
-living match. Repeated death lines can describe different identical mobs; they
-cannot be distinguished from repeated server output. Once no living match
-remains, further messages do not record deaths.
+Each record retains the observed name, flags, room number, optional room/area
+names, evidence and whether duplicate selection was uncertain. Same-named mobs
+remain separate observations. The current matching target is selected, honoring
+numbered attack intent, otherwise the first living match. Repeated zero updates
+cannot kill the next duplicate; a new fight, different opponent or positive
+reported health rearms detection. A packet omitting health never reuses cached
+zero as a new death signal. Identity remains a local observation, not a server
+instance ID. Defeats with no reported named-opponent zero cannot be recorded.
 
 Enabling recording during a connection uses the current session's already-received
 character identity, so subsequent kills do not need another `char.base` update.
 Changing recording categories also retains access to that current identity. After
 a disconnect or cache reset, recording waits for fresh identity; it never reads
 stale raw GMCP data or backfills old killed rows. The producer emits only new
-alive-to-dead transitions after line
-capture/suppression, rejecting notifications that cross a room/session boundary.
+alive-to-dead transitions from fresh GMCP, deferring notification during incoming
+line processing and rejecting notifications that cross a room/session boundary.
 The recorder deduplicates the latest 512 session/visit/row tokens; these tokens
 are not persisted. Disconnect, character changes, disable and teardown clear
 that bounded session state. Turning history off leaves the room tracker intact.
@@ -230,9 +233,9 @@ category-only clear/export, literal quest/mob names, reported zero rewards, unkn
 kill credit, duplicate-identity tooltips, external
 placement, native cleanup and unchanged map data.
 The native history fixture injects a synthetic death-service event; it does not
-exercise native death parsing. After clearing its Kills category, run
-`tests/native_history_engine.lua` once to replay colored death lines through the
-native trigger engine with an isolated tracker. Its dispatch is blocked and no
+exercise the GMCP-to-roster path. After clearing its Kills category, run
+`tests/native_history_engine.lua` once with an isolated tracker to verify colored
+death text is ignored and synthetic GMCP zeros record two distinct targets. Its dispatch is blocked and no
 map data is changed. These synthetic checks are distinct from live acceptance.
 The history fixture restores preferences and deletes only its uniquely named test records.
 

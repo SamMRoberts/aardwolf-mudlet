@@ -51,10 +51,11 @@ function Pane.new(api,ui,views,history,openSettings)
           ..(entry.truncated and ' · Truncated at 4 KiB' or '')
         tooltip=entry.text
       elseif category=='kills' then
-        text=stamp..' · Death observed'
+        text=stamp..(entry.evidence=='gmcp-target-zero' and ' · Target defeated · GMCP 0%' or ' · Death observed')
         summary=entry.name
         detail=(entry.room.name or 'Room #'..entry.room.num)..' · '..(entry.room.area or 'Area unavailable')
         tooltip='Room #'..entry.room.num..' · '..entry.flags..' · Kill credit unknown'
+          ..(entry.evidence=='gmcp-target-zero' and ' · Source: GMCP target health reported 0%' or '')
           ..(entry.uncertain and ' · Duplicate identity uncertain' or ' · Identity is a local observation')
       elseif category=='quests' then
         changes={}

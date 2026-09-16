@@ -116,7 +116,9 @@ preferences and removes the owned menu, Escape key, widgets, and callbacks.
 - **⚔ Attacking you** follows recognized name-bearing incoming damage. Duplicate
   names select the current matching opponent, otherwise the first living match.
   Evidence arriving up to two seconds before combat confirmation is retained.
-- **† Killed** requires explicit death output. A missing mob is not declared dead.
+- **† Killed** follows fresh GMCP target health of 0% for a named, known
+  current-room opponent. Repeated zeros do not kill additional duplicates. Missing
+  health, cleared names, disappearance and death/XP text do not mark kills.
 - **Difficulty · relative range** uses the same parser and colors as the console
   consider formatter. Target/attacker borders retain precedence.
 
@@ -125,8 +127,7 @@ The confirmed kill history remains until leaving. Attacker evidence expires afte
 runs for pulsing only while visible attacker indicators need it. Expiration uses
 one-shot deadlines. Text labels remain available without colors or symbols.
 
-The combat adapter recognizes known-name `NAME is DEAD!!` and possessive incoming
-damage such as `NAME's bite hits you.` with supported damage verbs. Source-free
+Incoming attacker evidence still uses possessive damage text such as `NAME's bite hits you.` with supported damage verbs. Source-free
 or unknown attack formats cannot establish an attacker. Server damage/spam
 preferences are not changed.
 
@@ -238,8 +239,9 @@ player profile. The fixture does not evaluate configured aliases.
    Enter in an editor must stay local. Leave text in the main input and verify
    mouse actions and Escape never replace or submit it.
 4. With a menu open, call `NativeMobs021.health(60)`; its target stays valid.
-   Call `NativeMobs021.room(900021002)`; the old menu must close. Replay a death
-   using `feedTriggers('a large bat is DEAD!!\n')` only in this disposable fixture.
+   Call `NativeMobs021.room(900021002)`; the old menu must close. With a fresh
+   fixture target selected, call `NativeMobs021.health(0)` to mark its defeat.
+   Death text alone must leave the row unchanged.
 5. Add enough actions to scroll; test long Unicode labels, narrow/wide profile
    sizes, scrolled roster placement, hover visibility, Escape/Close, and opening
    another mob menu. Verify temporary Escape keys and shortcut suspension clean
