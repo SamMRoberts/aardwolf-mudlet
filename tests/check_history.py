@@ -342,6 +342,32 @@ class HistoryTests(unittest.TestCase):
           assert(r.rewards.wait==nil and r.rewards.action==nil)
         ''')
 
+    def test_enable_kills_uses_current_session_identity_without_backfill(self):
+        self.lua.execute('''
+          connected=true;observe('char.base',{name='A',level=120})
+          death();enableKills()
+          assert(h.list('A',1,'kills').total==0)
+          death(2);assert(h.list('A',1,'kills').total==1)
+          assert(h.list('A',1,'progression').total==0)
+          -- Changing another recording category must not strand kill recording.
+          enable();assert(h.list('A',1,'progression').total==0)
+          death(3);assert(h.list('A',1,'kills').total==2)
+        ''')
+
+    def test_enable_kills_does_not_adopt_old_or_invalid_identity(self):
+        self.lua.execute('''
+          connected=true;observe('char.base',{name='A'})
+          fire('sysDisconnectionEvent');fire('sysConnectionEvent')
+          -- Mudlet still retains raw gmcp.char.base, but the session cache is empty.
+          assert(gmcp.char.base.name=='A' and t.gmcp.get('char.base')==nil)
+          enableKills();death();assert(h.list('A',1,'kills').total==0)
+          observe('char.base',{name='B'});death(2)
+          assert(h.list('B',1,'kills').total==1)
+          assert(t.config.set('history','kills',false))
+          observe('char.base',{name=''});enableKills();death(3)
+          assert(h.list('B',1,'kills').total==1)
+        ''')
+
     def test_kills_opt_in_identity_duplicates_and_defensive_copies(self):
         self.lua.execute("""
           assert(not t.config.get('history','kills'));observe('char.base',{name='A'});death()
@@ -425,7 +451,7 @@ class HistoryTests(unittest.TestCase):
 
     def test_kills_shared_dispatcher_and_capture_ownership(self):
         self.lua.execute("""
-          enableKills();observe('char.base',{name='A'});connected=true
+          connected=true;observe('char.base',{name='A'});enableKills()
           assert(t.config.set('mobs','on_entry',false));assert(t.config.set('mobs','automatic_setup',false))
           assert(t.config.set('mobs','automatic_consider',false));assert(t.config.set('mobs','after_combat',false))
           local get=t.gmcp.get

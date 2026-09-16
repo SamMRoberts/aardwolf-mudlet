@@ -4,6 +4,9 @@ local OWNER='AardwolfToolbox.history'
 local FIELDS={'level','tier','remorts','redos','pups','totpups'}
 local function copy(value) local result={};for k,v in pairs(value) do result[k]=type(v)=='table' and copy(v) or v end;return result end
 local function number(value) return type(value)=='number' and value>=0 and value<=2147483647 and value%1==0 end
+local function validName(value)
+  return type(value)=='string' and value~='' and #value<=128 and not value:find('[%z\1-\31\127]')
+end
 function History.definition(apply)
   return {id='history',label='Local history',description='Optional per-character progression, quest rewards explicit deaths and chat stored only on this computer. Chat includes private tells and your outgoing messages when enabled. Death observations do not prove player kill credit. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
     {key='progression',type='boolean',default=false,label='Record progression history'},
@@ -94,10 +97,10 @@ function History.new(api,cache,store,quest)
     end
     local base=path=='char' and value.base or path=='char.base' and value
     local status=path=='char' and value.status or path=='char.status' and value
-    if type(base)=='table' and base.name~=nil and (type(base.name)~='string' or base.name=='' or #base.name>128 or base.name:find('[%z\1-\31\127]')) then
+    if type(base)=='table' and base.name~=nil and not validName(base.name) then
       reset();return
     end
-    if type(base)=='table' and type(base.name)=='string' and base.name~='' and #base.name<=128 and not base.name:find('[%z\1-\31\127]') then
+    if type(base)=='table' and validName(base.name) then
       local identity=store.identity(base.name)
       if character and character~=identity then known,previous,statusLevel={},nil,false;deaths,deathOrder={},{};if quest then quest.reset() end end
       character=identity
@@ -177,7 +180,16 @@ function History.new(api,cache,store,quest)
       end
     end)
     if not ok then self.stop();self.last=tostring(why);return nil,self.last end
-    reset();return true
+    reset()
+    -- Settings can be enabled/reconfigured after char.base has already arrived.
+    -- Adopt identity only from the session cache, never replay cached observations.
+    local _,_,connected=api.getConnectionInfo()
+    local base=connected and cache.enabled and cache.get('char.base')
+    if type(base)=='table' and validName(base.name) then
+      character=store.identity(base.name)
+      self.last='Waiting for fresh history observations';updated()
+    end
+    return true
   end
   return self
 end

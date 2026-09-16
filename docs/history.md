@@ -11,8 +11,9 @@ or automatic actions are added. Recording consumes the existing GMCP stream room
 
 ## Observations and identity
 
-- Enabling waits for fresh character identity and progression data from shared
-  GMCP. It does not replay the cache or reconstruct earlier gains.
+- Enabling uses the connected session's shared GMCP character identity when
+  available, otherwise waits for a fresh name. Progression data must arrive after
+  enabling; cached observations and earlier gains are never replayed.
 - The first observation in a session, after re-enabling, or for a different
   character is labeled **Observed state**. Subsequent changed readings show
   before/after values. New fields have `--` as their previously unknown value.
@@ -45,8 +46,8 @@ quest, failure, reset, readiness, missing target, character change or session re
 clears old details. Completion without an observed quest still records rewards,
 with unavailable target/location fields. Text remains literal and bounded.
 
-Recording waits for fresh character identity after a recording toggle or session
-reset. It never replays cached completions, backfills earlier quests, or queries
+Recording uses the current session identity when enabled; after a session reset
+it waits for a fresh name. It never replays cached completions, backfills earlier quests, or queries
 past rewards. Repeated completed-count values are deduplicated within a bounded
 64-entry session set. When the count is missing, repeated completions are ignored
 until a new quest/readiness transition. These are observations, not guaranteed
@@ -75,8 +76,12 @@ living match. Repeated death lines can describe different identical mobs; they
 cannot be distinguished from repeated server output. Once no living match
 remains, further messages do not record deaths.
 
-Recording waits for fresh character identity after enable/reset and never backfills
-old killed rows. The producer emits only new alive-to-dead transitions after line
+Enabling recording during a connection uses the current session's already-received
+character identity, so subsequent kills do not need another `char.base` update.
+Changing recording categories also retains access to that current identity. After
+a disconnect or cache reset, recording waits for fresh identity; it never reads
+stale raw GMCP data or backfills old killed rows. The producer emits only new
+alive-to-dead transitions after line
 capture/suppression, rejecting notifications that cross a room/session boundary.
 The recorder deduplicates the latest 512 session/visit/row tokens; these tokens
 are not persisted. Disconnect, character changes, disable and teardown clear
@@ -106,8 +111,9 @@ recipient, so it is not always the speaker.
   would exceed the shared record-size limit. Truncated records are labeled; a
   split UTF-8 code point is not retained. Invalid metadata or oversized protocol
   messages are skipped. Truncation affects history only, not live chat buffers.
-- Enabling or reconnecting waits for fresh character identity. There is no cached
-  replay. Deferred events crossing session/character changes are discarded.
+- Enabling uses the current session identity when available; reconnecting waits
+  for a fresh name. No cached messages are replayed. Deferred events crossing
+  session/character changes are discarded.
   Turning recording off does not stop chat routing or change unread counts.
 
 Private messages are stored locally when this option is enabled and are included

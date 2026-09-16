@@ -1,3 +1,20 @@
+# 0.24.0-dev.24 history identity initialization — 2026-09-16
+
+- Reproduced a dropped kill when recording was enabled after the connected
+  session's `char.base` update. Changing another recording category could also
+  clear history identity and silently discard subsequent kills.
+- History now adopts only the valid name from the connected session's shared
+  cache. No cached deaths, progression, quest completions or chat are replayed.
+  Disconnect/reconnect and invalid-name tests retain attribution safeguards.
+- All **474 tests passed**, including **35 history tests**, after the Muddler
+  build. Archive CRC/XML/resource consistency and mob benchmarks passed.
+  The shared dispatcher regression exercises enabling after identity arrival,
+  scan parsing, explicit death detection, suppression ordering and SQLite storage.
+  Run log: `/private/tmp/awtb-kill-history-check.log`.
+- No Mudlet control or installation. The user's exact missed death line was
+  unavailable, so live death-format acceptance remains unverified. This fixes
+  the reproduced identity failure without adding speculative death patterns.
+
 # 0.24.0-dev.23 observed active campaign parser — 2026-09-16
 
 - Added the user's complete `cp info` and `cp check` responses as observed,
