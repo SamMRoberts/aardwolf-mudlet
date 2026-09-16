@@ -34,4 +34,4 @@ qa.timer=tempTimer(0.5,function()
   for i=1,100 do base.chats.all:echo('Offline scroll fixture line '..i..'\n') end
   qa.status()
 end)
-echo('Scroll the tab row both ways, click > and All, and check console scrolling and unsent input.\n')
+echo('Scroll both ways and check the directional indicator; clicking it must not open a menu. Check console scrolling and unsent input.\n')

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.0-dev.4 — chat scroll indicators
+
+- Replace the chat tab dropdown button with a non-clickable directional scroll
+  indicator. Show earlier/later directions only while more tabs are available,
+  and allow wheel scrolling over the indicator itself.
+
 ## 0.25.0-dev.3 — scrollable chat tab strip
 
 - Reveal docked chat tabs with the mouse wheel or horizontal trackpad gestures,

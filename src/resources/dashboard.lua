@@ -286,9 +286,9 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       tabs.chatScrollSpace:setToolTip('Scroll to reveal chat tabs; click a tab to select it')
       bindChatWheel(tabs.chatScrollSpace)
     end
-    if not tabs.chatNext then
-      tabs.chatNext=label("chatNext",base.sections.chat.Inside,"›",function() views.menu(nil,CHAT) end)
-      tabs.chatNext:setToolTip("Select a chat tab")
+    if not tabs.chatMore then
+      tabs.chatMore=label("chatMore",base.sections.chat.Inside,"")
+      bindChatWheel(tabs.chatMore)
     end
     if not tabs.chatLatest then
       tabs.chatLatest=label("chatLatest",base.sections.chat.Inside,"↓",function()
@@ -299,7 +299,13 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       tabs.chatViews=label("chatViews",base.sections.chat.Inside,"⋮",function() views.menu(base.activeChatTab) end)
     end
     for i,key in ipairs({"chatLatest","chatViews"}) do ui.style(tabs[key],true); tabs[key]:move(width-h*(3-i),0); tabs[key]:resize(h,h) end
-    if overflow then tabs.chatNext:move(tabSpace-h,0); tabs.chatNext:resize(h,h); tabs.chatNext:show() else tabs.chatNext:hide() end
+    local earlier,later=chatFirst>1,chatFirst<chatLimit
+    if earlier or later then
+      ui.style(tabs.chatMore,false)
+      tabs.chatMore:echo(earlier and (later and "↔" or "←") or "→")
+      tabs.chatMore:setToolTip(earlier and (later and "Scroll for earlier or later chat tabs" or "Scroll for earlier chat tabs") or "Scroll for later chat tabs")
+      tabs.chatMore:move(tabSpace-h,0);tabs.chatMore:resize(h,h);tabs.chatMore:show()
+    else tabs.chatMore:hide() end
     local x=0
     for index,id in ipairs(CHAT) do
       local console=base.chats and base.chats[id]; local host=chatHosts[id]
@@ -427,7 +433,7 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
       if a.base.chats[id] then a.base.chats[id]:changeContainer(a.base.sections.chat.Inside) end
       if chatHosts[id] then chatHosts[id]:delete() end
     end
-    for _,key in ipairs({"chatNext","chatLatest","chatViews","chatScrollSpace"}) do if tabs[key] then tabs[key]:delete() end end
+    for _,key in ipairs({"chatMore","chatLatest","chatViews","chatScrollSpace"}) do if tabs[key] then tabs[key]:delete() end end
     hosts,chatHosts={},{}
     for _,id in ipairs(CHAT) do
       if a.originalSelect then a.base.chatTabLabels[id]:setClickCallback(a.originalSelect,id) end

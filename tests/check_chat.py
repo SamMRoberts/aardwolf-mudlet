@@ -89,7 +89,7 @@ class ChatTests(unittest.TestCase):
           t.stop();assert(count(widgets)==0 and count(handlers)==0 and count(timers)==0)
         ''')
 
-    def test_overflow_menu_selects_dynamic_tabs_and_cleans_up(self):
+    def test_view_selection_menu_selects_dynamic_tabs_and_cleans_up(self):
         self.lua.execute('''
           local tabs=c.get('chat','tabs')
           tabs[#tabs+1]=fieldRecord('tabs',{id='custom',label='Custom <chat>',channels='gossip'})
@@ -97,7 +97,9 @@ class ChatTests(unittest.TestCase):
           message('gossip','preserved');local console=b.chats.custom
           local selected=b.activeChatTab
           local function openMenu()
-            widgets['AardwolfToolbox.dashboard.chatNext'].callback()
+            local ids={}
+            for _,tab in ipairs(t.chat.tabs()) do ids[#ids+1]=tab.id end
+            t.views.menu(nil,ids)
             assert(t.views.isEditing())
           end
           openMenu();assert(b.activeChatTab==selected)
@@ -141,8 +143,7 @@ class ChatTests(unittest.TestCase):
           local last=first();wheel({angleDeltaY=-120});assert(first()==last)
           assert(t.views.open('all'));assert(first()=='all')
           wheel({angleDeltaY=-120});assert(first()~='all')
-          widgets['AardwolfToolbox.dashboard.chatNext'].callback()
-          widgets['AardwolfToolbox.views.menu.1'].callback();assert(first()=='all')
+          assert(t.views.open('all'));assert(first()=='all')
           local console=b.chats.all;assert(not console.wheelCallback)
           assert(c.set('dashboard','width',600));settle()
           assert(b.activeChatTab=='all' and b.chats.all==console)
@@ -150,6 +151,24 @@ class ChatTests(unittest.TestCase):
           wheel({angleDeltaY=-120});assert(first()=='all')
           wheel(nil);wheel({angleDeltaY=0/0});wheel({angleDeltaX=math.huge})
           t.stop();wheel({angleDeltaY=-120});assert(count(widgets)==0)
+        ''')
+
+    def test_scroll_indicator_shows_only_available_directions_without_menu(self):
+        self.lua.execute('''
+          assert(c.set('dashboard','width',360));settle();b.selectChatTab('all')
+          local indicator=widgets['AardwolfToolbox.dashboard.chatMore']
+          assert(not widgets['AardwolfToolbox.dashboard.chatNext'])
+          assert(not indicator.hidden and indicator.text=='→' and not indicator.callback)
+          indicator.wheelCallback({angleDeltaY=-120})
+          assert(indicator.text=='↔' and b.activeChatTab=='all' and not t.views.isEditing())
+          indicator.wheelCallback({angleDeltaY=-12000})
+          assert(indicator.text=='←' and not indicator.hidden)
+          indicator.wheelCallback({angleDeltaY=12000});assert(indicator.text=='→')
+          local tabs=c.get('chat','tabs')
+          assert(c.set('chat','tabs',{tabs[1]}));settle();assert(indicator.hidden)
+          indicator.wheelCallback({angleDeltaY=-120});assert(indicator.hidden and b.activeChatTab=='all')
+          assert(c.set('chat','tabs',tabs));settle();assert(not indicator.hidden)
+          t.stop();assert(not widgets['AardwolfToolbox.dashboard.chatMore'])
         ''')
 
     def test_tab_wheel_restores_borrowed_callbacks(self):

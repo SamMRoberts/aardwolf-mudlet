@@ -1,3 +1,14 @@
+# 0.25.0-dev.4 chat scroll indicator — 2026-09-16
+
+- `python3 tools/check.py` passed: Muddler 1.1.0 build, archive/XML/resource
+  checks, 508 built-package Lua 5.1 tests, and mob benchmarks.
+- New tests verify right/both/left indicators, hiding when tabs fit, scrolling
+  over the indicator without selecting a conversation or opening a menu, and
+  teardown. Updated the native fixture instructions for the removed dropdown.
+- This change has not been installed or visually verified in native Mudlet.
+  Prior dev.3 native wheel evidence does not establish dev.4 indicator rendering.
+- Build/test log: `/tmp/awtb-chat-indicator-check.log`.
+
 # 0.25.0-dev.3 horizontal chat strip — 2026-09-16
 
 - `python3 tools/check.py` passed: Muddler 1.1.0 build, archive/XML/resource
