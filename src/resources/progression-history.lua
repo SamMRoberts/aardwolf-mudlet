@@ -11,7 +11,7 @@ function History.definition(apply)
   return {id='history',label='Local history',description='Optional per-character progression, quest rewards, GMCP target defeats and chat stored only on this computer. Chat includes private tells and your outgoing messages when enabled. Death observations do not prove player kill credit. Retention limits apply across this profile; expired/oldest records are removed on access or new writes.',settings={
     {key='progression',type='boolean',default=false,label='Record progression history'},
     {key='quests',type='boolean',default=false,label='Record quest reward history'},
-    {key='kills',type='boolean',default=false,label='Record observed kill history',description='Requires Room mobs and a known current-room mob. Records fresh GMCP target health of 0%, without attributing the kill to you.'},
+    {key='kills',type='boolean',default=false,label='Record observed kill history',description='Correlates a fresh GMCP opponent with a normal experience award. Known shared-group rewards are excluded; personal kill credit remains unknown.'},
     {key='chat',type='boolean',default=false,label='Record chat history',description='Saves accepted GMCP chat, including tells and outgoing messages, as local plain text. Hidden channels are excluded. Messages over 4 KiB are marked truncated.'},
     {key='days',type='number',integer=true,min=1,max=3650,default=30,label='Retain days'},
     {key='max_entries',type='number',integer=true,min=100,max=10000,default=1000,label='Maximum stored observations'},
@@ -80,7 +80,7 @@ function History.new(api,cache,store,quest)
     if deaths[key] then return end
     local entry={kind='mob_death',name=value.name,flags=value.flags,uncertain=value.uncertain,
       source='room-mobs',room={num=value.room.num}}
-    if value.evidence=='gmcp-target-zero' then entry.evidence=value.evidence end
+    if value.evidence=='gmcp-target-zero' or value.evidence=='gmcp-opponent-xp' then entry.evidence=value.evidence end
     for _,field in ipairs({'name','area'}) do if text(value.room[field]) then entry.room[field]=value.room[field] end end
     deaths[key]=true;deathOrder[#deathOrder+1]=key
     if #deathOrder>512 then deaths[table.remove(deathOrder,1)]=nil end

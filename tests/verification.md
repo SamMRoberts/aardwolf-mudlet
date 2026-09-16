@@ -1,3 +1,24 @@
+# 0.24.0-dev.26 GMCP opponent plus experience confirmation — 2026-09-16
+
+- Reproduced the failure using the user's observed fire-kill output. The test
+  now records one kill with a synthetic preceding GMCP opponent at 1%, without
+  a 0% packet or `is DEAD!!` message. Observed text and synthetic protocol state
+  remain explicitly distinct; this is not live packet-order acceptance.
+- Normal simple/summed XP awards consume the exact GMCP-correlated row once.
+  Bonus lines, zero health alone, unmatched targets and enclosed map/help/tag/scan
+  content do not confirm kills. Short retention handles GMCP clearing before XP;
+  duplicate row identity survives combat ending. Known shared-group rewards,
+  unresolved target switches and expired or invalidated evidence are excluded.
+- Source evidence is stored as `gmcp-opponent-xp` and rendered as `XP observed`.
+  Existing history records preserve their original evidence and presentation.
+  No additional queries, gameplay actions, triggers or polling timers were added.
+- Muddler build, archive CRC/XML/source consistency, **478 tests**, and ordinary
+  mob-line benchmarks passed. Log: `/private/tmp/awtb-opponent-xp-check.log`.
+- Updated disconnected native acceptance fixture, not executed. No Mudlet control,
+  installation or profile/map mutation. Kill credit is not proven by this
+  correlation; kills with no normal XP award and shared-group attribution remain
+  unsupported. Live GMCP ordering and native rendering remain unverified.
+
 # 0.24.0-dev.25 GMCP target defeat tracking — 2026-09-16
 
 - Read-only profile inspection confirmed dev.24 and its identity fix were already

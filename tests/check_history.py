@@ -449,7 +449,7 @@ class HistoryTests(unittest.TestCase):
           c:close();db:close();env:close()
         """)
 
-    def test_gmcp_kill_history_ignores_variable_combat_messages(self):
+    def test_gmcp_opponent_and_observed_xp_sequence_record_once(self):
         fixture=json.loads((Path(__file__).parent/'fixtures/mob-fire-death.json').read_text())
         self.lua.execute('''
           connected=true;observe('char.base',{name='A'});enableKills()
@@ -467,12 +467,9 @@ class HistoryTests(unittest.TestCase):
             if i<4:
                 self.lua.execute("assert(h.list('A',1,'kills').total==0)")
         self.lua.execute('''
-          assert(h.list('A',1,'kills').total==0)
-          observe('char.status',{enemypct=0})
-          observe('char.status',{enemypct=0})
           local r=h.list('A',1,'kills');assert(r.total==1 and r.rows[1].name=='A worshipper')
           assert(t.mobs.snapshot().rows[1].killed==1)
-          assert(not r.rows[1].xp and r.rows[1].evidence=='gmcp-target-zero')
+          assert(not r.rows[1].xp and r.rows[1].evidence=='gmcp-opponent-xp')
         ''')
 
     def test_kills_shared_dispatcher_and_capture_ownership(self):
@@ -486,17 +483,19 @@ class HistoryTests(unittest.TestCase):
           fire('AardwolfToolbox.gmcp.updated','room.info')
           incoming('{scan}');incoming('Right here you see:');incoming('     - A bat');incoming('{/scan}')
           assert(t.mobs.snapshot().rows[1].alive==1)
-          local before=gagCount
-          incoming('{unfamiliar}');incoming('A bat is DEAD!!');incoming('{/unfamiliar}')
-          assert(h.list('A',1,'kills').total==0)
-          incoming('<MAPSTART>');incoming('A bat is DEAD!!');incoming('<MAPEND>')
-          assert(h.list('A',1,'kills').total==0)
+          observe('char.status',{state=8,enemy='a bat',enemypct=1})
+          incoming('{unfamiliar}');incoming('You receive 75 experience points.');incoming('{/unfamiliar}')
+          incoming('<MAPSTART>');incoming('You receive 75 experience points.');incoming('<MAPEND>')
+          incoming('{help}');incoming('{helpbody}');incoming('You receive 75 experience points.');incoming('{/helpbody}');incoming('{/help}')
           incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==0)
-          incoming('{unfamiliar}')
-          observe('char.status',{state=8,enemy='a bat',enemypct=0})
-          incoming('{/unfamiliar}')
+          local before=gagCount
+          t.incoming.add('death-test',18,function(text) return text=='You receive 75 experience points.',true end,error)
+          local append=s.append
+          s.append=function(...) assert(gagCount==before+1,'Death notification preceded suppression');return append(...) end
+          incoming('You receive 75 experience points.')
+          s.append=append;t.incoming.remove('death-test')
           assert(h.list('A',1,'kills').total==1 and t.mobs.snapshot().rows[1].killed==1)
-          incoming('A bat is DEAD!!');assert(h.list('A',1,'kills').total==1)
+          incoming('You receive 75 experience points.');assert(h.list('A',1,'kills').total==1)
           assert(count(triggers)==1)
         """)
 

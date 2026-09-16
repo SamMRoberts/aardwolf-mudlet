@@ -239,11 +239,16 @@ function State.new(clock)
     for _,candidate in ipairs(candidates) do if candidate.id==targetId then r=candidate;break end end
     if r and not r.unclassified then return r.id end
   end
-  function self.kill(name)
+  function self.kill(name,id)
     name=State.name(name); local key=name and name:lower(); local candidates=key and living(key) or {}
     if #candidates==0 then return false end
     local r=candidates[1]
     for _,candidate in ipairs(candidates) do if candidate.id==targetId then r=candidate; break end end
+    if id then
+      r=nil
+      for _,candidate in ipairs(candidates) do if candidate.id==id and not candidate.unclassified then r=candidate;break end end
+      if not r then return false end
+    end
     r.alive=0; r.killed=1; r.uncertainDeath=#candidates>1 and r.id~=targetId
     if intent and intent.id==r.id then intent=nil end
     -- Retain the chosen observation; incoming attackers remain name-only evidence.

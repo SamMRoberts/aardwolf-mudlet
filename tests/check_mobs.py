@@ -213,7 +213,7 @@ class MobTests(unittest.TestCase):
           end
         ''')
 
-    def test_gmcp_death_events_deferred_once_with_literal_identity(self):
+    def test_opponent_reward_events_defer_once_and_keep_duplicate_identity(self):
         self.service()
         self.lua.execute("""
           local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
@@ -221,40 +221,93 @@ class MobTests(unittest.TestCase):
           scan({'(Hidden) A bat','(Hidden) A bat'});local deferred={}
           incoming.defer=function(fn) deferred[#deferred+1]=fn end
           handlers.sysDataSendRequest('', 'kill 2.bat')
-          status({state=8,enemy='a bat',enemypct=40});status({enemypct=0})
+          status({state=8,enemy='a bat',enemypct=1});status({enemypct=0})
+          assert(#deferred==0 and m.snapshot().rows[2].alive==1)
+          status({state=3,enemy=''})
+          receive('You receive 100+20+10 experience points.')
           assert(#deaths==0 and #deferred==1)
           deferred[1]();assert(#deaths==1 and deaths[1].name=='A bat' and deaths[1].flags=='(Hidden)')
-          assert(not deaths[1].uncertain and deaths[1].room.name=='Literal <room>')
-          assert(deaths[1].evidence=='gmcp-target-zero' and m.snapshot().rows[2].killed==1)
-          status({enemypct=0});status({state=8,enemy='a bat',enemypct=0});status({level=123})
-          receive('A bat is DEAD!!');receive('You receive 75 experience points.')
-          assert(#deferred==1 and m.snapshot().rows[1].alive==1)
-          status({state=3,enemy=''});status({state=8,enemy='a bat',enemypct=0})
+          assert(deaths[1].room.name=='Literal <room>' and deaths[1].evidence=='gmcp-opponent-xp')
+          assert(m.snapshot().rows[2].killed==1 and m.snapshot().rows[1].alive==1)
+          receive('You receive 75 experience points.');receive("You receive 36 'rare kill' experience bonus.")
+          receive('You receive 111 bonus experience points from your daily blessing.')
+          receive('A bat is DEAD!!');assert(#deferred==1)
+          status({state=8,enemy='a bat',enemypct=12});receive('You receive 0 experience points.')
           deferred[2]();assert(#deaths==2 and deaths[1].rowId~=deaths[2].rowId)
-          status({enemypct=0});assert(#deferred==2)
+          receive('You receive 0 experience points.');assert(#deferred==2)
           deaths[1].name='changed';assert(m.snapshot().rows[2].name=='A bat')
         """)
 
-    def test_gmcp_deaths_reject_stale_room_unknown_and_missing_health(self):
+    def test_reward_deaths_reject_stale_room_roster_unknown_and_expired_opponents(self):
         self.service()
         self.lua.execute("""
           local deaths={};function raiseEvent(event,value) if event=='AardwolfToolbox.mobs.death' then deaths[#deaths+1]=value end end
           room(12);pulse();scan({'A bat'});local notify
           incoming.defer=function(fn) notify=fn end
-          status({state=8,enemy='a bat',enemypct=0})
+          status({state=8,enemy='a bat',enemypct=1});receive('You receive 75 experience points.')
           room(13);notify();assert(#deaths==0)
           pulse();scan({'A bat'})
           receive('A bat is DEAD!!');receive('A bat screams as the flames engulf it!!')
           receive('You receive 75 experience points.');assert(#deaths==0 and m.snapshot().rows[1].alive==1)
-          status({state=8,enemy='a bat',enemypct=1});status({state=3,enemy='',enemypct=0})
-          assert(#deaths==0 and m.snapshot().rows[1].alive==1)
-          status({state=8,enemy='a bat'}) -- Cached zero is not a fresh zero report.
-          for _,value in ipairs({'0',-1,0/0,math.huge}) do status({enemypct=value}) end
-          assert(m.snapshot().rows[1].alive==1)
-          status({enemy='Unknown mob',enemypct=0});assert(#deaths==0)
-          status({state=3,enemy=''});status({state=8,enemy='a bat',enemypct=0})
-          m.stop();notify();assert(#deaths==0)
+          status({state=8,enemy='a bat',enemypct=1});status({state=3,enemy=''})
+          now=now+4;receive('You receive 75 experience points.');assert(m.snapshot().rows[1].alive==1)
+          status({state=8,enemy='a bat'});now=now+11;receive('You receive 75 experience points.')
+          status({state=3,enemy=''});status({state=8,enemy='a bat'})
+          scan({'A bat','A bat'});receive('You receive 75 experience points.')
+          assert(m.snapshot().rows[1].alive==1 and m.snapshot().rows[2].alive==1)
+          status({enemy='Unknown mob'});receive('You receive 75 experience points.');assert(#deaths==0)
+          status({state=3,enemy=''});status({state=8,enemy='a bat'})
+          receive('You receive 75 experience points.');m.stop();notify();assert(#deaths==0)
         """)
+
+    def test_reward_formats_are_bounded_literal_and_exclude_bonuses(self):
+        self.lua.execute("""
+          for _,line in ipairs({'You receive 75 experience points.','You receive 100+20+10 experience points.',
+            'You receive 0 experience points.','You receive 1 experience point.','  You receive 214+22 experience points.  '}) do
+            assert(Protocol.killReward(line),line)
+          end
+          for _,line in ipairs({"You receive 36 'rare kill' experience bonus.",
+            'You receive 111 bonus experience points from your daily blessing.',
+            'You receive +20 experience points.','You receive 20+ experience points.',
+            'You receive 20++10 experience points.','You receive -1 experience points.',
+            'You receive 10.5 experience points.',"Sam says 'You receive 75 experience points.'",
+            'You receive '..string.rep('1',129)..' experience points.'}) do
+            assert(not Protocol.killReward(line),line)
+          end
+        """)
+
+    def test_group_rewards_flee_and_zero_without_xp_do_not_mark_kills(self):
+        self.service()
+        self.lua.execute("""
+          local deaths=0;function raiseEvent(event) if event=='AardwolfToolbox.mobs.death' then deaths=deaths+1 end end
+          room(12);pulse();scan({'A bat'})
+          status({state=8,enemy='a bat',enemypct=0});assert(m.snapshot().rows[1].alive==1)
+          handlers.sysDataSendRequest('', 'flee');status({state=3,enemy=''})
+          receive('You receive 75 experience points.');assert(deaths==0)
+          cache.values.group={count=2};status({state=8,enemy='a bat'})
+          cache.values.group={count=0};receive('You receive 75 experience points.')
+          assert(deaths==0 and m.last:find('shared group'))
+          status({state=3,enemy=''});status({state=8,enemy='a bat'})
+          cache.values.group={members={{name='A'},{name='B'}}};receive('You receive 75 experience points.')
+          assert(deaths==0 and m.snapshot().rows[1].alive==1)
+          cache.values.group={count=0};status({state=3,enemy=''});status({state=8,enemy='a bat'})
+          receive('You receive 75 experience points.');assert(deaths==1)
+        """)
+
+    def test_target_switch_and_disconnect_do_not_reassign_late_reward(self):
+        self.service()
+        self.lua.execute('''
+          local deaths=0;function raiseEvent(event) if event=='AardwolfToolbox.mobs.death' then deaths=deaths+1 end end
+          room(12);pulse();scan({'A bat','A rat'})
+          status({state=8,enemy='a bat',enemypct=1})
+          status({enemy='a rat',enemypct=100});receive('You receive 75 experience points.')
+          assert(deaths==0 and m.snapshot().rows[1].alive==1 and m.snapshot().rows[2].alive==1)
+          assert(m.last:find('opponent changed'))
+          handlers['sysDisconnectionEvent']();room(12);pulse();scan({'A bat'})
+          receive('You receive 75 experience points.');assert(deaths==0)
+          status({state=8,enemy='a bat',enemypct=1});receive('You receive 75 experience points.')
+          assert(deaths==1)
+        ''')
 
     def test_owned_scan_refresh_and_disconnect_cleanup(self):
         self.service()
@@ -264,7 +317,7 @@ class MobTests(unittest.TestCase):
           status({state=8,enemy='a rat',enemypct=30}); status({enemypct=1})
           assert(m.snapshot().rows[1].target and m.snapshot().rows[1].health==1)
           receive("A rat's bite hits you."); assert(m.snapshot().rows[1].attacking and not m.snapshot().rows[2].attacking)
-          status({state=8,enemy='a rat',enemypct=0}); assert(m.snapshot().rows[1].killed==1)
+          receive('You receive 75 experience points.'); assert(m.snapshot().rows[1].killed==1)
           m.start(); assert(calls==1)
           handlers['sysDisconnectionEvent'](); assert(#m.snapshot().rows==0)
           m.stop(); m.stop(); pulse(0); assert(next(handlers)==nil and next(timers)==nil)

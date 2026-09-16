@@ -132,7 +132,7 @@ function Store.new(api)
           local function text(v) return type(v)=='string' and #v<=512 and not v:find('[%z\1-\31\127]') end
           assert(entry.kind=='mob_death' and entry.source=='room-mobs' and text(entry.name) and entry.name~=''
             and text(entry.flags) and type(entry.uncertain)=='boolean' and type(entry.room)=='table','Invalid saved kill observation')
-          assert(entry.evidence==nil or entry.evidence=='gmcp-target-zero','Invalid saved kill evidence')
+          assert(entry.evidence==nil or entry.evidence=='gmcp-target-zero' or entry.evidence=='gmcp-opponent-xp','Invalid saved kill evidence')
           assert(type(entry.room.num)=='number' and entry.room.num>=1 and entry.room.num<=2147483647 and entry.room.num%1==0,'Invalid saved kill room')
           for _,field in ipairs({'name','area'}) do assert(entry.room[field]==nil or text(entry.room[field]),'Invalid saved kill location') end
         elseif kind=='quests' then

@@ -53,13 +53,17 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local setupConfirmed=false
   local lastSpellupInflight
   local lastRequest=-math.huge; local settle=0; local status={}
-  local defeatedTarget
-  local schedule,drive,update,armEvidence,armPeriodic,fail
+  local encounter
+  local schedule,drive,update,armEvidence,armPeriodic,fail,recordDefeat
   local function copy(v)
     if type(v)~='table' then return v end
     local t={};for k,x in pairs(v) do t[k]=copy(x) end;return t
   end
   local function connected() return cache.enabled and select(3,api.getConnectionInfo())==true end
+  local function sharedExperience()
+    local group=cache.get('group')
+    return type(group)=='table' and ((tonumber(group.count) or 0)>1 or type(group.members)=='table' and #group.members>1)
+  end
   local function ready()
     if cache.checkReadiness then return self.enabled and cache.checkReadiness("spellup") and not (spellup and spellup.status().inflight) end
     return self.enabled and connected() and cache.get('char.status.state')==3
@@ -315,6 +319,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if self.enabled and next(pending) and not active and not frame then wake=api.tempTimer(0,drive) end
   end
   local function cancelAll()
+    encounter=nil
     if frame and tags.abortCapture then tags.abortCapture('scan','Room tracking stopped') end
     kill(wake);kill(timeout);kill(paintTimer);kill(evidenceTimer);kill(periodicTimer)
     wake,timeout,paintTimer,evidenceTimer,periodicTimer=nil,nil,nil,nil,nil
@@ -323,7 +328,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local function reset()
     if view.closeMenu then view.closeMenu() end
     session=session+1;visit=visit+1;cancelAll();setup=false;setupConfirmed=false;autoRated=false;status={}
-    defeatedTarget=nil
+    encounter=nil
     model.clear(nil);nearby={fresh=false,sections={}};lastRows={}
     ratings={fresh=false,verified=false,last='Use Rate room to verify completion this session'}
     self.last='Waiting for fresh room data';update()
@@ -438,6 +443,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if claimed then return true,not request.passive,'AardwolfToolbox.tags' end
     end
     if tags.isCapturing and tags.isCapturing() and not frame then return false end
+    if not frame and Protocol.killReward(text) then recordDefeat() end
     local rating=(consider.parseLine or consider.parse)(text,context)
     if rating then
       if active and active.kind=='rate' then
@@ -458,15 +464,25 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if frame and #frame.events>512 then fail('Too many interleaved room events') end
     return false
   end
-  local function recordDefeat(name)
-    if not model.room or not connected() then return end
-    local id=model.deathCandidate(name)
-    if not id then return end
-    local changed,row=model.kill(name)
+  recordDefeat=function()
+    local token=encounter
+    if not token or token.used then return end
+    token.used=true -- One normal award consumes this opponent, even when ambiguous.
+    local age=api.getEpoch()-(token.ended or token.seen)
+    if not model.room or not connected() or token.session~=session or token.visit~=visit
+        or token.revision~=model.revision or age<0 or age>(token.ended and 3 or 10) then return end
+    if token.ambiguous then
+      self.last='Kill not attributed: opponent changed before experience arrived';update();return
+    end
+    if token.grouped or sharedExperience() then
+      self.last='Kill not attributed: shared group experience';update();return
+    end
+    local changed,row=model.kill(token.name,token.id)
     if not changed then return end
+    update()
     local room=cache.get('room.info') or {}
     local observed={session=session,visit=visit,rowId=row.id,name=row.name,flags=row.flags,
-      uncertain=row.uncertainDeath==true,room={num=tonumber(model.room)},source='room-mobs',evidence='gmcp-target-zero'}
+      uncertain=row.uncertainDeath==true,room={num=tonumber(model.room)},source='room-mobs',evidence='gmcp-opponent-xp'}
     if tostring(room.num)==model.room then observed.room.name=room.name;observed.room.area=room.zone end
     local ownedSession,ownedVisit=session,visit
     local function notify()
@@ -481,7 +497,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       local room=cache.get(path)
       local key=type(room)=='table' and type(room.num)=='number' and room.num>0 and room.num<2147483648 and room.num%1==0 and tostring(room.num) or nil
       if key==model.room and key~=nil then return end
-      defeatedTarget=nil
+      encounter=nil
       if view.closeMenu then view.closeMenu() end
       visit=visit+1;pending={};kill(wake);wake=nil
       -- A sent response still owns its boundary. Drain it before acquiring again.
@@ -504,14 +520,26 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
         end
         local name=State.name(status.enemy)
         local key=name and name:lower()
-        if status.state==8 and (not was or (oldEnemy and oldEnemy:lower())~=key or type(s.enemypct)=='number' and s.enemypct>0) then defeatedTarget=nil end
-        -- A fresh zero for a named current opponent is the configured death signal.
-        -- Repeated zero packets must not select/kill the next identical room mob.
-        if changed and not (key and key==defeatedTarget and status.state==8 and status.enemypct==0) then
-          model.enemy(status.enemy,status.state==8,status.enemypct)
-        end
-        if s.enemypct==0 and status.state==8 and key and key~=defeatedTarget then
-          defeatedTarget=key;recordDefeat(name);changed=true
+        local oldKey=oldEnemy and oldEnemy:lower()
+        if changed then model.enemy(status.enemy,status.state==8,status.enemypct) end
+        if status.state==8 and key then
+          local newFight=not was or key~=oldKey
+          local positive=type(s.enemypct)=='number' and s.enemypct>0 and s.enemypct<=100
+          if not encounter or newFight or encounter.used and positive then
+            local id=model.deathCandidate(name)
+            local age=encounter and api.getEpoch()-(encounter.ended or encounter.seen)
+            local ambiguous=encounter and not encounter.used and newFight and age>=0 and age<=(encounter.ended and 3 or 10)
+            encounter={id=id,name=name,revision=model.revision,session=session,visit=visit,
+              seen=api.getEpoch(),used=id==nil,ambiguous=ambiguous,grouped=sharedExperience()}
+          elseif not encounter.used and (s.enemy~=nil or s.enemypct~=nil) then
+            encounter.seen=api.getEpoch()
+            if model.deathCandidate(name)~=encounter.id then encounter.ambiguous=true end
+          end
+        elseif encounter and not encounter.ended then
+          -- Status can clear before text delivery. Keep the exact row, not the
+          -- next living duplicate, for a bounded late reward in this room visit.
+          encounter.ended=api.getEpoch()
+          if status.state~=3 then encounter=nil end
         end
         if was and status.state==3 and options.after_combat then queue('room',false) end
         if active and (s.state==5 or s.state==6 or s.state==7) then active.discard=true end
@@ -546,6 +574,8 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
         if ownSend or not connected() then return end
         local state=cache.get('char.status.state')
         if state~=3 and state~=8 then return end
+        if type(command)=='string' and command:lower():match('^%s*flee%s*$') then encounter=nil end
+        if type(command)=='string' and command:lower():match('^%s*recall%s*$') then encounter=nil end
         if model.command(command) then update(true) end
         if type(command)=='string' and (command:match('^%s*scan%s*$') or command:match('^%s*scan%s+')) then
           if active then active.discard=true;active.passive=true end
@@ -560,6 +590,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     return true
   end
   function self.configure(values)
+    encounter=nil
     configuration=configuration+1
     if view.closeMenu then view.closeMenu() end
     local valid,message=Actions.validate(values)

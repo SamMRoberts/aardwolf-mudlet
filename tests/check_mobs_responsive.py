@@ -91,7 +91,7 @@ class ResponsiveMobsTests(unittest.TestCase):
         self.lua.execute('''
           room(12);pulse();scan({'a bat','a bat'});pulse(1);m.rateRoom();pulse()
           local marker=sent[#sent]:sub(6)
-          receive('a bat snickers nervously.');status({state=8,enemy='a bat',enemypct=0});receive(marker)
+          receive('a bat snickers nervously.');status({state=8,enemy='a bat',enemypct=1});receive('You receive 75 experience points.');receive(marker)
           assert(not m.snapshot().ratings.fresh and not m.snapshot().rows[2].consider)
           pulse(1);m.rateRoom();pulse();local count=#sent;pulse(11)
           assert(m.snapshot().fresh and not m.snapshot().ratings.fresh)

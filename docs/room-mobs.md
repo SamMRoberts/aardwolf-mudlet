@@ -116,9 +116,10 @@ preferences and removes the owned menu, Escape key, widgets, and callbacks.
 - **⚔ Attacking you** follows recognized name-bearing incoming damage. Duplicate
   names select the current matching opponent, otherwise the first living match.
   Evidence arriving up to two seconds before combat confirmation is retained.
-- **† Killed** follows fresh GMCP target health of 0% for a named, known
-  current-room opponent. Repeated zeros do not kill additional duplicates. Missing
-  health, cleared names, disappearance and death/XP text do not mark kills.
+- **† Killed** follows a normal experience award correlated with a fresh GMCP
+  opponent and its current-room row. Simple and summed XP formats are accepted;
+  bonus lines, zero health and death text alone do not mark kills. Known shared
+  group awards and ambiguous opponent switches are left unattributed.
 - **Difficulty · relative range** uses the same parser and colors as the console
   consider formatter. Target/attacker borders retain precedence.
 
@@ -240,7 +241,8 @@ player profile. The fixture does not evaluate configured aliases.
    mouse actions and Escape never replace or submit it.
 4. With a menu open, call `NativeMobs021.health(60)`; its target stays valid.
    Call `NativeMobs021.room(900021002)`; the old menu must close. With a fresh
-   fixture target selected, call `NativeMobs021.health(0)` to mark its defeat.
+   fixture target selected, call `NativeMobs021.health(1)`, then replay
+   `feedTriggers('You receive 75 experience points.\n')` to mark its defeat.
    Death text alone must leave the row unchanged.
 5. Add enough actions to scroll; test long Unicode labels, narrow/wide profile
    sizes, scrolled roster placement, hover visibility, Escape/Close, and opening
@@ -254,8 +256,8 @@ player profile. The fixture does not evaluate configured aliases.
 
 **aardwolf-config → Local history → Record observed kill history** stores explicit
 known-mob death observations per character, off by default. Browse **Tools → Open
-history → Kills** for names and observed locations. This reuses the room-mob death
-parser and does not add commands or infer deaths from disappearance. Kill credit
+history → Kills** for names and observed locations. This reuses the room-mob GMCP/XP
+correlation and does not add commands or infer deaths from disappearance. Kill credit
 is unknown; identical mob identity remains heuristic. See [history](history.md).
 
 

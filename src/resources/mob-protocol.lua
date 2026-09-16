@@ -38,6 +38,11 @@ function Protocol.scan()
   end
   return self
 end
+function Protocol.killReward(text)
+  if type(text)~='string' or #text>128 then return false end
+  local amount=text:match('^%s*You receive ([%d+]+) experience points?%.%s*$')
+  return amount~=nil and not amount:find('^%+') and not amount:find('%+$') and not amount:find('%+%+')
+end
 function Protocol.combat(text,rows)
   -- Reject ordinary output before any roster lookup. The callback is an indexed
   -- membership check; the table form remains available to existing consumers.

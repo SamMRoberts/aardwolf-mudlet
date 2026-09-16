@@ -56,35 +56,42 @@ persistent server quest identities; duplicate protection does not span sessions.
 ## Observed kills
 
 Enable **Record observed kill history** and keep **Room mobs** enabled. Select
-**Kills** in History. Fresh `char.status.enemypct == 0` for a named opponent
-in combat marks its current-room row **Killed** and creates one history entry.
-Death messages and XP lines are not used; no new queries, triggers or automatic
-attacks are introduced. The name must match a living current-room observation;
-nearby mobs, unknown names, player-flagged or unclassified rows are excluded.
-GMCP processing works independently of ASCII/help/tag capture.
+**Kills** in History. The tracker correlates a fresh GMCP opponent with a normal
+experience award, including `You receive 75 experience points.` and
+`You receive 100+20+10 experience points.`. A reward consumes that opponent once;
+rare-kill, daily blessing and other bonus lines cannot add more kills. These
+formats are documented by [Exprate](https://www.aardwolf.com/wiki/index.php/Help/Exprate)
+and [Rare Experience](https://www.aardwolf.com/wiki/index.php/Main/RareExperience).
+The normal award remains visible; no requests or gameplay commands are added.
 
-New rows say **Target defeated · GMCP 0%** and retain `evidence="gmcp-target-zero"`.
-This deliberately uses the reported target percentage as the indicator, not a
-separate server kill-credit event. Kill credit stays unknown; no XP, loot or
-reward gains are inferred. Missing/invalid health, a cleared opponent name,
-combat ending, disappearance and room changes do not create records. Existing
-text-derived records remain readable as **Death observed**.
+There is no documented general mob-death event or guaranteed final 0% packet in
+[Aardwolf GMCP](https://www.aardwolf.com/wiki/index.php/Clients/GMCP). Health reaching
+zero, combat ending, disappearance and variable death messages do not independently
+mark kills. A literal `0 experience points.` award is accepted; kills without a
+normal XP line cannot be recorded through this correlation.
 
-Each record retains the observed name, flags, room number, optional room/area
-names, evidence and whether duplicate selection was uncertain. Same-named mobs
-remain separate observations. The current matching target is selected, honoring
-numbered attack intent, otherwise the first living match. Repeated zero updates
-cannot kill the next duplicate; a new fight, different opponent or positive
-reported health rearms detection. A packet omitting health never reuses cached
-zero as a new death signal. Identity remains a local observation, not a server
-instance ID. Defeats with no reported named-opponent zero cannot be recorded.
+The opponent must match a living, classified current-room observation. Its row ID
+is retained across GMCP clearing the opponent, so numbered duplicate targets stay
+correct. Confirmation must arrive within ten seconds of the latest opponent data,
+or three seconds after combat ends. Session/room changes, roster changes, disable
+and explicit `flee`/`recall` commands invalidate the correlation. An unresolved
+opponent switch or a known group of more than one member leaves the award
+unattributed, with a reason in Room mobs status. Unknown group state is not proof
+of solo combat; **personal kill credit remains unknown**. XP inside owned map,
+help, scan or generic-tag frames cannot confirm a kill.
+
+New history rows say **Target defeated · XP observed** and retain
+`evidence="gmcp-opponent-xp"`. Older `gmcp-target-zero` and text-derived records
+remain readable without relabeling their evidence. Records retain name, flags,
+room/area, and duplicate-identity uncertainty; no XP totals, loot or reward gains
+are inferred. Names and local row IDs are not persistent server mob identities.
 
 Enabling recording during a connection uses the current session's already-received
 character identity, so subsequent kills do not need another `char.base` update.
 Changing recording categories also retains access to that current identity. After
 a disconnect or cache reset, recording waits for fresh identity; it never reads
 stale raw GMCP data or backfills old killed rows. The producer emits only new
-alive-to-dead transitions from fresh GMCP, deferring notification during incoming
+alive-to-dead transitions from correlated GMCP/XP evidence, deferring notification during incoming
 line processing and rejecting notifications that cross a room/session boundary.
 The recorder deduplicates the latest 512 session/visit/row tokens; these tokens
 are not persisted. Disconnect, character changes, disable and teardown clear
@@ -235,7 +242,9 @@ placement, native cleanup and unchanged map data.
 The native history fixture injects a synthetic death-service event; it does not
 exercise the GMCP-to-roster path. After clearing its Kills category, run
 `tests/native_history_engine.lua` once with an isolated tracker to verify colored
-death text is ignored and synthetic GMCP zeros record two distinct targets. Its dispatch is blocked and no
+death text is ignored and synthetic GMCP opponents plus normal XP lines record
+two distinct targets. GMCP is synthetic; native ANSI/trigger delivery remains an
+acceptance check, not evidence of live server ordering. Its dispatch is blocked and no
 map data is changed. These synthetic checks are distinct from live acceptance.
 The history fixture restores preferences and deletes only its uniquely named test records.
 

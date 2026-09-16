@@ -55,7 +55,7 @@ class QuestHintTests(unittest.TestCase):
         self.start_hint()
         self.lua.execute('''
           quest({state='Active',target='a tiny bat'})
-          status({state=8,enemy='a tiny bat',enemypct=0});pulse(.05)
+          status({state=8,enemy='a tiny bat',enemypct=1});receive('You receive 75 experience points.');pulse(.05)
           local s=m.snapshot();assert(not s.rows[1].objective and s.rows[2].objective.matches==1)
           scan({'a large bat'});pulse(.05);assert(not m.snapshot().rows[2].objective)
           receive('{scan}');receive('North from here you see:');receive('     - a tiny bat');receive('{/scan}')
