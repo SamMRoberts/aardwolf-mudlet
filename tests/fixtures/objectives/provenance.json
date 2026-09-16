@@ -1,12 +1,44 @@
 {
-  "version": 1,
+  "version": 2,
   "campaign-inactive.txt": {
     "source": "User-provided Aardwolf output in this implementation conversation",
     "observed": "2026-09-14",
     "command": "campaign info (inferred from content; command not included in sample)",
     "native_boundary_verified": false,
-    "variants": ["inactive", "zero campaigns today", "available at this level"]
+    "variants": [
+      "inactive",
+      "zero campaigns today",
+      "available at this level"
+    ]
   },
-  "missing": ["active campaign info/check", "campaign terminal events", "gquest list/info/check", "gquest participation and terminal events", "native echo boundaries"],
-  "synthetic": "check_objectives.py uses an injected SYNTHETIC OBJECTIVES adapter for service/model tests only. It is not a server parser."
+  "missing": [
+    "campaign terminal events",
+    "alternate check availability/dead-target responses",
+    "gquest list/info/check",
+    "gquest participation and terminal events",
+    "native echo boundaries"
+  ],
+  "synthetic": "check_objectives.py uses an injected SYNTHETIC OBJECTIVES adapter for service/model tests only. It is not a server parser.",
+  "campaign-active-info.txt": {
+    "source": "User-provided Aardwolf output in this implementation conversation",
+    "observed": "2026-09-16",
+    "command": "cp info",
+    "native_boundary_verified": false,
+    "variants": [
+      "active campaign",
+      "11 objectives",
+      "days/hours/minutes countdown"
+    ]
+  },
+  "campaign-active-check.txt": {
+    "source": "User-provided Aardwolf output in this implementation conversation",
+    "observed": "2026-09-16",
+    "command": "cp check",
+    "native_boundary_verified": false,
+    "variants": [
+      "active campaign",
+      "11 objectives",
+      "days/hours/minutes countdown"
+    ]
+  }
 }

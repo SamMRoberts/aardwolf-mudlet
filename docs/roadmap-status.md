@@ -1,10 +1,10 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.22**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.23**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
-Dev.22 has not been installed or controlled in Mudlet. Campaign/GQ services, storage, tabs and candidate hints are implemented behind explicit format/transport gates. Only the user-supplied inactive campaign response is supported; active campaign and GQ formats remain pending. See [capture acceptance](campaign-global-quest.md).
+Dev.23 has not been installed or controlled in Mudlet. Campaign/GQ services, storage, tabs and candidate hints are implemented behind explicit format/transport gates. The user-supplied inactive campaign and active info/check responses are supported. GQ formats, campaign terminal events and native echo-boundary acceptance remain pending. See [capture acceptance](campaign-global-quest.md).
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,
@@ -137,7 +137,7 @@ See [workspace](workspace.md) and [item service](item-service.md).
 ### Journal and navigation workspace (0.27)
 
 Capture current campaign/global-quest responses before implementing parsers.
-No player-profile queries were sent in this work. Campaign/global-quest journal services and hints now have contract coverage. Full live collection remains pending verified active/GQ formats and native request boundaries. Active quest
+No player-profile queries were sent in this work. Campaign/global-quest journal services and hints now have contract coverage. Active campaign info/check have observed fixtures; broader live collection remains pending verified GQ/event formats and native request boundaries. Active quest
 name hints are now implemented for fresh current-room mobs, with explicit
 candidate labeling, duplicate ambiguity, optional settings and no additional
 queries or actions. Shared quest timing-only events do not redraw the roster. The local map workspace now

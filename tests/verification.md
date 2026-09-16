@@ -1,3 +1,22 @@
+# 0.24.0-dev.23 observed active campaign parser — 2026-09-16
+
+- Added the user's complete `cp info` and `cp check` responses as observed,
+  versioned fixtures. Parsed all 11 target rows, reported deadline, level,
+  days/hours/minutes countdown and advertised rewards. Locations remain literal
+  and untyped because the response does not identify room versus area.
+- Active Refresh now serializes info then check at broker response boundaries.
+  Assigned objectives produce no candidate mob hints until remaining-target data
+  arrives. The check retains campaign metadata, replaces the remaining list, and
+  does not infer completion from empty targets or an expired countdown.
+- Muddler build, archive CRC/XML/resource consistency and **472 tests passed**.
+  Five regression cases cover the actual samples, request sequence, persistence,
+  metadata preservation, visible interleaved combat, malformed/truncated output,
+  duplicates, Unicode/nested parentheses, zero values, short durations and failed
+  progress refreshes. `/private/tmp/awtb-campaign-check.log` records the run.
+- No Mudlet control, installation, server requests or native-map changes.
+  Automatic/native echo-boundary acceptance, other campaign event/availability
+  variants and all GQ formats remain pending; their gates are retained.
+
 # 0.24.0-dev.22 campaign/GQ groundwork — 2026-09-14
 
 - Pinned toolchain bootstrap restored the missing local Java runtime. Muddler

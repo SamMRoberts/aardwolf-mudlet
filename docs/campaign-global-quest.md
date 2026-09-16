@@ -6,7 +6,7 @@ outside the main Mudlet window and returning to its tab. Settings live under
 **aardwolf-config → Campaign / Global Quest**, including placement, capture,
 event-driven refresh, suppression, and candidate mob hints.
 
-## What is usable in dev.22
+## What is usable in dev.23
 
 The user supplied this Aardwolf response on 2026-09-14:
 
@@ -23,12 +23,25 @@ request when connected and command-ready. Unique begin/end `echo` markers surrou
 it; only a complete recognized response commits state. A successful manual response
 verifies boundaries for that operation in that session.
 
-**Active campaign capture and all Global Quest wire formats are still blocked.**
-No current examples for them have been supplied. Their tabs show the reason and
-retain stale saved observations. No invented parser, GMCP module, tag preference,
-or ability to bypass verification ships. Automatic collection has no accepted
-native boundary evidence yet and does not send on startup. Unknown responses remain
-visible and cannot overwrite the last valid state.
+The active `cp info` and `cp check` samples supplied on 2026-09-16 are now
+supported. Refresh sends `campaign info`, then, for an active campaign, yields the
+broker and requests `campaign check`. Info contains the assigned list, which does
+not prove remaining progress; candidate hints wait for the check response. The
+check replaces the remaining list while retaining level, advertised rewards and
+the original **Complete By** text. Days/hours/minutes become approximate remaining
+seconds; the displayed deadline is not converted using an assumed server timezone.
+
+Locations are retained literally, including nested parentheses. The output does
+not label a location as room versus area, so the parser preserves that uncertainty.
+Map lookup searches both existing room names and exact area names. Truncated,
+malformed and unsupported variants retain the last observation as stale. Zero
+remaining rows or zero time do not mean completion.
+
+**Global Quest wire formats and campaign terminal events remain unverified.**
+No current examples for them have been supplied. Automatic collection still has no
+accepted native boundary evidence and does not send on startup. A manual successful
+response verifies its operation's boundaries for the current session. Unknown
+responses stay visible and cannot overwrite the last valid observation.
 
 Contract tests cover the shared collectors, objective model, SQLite storage, views,
 and hints with an explicitly synthetic adapter. These tests are not live protocol
@@ -78,7 +91,7 @@ The broker's optional `contextKeys` list chooses captured contexts. Defaults rem
 character guard. Active obsolete responses drain to their boundary/deadline.
 
 The protocol adapter exposes `supported(kind, operation)`, `new(kind, operation)`
-with `receive(line)` / `finish()`, and `automatic(kind, operation)`. Only checked
+with `receive(line)` / `finish()`, `followUp(kind, operation, patch)`, and `automatic(kind, operation)`. Only checked
 formats return supported. A future verified event adapter may return normalized
 `patch`, `replace`, `reconcile`, and/or `refresh` evidence. Reconcile marks progress
 stale and queues a check; it never guesses which duplicate mob received credit.
@@ -92,8 +105,9 @@ advancement, joins, campaign requests, quits, completion actions, or travel occu
 
 Supply full headings, body, ending lines, command and capture date for:
 
-- Campaign active info/check, room/area locations, repeated targets, unavailable
-  mobs, credited kills, completion/rewards, cancellation, expiry, and unavailable CP.
+- Further campaign variants: identified room/area locations, unavailable mobs,
+  credited kills, completion/rewards, cancellation, expiry, alternate availability
+  footers and unavailable CP. Active info/check samples are recorded already.
 - GQ zero/one/multiple event listings, numbered info, joined/not-joined checks,
   participation changes, credited kills, winners, extended/end/cancelled events.
 - Long/Unicode names, punctuation and nested parentheses, quantities, and colors.

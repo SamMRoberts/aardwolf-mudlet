@@ -144,6 +144,8 @@ function Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
       end
       line("source",report.last,nil,"#abbcca")
       if q.today~=nil then line("today","Campaigns today",num(q.today)) end
+      if q.completeBy then line("deadline","Complete by: "..q.completeBy,nil,"#abbcca") end
+      if q.objectiveScope=="assigned" then line("scopeNote","Assigned targets · remaining progress awaiting cp check",nil,"#ffcb70") end
       if id=="globalQuest" then
         line("participation",q.fresh and q.participating and ("Participating · #"..tostring(q.eventId or "?")) or "Participation unconfirmed",nil,"#abbcca")
       end
@@ -208,8 +210,9 @@ function Panels.new(api,config,cache,data,ui,spells,spellup,views,objectives)
             if not o.area or areaName and areaName:lower()==o.area:lower() then p.matches[#p.matches+1]={id=roomId,name=name,area=areaName} end
           end
         end
-        if o.area and api.getAreaRooms then
-          for areaId,name in pairs(areas) do if name:lower()==o.area:lower() then
+        local areaQuery=o.area or (not o.room and o.location)
+        if areaQuery and api.getAreaRooms then
+          for areaId,name in pairs(areas) do if name:lower()==areaQuery:lower() then
             local roomIds=api.getAreaRooms(areaId) or {};local first
             for _,roomId in pairs(roomIds) do if not first or roomId<first then first=roomId end end
             if first and not o.room then p.matches[#p.matches+1]={id=first,name="Area: "..name,area=name} end

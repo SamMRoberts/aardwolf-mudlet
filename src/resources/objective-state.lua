@@ -28,7 +28,7 @@ local objectiveFields={name=text,location=text,room=text,area=text,locationType=
 local eventFields={id=function(v) return integer(v) and v>0 end,state=text,minLevel=integer,maxLevel=integer,remainingSeconds=integer,
   winner=text,rewards=rewards}
 local scalar={state=text,reported=integer,remainingSeconds=integer,eventId=eventFields.id,participating=boolean,fresh=boolean,
-  source=text,level=integer,today=integer,availabilityKnown=boolean,availabilityReported=integer,availabilityFresh=boolean,
+  source=text,completeBy=text,nextCampaignAvailable=boolean,objectiveScope=function(v) return v=="assigned" or v=="remaining" end,level=integer,today=integer,availabilityKnown=boolean,availabilityReported=integer,availabilityFresh=boolean,
   winner=text,rewards=rewards,awards=rewards}
 local function objectiveList(t) return list(t,function(o) fields(o,objectiveFields);assert(text(o.name) and o.name~='','Missing objective name') end) end
 local function selected(t)
@@ -74,7 +74,7 @@ function State.apply(previous,patch,operation,now,source)
 end
 function State.hints(value,kind,enabled)
   local result={}
-  if not enabled or not value.fresh or (value.state~='Active' and value.state~='Joined') or kind=='globalQuest' and not value.participating then return result end
+  if not enabled or not value.fresh or value.objectiveScope=='assigned' or (value.state~='Active' and value.state~='Joined') or kind=='globalQuest' and not value.participating then return result end
   for _,o in ipairs(value.objectives or {}) do
     if o.remaining~=0 and not o.unavailable then
       result[#result+1]={source=kind,candidate=true,target=o.name,room=o.room,area=o.area,location=o.location}

@@ -183,7 +183,10 @@ function Tracker.new(api,kind,cache,incoming,queries,readiness,store,State,Proto
         if patch then
           value=State.apply(value,patch,job.inspect and 'inspect' or job.operation,math.floor(api.getEpoch()),job.operation)
           boundaries[job.operation]=true;self.last='Updated from complete '..job.operation..' response'
-          persist();h.finish(true);emit()
+          local followUp=Protocol.followUp and Protocol.followUp(kind,job.operation,patch)
+          persist();h.finish(true)
+          if followUp then queue(followUp,nil,job.manual) end
+          emit()
         else h.finish(false,why or 'Unsupported response') end
       end
       return true,true
