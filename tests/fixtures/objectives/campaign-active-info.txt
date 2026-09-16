@@ -1,0 +1,23 @@
+--------------------------[ YOUR CURRENT CAMPAIGN ]----------------------
+Complete By........: [ 07:22AM on 23 Sep 2026 ]
+Time Left  ........: [ 6 days, 23 hours and 47 minutes ]
+Level Taken........: [    31 ]
+Quest Points.......: [    29 ]
+Trivia Points......: [     1 ]
+Training Sessions..: [     1 ]
+Gold Coins.........: [ 23594 ]
+----------------------------[ Campaign Victims ]-------------------------
+The targets for this campaign are:
+Find and kill 1 * an old man (Aardwolf Zoological Park)
+Find and kill 1 * a worshipper (Ancient Greece)
+Find and kill 1 * an ordinary doctor (Canyon Memorial Hospital)
+Find and kill 1 * a patient fisherman (Mudwog's Swamp)
+Find and kill 1 * the local chef (Olde Worlde Carnivale)
+Find and kill 1 * the Hurricane Goddess (Storm Mountain)
+Find and kill 1 * a collection administrator (Thandeld's Conflict)
+Find and kill 1 * a wealthy elven citizen (The Grand City of Aylor)
+Find and kill 1 * a filthy seagull (The Imperial City of Reme)
+Find and kill 1 * some drifting coral (The Maelstrom)
+Find and kill 1 * an overgrown oyster (The Maelstrom)
+--------------------------------------------------------------------------
+Use 'cp check' to see only targets that you still need to kill.

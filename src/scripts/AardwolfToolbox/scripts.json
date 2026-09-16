@@ -1,0 +1,7 @@
+[
+  {
+    "name": "AardwolfToolboxLifecycle",
+    "isActive": "yes",
+    "eventHandlerList": ["sysLoadEvent", "sysInstallPackage", "sysUninstallPackage"]
+  }
+]

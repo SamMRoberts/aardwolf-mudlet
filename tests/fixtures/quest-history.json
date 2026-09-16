@@ -1,0 +1,9 @@
+{
+  "provenance": {
+    "source": "https://www.aardwolf.com/wiki/index.php/Clients/GMCP#comm.quest",
+    "checked": "2026-09-13",
+    "kind": "documentation examples, not a live capture"
+  },
+  "start": {"action":"start","targ":"a swamp ape","room":"Swamp Ape Enclosure","area":"Aardwolf Zoological Park","timer":52},
+  "completion": {"action":"comp","qp":16,"tierqp":9,"pracs":0,"hardcore":0,"opk":0,"trains":0,"tp":0,"lucky":0,"double":0,"daily":1,"totqp":50,"gold":4831,"completed":111,"wait":30}
+}

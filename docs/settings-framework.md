@@ -1,0 +1,207 @@
+# Registering feature settings
+
+`AardwolfToolbox.config` owns profile preferences and the settings registry.
+All future user-configurable Toolbox features must register here. The UI renders
+registered features in registration order, and fields in definition order.
+Registrations made while the window is open are available after closing and
+reopening; the old draft cannot overwrite the new configuration revision.
+
+## Example
+
+Run registration once during package initialization, before `config.activate()`.
+The apply callback also runs immediately for a feature registered after activation.
+The following local example changes only its own runtime state:
+
+```lua
+local display = {enabled = true, rows = 20}
+AardwolfToolbox.config.registerFeature({
+  id = "display", label = "Display", description = "Local display preferences.",
+  settings = {
+    {key = "enabled", type = "boolean", label = "Enable display", default = true},
+    {key = "rows", type = "number", label = "Visible rows", default = 20,
+      min = 5, max = 100, integer = true},
+    {key = "caption", type = "text", label = "Caption", default = "Status", maxLength = 80},
+    {key = "detail", type = "choice", label = "Detail", default = "brief",
+      options = {{value = "brief", label = "Brief"}, {value = "full", label = "Full"}}},
+  },
+  apply = function(values)
+    display.enabled, display.rows = values.enabled, values.rows
+    display.caption, display.detail = values.caption, values.detail
+    return true
+  end,
+})
+local rows = AardwolfToolbox.config.get("display", "rows")
+local ok, message = AardwolfToolbox.config.set("display", "rows", 30)
+```
+
+Feature IDs and setting keys match `[a-z][a-z0-9_]*`. Labels are required;
+descriptions are optional plain text, escaped before rendering. Duplicate IDs,
+duplicate keys, invalid definitions, and invalid defaults raise programmer errors.
+Keep IDs stable across upgrades. Feature definitions are copied on registration;
+do not mutate `config.features` or `config.order`.
+
+| Type | Values and constraints | Control |
+| --- | --- | --- |
+| `boolean` | Lua `true` or `false` | Enabled/Disabled button |
+| `text` | No control characters; `maxLength` defaults to 1024 bytes | Local text field |
+| `number` | Finite number; optional inclusive `min`/`max`, `integer` | Numeric text field |
+| `choice` | String matching an option's `value`; unique options | Button cycling labeled options |
+
+`get(featureId, key)` returns the effective value and rejects unknown IDs/keys.
+`set(featureId, key, value)` returns `true, message` on a saved update or
+`nil, message` on validation/storage failure; unknown IDs/keys raise errors.
+No implicit string-to-boolean conversion occurs. Only the numeric UI parses input
+text into a number. Text controls consume Return locally and never dispatch it
+to the game.
+
+## Apply and persistence
+
+The window edits a draft. Apply validates all registered settings, atomically saves,
+then notifies affected features. Cancel or the close button discards the draft.
+Restore defaults changes only the selected section's draft. A command update or
+new feature registration invalidates older drafts; close and reopen to reload.
+
+Callbacks receive the feature's full effective settings and should return `true`.
+Return `false, reason` or throw to report activation failure. Preferences have
+already been saved at that point: the UI reports activation needs attention and
+keeps the requested value. Apply retries recorded activation failures. Callbacks
+must be idempotent and must not call `config.set` recursively. They should not
+send gameplay commands. Startup activates features only after preferences load.
+
+JSON is stored in `getMudletHomeDir()/AardwolfToolbox-settings.json` as
+`{"version":2,"values":{"feature":{"key":true}}}`. An adjacent `.tmp` file is
+written, closed, and atomically renamed. Read size is limited to 1 MiB. Unknown
+feature/setting values survive saves, allowing temporarily absent features to
+return. Missing settings use declared defaults.
+
+Malformed/unsupported files, unreadable files, and invalid known saved values
+produce a diagnostic and block writes, preserving the original. Valid known values
+remain usable when possible; otherwise defaults apply. To recover, stop Toolbox,
+back up and repair or rename the settings file, then reload the package/profile.
+Preferences survive uninstall and package replacement. The store is for ordinary
+preferences, not passwords or tokens. Format changes require an explicit migration;
+never silently reinterpret an unsupported version.
+
+## Window ownership
+
+`openSettings()` creates one `Adjustable.Container` and schema-generated children
+on demand. Repeated opening raises it. Drag/resize callbacks use native event
+coordinates and exclude docking so no shared game borders change. The panel has
+a 520×380 minimum size. A single owned one-shot timer refreshes runtime status
+while open and reschedules itself; closing kills it before recursive deletion.
+No UI or timer is created merely by registering a feature. Package stop/uninstall
+deletes the panel; package restart preserves its configuration service instance.
+
+## Cross-field validation and layout metadata
+
+A feature may provide `validate(values)`, returning `true` or `false, message`.
+It runs on a defensive copy of the whole feature draft before any persistence
+or activation. Use it for relationships such as layout shares, not runtime work.
+
+Package infrastructure uses `getMetadata(key)` and `setMetadata(key, value)` for
+font and border ownership provenance. Metadata uses the same checked atomic JSON
+replacement, preserves feature values, and does not invalidate a user draft.
+User-editable preferences must still be registered settings. Shared typography
+and future UI contracts are documented in [UI and dashboard](ui-dashboard.md).
+
+## Ordered records (settings format 2)
+
+A `records` setting defines `fields` using the existing primitive field types,
+`maxItems` (1–48), and a default ordered list. Each record has a unique stable
+`id` plus exactly the declared fields. IDs use lowercase letters, digits and
+underscores and begin with a letter. Field defaults are used when adding a row.
+`fixed=true` keeps the initial rows in place while allowing field edits.
+
+The shared editor supports Add, Edit, Duplicate, Delete and Move up/down. All
+changes remain in the window draft until Apply; Cancel and stale-draft checks
+apply to entire lists. `get`, drafts, and apply callbacks receive deep copies.
+
+```lua
+AardwolfToolbox.config.registerFeature({
+  id="example_list", label="Example list",
+  settings={{key="items", label="Items", type="records", maxItems=10,
+    default={}, fields={
+      {key="label",label="Label",type="text",default="New item",maxLength=80},
+      {key="enabled",label="Enabled",type="boolean",default=true}
+    }}},
+  apply=function(values)
+    -- Retain your own state and update owned widgets; never send game commands here.
+    return true
+  end
+})
+```
+
+Version 0.15.0 writes settings format **2**, including structured records. It
+continues reading version 1 and saves its exact original bytes to
+`AardwolfToolbox-settings.json.v1.bak` before replacing that file with format 2.
+Backup or write failure leaves the saved preferences and active configuration
+unchanged. An existing different backup blocks migration rather than overwriting
+it. Unknown feature/settings values remain stored. Older packages cannot read
+format 2; restore the backup only when deliberately downgrading (later preferences
+will be lost).
+
+## Ability selections (format 3)
+
+Action records include `ability_mode` (`manual`, `specific`, `highest`), `ability_id`, `ability_role`, `ability_type`, `ability_kind`, `ability_targeting`, and `arguments`. Default new records from the registered field definitions. Versions 1/2 gain only the new ability fields; existing commands, IDs, and shortcuts remain intact. The original settings bytes are backed up before the first version-3 write. Type corrections are ordinary bounded records under `abilities.corrections` and participate in the same draft transaction. See [ability catalog](abilities.md).
+
+
+## Record-reference selectors and previews (0.21.0)
+
+A text setting may specify `recordSource="items"` to select a stable ID from an
+ordered-record setting in the same feature. The editor derives labels and order
+from the current draft, including newly added records; IDs are not displayed.
+Optional `options` add reserved choices such as `{value="@disabled",label="Disabled"}`.
+Reserved values must not be valid record IDs. Source records provide `id`, `label`,
+and optionally `enabled`. Apply validates the reference after validating all
+records; deleting a referenced item requires selecting a replacement.
+`config.recordOptions(featureId, settingKey, featureDraft)` returns fresh option
+copies for editor use. This remains settings format 3.
+
+Text fields can supply `preview(value)`, returning display text or `nil, reason`.
+The shared editor shows the result and an **Update preview** control; preview
+callbacks must be bounded and side-effect-free. They never dispatch commands.
+Ordered lists can supply `addLabel` to name their Add control.
+
+Successful Apply publishes `AardwolfToolbox.settings.changed` with the new
+configuration revision after persistence and feature callbacks. Consumers can
+invalidate pending interactions even when another feature's settings changed.
+
+## Preference transfers
+
+`aardwolf-config → Import and export` uses the same draft, validation, Apply and
+Cancel flow. See [file format and user workflow](preferences-transfer.md).
+
+- `config.exportPreferences()` returns a new export path, or `nil, reason`.
+- `config.prepareImport(path, draft, revision)` returns a new draft and review,
+  or `nil, reason`, without saving or activating preferences.
+- `config.reviewImport(draft, revision, review.token)` refreshes changed fields
+  after local edits. `config.applyImport(draft, revision, review.token)` validates,
+  backs up and applies. `config.cancelImport(review.token)` invalidates the plan.
+- Reviews contain defensive copies of changed values and unavailable field names.
+  Unknown imported values remain internal to the configuration service.
+- Only one import plan is active. Revision changes, Cancel or shutdown reject
+  stale application. Never bypass the shared Apply path to write imported data.
+
+Registered feature validation and activation contracts are unchanged. Imported
+settings can enable existing automatic features, so descriptions and preview
+labels must identify those preferences clearly. Exports contain saved values,
+not unsaved editor text.
+
+## Notification producers
+
+Future features may publish concise notices through `AardwolfToolbox.notifications`
+without owning alerts, audio timers or inbox widgets. See the [consumer contract](notifications.md#consumer-api).
+Keep source state authoritative, include captured session IDs for delayed work,
+and never attach executable commands or callbacks to notices. Category and alert
+preferences live in the shared Notifications section. Notification records stay
+in session memory and are excluded from preference and diagnostic exports.
+
+## Persistent history consumers
+
+Local history is separately opt-in and is not part of notification storage.
+See [categorized history storage and API](history.md). Preserve per-character identity,
+bounded retention, transactional writes and explicit export/clear actions.
+Future categories require their own registered opt-in and verified source semantics;
+do not add raw protocol payloads or logs to history observations. Omitted category
+arguments keep the progression API default. Never clear another category as a
+side effect of category selection or disabling its recording preference.

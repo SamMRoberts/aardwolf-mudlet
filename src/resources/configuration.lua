@@ -1,0 +1,448 @@
+-- Schema-driven, profile-local preferences. Construction never creates widgets.
+local Config = {}
+local function copy(value)
+  if type(value) ~= "table" then return value end
+  local result = {}; for k,v in pairs(value) do result[k] = copy(v) end; return result
+end
+local function equal(a,b)
+  if type(a) ~= type(b) then return false end
+  if type(a) ~= "table" then return a == b end
+  for k,v in pairs(a) do if not equal(v,b[k]) then return false end end
+  for k in pairs(b) do if a[k] == nil then return false end end
+  return true
+end
+local function jsonValue(v,depth)
+  if type(v)=="string" or type(v)=="boolean" then return true end
+  if type(v)=="number" then return v==v and math.abs(v)<math.huge end
+  if type(v)~="table" or depth>8 then return false end
+  for k,item in pairs(v) do
+    if (type(k)~="string" and type(k)~="number") or not jsonValue(item,depth+1) then return false end
+  end
+  return true
+end
+local function identifier(value)
+  return type(value) == "string" and value:match("^[a-z][a-z0-9_]*$") ~= nil
+end
+local function finite(value)
+  return type(value) == "number" and value == value and math.abs(value) < math.huge
+end
+local function valid(setting, value)
+  if setting.type == "records" then
+    if type(value)~="table" or #value>setting.maxItems then return false end
+    local ids={}
+    for k in pairs(value) do if type(k)~="number" or k%1~=0 or k<1 or k>#value then return false end end
+    for _,record in ipairs(value) do
+      if type(record)~="table" or not identifier(record.id) or ids[record.id] then return false end
+      ids[record.id]=true
+      local keys={id=true}
+      for _,field in ipairs(setting.fields) do
+        keys[field.key]=true
+        if not valid(field,record[field.key]) then return false end
+      end
+      for key in pairs(record) do if not keys[key] then return false end end
+    end
+    return true
+  end
+  if setting.type == "boolean" then return type(value) == "boolean" end
+  if setting.type == "text" then
+    return type(value) == "string" and not value:find("[%z\1-\31\127]")
+      and #value <= (setting.maxLength or 1024)
+  end
+  if setting.type == "number" then
+    return finite(value) and (not setting.integer or value % 1 == 0)
+      and (setting.min == nil or value >= setting.min)
+      and (setting.max == nil or value <= setting.max)
+  end
+  if setting.type == "choice" then
+    for _, option in ipairs(setting.options) do if value == option.value then return true end end
+  end
+  return false
+end
+
+function Config.new(api, preferenceFiles)
+  local self = {features = {}, order = {}, revision = 0, runtimeErrors = {}, active = false}
+  local values, metadata, legacyBytes, legacyVersion = {}, {}, nil, nil
+  local pendingImport, importSerial=nil,0
+  local path = api.getMudletHomeDir() .. "/AardwolfToolbox-settings.json"
+  self.path = path
+  local function diagnostic(message)
+    self.readError = message
+    api.echo("Aardwolf settings: " .. message .. "\n")
+  end
+  local file, err, code = api.io.open(path, "rb")
+  if file then
+    local bytes = file:read(1048577)
+    local closed = file:close()
+    local ok, data = pcall(api.yajl.to_value, bytes or "")
+    if not closed or not bytes or #bytes > 1048576 or not ok or type(data) ~= "table"
+        or (data.version ~= 1 and data.version ~= 2 and data.version ~= 3) or type(data.values) ~= "table" then
+      diagnostic("Cannot read settings or unsupported format; original file preserved: " .. path)
+    else
+      local usable = true
+      for feature, fields in pairs(data.values) do
+        if not identifier(feature) or type(fields) ~= "table" then usable = false; break end
+        for key, value in pairs(fields) do
+          if not identifier(key) or not jsonValue(value,0) then
+            usable = false; break
+          end
+        end
+      end
+      if usable and (data.metadata==nil or type(data.metadata)=="table") then values = data.values; metadata=data.metadata or {}; if data.version<3 then legacyBytes=bytes; legacyVersion=data.version end else diagnostic("Invalid settings structure; original file preserved: " .. path) end
+    end
+  elseif code ~= 2 then
+    diagnostic("Cannot open settings; original file preserved: " .. tostring(err))
+  end
+
+  local function featureValues(id)
+    local result = {}
+    for _, setting in ipairs(self.features[id].settings) do
+      local value = values[id] and values[id][setting.key]
+      if value == nil or not valid(setting, value) then value = setting.default end
+      result[setting.key] = copy(value)
+    end
+    return result
+  end
+
+  local function notify(id)
+    local feature = self.features[id]
+    local ok, result, message = pcall(feature.apply, featureValues(id))
+    self.runtimeErrors[id] = nil
+    if not ok or result == false or (result == nil and message ~= nil) then
+      self.runtimeErrors[id] = tostring(ok and message or result)
+      api.echo("Aardwolf settings: " .. feature.label .. " could not activate: " .. self.runtimeErrors[id] .. "\n")
+    end
+  end
+
+  function self.registerFeature(definition)
+    assert(type(definition) == "table" and identifier(definition.id), "Invalid feature ID")
+    assert(not self.features[definition.id], "Duplicate feature ID: " .. definition.id)
+    assert(type(definition.label) == "string" and #definition.label > 0, "Feature label required")
+    assert(definition.description == nil or type(definition.description) == "string", "Invalid description")
+    assert(type(definition.apply) == "function", "Feature apply callback required")
+    assert(type(definition.settings) == "table" and #definition.settings > 0, "Ordered settings required")
+    local keys = {}
+    for i, setting in ipairs(definition.settings) do
+      assert(type(setting) == "table" and identifier(setting.key) and not keys[setting.key], "Invalid or duplicate setting key")
+      keys[setting.key] = true
+      assert(type(setting.label) == "string" and #setting.label > 0, "Setting label required")
+      assert(setting.description == nil or type(setting.description) == "string", "Invalid description")
+      assert(setting.type == "boolean" or setting.type == "text" or setting.type == "number" or setting.type == "choice" or setting.type == "records", "Unsupported setting type")
+      assert(setting.preview==nil or setting.type=='text' and type(setting.preview)=='function','Invalid preview callback')
+      assert(setting.addLabel==nil or type(setting.addLabel)=='string','Invalid Add label')
+      assert(setting.min == nil or finite(setting.min), "Invalid minimum")
+      assert(setting.max == nil or finite(setting.max), "Invalid maximum")
+      assert(not (setting.min and setting.max) or setting.min <= setting.max, "Invalid numeric range")
+      assert(setting.integer == nil or type(setting.integer) == "boolean", "Invalid integer constraint")
+      assert(setting.maxLength == nil or (finite(setting.maxLength) and setting.maxLength >= 0 and setting.maxLength % 1 == 0), "Invalid length constraint")
+      if setting.type == "records" then
+        assert(finite(setting.maxItems) and setting.maxItems>=1 and setting.maxItems<=48 and setting.maxItems%1==0,"Invalid record limit")
+        assert(type(setting.fields)=="table" and #setting.fields>0,"Record fields required")
+        local fields={id=true}
+        for _,field in ipairs(setting.fields) do
+          assert(identifier(field.key) and not fields[field.key] and type(field.label)=="string","Invalid record field")
+          fields[field.key]=true
+          assert(field.type=="text" or field.type=="number" or field.type=="boolean" or field.type=="choice","Invalid record field type")
+          assert(field.preview==nil or field.type=='text' and type(field.preview)=='function','Invalid field preview callback')
+          assert(valid(field,field.default),"Invalid record field default")
+        end
+      end
+      if setting.type == "choice" then
+        assert(type(setting.options) == "table" and #setting.options > 0, "Choice options required")
+        local seen = {}
+        for _, option in ipairs(setting.options) do
+          assert(type(option) == "table" and type(option.value) == "string" and type(option.label) == "string"
+            and not seen[option.value], "Invalid or duplicate choice")
+          seen[option.value] = true
+        end
+      end
+      assert(valid(setting, setting.default), "Invalid default for " .. setting.key)
+    end
+    for key in pairs(definition.settings) do
+      assert(type(key) == "number" and key >= 1 and key <= #definition.settings and key % 1 == 0, "Settings must be an ordered list")
+    end
+    assert(definition.validate==nil or type(definition.validate)=="function","Invalid feature validator")
+    for _,setting in ipairs(definition.settings) do
+      if setting.recordSource then
+        assert(setting.type=='text' and identifier(setting.recordSource),'Invalid record reference')
+        local source
+        for _,candidate in ipairs(definition.settings) do if candidate.key==setting.recordSource then source=candidate end end
+        assert(source and source.type=='records','Record reference requires an ordered-record source')
+        local labeled=false
+        for _,field in ipairs(source.fields) do if field.key=='label' and field.type=='text' then labeled=true end end
+        assert(labeled,'Record reference source requires text labels')
+        assert(setting.options==nil or type(setting.options)=='table','Invalid reference options')
+        local seen={};local defaultFound=false
+        for _,record in ipairs(source.default) do if record.id==setting.default then defaultFound=true end end
+        for _,option in ipairs(setting.options or {}) do
+          assert(type(option.value)=='string' and type(option.label)=='string' and not seen[option.value],'Invalid reference option')
+          -- Reserved choices cannot collide with stable record IDs.
+          assert(not identifier(option.value),'Reference options must use non-record identifiers')
+          seen[option.value]=true
+          if option.value==setting.default then defaultFound=true end
+        end
+        assert(defaultFound,'Invalid default record reference')
+      end
+    end
+    local feature = copy(definition)
+    if feature.id=="dashboard" and values.dashboard and values.dashboard.tab=="combat" then
+      values.dashboard.tab="player"
+    end
+    -- Additive record migrations run only for older settings and never overwrite
+    -- saved values or unknown fields. The original bytes are backed up on write.
+    if legacyVersion and feature.id=="actions" and values.actions and type(values.actions.buttons)=="table" then
+      for _,setting in ipairs(feature.settings) do
+        if setting.key=="buttons" then
+          for _,record in ipairs(values.actions.buttons) do
+            if type(record)=="table" then
+              for _,field in ipairs(setting.fields) do
+                if field.abilityField and record[field.key]==nil then record[field.key]=copy(field.default) end
+              end
+            end
+          end
+        end
+      end
+    end
+    self.features[feature.id] = feature
+    self.order[#self.order + 1] = feature.id
+    for _, setting in ipairs(feature.settings) do
+      local saved = values[feature.id] and values[feature.id][setting.key]
+      if saved ~= nil and not valid(setting, saved) then
+        diagnostic("Invalid saved value for " .. feature.id .. "." .. setting.key .. "; original file preserved")
+      end
+    end
+    self.revision = self.revision + 1
+    if self.active then notify(feature.id) end
+  end
+
+  function self.recordOptions(id,key,fields)
+    local feature=assert(self.features[id],'Unknown feature')
+    for _,setting in ipairs(feature.settings) do
+      if setting.key==key and setting.recordSource then
+        local result=copy(setting.options or {})
+        for _,record in ipairs(fields[setting.recordSource] or {}) do
+          result[#result+1]={value=record.id,label=record.label..(record.enabled==false and ' (disabled)' or '')}
+        end
+        return result
+      end
+    end
+    error('Unknown record reference')
+  end
+
+  function self.get(id, key)
+    assert(self.features[id], "Unknown feature: " .. tostring(id))
+    local result = featureValues(id)
+    assert(result[key] ~= nil, "Unknown setting: " .. tostring(key))
+    return result[key]
+  end
+
+  function self.draft()
+    local result = {}; for _, id in ipairs(self.order) do result[id] = featureValues(id) end
+    return result, self.revision
+  end
+
+  local function persist(nextValues,nextMetadata)
+    local ok, encoded = pcall(api.yajl.to_string, {version = 3, values = nextValues, metadata = nextMetadata})
+    if not ok then return nil, "Cannot encode settings" end
+    if #encoded > 1048576 then return nil, "Settings exceed the 1 MiB storage limit" end
+    local temporary = path .. ".tmp"
+    local output, message = api.io.open(temporary, "wb")
+    if not output then return nil, "Cannot save settings: " .. tostring(message) end
+    local wrote, writeError = output:write(encoded)
+    local closed, closeError = output:close()
+    if not wrote or not closed then
+      api.os.remove(temporary)
+      return nil, "Cannot save settings: " .. tostring(writeError or closeError)
+    end
+    if legacyBytes then
+      local backup=path..".v"..legacyVersion..".bak"
+      local existing,existingError,existingCode=api.io.open(backup,"rb")
+      if not existing and existingCode~=2 then api.os.remove(temporary); return nil,"Cannot inspect legacy settings backup: "..tostring(existingError) end
+      if existing then
+        local bytes=existing:read(1048577); local closedBackup=existing:close()
+        if not closedBackup or bytes~=legacyBytes then api.os.remove(temporary); return nil,"Legacy settings backup already exists with different contents" end
+      else
+        local out,backupError=api.io.open(backup..".tmp","wb")
+        if not out then api.os.remove(temporary); return nil,"Cannot back up legacy settings: "..tostring(backupError) end
+        local wroteBackup=out:write(legacyBytes); local closedBackup=out:close()
+        if not wroteBackup or not closedBackup or not api.os.rename(backup..".tmp",backup) then
+          api.os.remove(backup..".tmp"); api.os.remove(temporary); return nil,"Cannot back up legacy settings"
+        end
+      end
+    end
+    local renamed, renameError = api.os.rename(temporary, path)
+    if not renamed then api.os.remove(temporary); return nil, "Cannot replace settings: " .. tostring(renameError) end
+    legacyBytes=nil
+    return true
+  end
+  function self.getMetadata(key) return copy(metadata[key]) end
+  function self.setMetadata(key,value)
+    if self.readError then return nil,self.readError end
+    local nextMetadata=copy(metadata); nextMetadata[key]=copy(value)
+    local ok,message=persist(values,nextMetadata)
+    if ok then metadata=nextMetadata end
+    return ok,message
+  end
+
+  local function validateDraft(draft, revision)
+    if revision ~= self.revision then return nil, "Settings changed elsewhere. Cancel and reopen this window before applying." end
+    if self.readError then return nil, self.readError end
+    if type(draft) ~= "table" then return nil, "Invalid settings draft" end
+    local nextValues, changed = copy(values), {}
+    for id, fields in pairs(draft) do
+      if not self.features[id] or type(fields) ~= "table" then return nil, "Unknown feature in draft" end
+      local known = featureValues(id)
+      for key in pairs(fields) do if known[key] == nil then return nil, "Unknown setting: " .. id .. "." .. key end end
+    end
+    for _, id in ipairs(self.order) do
+      if type(draft[id]) ~= "table" then return nil, "Missing settings for " .. id end
+      nextValues[id] = nextValues[id] or {}
+      for _, setting in ipairs(self.features[id].settings) do
+        local value = draft[id][setting.key]
+        if not valid(setting, value) then return nil, "Invalid value: " .. self.features[id].label .. " / " .. setting.label end
+        if not equal(self.get(id, setting.key),value) then changed[id] = true end
+        nextValues[id][setting.key] = copy(value)
+      end
+    end
+    for _,id in ipairs(self.order) do
+      for _,setting in ipairs(self.features[id].settings) do
+        if setting.recordSource then
+          local found=false
+          for _,option in ipairs(self.recordOptions(id,setting.key,draft[id])) do
+            if option.value==draft[id][setting.key] then found=true end
+          end
+          if not found then return nil,'Choose an available '..setting.label..'; the referenced action may have been deleted.' end
+        end
+      end
+      local validate=self.features[id].validate
+      if validate then
+        local ok,valid,message=pcall(validate,copy(draft[id]))
+        if not ok or not valid then return nil,message or "Invalid settings for "..id end
+      end
+    end
+    return nextValues,changed
+  end
+
+  local function savedPreferences()
+    local saved=copy(values)
+    for _,id in ipairs(self.order) do
+      saved[id]=saved[id] or {}
+      for key,value in pairs(featureValues(id)) do saved[id][key]=value end
+    end
+    return saved
+  end
+
+  local function applyDraft(draft,revision,import)
+    local nextValues,changed=validateDraft(draft,revision)
+    if not nextValues then return nil,changed end
+    local backup
+    if import then
+      for id,fields in pairs(import.unknown) do
+        nextValues[id]=nextValues[id] or {}
+        for key,value in pairs(fields) do nextValues[id][key]=copy(value) end
+      end
+      local encodedOK,encoded=pcall(api.yajl.to_string,{version=3,values=nextValues,metadata=metadata})
+      if not encodedOK or #encoded>1048576 then return nil,'Imported settings exceed storage limits' end
+      local fallbackOK,fallback=pcall(api.yajl.to_string,{version=3,values=savedPreferences(),metadata=metadata})
+      if not fallbackOK then return nil,'Cannot encode pre-import backup' end
+      local why;backup,why=preferenceFiles.backup(path,fallback)
+      if not backup then return nil,why end
+    end
+    local saved,message=persist(nextValues,metadata)
+    if not saved then return nil,message end
+    values, self.revision = nextValues, self.revision + 1
+    if import then pendingImport=nil;self.lastImportBackup=backup end
+    local errors = {}
+    for _, id in ipairs(self.order) do
+      if changed[id] or self.runtimeErrors[id] then notify(id) end
+      if self.runtimeErrors[id] then errors[#errors + 1] = self.features[id].label .. ": " .. self.runtimeErrors[id] end
+    end
+    if api.raiseEvent then api.raiseEvent('AardwolfToolbox.settings.changed',self.revision) end
+    return true, #errors > 0 and ("Saved; activation needs attention: " .. table.concat(errors, "; ")) or "Settings saved and applied."
+  end
+
+  function self.apply(draft,revision) return applyDraft(draft,revision) end
+
+  function self.exportPreferences()
+    if self.readError then return nil,self.readError end
+    if not preferenceFiles then return nil,'Preference file service unavailable' end
+    local exported=savedPreferences()
+    local ok,bytes=pcall(api.yajl.to_string,{format='AardwolfToolbox-preferences',version=1,settingsVersion=3,values=exported})
+    if not ok then return nil,'Cannot encode preferences' end
+    return preferenceFiles.writeNew('export',bytes)
+  end
+
+  local function changesFor(draft)
+    local review={changes={}}
+    for _,id in ipairs(self.order) do
+      for _,setting in ipairs(self.features[id].settings) do
+        local before,after=self.get(id,setting.key),draft[id][setting.key]
+        if not equal(before,after) then
+          review.changes[#review.changes+1]={feature=id,key=setting.key,label=self.features[id].label..' / '..setting.label,before=copy(before),after=copy(after)}
+        end
+      end
+    end
+    return review.changes
+  end
+  function self.reviewImport(draft,revision,token)
+    if not pendingImport or pendingImport.token~=token then return nil,'Import preview expired' end
+    local values,why=validateDraft(draft,revision)
+    if not values then return nil,why end
+    return changesFor(draft)
+  end
+
+  function self.prepareImport(filePath,draft,revision)
+    if not preferenceFiles then return nil,'Preference file service unavailable' end
+    if self.readError then return nil,self.readError end
+    local validDraft,why=validateDraft(draft,revision)
+    if not validDraft then return nil,why end
+    local bytes,err=preferenceFiles.read(filePath);if not bytes then return nil,err end
+    local ok,doc=pcall(api.yajl.to_value,bytes)
+    if not ok or type(doc)~='table' or doc.format~='AardwolfToolbox-preferences' or doc.version~=1 or doc.settingsVersion~=3 or type(doc.values)~='table' then
+      return nil,'Unsupported or malformed preference export (expected export format 1, settings version 3)'
+    end
+    for key in pairs(doc) do
+      if key~='format' and key~='version' and key~='settingsVersion' and key~='values' then return nil,'Unexpected export field: '..tostring(key) end
+    end
+    local nextDraft,unknown=copy(draft),{}
+    local review={changes={},unavailable={},revision=revision}
+    for id,fields in pairs(doc.values) do
+      if not identifier(id) or #id>80 or type(fields)~='table' then return nil,'Invalid imported feature' end
+      for key,value in pairs(fields) do
+        if not identifier(key) or #key>80 or not jsonValue(value,0) then return nil,'Invalid imported preference: '..id..'.'..tostring(key) end
+        if nextDraft[id] and nextDraft[id][key]~=nil then nextDraft[id][key]=copy(value)
+        else
+          unknown[id]=unknown[id] or {};unknown[id][key]=copy(value)
+          review.unavailable[#review.unavailable+1]=id..'.'..key
+        end
+      end
+    end
+    local checked,reason=validateDraft(nextDraft,revision);if not checked then return nil,reason end
+    review.changes=changesFor(nextDraft)
+    table.sort(review.unavailable)
+    importSerial=importSerial+1;review.token=importSerial
+    pendingImport={token=importSerial,revision=revision,unknown=unknown}
+    return nextDraft,review
+  end
+  function self.cancelImport(token)
+    if pendingImport and pendingImport.token==token then pendingImport=nil end
+  end
+  function self.applyImport(draft,revision,token)
+    if not preferenceFiles or not pendingImport or pendingImport.token~=token or pendingImport.revision~=revision then return nil,'Import preview expired; choose the file again' end
+    return applyDraft(draft,revision,pendingImport)
+  end
+
+  function self.set(id, key, value)
+    self.get(id, key) -- reject unknown keys before writing
+    local draft, revision = self.draft(); draft[id][key] = value
+    return self.apply(draft, revision)
+  end
+
+  function self.activate()
+    if self.active then return end
+    self.active = true
+    for _, id in ipairs(self.order) do notify(id) end
+  end
+  function self.deactivate() self.active = false;pendingImport=nil end
+  return self
+end
+return Config

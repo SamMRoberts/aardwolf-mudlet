@@ -1,5 +1,9 @@
 # Compiled Lua sources
 luac.out
+build/
+backups/
+.venv/
+__pycache__/
 
 # luarocks build files
 *.src.rock
@@ -39,3 +43,7 @@ luac.out
 *.x86_64
 *.hex
 
+# MacOS
+.DS_Store
+
+.tools/
