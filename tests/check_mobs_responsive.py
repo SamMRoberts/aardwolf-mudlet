@@ -45,6 +45,38 @@ class ResponsiveMobsTests(unittest.TestCase):
           assert(#sent==before and next(timers)==nil)
         ''')
 
+    def test_unconfirmed_spellup_releases_scan_without_waiting_for_movement(self):
+        self.service()
+        self.lua.execute('''
+          local batch={inflight=true,uncertain=false}
+          spellup.status=function() return batch end
+          function raiseEvent(event,...) if handlers[event] then handlers[event](event,...) end end
+          room(12);pulse(1);assert(#sent==0)
+          assert(message=='Spellup in progress','Pane must display why it is waiting')
+          raiseEvent('AardwolfToolbox.spellup.updated');pulse(1);assert(#sent==0)
+          batch.uncertain=true;batch.paused='Batch completion unconfirmed'
+          raiseEvent('AardwolfToolbox.spellup.updated');pulse(0)
+          assert(sent[2]=='scan here','Timed-out spellup must not strand pending scan')
+          scan({'a bat'});pulse(0.05);assert(m.snapshot().fresh and not m.status().queued)
+          assert(message=='Visible mobs · current visit')
+          room(13);pulse(1);assert(sent[3]=='scan here')
+          scan({'a snake'});pulse(1)
+          assert(batch.inflight and batch.paused,'Scan must not confirm spellup completion')
+          m.stop();queries.destroy();assert(next(timers)==nil)
+        ''')
+
+    def test_unconfirmed_spellup_does_not_bypass_character_readiness(self):
+        self.service()
+        self.lua.execute('''
+          spellup.status=function() return {inflight=true,uncertain=true} end
+          status({state=8});room(12);pulse(1);assert(#sent==0)
+          status({state=7});pulse(1);assert(#sent==0)
+          status({state=3});pulse();assert(sent[2]=='scan here')
+          scan({'a bat'});pulse(1)
+          spellup.status=function() return {inflight=true,paused='Not enough mana',uncertain=false} end
+          room(13);pulse(1);assert(#sent==2,'An active paused batch is still outstanding')
+        ''')
+
     def test_entry_scan_uses_information_readiness_without_position(self):
         self.service()
         with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as archive:

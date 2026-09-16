@@ -51,7 +51,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   local session,visit,sequence=0,0,0
   local setup,ownSend,autoRated=false,false,false
   local setupConfirmed=false
-  local lastSpellupInflight
+  local lastSpellupBlocking
   local lastRequest=-math.huge; local settle=0; local status={}
   local encounter
   local schedule,drive,update,armEvidence,armPeriodic,fail,recordDefeat
@@ -64,9 +64,15 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     local group=cache.get('group')
     return type(group)=='table' and ((tonumber(group.count) or 0)>1 or type(group.members)=='table' and #group.members>1)
   end
+  local function spellupBlocking()
+    local batch=spellup and spellup.status()
+    -- Unconfirmed completion still blocks another casting batch, but must not
+    -- indefinitely block informational scans after its completion timeout.
+    return batch and batch.inflight==true and not batch.uncertain or false
+  end
   local function ready(kind)
     if not self.enabled then return false,'Room mobs disabled' end
-    if spellup and spellup.status().inflight then return false,'Spellup in progress' end
+    if spellupBlocking() then return false,'Spellup in progress' end
     local policy=kind=='rate' and 'spellup' or 'information'
     if cache.checkReadiness then return cache.checkReadiness(policy) end
     if not connected() or cache.get('char.status.state')~=3 then return false,'Waiting for command-ready character' end
@@ -172,7 +178,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     end
     for id in pairs(lastRows) do if not nextRows[id] then changed[#changed+1]=id end end
     lastRows=nextRows; diagnostics.renders=diagnostics.renders+1
-    view.update(snapshot,self.last)
+    view.update(snapshot,diagnostics.queued or self.last)
     api.raiseEvent(OWNER..'.updated',changed)
     armEvidence(snapshot)
   end
@@ -180,6 +186,10 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if view.validateMenu then view.validateMenu() end
     if immediate then flush(); return end
     if not paintTimer and self.enabled then paintTimer=api.tempTimer(0.05,flush) end
+  end
+  local function queued(reason)
+    if diagnostics.queued==reason then return end
+    diagnostics.queued=reason;update()
   end
   armEvidence=function(snapshot)
     kill(evidenceTimer); evidenceTimer=nil
@@ -192,13 +202,14 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     if at then evidenceTimer=api.tempTimer(math.max(0.01,at-api.getEpoch()),function()
       evidenceTimer=nil
       if self.enabled then
-        if blink then view.update(self.snapshot(),self.last,true) end
+        if blink then view.update(self.snapshot(),diagnostics.queued or self.last,true) end
         update()
       end
     end) end
   end
   local function finish(ok,reason)
     kill(timeout); timeout=nil
+    diagnostics.queued=nil
     if active then diagnostics.duration=api.getEpoch()-active.started end
     active=nil; frame=nil; release(ok,reason); schedule(); armPeriodic()
   end
@@ -253,22 +264,22 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   drive=function()
     wake=nil
     if active or frame or wire then return end
-    if not queries.accepting(OWNER) then diagnostics.queued='Draining the previous collector response';return end
+    if not queries.accepting(OWNER) then queued('Draining the previous collector response');return end
     local request
     for _,candidate in pairs(pending) do
       if not request or candidate.priority<request.priority then request=candidate end
     end
-    if not request then release(); return end
+    if not request then queued(nil);release(); return end
     local eligible,reason=ready(request.kind)
     if not model.room or not eligible then
-      diagnostics.queued=reason or 'Waiting for room identity'
+      queued(reason or 'Waiting for room identity')
       release();return
     end
     local delay=math.max(settle,lastRequest+1)-api.getEpoch()
-    if delay>0 then diagnostics.queued='Waiting for room settle/cooldown';wake=api.tempTimer(delay,drive);return end
+    if delay>0 then queued('Waiting for room settle/cooldown');wake=api.tempTimer(delay,drive);return end
     local requestedVisit,requestedSession=visit,session
     queuedKind=request.kind
-    diagnostics.queued='Waiting for informational response'
+    queued('Waiting for informational response')
     wire=queries.request(OWNER,{priority=request.priority,timeout=10,timeoutFromStart=true,
       ready=function() return ready(request.kind) and not frame end,
       current=function() return self.enabled and requestedVisit==visit and requestedSession==session end,
@@ -316,9 +327,9 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     -- Broker availability is already a wakeup, not a reason to emit another.
     -- Spellup emits status repeatedly; only its readiness transition matters.
     if event=='AardwolfToolbox.spellup.updated' then
-      local inflight=spellup and spellup.status().inflight==true or false
-      if inflight==lastSpellupInflight then return end
-      lastSpellupInflight=inflight
+      local blocking=spellupBlocking()
+      if blocking==lastSpellupBlocking then return end
+      lastSpellupBlocking=blocking
     end
     if event~='AardwolfToolbox.queries.available' then queries.poke() end
     kill(wake); wake=nil
@@ -326,6 +337,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   end
   local function cancelAll()
     encounter=nil
+    diagnostics.queued=nil;lastSpellupBlocking=nil
     if frame and tags.abortCapture then tags.abortCapture('scan','Room tracking stopped') end
     kill(wake);kill(timeout);kill(paintTimer);kill(evidenceTimer);kill(periodicTimer)
     wake,timeout,paintTimer,evidenceTimer,periodicTimer=nil,nil,nil,nil,nil
@@ -505,7 +517,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
       if key==model.room and key~=nil then return end
       encounter=nil
       if view.closeMenu then view.closeMenu() end
-      visit=visit+1;pending={};kill(wake);wake=nil
+      visit=visit+1;pending={};diagnostics.queued=nil;kill(wake);wake=nil
       -- A sent response still owns its boundary. Drain it before acquiring again.
       if active then active.discard=true;queries.poke() else release(false,'Room or configuration changed') end
       model.clear(key);status={};nearby={fresh=false,sections={}};autoRated=false
@@ -605,7 +617,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     options=copy(values)
     if not options.enabled then self.stop();return true end
     if self.enabled then
-      pending={};if active then active.discard=true;queries.poke() else release(false,'Room or configuration changed') end
+      pending={};diagnostics.queued=nil;if active then active.discard=true;queries.poke() else release(false,'Room or configuration changed') end
       view.configure(options);armPeriodic();update();return true
     end
     return self.start()

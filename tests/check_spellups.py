@@ -209,11 +209,14 @@ class SpellTests(unittest.TestCase):
 
     def test_timeout_does_not_assume_batch_finished(self):
         self.lua.execute('''
-          synchronize(); assert(controller.runOnce()); advance(120)
-          assert(controller.status().paused and controller.status().inflight)
-          controller.resume(); advance(0); synchronize(); advance(300); assert(casts()==1)
+          synchronize(); assert(controller.runOnce()); assert(not controller.status().uncertain)
+          advance(120)
+          assert(controller.status().paused and controller.status().inflight and controller.status().uncertain)
+          assert(not controller.runOnce(),'Information may resume, but casting must remain blocked')
+          controller.resume(); assert(not controller.status().uncertain)
+          advance(0); synchronize(); advance(300); assert(casts()==1)
           assert(not controller.runOnce())
-          feed('{spellup-end}'); synchronize(); assert(not controller.status().inflight)
+          feed('{spellup-end}'); synchronize(); assert(not controller.status().inflight and not controller.status().uncertain)
         ''')
 
     def test_failures_wait_for_relevant_state_and_repeated_pause(self):

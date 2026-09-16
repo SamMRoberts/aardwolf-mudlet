@@ -1,6 +1,6 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.27**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.28**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
@@ -8,7 +8,13 @@ Dev.26 correlates a fresh GMCP opponent with normal experience awards for Room m
 
 Dev.27 fixes dropped room-entry refreshes: scans use informational readiness and
 their response deadline starts on dispatch, preserving queued work behind other
-collectors. This change has offline coverage only; it has not been installed in Mudlet.
+collectors. The user's installed dev.27 and supplied runtime diagnostics exposed
+the separate spellup blocking issue addressed below.
+
+Dev.28 addresses the user's diagnostic report: an unconfirmed spellup batch left
+room scans blocked indefinitely. After the completion timeout, informational mob
+requests may resume while casting stays paused and the batch remains unconfirmed.
+The pane now displays its queued reason. Offline tested only; not installed here.
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,

@@ -1,3 +1,22 @@
+# 0.24.0-dev.28 unconfirmed spellup cannot strand mob scans — 2026-09-16
+
+- User-supplied live diagnostics identified `queued = Spellup in progress` with
+  a Standing/state-3 character, no broker requests and spellup status paused for
+  unconfirmed completion while `inflight` remained true. Installed resources were
+  confirmed as dev.27 by read-only filesystem inspection; no native control.
+- Exposed the completion-timeout state as `spellup.status().uncertain`. Mob
+  information resumes in that state; `inflight` and casting guards stay intact.
+  The spellup event wakeup now tracks the effective blocker, so pending work
+  resumes without requiring another room or character event.
+- Pane status displays the queued reason and clears it on dispatch, completion,
+  room changes, configuration changes and teardown. New offline regressions
+  reproduce the supplied blocked state, check event-driven resumption and retain
+  combat/pager/active-batch guards. Controller timeout/resume/finish tests cover
+  the public flag without weakening duplicate-casting protection.
+- Muddler build, archive integrity/XML/source consistency and **484 tests passed**.
+  Log: `/private/tmp/awtb-mob-spellup-check.log`. No installation, player-profile
+  edits, movement or casting. Native dev.28 behavior remains unverified.
+
 # 0.24.0-dev.27 automatic room-entry refresh — 2026-09-16
 
 - Reproduced two failures against the previous artifact: fresh command-ready

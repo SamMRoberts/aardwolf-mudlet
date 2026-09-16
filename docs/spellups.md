@@ -17,6 +17,11 @@ literal text, including Unicode and markup-like characters.
 `aardwolf-spellup on|off|status|sync|now` provides the same controls. The ordinary
 server `spellup` command is not overridden.
 
+`spellup.status().uncertain` identifies an outstanding batch whose completion
+timed out. `inflight` remains true to prevent another casting batch. Room mobs
+can resume informational scans in this state when the character is command-ready;
+doing so does not resume automatic casting or claim the spellup finished.
+
 In `aardwolf-config → Spellups`, tracking, automatic monitoring setup, and the
 Buffs tab default to enabled. **Automatic casting defaults to disabled.** The
 minimum batch interval defaults to 30 seconds (range 10–300). Shared Appearance

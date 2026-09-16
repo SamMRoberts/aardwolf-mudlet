@@ -52,6 +52,7 @@ function Controller.new(api,cache,spells,queries)
   end
   function self.status()
     return {enabled=self.enabled,automatic=options.auto_refresh,inflight=inflight or false,pending=pendingAt~=nil,
+      uncertain=inflight==true and paused=="Batch completion unconfirmed",
       paused=paused,last=self.last,command=COMMAND,coverage=self.coverage()}
   end
   function self.coverage()
