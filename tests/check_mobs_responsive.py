@@ -45,6 +45,55 @@ class ResponsiveMobsTests(unittest.TestCase):
           assert(#sent==before and next(timers)==nil)
         ''')
 
+    def test_entry_scan_uses_information_readiness_without_position(self):
+        self.service()
+        with zipfile.ZipFile(ROOT/'build/AardwolfToolbox.mpackage') as archive:
+            self.lua.globals().Readiness=self.lua.execute(archive.read('readiness.lua').decode())
+        self.lua.execute('''
+          Readiness.new(_G,cache)
+          cache.values['char.status.pos']=nil
+          room(12);pulse();assert(sent[2]=='scan here','Missing position blocked room scan')
+          scan({'a bat'});pulse(1)
+          assert(m.snapshot().fresh and not m.rateRoom(),'Ratings still require standing')
+          status({state=12});room(13);pulse(15);assert(#sent==2)
+          status({state=3});pulse();assert(sent[3]=='scan here')
+          scan({'a snake'});assert(m.snapshot().room=='13' and m.snapshot().rows[1].name=='a snake')
+          m.stop();queries.destroy();assert(next(timers)==nil)
+        ''')
+
+    def test_entry_scan_survives_long_query_wait_then_gets_full_response_timeout(self):
+        self.service()
+        self.lua.execute('''
+          assert(queries.acquire('catalog',40))
+          room(12);pulse(15)
+          assert(#sent==0 and not m.status().rosterError,'Unsent scan must not time out')
+          assert(#queries.snapshot().requests==1)
+          room(13);pulse(15);assert(#queries.snapshot().requests==1)
+          queries.release('catalog');pulse(0)
+          assert(#sent==2 and sent[2]=='scan here')
+          pulse(9);assert(not m.status().rosterError)
+          scan({'a new bat'});assert(m.snapshot().room=='13' and m.snapshot().fresh)
+          room(14);pulse();pulse(10)
+          assert(m.last:find('timed out'),'Sent requests must remain bounded')
+          local count=#sent;pulse(30);assert(#sent==count,'Failed responses must not retry')
+          m.stop();queries.destroy();assert(next(timers)==nil)
+        ''')
+
+    def test_queued_entry_scan_defers_until_ready_and_cleans_up_on_stop(self):
+        self.service()
+        self.lua.execute('''
+          assert(queries.acquire('catalog',40))
+          room(12);pulse();status({state=7});queries.release('catalog');pulse(20)
+          assert(#sent==0 and #queries.snapshot().requests==1)
+          assert(not m.status().rosterError)
+          status({state=3});pulse();assert(#sent==2)
+          scan({'a bat'});pulse(1)
+          assert(queries.acquire('catalog',40));room(13);pulse()
+          m.stop();queries.release('catalog');pulse(20)
+          assert(#sent==2 and #queries.snapshot().requests==0)
+          assert(next(timers)==nil)
+        ''')
+
     def test_old_response_drains_before_new_room_request(self):
         self.service()
         self.lua.execute('''

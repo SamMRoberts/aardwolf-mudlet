@@ -54,6 +54,7 @@ function Coordinator.new(api)
     assert(type(name)=='string' and name~='' and type(spec)=='table','Invalid query request')
     assert(type(spec.start)=='function','Query requires a start callback')
     assert(type(spec.timeout)=='number' and spec.timeout>0 and spec.timeout<=120,'Invalid query timeout')
+    assert(spec.timeoutFromStart==nil or type(spec.timeoutFromStart)=='boolean','Invalid query timeout mode')
     assert(spec.priority==nil or type(spec.priority)=='number' and spec.priority==spec.priority and spec.priority>=0 and spec.priority<=1000,'Invalid query priority')
     for _,key in ipairs({'ready','current','finish','boundary'}) do assert(spec[key]==nil or type(spec[key])=='function','Invalid query callback: '..key) end
     if requests[name] then
@@ -123,9 +124,14 @@ function Coordinator.new(api)
       if waiting[name] then waiting[name].priority=priority end
       notify();return true
     end
-    entry.timer=api.tempTimer(spec.timeout,function()
-      entry.timer=nil; finish(false,'Query deadline exceeded')
-    end)
+    local function armTimeout()
+      entry.timer=api.tempTimer(spec.timeout,function()
+        entry.timer=nil; finish(false,'Query deadline exceeded')
+      end)
+    end
+    -- Opt-in response deadlines keep event-driven room work queued while another
+    -- collector owns the wire. Legacy callers retain their queue-inclusive limit.
+    if spec.timeoutFromStart then entry.armTimeout=armTimeout else armTimeout() end
     notify(); return handle
   end
   pump=function()
@@ -148,6 +154,7 @@ function Coordinator.new(api)
     if not entry then return end
     if self.acquire(entry.name,entry.spec.priority,entry.spec.ready) then
       entry.state='active'; entry.started=now(); entry.reason='Receiving response'
+      if entry.armTimeout then entry.armTimeout() end
       local ok,result,reason=pcall(entry.spec.start,entry.handle)
       if not ok or result==false then entry.handle.finish(false,tostring(reason or result)) end
     end

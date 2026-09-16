@@ -10,8 +10,13 @@ Specifications require `start(handle)` and a `timeout` in seconds (greater than
 zero, at most 120). Optional fields: `priority` (lower is earlier), `ready()`,
 `current()`, `finish(success, reason, handle)`, `boundary(line)`, and
 session/progression/visit tokens.
-The absolute timeout includes queue time. Call `queries.poke()` when custom
-readiness changes. Cache changes wake the broker automatically.
+The absolute timeout includes queue time by default. Optional
+`timeoutFromStart=true` starts that deadline immediately before `start()` instead.
+Use it for coalesced event-driven work that must survive contention: unsent work
+has no timer, so provide current-context checks and cancel it on disable/reset.
+Sent and draining responses remain bounded. Existing callers retain the default.
+Call `queries.poke()` when custom readiness changes. Cache changes wake the broker
+automatically.
 
 ```lua
 local handle = AardwolfToolbox.queries.request("MyFeature", {

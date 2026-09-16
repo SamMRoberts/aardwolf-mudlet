@@ -1,10 +1,14 @@
 # Standalone 1.0 implementation status
 
-Current artifact: **0.24.0-dev.26**. This candidate contains the first foundation
+Current artifact: **0.24.0-dev.27**. This candidate contains the first foundation
 changes and standalone sidebar groundwork. It is not the completed roadmap,
 and no player-profile installation has been performed. Partial native acceptance
 in the disconnected test profile is recorded in [verification](../tests/verification.md).
 Dev.26 correlates a fresh GMCP opponent with normal experience awards for Room mobs killed indicators and history. Zero health and death text alone no longer mark kills. Known shared-group rewards and ambiguous target switches are excluded. Dev.26 has not been installed or controlled in Mudlet. Campaign/GQ services, storage, tabs and candidate hints are implemented behind explicit format/transport gates. The user-supplied inactive campaign and active info/check responses are supported. GQ formats, campaign terminal events and native echo-boundary acceptance remain pending. See [capture acceptance](campaign-global-quest.md).
+
+Dev.27 fixes dropped room-entry refreshes: scans use informational readiness and
+their response deadline starts on dispatch, preserving queued work behind other
+collectors. This change has offline coverage only; it has not been installed in Mudlet.
 
 Dev.21 is installed in the backed-up disconnected test profile. Notification
 keyboard selection, explicit marking as read, identity retention on arrivals,

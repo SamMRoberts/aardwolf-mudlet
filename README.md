@@ -1,4 +1,4 @@
-# AardwolfToolbox 0.24.0-dev.26
+# AardwolfToolbox 0.24.0-dev.27
 
 This is a development candidate for the roadmap to a standalone 1.0, not a
 completed 1.0 release. See [implementation status and remaining milestones](docs/roadmap-status.md).

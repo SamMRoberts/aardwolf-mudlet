@@ -16,7 +16,9 @@ individual mobs in scan order. It never attacks automatically. Configure it in
   Nearby visibility, colors, and other existing preferences remain configurable.
 
 Automatic current-room acquisition waits 250 ms after the last room change, then
-requests `scan here` when standing and command-ready. Rapid movement replaces
+requests `scan here` when command-ready. Scans use the informational readiness
+policy; a missing position field does not block them. Consider ratings still
+require standing. Rapid movement replaces
 unsent work. Requests run from readiness/query-availability events, with a minimum
 one-second interval between mob informational requests. They do not poll every
 second. Periodic refresh remains off by default; existing explicit intervals of
@@ -27,6 +29,12 @@ background catalog collection. An in-flight response is never interrupted;
 background collections yield at complete response boundaries. Attacks do not
 wait for this informational queue. Sleep, combat, AFK, running, editors, pagers,
 and active spellups defer informational requests.
+
+The ten-second response timeout starts when a mob request is sent, not while it
+is queued behind other collectors or waiting for readiness. Unsent room-entry
+requests remain event-driven and are cancelled on movement, disconnect, or
+disable. A sent request that times out still requires a manual refresh or a new
+room visit; it does not retry continuously.
 
 Current-room membership, Nearby results, ratings, and combat are separate. A
 nearby-only scan or failed rating batch does not disable local targeting. Failed

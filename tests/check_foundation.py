@@ -68,6 +68,24 @@ class FoundationTests(unittest.TestCase):
           q.destroy();assert(next(timers)==nil)
         ''')
 
+    def test_broker_response_deadline_is_opt_in_and_cancellable(self):
+        self.lua.execute('''
+          local q=Queries.new(_G);local sends=0
+          assert(q.acquire('busy',40))
+          local legacy=q.request('legacy',{timeout=10,start=function() error('Unexpected send') end})
+          local waiting=q.request('room',{timeout=10,timeoutFromStart=true,start=function() sends=sends+1 end})
+          advance(15)
+          assert(legacy.status().state=='failed' and waiting.status().state=='queued')
+          assert(sends==0 and next(timers)==nil,'Queued response deadline must not poll')
+          q.release('busy');advance(0);assert(sends==1)
+          advance(9);assert(waiting.status().state=='active')
+          waiting.cancel();assert(waiting.status().state=='draining')
+          advance(1);assert(waiting.status().state=='cancelled' and q.owner()==nil)
+          local pending=q.request('room',{timeout=10,timeoutFromStart=true,start=function() error('Cancelled send') end})
+          pending.cancel();advance(0);assert(#q.snapshot().requests==0 and next(timers)==nil)
+          q.destroy()
+        ''')
+
     def test_broker_priority_promotion_and_bounded_failure_history(self):
         self.lua.execute('''
           local q=Queries.new(_G);local sent={}

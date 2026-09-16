@@ -64,10 +64,14 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     local group=cache.get('group')
     return type(group)=='table' and ((tonumber(group.count) or 0)>1 or type(group.members)=='table' and #group.members>1)
   end
-  local function ready()
-    if cache.checkReadiness then return self.enabled and cache.checkReadiness("spellup") and not (spellup and spellup.status().inflight) end
-    return self.enabled and connected() and cache.get('char.status.state')==3
-      and cache.get('char.status.pos')=='Standing' and not spellup.status().inflight
+  local function ready(kind)
+    if not self.enabled then return false,'Room mobs disabled' end
+    if spellup and spellup.status().inflight then return false,'Spellup in progress' end
+    local policy=kind=='rate' and 'spellup' or 'information'
+    if cache.checkReadiness then return cache.checkReadiness(policy) end
+    if not connected() or cache.get('char.status.state')~=3 then return false,'Waiting for command-ready character' end
+    if policy=='spellup' and cache.get('char.status.pos')~='Standing' then return false,'Not standing' end
+    return true
   end
   view=Pane.new(api,ui,borders,function() self.refresh() end,settings,
     function(id,revision) return self.doubleClick(id,revision) end,function() self.clearSelection() end,
@@ -213,7 +217,7 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
   end
   local function queue(kind,manual)
     if not self.enabled or not model.room or manual and not connected() then return false,'Room data unavailable' end
-    if manual and not ready() then return false,'Refresh requires a standing, command-ready character' end
+    if manual then local ok,reason=ready(kind);if not ok then return false,reason end end
     if kind=='rate' and not model.fresh then return false,'Acquire the current-room list first' end
     if kind=='nearby' and not options.nearby then return false,'Nearby is disabled' end
     if active and active.kind==kind and active.visit==visit then return true,'Already in progress' end
@@ -250,21 +254,23 @@ function Mobs.new(api,cache,incoming,tags,queries,spellup,State,Protocol,Pane,ui
     wake=nil
     if active or frame or wire then return end
     if not queries.accepting(OWNER) then diagnostics.queued='Draining the previous collector response';return end
-    if not model.room or not ready() then
-      diagnostics.queued=next(pending) and 'Waiting for standing, command-ready character' or nil
-      release();return
-    end
     local request
     for _,candidate in pairs(pending) do
       if not request or candidate.priority<request.priority then request=candidate end
     end
     if not request then release(); return end
+    local eligible,reason=ready(request.kind)
+    if not model.room or not eligible then
+      diagnostics.queued=reason or 'Waiting for room identity'
+      release();return
+    end
     local delay=math.max(settle,lastRequest+1)-api.getEpoch()
     if delay>0 then diagnostics.queued='Waiting for room settle/cooldown';wake=api.tempTimer(delay,drive);return end
     local requestedVisit,requestedSession=visit,session
     queuedKind=request.kind
     diagnostics.queued='Waiting for informational response'
-    wire=queries.request(OWNER,{priority=request.priority,timeout=10,ready=function() return ready() and not frame end,
+    wire=queries.request(OWNER,{priority=request.priority,timeout=10,timeoutFromStart=true,
+      ready=function() return ready(request.kind) and not frame end,
       current=function() return self.enabled and requestedVisit==visit and requestedSession==session end,
       boundary=function(line)
         if request.kind=='rate' then return line==request.marker end

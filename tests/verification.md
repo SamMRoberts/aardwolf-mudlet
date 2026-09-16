@@ -1,3 +1,18 @@
+# 0.24.0-dev.27 automatic room-entry refresh — 2026-09-16
+
+- Reproduced two failures against the previous artifact: fresh command-ready
+  state without position blocked a room scan, and waiting behind another query
+  for ten seconds dropped an unsent room-entry refresh.
+- Room/Nearby scans now use informational readiness; consider retains its
+  standing guard. Mob request response deadlines start when sent. Other broker
+  callers retain queue-inclusive deadlines unless they opt in explicitly.
+- Added coverage for long contention, movement while queued, readiness changes,
+  full response timeout, no response retry, queued cancellation and teardown.
+- Complete package suite: **482 tests passed**; Muddler build and archive checks
+  passed. Log: `/private/tmp/awtb-mobs-refresh-check.log`.
+- No Mudlet control, installation, profile edits, gameplay commands or map
+  mutation. Native room-entry behavior remains unverified.
+
 # 0.24.0-dev.26 GMCP opponent plus experience confirmation — 2026-09-16
 
 - Reproduced the failure using the user's observed fire-kill output. The test
