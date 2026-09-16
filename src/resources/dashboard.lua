@@ -233,7 +233,8 @@ function Dashboard.new(api,config,cache,data,ui,borders,ascii,player,bar,spells,
     if #available>0 then chatFirst=math.max(1,math.min(chatFirst,#available)) end
     if not overflow then chatFirst=1 end
     if not tabs.chatNext then
-      tabs.chatNext=label("chatNext",base.sections.chat.Inside,"›",function() chatFirst=chatFirst%math.max(1,#available)+1; chatFonts(base) end)
+      tabs.chatNext=label("chatNext",base.sections.chat.Inside,"›",function() views.menu(nil,CHAT) end)
+      tabs.chatNext:setToolTip("Select a chat tab")
     end
     if not tabs.chatLatest then
       tabs.chatLatest=label("chatLatest",base.sections.chat.Inside,"↓",function()

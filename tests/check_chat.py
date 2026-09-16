@@ -89,6 +89,35 @@ class ChatTests(unittest.TestCase):
           t.stop();assert(count(widgets)==0 and count(handlers)==0 and count(timers)==0)
         ''')
 
+    def test_overflow_menu_selects_dynamic_tabs_and_cleans_up(self):
+        self.lua.execute('''
+          local tabs=c.get('chat','tabs')
+          tabs[#tabs+1]=fieldRecord('tabs',{id='custom',label='Custom <chat>',channels='gossip'})
+          assert(c.set('chat','tabs',tabs));settle()
+          message('gossip','preserved');local console=b.chats.custom
+          local selected=b.activeChatTab
+          local function openMenu()
+            widgets['AardwolfToolbox.dashboard.chatNext'].callback()
+            assert(t.views.isEditing())
+          end
+          openMenu();assert(b.activeChatTab==selected)
+          for i,tab in ipairs(tabs) do
+            local row=widgets['AardwolfToolbox.views.menu.'..i]
+            assert(row and row.text:find(t.ui.escape(tab.label),1,true))
+          end
+          local row=widgets['AardwolfToolbox.views.menu.'..#tabs]
+          local stale=row.callback;row.callback();settle()
+          assert(not t.views.isEditing() and b.activeChatTab=='custom')
+          assert(b.chats.custom==console and console.text=='preserved\\n')
+          assert(not b.chatTabLabels.custom.hidden)
+          assert(t.views.setMode('custom','floating'));settle();openMenu()
+          assert(widgets['AardwolfToolbox.views.menu.'..#tabs].text:find('↗',1,true))
+          table.remove(tabs);assert(c.set('chat','tabs',tabs));settle()
+          assert(not t.views.isEditing());stale();assert(not t.views.available('custom'))
+          openMenu();assert(widgets['AardwolfToolbox.views.menu.'..(#tabs+1)].text=='Close')
+          t.stop();assert(count(widgets)==0 and count(handlers)==0 and count(timers)==0)
+        ''')
+
     def test_composer_never_expands_aliases_preserves_failed_drafts_and_awaits_echo(self):
         self.lua.execute('''
           local sent={};send=function(command,echo) assert(echo==false);sent[#sent+1]=command;return true end

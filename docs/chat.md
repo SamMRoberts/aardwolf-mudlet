@@ -1,5 +1,9 @@
 # Chat and communications
 
+When chat tabs overflow the sidebar, click **›** to choose from all enabled tabs
+in configured order. The popup includes floating tabs and unread/mention counts;
+selecting an entry opens that tab directly. Use **Close** or Escape to dismiss it.
+
 Open **aardwolf-config → Chat and communications**. The workspace receives
 Aardwolf's `comm.channel` messages and owns `gmcpchannels on` while a renderer is
 available. Channel text is then delivered over GMCP only. Say and mobsay are

@@ -183,14 +183,23 @@ function Views.new(api,config,ui,settings)
     if not w then return self.open(id) end
     w:move(40,100); w:resize(entries[id].chat and 580 or 420,id=="buffs" and 480 or 360); w:show(); return true
   end
-  function self.menu(id)
+  function self.menu(id,selection)
     self.closeMenu()
     local w,h=api.getMainWindowSize(); local row=ui.metrics().height
     local parent=id and entries[id] and self.mode(id)=='floating' and entries[id].parent or nil
     if parent then w,h=parent:get_width(),parent:get_height() end
     local list={}
     local function add(text,fn) list[#list+1]={text,fn} end
-    if id then
+    if selection then
+      for _,key in ipairs(selection) do
+        local e=entries[key]
+        if e and e.chat then
+          local count=e.unread and e.unread() or 0
+          local mentions=e.mentions and e.mentions() or 0
+          add(title(key)..(self.mode(key)=="floating" and " ↗" or "")..(count>0 and " · "..count.." unread" or "")..(mentions>0 and ' · '..mentions..' mentions !' or ''),function() self.open(key) end)
+        end
+      end
+    elseif id then
       add("Open "..title(id),function() self.open(id) end)
       if entries[id] and entries[id].search then add('Search chat',entries[id].search) end
       add(self.mode(id)=="floating" and ("Return to "..(entries[id] and entries[id].homeLabel or "sidebar")) or "Float outside Mudlet",function() self.setMode(id,self.mode(id)=="floating" and "tabbed" or "floating") end)
@@ -207,7 +216,8 @@ function Views.new(api,config,ui,settings)
         end
       end
     end
-    add("Settings",id and entries[id] and entries[id].settings or settings); add("Close",function() end)
+    if not selection then add("Settings",id and entries[id] and entries[id].settings or settings) end
+    add("Close",function() end)
     local mx,my=w-340,40
     if api.getMousePosition then mx,my=api.getMousePosition() end
     local mh=math.min(h-60,#list*row)

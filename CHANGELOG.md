@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.0-dev.2 — chat tab selection menu
+
+- Replace chat overflow paging with a popup listing all enabled chat tabs in
+  configured order, including floating tabs and unread/mention counts.
+- Select a tab directly while preserving its console and scrollback.
+
 ## 0.25.0-dev.1 — configurable GMCP communications
 
 - Move Aardwolf channel reception into an owned communications service with

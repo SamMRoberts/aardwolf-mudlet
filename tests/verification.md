@@ -1,3 +1,13 @@
+# 0.25.0-dev.2 chat tab popup — 2026-09-16
+
+- `python3 tools/check.py` passed: Muddler 1.1.0 build, archive/XML/resource
+  integrity, 505 built-package Lua 5.1 tests, and mob benchmarks.
+- New regression coverage checks popup inventory/order, escaped custom labels,
+  direct selection, console preservation, floating entries, stale callbacks,
+  configuration changes, and teardown. Log: `/tmp/awtb-tab-menu-check.log`.
+- Native popup geometry, mouse/keyboard interaction, and player-profile upgrade
+  were not performed for this change; no live test chat was sent.
+
 # 0.25.0-dev.1 GMCP communications — 2026-09-16
 
 - Built with pinned Muddler 1.1.0 using `python3 tools/check.py`.
