@@ -1,8 +1,8 @@
 # aardwolf-vibe
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
-5.0.1. It provides a defensive GMCP auto-mapper and an in-memory character
-state handler.
+5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
+handler, and responsive Geyser status bars.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -19,6 +19,12 @@ validated defensive-copy snapshots through `AardwolfVibe.plugins.character`
 and raises local update events for other scripts. Character state is scoped to
 the current GMCP session and is never written to disk. See
 [`docs/character.md`](docs/character.md) for the API and event contract.
+
+The always-visible character strip uses that validated state to show HP, mana,
+moves, level progress, the current enemy, and alignment. It occupies one row
+above the command input on normal windows and reflows into two rows below 840
+pixels. See [`docs/character-bars.md`](docs/character-bars.md) for its rendering
+and layout contract.
 
 ## Commands
 

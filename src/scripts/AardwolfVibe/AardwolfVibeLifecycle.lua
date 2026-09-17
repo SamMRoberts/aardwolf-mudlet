@@ -16,18 +16,26 @@ end
 
 local Settings = resource("settings")
 local Character = resource("character")
+local CharacterBars = resource("character-bars")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
+AardwolfVibe.plugins.characterBars = CharacterBars.new(
+  _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
 function AardwolfVibe.start()
-  if AardwolfVibe.active then return AardwolfVibe.plugins.character:start() end
   local characterOK = AardwolfVibe.plugins.character:start()
   if not characterOK then
     local status = AardwolfVibe.plugins.character:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local barsOK = AardwolfVibe.plugins.characterBars:start()
+  if not barsOK then
+    local status = AardwolfVibe.plugins.characterBars:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  if AardwolfVibe.active then return characterOK and barsOK end
   local ok, enabled = AardwolfVibe.settings.load()
   AardwolfVibe.active = true
   if not ok then
@@ -35,7 +43,7 @@ function AardwolfVibe.start()
     return false
   end
   local mapperOK = not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and mapperOK
+  return characterOK and barsOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -45,10 +53,11 @@ function AardwolfVibe.stop()
     return called and stopped ~= false
   end
   local plugins = AardwolfVibe.plugins or {}
+  local barsOK = stopPlugin(plugins.characterBars)
   local characterOK = stopPlugin(plugins.character)
   local mapperOK = stopPlugin(plugins.mapper)
   AardwolfVibe.active = false
-  return characterOK and mapperOK
+  return barsOK and characterOK and mapperOK
 end
 
 function AardwolfVibe.handleMapperCommand(action)

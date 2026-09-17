@@ -10,8 +10,9 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.2.0")
+        self.assertEqual(metadata["version"], "0.3.0")
         self.assertIn("character state", metadata["description"])
+        self.assertIn("status bars", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
         aliases = json.loads((ROOT / "src/aliases/AardwolfVibe/aliases.json").read_text())
         self.assertEqual(scripts[0]["eventHandlerList"],
@@ -25,7 +26,12 @@ class PackageSourceTests(unittest.TestCase):
         self.assertNotIn("createRoomID", source)
         self.assertIn("AardwolfVibe.plugins.mapper", source)
         self.assertIn("AardwolfVibe.plugins.character", source)
+        self.assertIn("AardwolfVibe.plugins.characterBars", source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
+        bars = ROOT / "src/resources/character-bars.lua"
+        self.assertTrue(bars.is_file())
+        self.assertNotIn("gmod", bars.read_text())
+        self.assertNotIn("gmcp", bars.read_text())
 
 
 if __name__ == "__main__":
