@@ -15,28 +15,40 @@ local function resource(name)
 end
 
 local Settings = resource("settings")
+local Character = resource("character")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
+AardwolfVibe.plugins.character = Character.new(_G)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
 function AardwolfVibe.start()
-  if AardwolfVibe.active then return true end
+  if AardwolfVibe.active then return AardwolfVibe.plugins.character:start() end
+  local characterOK = AardwolfVibe.plugins.character:start()
+  if not characterOK then
+    local status = AardwolfVibe.plugins.character:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   local ok, enabled = AardwolfVibe.settings.load()
+  AardwolfVibe.active = true
   if not ok then
     echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
     return false
   end
-  AardwolfVibe.active = true
-  if enabled then return AardwolfVibe.plugins.mapper:start() end
-  return true
+  local mapperOK = not enabled or AardwolfVibe.plugins.mapper:start()
+  return characterOK and mapperOK
 end
 
 function AardwolfVibe.stop()
-  if AardwolfVibe.plugins and AardwolfVibe.plugins.mapper then
-    AardwolfVibe.plugins.mapper:stop()
+  local function stopPlugin(plugin)
+    if not plugin then return true end
+    local called, stopped = pcall(plugin.stop, plugin)
+    return called and stopped ~= false
   end
+  local plugins = AardwolfVibe.plugins or {}
+  local characterOK = stopPlugin(plugins.character)
+  local mapperOK = stopPlugin(plugins.mapper)
   AardwolfVibe.active = false
-  return true
+  return characterOK and mapperOK
 end
 
 function AardwolfVibe.handleMapperCommand(action)

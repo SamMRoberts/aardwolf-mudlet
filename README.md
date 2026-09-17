@@ -1,7 +1,8 @@
 # aardwolf-vibe
 
-`aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf. Its first
-plugin is a defensive GMCP auto-mapper for Mudlet 5.0.1.
+`aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
+5.0.1. It provides a defensive GMCP auto-mapper and an in-memory character
+state handler.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -11,6 +12,13 @@ non-standard exit keys as Mudlet special exits.
 Terrain names follow Aardwolf's complete terrain catalog (including roads,
 weather, water, ice, hell, structures, and dead-land variants) and use the
 catalog's supplied ANSI color index. Unknown terrain remains visible in gray.
+
+The always-active character plugin consumes `char.base`, `char.vitals`,
+`char.stats`, `char.maxstats`, `char.status`, and `char.worth`. It exposes
+validated defensive-copy snapshots through `AardwolfVibe.plugins.character`
+and raises local update events for other scripts. Character state is scoped to
+the current GMCP session and is never written to disk. See
+[`docs/character.md`](docs/character.md) for the API and event contract.
 
 ## Commands
 

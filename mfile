@@ -1,7 +1,7 @@
 {
   "package": "aardwolf-vibe",
   "title": "Aardwolf Vibe",
-  "description": "A defensive GMCP auto-mapper for Aardwolf on Mudlet 5.0.1.",
-  "version": "0.1.0",
+  "description": "Defensive Aardwolf GMCP mapping and character state for Mudlet 5.0.1.",
+  "version": "0.2.0",
   "author": "SamMRoberts"
 }
