@@ -23,6 +23,13 @@ local function widget(values)
   function item:resize(width,height) self.width=width;self.height=height end
   function item:setColor(...) self.color={...} end
   function item:setBufferSize(...) self.buffer={...} end
+  function item:show()
+    self.showCalls=(self.showCalls or 0)+1;self.hidden=false;hidden[self.name]=false
+  end
+  function item:hide()
+    self.hideCalls=(self.hideCalls or 0)+1;self.hidden=true;hidden[self.name]=true
+  end
+  function item:raise() self.raiseCalls=(self.raiseCalls or 0)+1 end
   function item:delete()
     for name,child in pairs(widgets) do
       if child.parent==self then child:delete();widgets[name]=nil end

@@ -86,6 +86,26 @@ function BuffsWindow.new(api, spells, spellup)
     handlers = {}
   end
 
+  local function reveal()
+    if not window then return false, "Spellup window is not available" end
+    local ok, message = pcall(window.show, window)
+    if not ok then
+      self.lastError = "Cannot show spellup window: " .. tostring(message)
+      return false, self.lastError
+    end
+    if type(window.raise) == "function" then
+      ok, message = pcall(window.raise, window)
+    elseif type(api.raiseWindow) == "function" then
+      ok, message = pcall(api.raiseWindow, window.name)
+    end
+    if not ok then
+      self.lastError = "Cannot bring spellup window forward: " .. tostring(message)
+      return false, self.lastError
+    end
+    self.visible, self.lastError = true, nil
+    return true
+  end
+
   local function teardown(message)
     generation = generation + 1
     self.enabled, self.visible = false, false
@@ -156,6 +176,8 @@ function BuffsWindow.new(api, spells, spellup)
       self.enabled, self.visible, self.lastError = true, true, nil
       render()
       scheduleTick()
+      local revealed, why = reveal()
+      if not revealed then error(why, 0) end
     end)
     if not ok then teardown("Cannot start spellup window: " .. tostring(message)); return false, self.lastError end
     return true
@@ -168,17 +190,18 @@ function BuffsWindow.new(api, spells, spellup)
       local ok, message = self:start()
       if not ok then return false, message end
     end
-    local ok, message = pcall(api.showWindow, WINDOW_NAME)
-    if not ok then self.lastError = tostring(message); return false, self.lastError end
-    self.visible = true
-    return true
+    return reveal()
   end
 
   function self:hide()
     if not window then self.visible = false; return true end
-    local ok, message = pcall(api.hideWindow, WINDOW_NAME)
-    if not ok then self.lastError = tostring(message); return false, self.lastError end
+    local ok, message = pcall(window.hide, window)
+    if not ok then
+      self.lastError = "Cannot hide spellup window: " .. tostring(message)
+      return false, self.lastError
+    end
     self.visible = false
+    self.lastError = nil
     return true
   end
 
