@@ -3,5 +3,10 @@
     "name": "mapper",
     "isActive": "yes",
     "regex": "^aardwolf-vibe mapper(?: (on|off|status))?$"
+  },
+  {
+    "name": "minimap",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe minimap(?: (show|hide|status))?$"
   }
 ]

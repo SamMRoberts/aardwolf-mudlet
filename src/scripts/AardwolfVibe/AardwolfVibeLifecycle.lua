@@ -17,10 +17,13 @@ end
 local Settings = resource("settings")
 local Character = resource("character")
 local CharacterBars = resource("character-bars")
+local ASCIIMap = resource("ascii-map")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
 AardwolfVibe.plugins.characterBars = CharacterBars.new(
+  _G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
@@ -35,7 +38,12 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.characterBars:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  if AardwolfVibe.active then return characterOK and barsOK end
+  local asciiOK = AardwolfVibe.plugins.asciiMap:start()
+  if not asciiOK then
+    local status = AardwolfVibe.plugins.asciiMap:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  if AardwolfVibe.active then return characterOK and barsOK and asciiOK end
   local ok, enabled = AardwolfVibe.settings.load()
   AardwolfVibe.active = true
   if not ok then
@@ -43,7 +51,7 @@ function AardwolfVibe.start()
     return false
   end
   local mapperOK = not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and barsOK and mapperOK
+  return characterOK and barsOK and asciiOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -53,11 +61,12 @@ function AardwolfVibe.stop()
     return called and stopped ~= false
   end
   local plugins = AardwolfVibe.plugins or {}
+  local asciiOK = stopPlugin(plugins.asciiMap)
   local barsOK = stopPlugin(plugins.characterBars)
   local characterOK = stopPlugin(plugins.character)
   local mapperOK = stopPlugin(plugins.mapper)
   AardwolfVibe.active = false
-  return barsOK and characterOK and mapperOK
+  return asciiOK and barsOK and characterOK and mapperOK
 end
 
 function AardwolfVibe.handleMapperCommand(action)
@@ -78,6 +87,22 @@ function AardwolfVibe.handleMapperCommand(action)
     return mapper:start()
   end
   echo("Usage: aardwolf-vibe mapper on|off|status\n")
+  return false
+end
+
+function AardwolfVibe.handleMinimapCommand(action)
+  local minimap = AardwolfVibe.plugins.asciiMap
+  action = action or "show"
+  if action == "show" then return minimap:show() end
+  if action == "hide" then return minimap:hide() end
+  if action == "status" then
+    local status = minimap:status()
+    local visibility = status.visible and "visible" or "hidden"
+    echo("Aardwolf Vibe: minimap " .. status.lifecycle .. ", " .. visibility
+      .. ", tags " .. tostring(status.tagState) .. ".\n")
+    return status
+  end
+  echo("Usage: aardwolf-vibe minimap show|hide|status\n")
   return false
 end
 

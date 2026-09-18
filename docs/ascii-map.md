@@ -1,0 +1,65 @@
+# ASCII minimap
+
+`AardwolfVibe.plugins.asciiMap` displays Aardwolf's tagged ASCII map in an
+owned native Mudlet user window. The map canvas is borderless and black; the
+native title frame remains available so the user can move, resize, float,
+dock, or tab the window. On first use it opens in the right dock. Mudlet owns
+subsequent layout restoration.
+
+## Public API and commands
+
+- `start()` creates the window and owned capture/event handlers. Repeated calls
+  reuse the existing instance.
+- `stop()` kills owned triggers, handlers, and timers before deleting the
+  window. It never sends `tags map off`.
+- `show()` and `hide()` control presentation without stopping capture.
+- `status()` returns `enabled`, `lifecycle`, `visible`, `session`,
+  `captureActive`, accepted/rejected frame counts, `tagState`,
+  `tagsRequested`, and `lastError` without console output.
+
+The commands are:
+
+```text
+aardwolf-vibe minimap
+aardwolf-vibe minimap show
+aardwolf-vibe minimap hide
+aardwolf-vibe minimap status
+```
+
+Closing or hiding the native window does not disable the feature. `show`
+reopens it with the most recently captured complete map.
+
+## MAP tag negotiation
+
+The minimap consumes the validated character handler rather than reading GMCP
+directly. It sends `tags map on` once per local connection session, without
+echoing the command, when `char.status.state` is one of `3`, `4`, `8`, `9`,
+`11`, or `12`. Login, MOTD, note, edit, and pager states defer the request.
+
+A fresh character snapshot allows installation or reload during a connected
+session to request the tag immediately. If character state is unavailable,
+the minimap remains able to capture manually enabled MAP output and reports
+`waiting-for-character`. Hide, reload, stop, and uninstall never send
+`tags map off`, because that server setting may be shared with another script.
+
+## Frame capture
+
+Marker lines may contain surrounding whitespace. `<MAPSTART>` begins a frame,
+and `<MAPEND>` atomically replaces the displayed map. Markers and captured
+content are removed from the main console. Literal spaces, blank lines,
+Unicode, and foreground/background color runs are retained; content is written
+with plain `echo`, so map text is never interpreted as HTML, Mudlet color
+markup, links, or Lua.
+
+A repeated start marker replaces the partial frame. An orphan end marker is
+hidden and ignored. Partial frames time out after 10 seconds or abort above 256
+lines or 256 KiB. The previous complete map is retained after an incomplete,
+oversized, malformed, or failed render, and subsequent ordinary output remains
+visible. Connection, disconnection, and GMCP-disable boundaries clear both
+partial and completed frames and restore `Waiting for map`.
+
+The window uses a monospaced 11-point font, disabled wrapping, a 300-line
+buffer, and both scrollbars. No map text or visibility preference is persisted
+by the package. Pure-Lua tests establish capture and lifecycle behavior; native
+Mudlet visual behavior and connected Aardwolf delivery require their separate
+acceptance checks.

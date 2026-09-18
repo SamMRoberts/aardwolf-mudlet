@@ -9,15 +9,17 @@ SOURCE = (ROOT / "src/scripts/AardwolfVibe/AardwolfVibeLifecycle.lua").read_text
 
 
 class LifecycleTests(unittest.TestCase):
-    def runtime(self, enabled=True, settings_ok=True, character_ok=True, bars_ok=True):
+    def runtime(self, enabled=True, settings_ok=True, character_ok=True, bars_ok=True,
+                ascii_ok=True):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.globals().initial_enabled = enabled
         lua.globals().initial_settings_ok = settings_ok
         lua.globals().initial_character_ok = character_ok
         lua.globals().initial_bars_ok = bars_ok
+        lua.globals().initial_ascii_ok = ascii_ok
         lua.execute('''
           messages={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
-          barsStarts=0;barsStops=0;saved=nil
+          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;saved=nil
           function echo(message) messages[#messages+1]=message end
           function getMudletHomeDir() return "/profile" end
           SettingsFactory={new=function()
@@ -67,15 +69,33 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
+          ASCIIFactory={new=function()
+            return {
+              start=function()
+                asciiStarts=asciiStarts+1
+                return initial_ascii_ok
+              end,
+              stop=function()
+                asciiStops=asciiStops+1;stopOrder[#stopOrder+1]="ascii";return true
+              end,
+              show=function() return true end,
+              hide=function() return true end,
+              status=function()
+                return {enabled=initial_ascii_ok,lifecycle=initial_ascii_ok and "active" or "stopped",
+                  visible=true,tagState="requested",lastError="ASCII minimap start failure"}
+              end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/character%-bars.lua$") then return BarsFactory end
+            if string.match(path,"/ascii%-map.lua$") then return ASCIIFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
             error("unexpected resource: "..path)
           end
         ''')
-        lua.execute(SOURCE.replace("@VERSION@", "0.3.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.4.0").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -90,9 +110,12 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibe.plugins.characterBars.stop=function()
             barsStops=barsStops+1;return true
           end
+          AardwolfVibe.plugins.asciiMap.stop=function()
+            asciiStops=asciiStops+1;return true
+          end
           AardwolfVibe.active=true
           assert(not AardwolfVibe.stop())
-          assert(characterStops==1 and barsStops==1 and mapperStops==1)
+          assert(characterStops==1 and barsStops==1 and asciiStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
         ''')
 
@@ -100,7 +123,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1)
+          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1)
           assert(AardwolfVibe.active)
           assert(AardwolfVibe.handleMapperCommand("off"));assert(saved==false and mapperStops==1)
           assert(AardwolfVibe.handleMapperCommand("on"));assert(saved==true and mapperStarts==2)
@@ -110,34 +133,34 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(False)
         lua.execute('''
           AardwolfVibeLifecycle("sysInstallPackage","another-package")
-          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0)
+          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
-          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1)
+          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
-          assert(mapperStops==1 and characterStops==1 and barsStops==1)
-          assert(table.concat(stopOrder,",")=="bars,character,mapper")
+          assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1)
+          assert(table.concat(stopOrder,",")=="ascii,bars,character,mapper")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
     def test_reload_stops_old_plugins_before_new_instance_starts(self):
         lua = self.runtime()
         lua.execute("assert(AardwolfVibe.start())")
-        lua.execute(SOURCE.replace("@VERSION@", "0.3.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.4.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="bars,character,mapper")
-          assert(barsStops==1 and characterStops==1 and mapperStops==1)
+          assert(table.concat(stopOrder,",")=="ascii,bars,character,mapper")
+          assert(asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(barsStarts==2 and characterStarts==2 and mapperStarts==2)
+          assert(asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):
         lua = self.runtime(settings_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and mapperStarts==0)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==0)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"Malformed settings",1,true))
         ''')
@@ -146,7 +169,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(character_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and mapperStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"character start failure",1,true))
         ''')
@@ -155,9 +178,31 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(bars_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and mapperStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"character bars start failure",1,true))
+        ''')
+
+    def test_ascii_failure_does_not_block_other_components(self):
+        lua = self.runtime(ascii_ok=False)
+        lua.execute('''
+          assert(not AardwolfVibe.start())
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
+          assert(AardwolfVibe.active)
+          assert(#messages==1 and string.find(messages[1],"ASCII minimap start failure",1,true))
+        ''')
+
+    def test_minimap_commands_delegate_without_changing_settings(self):
+        lua = self.runtime()
+        lua.execute('''
+          local shown=0;local hidden=0
+          AardwolfVibe.plugins.asciiMap.show=function() shown=shown+1;return true end
+          AardwolfVibe.plugins.asciiMap.hide=function() hidden=hidden+1;return true end
+          assert(AardwolfVibe.handleMinimapCommand("show"));assert(shown==1)
+          assert(AardwolfVibe.handleMinimapCommand("hide"));assert(hidden==1)
+          local status=AardwolfVibe.handleMinimapCommand("status")
+          assert(status.tagState=="requested" and messages[#messages]:find("minimap",1,true))
+          assert(saved==nil)
         ''')
 
 
