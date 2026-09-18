@@ -2,6 +2,8 @@ local BuffsWindow = {}
 
 local OWNER = "aardwolf-vibe.buffs-window"
 local WINDOW_NAME = OWNER .. ".window"
+local LAYOUT_MARKER = "AardwolfVibeSpellupsWindowLayout"
+local LAYOUT_VERSION = 1
 
 local function escape(value)
   return tostring(value or ""):gsub("&", "&amp;"):gsub("<", "&lt;")
@@ -31,7 +33,8 @@ function BuffsWindow.new(api, spells, spellup)
 
   local function button(parent, name, text, callback)
     local item = api.Geyser.Label:new({name = OWNER .. "." .. name,
-      x = 0, y = 32, width = "33%", height = 28}, parent)
+      x = 0, y = 32, width = "33%", height = 28,
+      fgColor = "white", bgColor = "black", color = "#24364a"}, parent)
     item:echo(escape(text))
     item:setStyleSheet("QLabel { background: #24364a; color: #eef5ff; "
       .. "border: 1px solid #526d8c; padding: 4px; }")
@@ -128,15 +131,18 @@ function BuffsWindow.new(api, spells, spellup)
       assert(type(geyser.UserWindow) == "table" and type(geyser.Container) == "table"
         and type(geyser.Label) == "table" and type(geyser.MiniConsole) == "table",
         "Geyser spellup widgets are required")
+      local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
       window = geyser.UserWindow:new({name = WINDOW_NAME, titleText = "Aardwolf Spellups",
-        x = 40, y = 120, width = 380, height = 520, restoreLayout = true,
-        autoDock = true, docked = true, dockPosition = "right"})
+        x = 60, y = 120, width = 380, height = 520,
+        restoreLayout = restoreLayout, autoDock = true, docked = restoreLayout,
+        dockPosition = restoreLayout and "right" or "floating",
+        fgColor = "white", bgColor = "black", color = "#0b1118"})
       assert(type(window.delete) == "function", "Geyser.UserWindow deletion is required")
-      window:setColor(11, 17, 24, 255)
       root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,
         width = "100%", height = "100%"}, window)
       header = geyser.Label:new({name = OWNER .. ".status", x = 5, y = 5,
-        width = "100%-10", height = 46}, root)
+        width = "100%-10", height = 46,
+        fgColor = "white", bgColor = "black", color = "#111b27"}, root)
       header:setStyleSheet("QLabel { background: #111b27; color: #e0e9f5; padding: 4px; }")
       syncButton = button(root, "sync", "Sync", function()
         local accepted, why = spells:sync()
@@ -161,8 +167,8 @@ function BuffsWindow.new(api, spells, spellup)
       automaticButton:move("65%", 55); automaticButton:resize("34%-5", 28)
       body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 88,
         width = "100%-10", height = "100%-93", autoWrap = true, scrollBar = true,
-        font = "Menlo", fontSize = 11}, root)
-      body:setColor(11, 17, 24, 255)
+        font = "Menlo", fontSize = 11,
+        fgColor = "white", bgColor = "black", color = "#0b1118"}, root)
       body:setBufferSize(1000, 100)
 
       local function on(name, event)
@@ -178,6 +184,10 @@ function BuffsWindow.new(api, spells, spellup)
       scheduleTick()
       local revealed, why = reveal()
       if not revealed then error(why, 0) end
+      if not restoreLayout then
+        api[LAYOUT_MARKER] = LAYOUT_VERSION
+        if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
+      end
     end)
     if not ok then teardown("Cannot start spellup window: " .. tostring(message)); return false, self.lastError end
     return true

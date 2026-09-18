@@ -21,8 +21,12 @@ class BuffsWindowTests(unittest.TestCase):
         lua.execute("""
           assert(window:start())
           local native=widgets['aardwolf-vibe.buffs-window.window']
-          assert(native.values.restoreLayout==true and native.values.dockPosition=='right')
+          assert(native.values.restoreLayout==false and native.values.docked==false
+            and native.values.dockPosition=='floating')
           assert(native.values.titleText=='Aardwolf Spellups')
+          assert(native.values.color=='#0b1118' and native.values.fgColor=='white')
+          assert(AardwolfVibeSpellupsWindowLayout==1
+            and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
           local body=widgets['aardwolf-vibe.buffs-window.body']
           assert(body.text:find('Shield',1,true) and body.text:find('1:01',1,true))
@@ -36,6 +40,13 @@ class BuffsWindowTests(unittest.TestCase):
             and window:status().visible)
           assert(window:start() and count(handlers)==2)
           assert(window:stop() and count(handlers)==0 and count(timers)==0 and count(widgets)==0)
+
+          window=Factory.new(_G,spells,spellup)
+          assert(window:start())
+          native=widgets['aardwolf-vibe.buffs-window.window']
+          assert(native.values.restoreLayout==true and native.values.docked==true
+            and native.values.dockPosition=='right')
+          assert(window:stop())
         """)
 
     def test_partial_widget_failure_cleans_up(self):

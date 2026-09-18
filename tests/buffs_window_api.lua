@@ -1,4 +1,4 @@
-clock=0;sequence=0;timers={};handlers={};widgets={};hidden={}
+clock=0;sequence=0;timers={};handlers={};widgets={};hidden={};remembered={}
 function tempTimer(delay,callback) sequence=sequence+1;timers[sequence]={at=clock+delay,callback=callback};return sequence end
 function killTimer(id) timers[id]=nil end
 function registerNamedEventHandler(owner,name,event,callback)
@@ -12,6 +12,7 @@ end
 function showWindow(name) hidden[name]=false end
 function hideWindow(name) hidden[name]=true end
 function windowVisible(name) return not hidden[name] end
+function remember(name) remembered[name]=_G[name] end
 local function widget(values)
   local item={name=values.name,values=values,text="",deleted=false}
   widgets[item.name]=item
@@ -21,7 +22,7 @@ local function widget(values)
   function item:setClickCallback(callback) self.callback=callback end
   function item:move(x,y) self.x=x;self.y=y end
   function item:resize(width,height) self.width=width;self.height=height end
-  function item:setColor(...) self.color={...} end
+  function item:setColor(...) error("component must not use Geyser setColor") end
   function item:setBufferSize(...) self.buffer={...} end
   function item:show()
     self.showCalls=(self.showCalls or 0)+1;self.hidden=false;hidden[self.name]=false
