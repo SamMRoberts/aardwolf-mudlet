@@ -17,7 +17,12 @@ requiring adjacent grid cells or causing the mapper to invent a reverse exit.
 Cardinal exits may span intentional gaps. When a new edge closes a loop, the
 mapper may reflow only the smallest affected component whose placement is still
 mapper-owned and provisional; established, continent, manual, and foreign
-coordinates remain fixed.
+coordinates remain fixed. When an interior cardinal edge instead meets an
+intact mapper-owned non-continent perimeter room in the immediately adjacent
+cell, the mapper can shift the connected far side of that perimeter outward by
+one grid step. This opens the intended interior cell while preserving the
+perimeter topology and leaving continent, manual, and foreign coordinates
+untouched.
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile

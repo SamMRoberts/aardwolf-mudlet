@@ -67,13 +67,25 @@ ordered by rooms moved, total Manhattan distance, room ID, and coordinates.
 The complete plan is checked before any coordinate write and each applied
 coordinate and placement marker is read back.
 
-Only intact placements marked `provisional` are eligible. Established
-placements (including existing `gmcp-reciprocal` values), continent
-coordinates, rooms moved manually since their placement marker was recorded,
-and foreign rooms are fixed. If no safe provisional-only plan exists, the
-coordinates are retained, the server-authoritative exit is still recorded, and
-the mapper reports a non-fatal layout conflict. Mapper status reports cumulative
-`reflowed` and `layout-conflicts` counts for the current package lifetime.
+Ordinary loop repair may move only intact placements marked `provisional`.
+Established placements (including existing `gmcp-reciprocal` values) are fixed
+for that repair.
+
+A separate sparse-grid insertion applies when a new or displaced provisional
+destination belongs in the cell immediately beyond a source, but that cell is
+occupied by an intact mapper-owned non-continent perimeter. The mapper shifts
+the connected portion of the perimeter on the far side of that cut outward by
+one two-cell grid step, then places the provisional destination in the opened
+cell. It includes rooms required by owned topology and occupancy so the planned
+move cannot split a row, collapse rooms onto one another, or violate any known
+incident cardinal edge. Existing placement authorities are preserved.
+
+Continent coordinates, rooms moved manually since their placement marker was
+recorded, and foreign rooms are fixed for every repair. If no safe plan exists,
+the coordinates are retained, the server-authoritative exit is still recorded,
+and the mapper reports a non-fatal layout conflict. Mapper status reports
+cumulative `reflowed` and `layout-conflicts` counts for the current package
+lifetime.
 
 Known destinations are created as gray `?` rooms and promoted when visited.
 Cross-zone promotion moves the room into the exact newly reported zone. A room
