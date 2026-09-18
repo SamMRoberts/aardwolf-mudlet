@@ -10,16 +10,17 @@ SOURCE = (ROOT / "src/scripts/AardwolfVibe/AardwolfVibeLifecycle.lua").read_text
 
 class LifecycleTests(unittest.TestCase):
     def runtime(self, enabled=True, settings_ok=True, character_ok=True, bars_ok=True,
-                ascii_ok=True):
+                ascii_ok=True, chat_ok=True):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.globals().initial_enabled = enabled
         lua.globals().initial_settings_ok = settings_ok
         lua.globals().initial_character_ok = character_ok
         lua.globals().initial_bars_ok = bars_ok
         lua.globals().initial_ascii_ok = ascii_ok
+        lua.globals().initial_chat_ok = chat_ok
         lua.execute('''
           messages={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
-          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;saved=nil
+          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;chatStarts=0;chatStops=0;saved=nil
           function echo(message) messages[#messages+1]=message end
           function getMudletHomeDir() return "/profile" end
           SettingsFactory={new=function()
@@ -86,16 +87,37 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
+          ChatModelFactory={defaultConfig=function() return {} end}
+          ChatFactory={new=function()
+            return {
+              start=function()
+                chatStarts=chatStarts+1
+                return initial_chat_ok
+              end,
+              stop=function()
+                chatStops=chatStops+1;stopOrder[#stopOrder+1]="chat";return true
+              end,
+              show=function() return true end,
+              hide=function() return true end,
+              openConfig=function() return true end,
+              status=function()
+                return {enabled=initial_chat_ok,lifecycle=initial_chat_ok and "active" or "stopped",
+                  visible=true,retained=2,takeoverRequested=true,lastError="chat start failure"}
+              end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/character%-bars.lua$") then return BarsFactory end
             if string.match(path,"/ascii%-map.lua$") then return ASCIIFactory end
+            if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
+            if string.match(path,"/chat.lua$") then return ChatFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
             error("unexpected resource: "..path)
           end
         ''')
-        lua.execute(SOURCE.replace("@VERSION@", "0.4.1").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.5.0").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -113,9 +135,12 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibe.plugins.asciiMap.stop=function()
             asciiStops=asciiStops+1;return true
           end
+          AardwolfVibe.plugins.chat.stop=function()
+            chatStops=chatStops+1;return true
+          end
           AardwolfVibe.active=true
           assert(not AardwolfVibe.stop())
-          assert(characterStops==1 and barsStops==1 and asciiStops==1 and mapperStops==1)
+          assert(characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
         ''')
 
@@ -123,7 +148,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1)
+          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
           assert(AardwolfVibe.active)
           assert(AardwolfVibe.handleMapperCommand("off"));assert(saved==false and mapperStops==1)
           assert(AardwolfVibe.handleMapperCommand("on"));assert(saved==true and mapperStarts==2)
@@ -133,34 +158,34 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(False)
         lua.execute('''
           AardwolfVibeLifecycle("sysInstallPackage","another-package")
-          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0)
+          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0 and chatStarts==0)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
-          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1)
+          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
-          assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1)
-          assert(table.concat(stopOrder,",")=="ascii,bars,character,mapper")
+          assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1)
+          assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
     def test_reload_stops_old_plugins_before_new_instance_starts(self):
         lua = self.runtime()
         lua.execute("assert(AardwolfVibe.start())")
-        lua.execute(SOURCE.replace("@VERSION@", "0.4.1").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.5.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="ascii,bars,character,mapper")
-          assert(asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
+          assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
+          assert(chatStops==1 and asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
+          assert(chatStarts==2 and asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):
         lua = self.runtime(settings_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==0)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==0)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"Malformed settings",1,true))
         ''')
@@ -169,7 +194,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(character_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"character start failure",1,true))
         ''')
@@ -178,7 +203,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(bars_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"character bars start failure",1,true))
         ''')
@@ -187,7 +212,7 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(ascii_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and mapperStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"ASCII minimap start failure",1,true))
         ''')
@@ -202,6 +227,24 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleMinimapCommand("hide"));assert(hidden==1)
           local status=AardwolfVibe.handleMinimapCommand("status")
           assert(status.tagState=="requested" and messages[#messages]:find("minimap",1,true))
+          assert(saved==nil)
+        ''')
+
+    def test_chat_failure_is_isolated_and_commands_delegate(self):
+        lua = self.runtime(chat_ok=False)
+        lua.execute('''
+          assert(not AardwolfVibe.start())
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
+          assert(messages[1]:find("chat start failure",1,true))
+          local shown,hidden,configured=0,0,0
+          AardwolfVibe.plugins.chat.show=function() shown=shown+1;return true end
+          AardwolfVibe.plugins.chat.hide=function() hidden=hidden+1;return true end
+          AardwolfVibe.plugins.chat.openConfig=function() configured=configured+1;return true end
+          assert(AardwolfVibe.handleChatCommand("show"));assert(shown==1)
+          assert(AardwolfVibe.handleChatCommand("hide"));assert(hidden==1)
+          assert(AardwolfVibe.handleChatCommand("config"));assert(configured==1)
+          local status=AardwolfVibe.handleChatCommand("status")
+          assert(status.retained==2 and messages[#messages]:find("chat",1,true))
           assert(saved==nil)
         ''')
 

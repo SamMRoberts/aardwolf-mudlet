@@ -8,5 +8,10 @@
     "name": "minimap",
     "isActive": "yes",
     "regex": "^aardwolf-vibe minimap(?: (show|hide|status))?$"
+  },
+  {
+    "name": "chat",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe chat(?: (show|hide|status|config))?$"
   }
 ]

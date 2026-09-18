@@ -18,6 +18,8 @@ local Settings = resource("settings")
 local Character = resource("character")
 local CharacterBars = resource("character-bars")
 local ASCIIMap = resource("ascii-map")
+local ChatModel = resource("chat-model")
+local Chat = resource("chat")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
@@ -25,6 +27,7 @@ AardwolfVibe.plugins.characterBars = CharacterBars.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
   _G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.chat = Chat.new(_G, ChatModel, AardwolfVibe.settings)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
 function AardwolfVibe.start()
@@ -43,7 +46,12 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.asciiMap:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  if AardwolfVibe.active then return characterOK and barsOK and asciiOK end
+  local chatOK = AardwolfVibe.plugins.chat:start()
+  if not chatOK then
+    local status = AardwolfVibe.plugins.chat:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  if AardwolfVibe.active then return characterOK and barsOK and asciiOK and chatOK end
   local ok, enabled = AardwolfVibe.settings.load()
   AardwolfVibe.active = true
   if not ok then
@@ -51,7 +59,7 @@ function AardwolfVibe.start()
     return false
   end
   local mapperOK = not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and barsOK and asciiOK and mapperOK
+  return characterOK and barsOK and asciiOK and chatOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -61,12 +69,31 @@ function AardwolfVibe.stop()
     return called and stopped ~= false
   end
   local plugins = AardwolfVibe.plugins or {}
+  local chatOK = stopPlugin(plugins.chat)
   local asciiOK = stopPlugin(plugins.asciiMap)
   local barsOK = stopPlugin(plugins.characterBars)
   local characterOK = stopPlugin(plugins.character)
   local mapperOK = stopPlugin(plugins.mapper)
   AardwolfVibe.active = false
-  return asciiOK and barsOK and characterOK and mapperOK
+  return chatOK and asciiOK and barsOK and characterOK and mapperOK
+end
+
+function AardwolfVibe.handleChatCommand(action)
+  local chat = AardwolfVibe.plugins.chat
+  action = action or "show"
+  if action == "show" then return chat:show() end
+  if action == "hide" then return chat:hide() end
+  if action == "config" then return chat:openConfig() end
+  if action == "status" then
+    local status = chat:status()
+    local visibility = status.visible and "visible" or "hidden"
+    echo("Aardwolf Vibe: chat " .. status.lifecycle .. ", " .. visibility
+      .. ", " .. tostring(status.retained) .. " retained messages, takeover "
+      .. (status.takeoverRequested and "requested" or "pending") .. ".\n")
+    return status
+  end
+  echo("Usage: aardwolf-vibe chat show|hide|status|config\n")
+  return false
 end
 
 function AardwolfVibe.handleMapperCommand(action)

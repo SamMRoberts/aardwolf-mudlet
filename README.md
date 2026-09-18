@@ -2,7 +2,8 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, responsive Geyser status bars, and a native dockable ASCII minimap.
+handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
+configurable GMCP chat window.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -41,6 +42,14 @@ main console. It starts in the right dock and Mudlet restores the user's later
 floating, docked, resized, or tabbed layout. See
 [`docs/ascii-map.md`](docs/ascii-map.md) for its API and capture contract.
 
+The always-active chat plugin consumes `gmcp.comm.channel` into a movable,
+resizable native window that starts docked across the top. Its initial All,
+Tell, Group, Clan, Newbie, and Gossip tabs can be renamed, reordered, removed,
+or supplemented through the built-in visual editor. Aardwolf channel text is
+requested over GMCP only; `say` and `mobsay` remain mirrored into the gameplay
+console. See [`docs/chat.md`](docs/chat.md) for routing, persistence, and API
+details.
+
 ## Commands
 
 ```text
@@ -51,6 +60,11 @@ aardwolf-vibe minimap
 aardwolf-vibe minimap show
 aardwolf-vibe minimap hide
 aardwolf-vibe minimap status
+aardwolf-vibe chat
+aardwolf-vibe chat show
+aardwolf-vibe chat hide
+aardwolf-vibe chat status
+aardwolf-vibe chat config
 ```
 
 Mapping is enabled on first install. The selected state persists in

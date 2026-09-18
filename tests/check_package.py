@@ -10,10 +10,11 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.4.1")
+        self.assertEqual(metadata["version"], "0.5.0")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
+        self.assertIn("configurable chat", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
         aliases = json.loads((ROOT / "src/aliases/AardwolfVibe/aliases.json").read_text())
         self.assertEqual(scripts[0]["eventHandlerList"],
@@ -23,6 +24,7 @@ class PackageSourceTests(unittest.TestCase):
             {
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
+                "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
             },
         )
 
@@ -34,6 +36,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.character", source)
         self.assertIn("AardwolfVibe.plugins.characterBars", source)
         self.assertIn("AardwolfVibe.plugins.asciiMap", source)
+        self.assertIn("AardwolfVibe.plugins.chat", source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
         bars = ROOT / "src/resources/character-bars.lua"
         self.assertTrue(bars.is_file())
@@ -43,6 +46,11 @@ class PackageSourceTests(unittest.TestCase):
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())
         self.assertNotIn("tags map off", ascii_map.read_text())
+        chat = ROOT / "src/resources/chat.lua"
+        model = ROOT / "src/resources/chat-model.lua"
+        self.assertTrue(chat.is_file() and model.is_file())
+        self.assertIn('gmod.enableModule(OWNER, "Comm")', chat.read_text())
+        self.assertNotIn("AardwolfToolbox", chat.read_text() + model.read_text())
 
 
 if __name__ == "__main__":
