@@ -96,7 +96,7 @@ function Spells.new(api, character, settings)
     lastError = nil,
     hideTags = true,
   }
-  local catalog, classification, active, recoveries = {}, {}, {}, {}
+  local catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
   local handlers = {}
   local triggerID, frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
   local generation, session = 0, 0
@@ -196,8 +196,16 @@ function Spells.new(api, character, settings)
     return catalog[id] and catalog[id].name or "Spell #" .. tostring(id)
   end
 
+  local function confirmExpired(id, at)
+    if not active[id] then return false end
+    expired[id] = {id = id, expiredAt = at}
+    active[id] = nil
+    return true
+  end
+
   local function applyDelta(event)
     if event.kind == "affon" then
+      expired[event.id] = nil
       active[event.id] = {
         id = event.id,
         reported = event.at,
@@ -206,7 +214,7 @@ function Spells.new(api, character, settings)
       }
       emit("applied", event.id)
     elseif event.kind == "affoff" then
-      active[event.id] = nil
+      confirmExpired(event.id, event.at)
       emit("missing", event.id)
     elseif event.kind == "recon" then
       local old = recoveries[event.id]
@@ -236,6 +244,7 @@ function Spells.new(api, character, settings)
       local replacement = {}
       for id, row in pairs(completed.rows) do
         if row.duration > 0 then
+          expired[id] = nil
           replacement[id] = {
             id = id,
             reported = completed.at,
@@ -245,10 +254,13 @@ function Spells.new(api, character, settings)
         end
         if not catalog[id] then catalog[id] = row end
       end
-      active = replacement
       for id in pairs(previous) do
-        if not replacement[id] then emit("missing", id) end
+        if not replacement[id] then
+          expired[id] = {id = id, expiredAt = completed.at}
+          emit("missing", id)
+        end
       end
+      active = replacement
     elseif completed.kind == "recoveries" then
       local replacement = {}
       for id, row in pairs(completed.rows) do
@@ -453,7 +465,7 @@ function Spells.new(api, character, settings)
     clearHiddenFrame()
     cancelTimer(driveTimer)
     driveTimer = nil
-    catalog, classification, active, recoveries = {}, {}, {}, {}
+    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
@@ -549,13 +561,14 @@ function Spells.new(api, character, settings)
   end
 
   function self:snapshot()
+    local timestamp = now()
     local effects = {}
     for id, effect in pairs(active) do
       local row = copy(effect)
       row.name = effectName(id)
       row.spellup = classification[id] == true
       row.learned = catalog[id] ~= nil and catalog[id].practice > 1
-      row.remaining = math.max(0, math.ceil(effect.expires - now()))
+      row.remaining = math.max(0, math.ceil(effect.expires - timestamp))
       row.awaiting = row.remaining == 0
       effects[#effects + 1] = row
     end
@@ -563,11 +576,24 @@ function Spells.new(api, character, settings)
       if left.expires == right.expires then return left.name < right.name end
       return left.expires < right.expires
     end)
+    local expiredRows = {}
+    for id, effect in pairs(expired) do
+      local row = copy(effect)
+      row.name = effectName(id)
+      row.spellup = classification[id] == true
+      row.learned = catalog[id] ~= nil and catalog[id].practice > 1
+      row.elapsed = math.max(0, math.floor(timestamp - effect.expiredAt))
+      expiredRows[#expiredRows + 1] = row
+    end
+    table.sort(expiredRows, function(left, right)
+      if left.expiredAt == right.expiredAt then return left.name < right.name end
+      return left.expiredAt > right.expiredAt
+    end)
     local recoveryRows = {}
     for _, recovery in pairs(recoveries) do
       local row = copy(recovery)
       if row.expires then
-        row.remaining = math.max(0, math.ceil(row.expires - now()))
+        row.remaining = math.max(0, math.ceil(row.expires - timestamp))
         row.awaiting = row.remaining == 0
       end
       recoveryRows[#recoveryRows + 1] = row
@@ -587,6 +613,7 @@ function Spells.new(api, character, settings)
       catalog = copy(catalog),
       classification = copy(classification),
       active = effects,
+      expired = expiredRows,
       recoveries = recoveryRows,
       lastError = self.lastError,
       hideTags = self.hideTags,
@@ -668,7 +695,7 @@ function Spells.new(api, character, settings)
     driveTimer = nil
     removeHandlers()
     if triggerID then pcall(api.killTrigger, triggerID); triggerID = nil end
-    catalog, classification, active, recoveries = {}, {}, {}, {}
+    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false

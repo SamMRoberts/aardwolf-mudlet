@@ -4,6 +4,12 @@ local OWNER = "aardwolf-vibe.buffs-window"
 local WINDOW_NAME = OWNER .. ".window"
 local LAYOUT_MARKER = "AardwolfVibeSpellupsWindowLayout"
 local LAYOUT_VERSION = 1
+local GOOD_COLOR = "#55c878"
+local WARNING_COLOR = "#b89b22"
+local CRITICAL_COLOR = "#e06161"
+local HEADING_COLOR = "#eef5ff"
+local COLUMN_COLOR = "#aebdd0"
+local MUTED_COLOR = "#8291a4"
 
 -- Component tables take the direct branch in Mudlet 5.0.1's color parser.
 -- This avoids its broken single-number path if another package has polluted a
@@ -14,7 +20,7 @@ end
 
 local function escape(value)
   return tostring(value or ""):gsub("&", "&amp;"):gsub("<", "&lt;")
-    :gsub(">", "&gt;"):gsub('"', "&quot;")
+    :gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("'", "&#39;")
 end
 
 local function duration(seconds, awaiting)
@@ -28,12 +34,70 @@ local function duration(seconds, awaiting)
   return string.format("%d:%02d", minutes, remainder)
 end
 
+local function timeColor(seconds, awaiting)
+  if awaiting or type(seconds) ~= "number" or seconds <= 30 then return CRITICAL_COLOR end
+  if seconds <= 120 then return WARNING_COLOR end
+  return GOOD_COLOR
+end
+
+local function font(value, color, bold)
+  local content = escape(value)
+  if bold then content = "<b>" .. content .. "</b>" end
+  return '<font color="' .. color .. '">' .. content .. "</font>"
+end
+
+local function section(title, leftHeading, rightHeading, rows, renderRow)
+  local markup = {
+    '<table width="100%" cellspacing="0" cellpadding="4" border="0">',
+    '<tr><td colspan="2">' .. font(title, HEADING_COLOR, true) .. "</td></tr>",
+    '<tr bgcolor="#182433"><td>' .. font(leftHeading, COLUMN_COLOR, true)
+      .. '</td><td align="right">' .. font(rightHeading, COLUMN_COLOR, true)
+      .. "</td></tr>",
+  }
+  if #rows == 0 then
+    markup[#markup + 1] = '<tr><td colspan="2"><font color="' .. MUTED_COLOR
+      .. '"><i>None confirmed</i></font></td></tr>'
+  else
+    for _, row in ipairs(rows) do
+      local left, right, rightColor = renderRow(row)
+      markup[#markup + 1] = "<tr><td>" .. font(left, HEADING_COLOR)
+        .. '</td><td align="right">' .. font(right, rightColor) .. "</td></tr>"
+    end
+  end
+  markup[#markup + 1] = "</table>"
+  return table.concat(markup)
+end
+
+local function tableMarkup(snapshot)
+  local active = section("Active Effects", "Effect", "Remaining", snapshot.active,
+    function(effect)
+      return effect.name, duration(effect.remaining, effect.awaiting),
+        timeColor(effect.remaining, effect.awaiting)
+    end)
+  local expired = section("Expired Effects", "Effect", "Expired", snapshot.expired or {},
+    function(effect)
+      return effect.name, duration(effect.elapsed, false) .. " ago", CRITICAL_COLOR
+    end)
+  local recoveries = section("Recoveries", "Recovery", "Remaining", snapshot.recoveries,
+    function(recovery)
+      return recovery.name, duration(recovery.remaining, recovery.awaiting),
+        timeColor(recovery.remaining, recovery.awaiting)
+    end)
+  return active .. "<br>" .. expired .. "<br>" .. recoveries
+end
+
+local function tableHeight(snapshot)
+  local rows = math.max(1, #snapshot.active) + math.max(1, #(snapshot.expired or {}))
+    + math.max(1, #snapshot.recoveries)
+  return math.max(260, 190 + rows * 25)
+end
+
 function BuffsWindow.new(api, spells, spellup)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, header, body, syncButton, nowButton, automaticButton, tagsButton
-  local timer, generation = nil, 0
+  local window, root, header, body, content
+  local syncButton, nowButton, automaticButton, tagsButton
+  local timer, contentHeight, generation = nil, nil, 0
   local handlers = {}
-  local rendered = false
 
   local function cancelTimer()
     if timer then pcall(api.killTimer, timer); timer = nil end
@@ -52,12 +116,7 @@ function BuffsWindow.new(api, spells, spellup)
   end
 
   local function render()
-    if not self.enabled or not body then return end
-    local scroll = 0
-    if rendered then
-      local ok, value = pcall(body.getScroll, body)
-      if ok and type(value) == "number" then scroll = math.max(0, value) end
-    end
+    if not self.enabled or not body or not content then return end
     local snapshot = spells:snapshot()
     local control = spellup:status()
     local tracking = snapshot.fresh and "Synchronized" or snapshot.busy and "Synchronizing"
@@ -73,22 +132,12 @@ function BuffsWindow.new(api, spells, spellup)
       and (control.paused and "Resume automatic" or "Pause automatic")
       or "Enable automatic")
     tagsButton:rawEcho(snapshot.hideTags and "Show spell tags" or "Hide spell tags")
-
-    body:clear()
-    body:echo("Active effects\n")
-    if #snapshot.active == 0 then body:echo("  None confirmed\n") end
-    for _, effect in ipairs(snapshot.active) do
-      body:echo(string.format("  %s — %s\n", effect.name,
-        duration(effect.remaining, effect.awaiting)))
+    content:rawEcho(tableMarkup(snapshot))
+    local height = tableHeight(snapshot)
+    if height ~= contentHeight then
+      content:resize("100%-4", height)
+      contentHeight = height
     end
-    body:echo("\nRecoveries\n")
-    if #snapshot.recoveries == 0 then body:echo("  None confirmed\n") end
-    for _, recovery in ipairs(snapshot.recoveries) do
-      body:echo(string.format("  %s — %s\n", recovery.name,
-        duration(recovery.remaining, recovery.awaiting)))
-    end
-    body:scrollTo(scroll)
-    rendered = true
   end
 
   local function scheduleTick()
@@ -132,9 +181,9 @@ function BuffsWindow.new(api, spells, spellup)
     cancelTimer()
     removeHandlers()
     if window and type(window.delete) == "function" then pcall(window.delete, window) end
-    window, root, header, body = nil, nil, nil, nil
+    window, root, header, body, content = nil, nil, nil, nil, nil
+    contentHeight = nil
     syncButton, nowButton, automaticButton, tagsButton = nil, nil, nil, nil
-    rendered = false
     self.lastError = message and tostring(message) or nil
     return message == nil
   end
@@ -148,7 +197,7 @@ function BuffsWindow.new(api, spells, spellup)
     local ok, message = pcall(function()
       local geyser = assert(api.Geyser, "Geyser is required for spellups")
       assert(type(geyser.UserWindow) == "table" and type(geyser.Container) == "table"
-        and type(geyser.Label) == "table" and type(geyser.MiniConsole) == "table",
+        and type(geyser.Label) == "table" and type(geyser.ScrollBox) == "table",
         "Geyser spellup widgets are required")
       local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
       stage = "create right dock"
@@ -200,16 +249,18 @@ function BuffsWindow.new(api, spells, spellup)
         render()
       end)
       tagsButton:move(5, 88); tagsButton:resize("100%-10", 28)
-      stage = "create effects console"
-      body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 121,
-        width = "100%-10", height = "100%-126", autoWrap = true, scrollBar = true,
-        scrolling = false,
-        font = "Menlo", fontSize = 11,
-        fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
-        color = color(11, 17, 24)}, root)
-      assert(type(body.getScroll) == "function" and type(body.scrollTo) == "function",
-        "Geyser.MiniConsole scroll state is required")
-      body:setBufferSize(1000, 100)
+      stage = "create effects scroll area"
+      body = geyser.ScrollBox:new({name = OWNER .. ".body", x = 5, y = 121,
+        width = "100%-10", height = "100%-126"}, root)
+      stage = "create effects table"
+      content = geyser.Label:new({name = OWNER .. ".content", x = 0, y = 0,
+        width = "100%-4", height = 260,
+        fgColor = "nocolor", bgColor = color(0, 0, 0),
+        color = color(11, 17, 24)}, body)
+      assert(type(content.rawEcho) == "function" and type(content.resize) == "function",
+        "Geyser spellup table rendering is required")
+      content:setStyleSheet("QLabel { background: #0b1118; color: #eef5ff; "
+        .. "padding: 4px; }")
 
       stage = "register update handlers"
       local function on(name, event)

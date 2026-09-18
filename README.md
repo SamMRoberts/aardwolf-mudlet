@@ -64,11 +64,15 @@ command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
-bounded `slist` snapshots, and presents confirmed effects and recoveries in an
-“Aardwolf Spellups” window. Its first successful mount creates a distinct
+bounded `slist` snapshots, and presents active effects, server-confirmed
+expirations, and recoveries in responsive tables in an “Aardwolf Spellups”
+window. Remaining time changes from green to dark yellow to red as expiry
+approaches. Its first successful mount creates a distinct
 right-side dock; Mudlet restores the user's later placement without reusing the
-map or chat window. Spell machine tags are hidden by default and can be made
-visible without disabling their parsing. Automatic maintenance defaults off.
+map or chat window. Its scroll area starts at the top, retains the user's
+position across refreshes, and does not use Mudlet's split console scrollback.
+Spell machine tags are hidden by default and can be made visible without
+disabling their parsing. Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,

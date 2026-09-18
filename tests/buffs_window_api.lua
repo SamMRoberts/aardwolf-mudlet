@@ -14,21 +14,19 @@ function hideWindow(name) hidden[name]=true end
 function windowVisible(name) return not hidden[name] end
 function remember(name) remembered[name]=_G[name] end
 local function widget(values)
-  local item={name=values.name,values=values,text="",deleted=false,scroll=17}
+  local item={name=values.name,values=values,text="",deleted=false}
   widgets[item.name]=item
   function item:echo(text) self.text=self.text..tostring(text) end
-  function item:rawEcho(text) self.text=self.text..tostring(text) end
-  function item:clear() self.text="";self.scroll=999 end
+  function item:rawEcho(text)
+    self.rawEchoCalls=(self.rawEchoCalls or 0)+1;self.text=tostring(text)
+  end
   function item:setStyleSheet(value) self.style=value end
   function item:setClickCallback(callback) self.callback=callback end
   function item:move(x,y) self.x=x;self.y=y end
-  function item:resize(width,height) self.width=width;self.height=height end
-  function item:setColor(...) error("component must not use Geyser setColor") end
-  function item:setBufferSize(...) self.buffer={...} end
-  function item:getScroll() self.getScrollCalls=(self.getScrollCalls or 0)+1;return self.scroll end
-  function item:scrollTo(line)
-    self.scrollToCalls=(self.scrollToCalls or 0)+1;self.scroll=line
+  function item:resize(width,height)
+    self.resizeCalls=(self.resizeCalls or 0)+1;self.width=width;self.height=height
   end
+  function item:setColor(...) error("component must not use Geyser setColor") end
   function item:show()
     self.showCalls=(self.showCalls or 0)+1;self.hidden=false;hidden[self.name]=false
   end
@@ -47,11 +45,14 @@ end
 local function class()
   return {new=function(_,values,parent) local item=widget(values);item.parent=parent;return item end}
 end
-Geyser={UserWindow=class(),Container=class(),Label=class(),MiniConsole=class()}
+Geyser={UserWindow=class(),Container=class(),Label=class(),ScrollBox=class()}
 spells={syncs=0,hideTags=true,tagSets=0}
+spells.snapshotValue={fresh=true,busy=false,
+  active={{id=72,name="Shield",remaining=61,awaiting=false}},
+  expired={{id=35,name="Detect magic",elapsed=5,expiredAt=0}},
+  recoveries={{id=15,name="Recovery",remaining=0,awaiting=true}}}
 function spells:snapshot()
-  return {fresh=true,busy=false,active={{id=72,name="Shield",remaining=61,awaiting=false}},
-    recoveries={{id=15,name="Recovery",remaining=0,awaiting=true}},hideTags=self.hideTags}
+  local value=self.snapshotValue;value.hideTags=self.hideTags;return value
 end
 function spells:sync() self.syncs=self.syncs+1;return true end
 function spells:status() return {hideTags=self.hideTags} end

@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.11")
+        self.assertEqual(metadata["version"], "0.7.12")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
@@ -69,6 +69,8 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("sendTelnetChannel102, string.char(7, 1)", spells.read_text())
         self.assertIn('local COMMAND = "spellup learned retry"', spellup.read_text())
         self.assertNotIn("tags off", spells.read_text())
+        self.assertIn("geyser.ScrollBox:new", buffs.read_text())
+        self.assertNotIn("geyser.MiniConsole:new", buffs.read_text())
 
 
 if __name__ == "__main__":

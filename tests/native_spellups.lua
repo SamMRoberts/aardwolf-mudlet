@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.11", "Aardwolf Vibe 0.7.11 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.12", "Aardwolf Vibe 0.7.12 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -58,10 +58,57 @@ local function rows(kind, values)
   feedTriggers("{/spellheaders}\n")
 end
 
+local catalogRows = {
+  "72,Éowyn <red> & 古竜,2,0,100,-1,1",
+  "35,Detect magic,2,0,100,15,1",
+}
+for id = 100, 119 do
+  catalogRows[#catalogRows + 1] = string.format(
+    "%d,Native effect %d,2,0,100,-1,1", id, id)
+end
+
+local function affectedRows(includeDetectMagic)
+  local values = {"72,Éowyn <red> & 古竜,2,600,100,-1,1"}
+  if includeDetectMagic then
+    values[#values + 1] = "35,Detect magic,2,55,100,15,1"
+  end
+  for id = 100, 119 do
+    values[#values + 1] = string.format(
+      "%d,Native effect %d,2,%d,100,-1,1", id, id, 30 + (id - 99) * 10)
+  end
+  return values
+end
+
 local recoveriesStage
 local activeStage
 local classificationStage
 local catalogStage
+local expiryStartStage
+local expiryActiveStage
+local expiryRecoveryStage
+
+expiryRecoveryStage = function() stage(function()
+  assert(test.commands[#test.commands].command == "slist recoveries noprompt")
+  feedTriggers("{recoveries noprompt}\n15,Detect magic recovery,20\n{/recoveries}\n")
+end, function() stage(function()
+  local snapshot = AardwolfVibe.plugins.spells:snapshot()
+  assert(AardwolfVibe.plugins.spells:isFresh())
+  assert(#snapshot.expired == 1 and snapshot.expired[1].id == 35)
+  local copy = AardwolfVibe.plugins.spells:snapshot()
+  copy.expired[1].name = "changed"
+  assert(AardwolfVibe.plugins.spells:snapshot().expired[1].name == "Detect magic")
+end) end) end
+
+expiryActiveStage = function() stage(function()
+  assert(test.commands[#test.commands].command == "slist affected noprompt")
+  rows("affected", affectedRows(false))
+end, expiryRecoveryStage) end
+
+expiryStartStage = function() stage(function()
+  feedTriggers("{affoff}35\n")
+  local snapshot = AardwolfVibe.plugins.spells:snapshot()
+  assert(#snapshot.expired == 1 and snapshot.expired[1].id == 35)
+end, expiryActiveStage) end
 
 recoveriesStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist recoveries noprompt")
@@ -71,6 +118,7 @@ end, function() stage(function()
   local spell = assert(AardwolfVibe.plugins.spells:get(72))
   assert(spell.name == "Éowyn <red> & 古竜" and spell.active.duration == 600)
   local copy = AardwolfVibe.plugins.spells:snapshot()
+  assert(#copy.active == 22, "Synthetic table did not overflow")
   copy.active[1].name = "changed"
   assert(AardwolfVibe.plugins.spells:get(72).name == "Éowyn <red> & 古竜")
   assert(not AardwolfVibe.plugins.spellup:status().automatic)
@@ -100,22 +148,16 @@ end, function() stage(function()
   assert(beforeLine and afterLine == beforeLine + 1,
     "Suppressed machine records left output or blank lines")
   assert(test.seen >= 17, "Another trigger did not receive all synthetic lines")
-end) end) end
+end, expiryStartStage) end) end
 
 activeStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist affected noprompt")
-  rows("affected", {
-    "72,Éowyn <red> & 古竜,2,600,100,-1,1",
-    "35,Detect magic,2,55,100,15,1",
-  })
+  rows("affected", affectedRows(true))
 end, recoveriesStage) end
 
 classificationStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist spellup noprompt")
-  rows("spellup", {
-    "72,Éowyn <red> & 古竜,2,0,100,-1,1",
-    "35,Detect magic,2,0,100,15,1",
-  })
+  rows("spellup", catalogRows)
   assert(AardwolfVibe.plugins.spells:isFresh())
   feedTriggers("NATIVE_SPELL_BEFORE\n")
   feedTriggers("{affon}35,55\n")
@@ -124,10 +166,7 @@ end, activeStage) end
 
 catalogStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist noprompt")
-  rows("", {
-    "72,Éowyn <red> & 古竜,2,0,100,-1,1",
-    "35,Detect magic,2,0,100,15,1",
-  })
+  rows("", catalogRows)
 end, classificationStage) end
 
 stage(function()

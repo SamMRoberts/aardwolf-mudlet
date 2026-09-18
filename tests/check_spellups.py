@@ -45,9 +45,86 @@ class SpellupTests(unittest.TestCase):
           advance(3)
           local expired=spells:snapshot().active[1]
           assert(expired.awaiting and expired.remaining==0)
+          assert(#spells:snapshot().expired==0)
           assert(spells:isFresh() and commandCount('spellup learned retry')==0
             and commandCount('slist affected noprompt')==1 and #commands==4)
         """)
+
+    def test_confirmed_expirations_are_current_ordered_and_defensive(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          advance(5)
+          feed('{affon}35,90');advance(0)
+          deltaRows({'72,Shield,2,115,100,-1,1','35,Detect magic,2,90,100,15,1'}, {})
+
+          feed('{affoff}999');advance(0)
+          assert(#spells:snapshot().expired==0)
+          deltaRows({'72,Shield,2,115,100,-1,1','35,Detect magic,2,90,100,15,1'}, {})
+
+          feed('{affoff}72');advance(0)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==1 and snapshot.active[1].id==35)
+          assert(#snapshot.expired==1 and snapshot.expired[1].id==72
+            and snapshot.expired[1].name=='Shield' and snapshot.expired[1].elapsed==0)
+          snapshot.expired[1].name='changed';snapshot.expired[1].expiredAt=-1
+          assert(spells:snapshot().expired[1].name=='Shield'
+            and spells:snapshot().expired[1].expiredAt==clock)
+          deltaRows({'35,Detect magic,2,90,100,15,1'}, {})
+
+          advance(5)
+          feed('{affoff}999');advance(0)
+          deltaRows({}, {})
+          snapshot=spells:snapshot()
+          assert(#snapshot.expired==2 and snapshot.expired[1].id==35
+            and snapshot.expired[2].id==72 and snapshot.expired[2].elapsed==5)
+
+          feed('{affon}72,60');advance(0)
+          snapshot=spells:snapshot()
+          assert(#snapshot.expired==1 and snapshot.expired[1].id==35)
+          deltaRows({'72,Shield,2,60,100,-1,1'}, {})
+
+          feed('{affoff}999');advance(0)
+          deltaRows({'72,Shield,2,60,100,-1,1','35,Detect magic,2,40,100,15,1'}, {})
+          assert(#spells:snapshot().expired==0)
+        """)
+
+    def test_interleaved_affoff_is_replayed_into_expired_state(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,120');advance(0)
+          feed('{spellheaders affected noprompt}')
+          feed('72,Shield,2,120,100,-1,1')
+          feed('{affoff}72')
+          feed('{/spellheaders}')
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==72)
+          recoveryRows({})
+          deltaRows({}, {})
+          assert(#spells:snapshot().expired==1)
+        """)
+
+    def test_connection_and_gmcp_resets_clear_expired_state(self):
+        resets = (
+            "raiseEvent('sysConnectionEvent')",
+            "raiseEvent('sysProtocolDisabled','GMCP')",
+        )
+        for reset in resets:
+            with self.subTest(reset=reset):
+                lua = self.runtime()
+                lua.execute(f"""
+                  synchronize()
+                  feed('{{affon}}72,120');advance(0)
+                  deltaRows({{'72,Shield,2,120,100,-1,1'}}, {{}})
+                  feed('{{affoff}}72')
+                  assert(#spells:snapshot().expired==1)
+                  {reset}
+                  assert(#spells:snapshot().expired==0)
+                """)
 
     def test_malformed_snapshot_retains_prior_state_and_ordinary_output(self):
         lua = self.runtime()
@@ -103,7 +180,8 @@ class SpellupTests(unittest.TestCase):
           feed('{recoff}9');assert(#spells:snapshot().recoveries==1)
           connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
           local snapshot=spells:snapshot()
-          assert(not snapshot.fresh and #snapshot.active==0 and #snapshot.recoveries==0)
+          assert(not snapshot.fresh and #snapshot.active==0 and #snapshot.expired==0
+            and #snapshot.recoveries==0)
           assert(controller:status().inflight==false)
         """)
 
@@ -282,8 +360,12 @@ class SpellupTests(unittest.TestCase):
           local handlerCount=count(handlers);local triggerCount=count(triggers)
           assert(spells:start() and controller:start(false))
           assert(count(handlers)==handlerCount and count(triggers)==triggerCount)
+          synchronize();feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          feed('{affoff}72');assert(#spells:snapshot().expired==1)
           controller:stop();spells:stop();advance(0)
-          assert(count(handlers)==0 and count(triggers)==0 and count(timers)==0)
+          assert(count(handlers)==0 and count(triggers)==0 and count(timers)==0
+            and #spells:snapshot().expired==0)
           triggerFailure=true;assert(not spells:start())
           assert(count(handlers)==0 and count(triggers)==0)
         """)

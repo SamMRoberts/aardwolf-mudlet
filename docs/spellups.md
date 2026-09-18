@@ -48,6 +48,14 @@ Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spells.reset`, `aardwolf-vibe.spells.synced`, and
 `aardwolf-vibe.spellup.updated`.
 
+`spells:snapshot()` returns `active`, `expired`, and `recoveries` display
+collections. `expired` contains only effects whose removal was confirmed by an
+`affoff` record or a valid affected snapshot. A confirmed reapplication removes
+the entry, unknown wearoffs are ignored for this collection, and the collection
+is cleared with the rest of the session state. Each expired row reports `id`,
+`name`, `expiredAt`, elapsed seconds in `elapsed`, and the current `spellup` and
+`learned` classifications.
+
 ## Casting contract
 
 The controller sends exactly `spellup learned retry`. It never selects or casts
@@ -86,16 +94,20 @@ keeps it separate from the map and chat docks. After that first successful
 mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
 zero displays “Awaiting server confirmation”; it never invents a wearoff or
-causes a cast. The server's complete recovery catalog includes inactive rows
-with duration zero; those rows are not tracked or displayed. The effects pane
-starts at the top and preserves its current scroll line across refreshes. Its
-scrollbar remains available without Mudlet's split-screen scrollback pane.
+causes a cast. Active effects and recoveries use green remaining time above two
+minutes, dark yellow from 31 through 120 seconds, and red at 30 seconds or less.
+The server's complete recovery catalog includes inactive rows with duration
+zero; those rows are not tracked or displayed. The table pane starts at the top
+and preserves its current scroll position across refreshes. It uses a Geyser
+scroll area rather than a console, so scrolling cannot open Mudlet's split-screen
+scrollback pane.
 
 Settings schema v3 retains `mapperEnabled` and `spellupsAutoCast`, and adds
 `spellupsHideTags=true`. Schemas v1 and v2 migrate atomically. Malformed
 settings are preserved and fail closed. Catalogs, active effects, and
-recoveries are never persisted, and teardown intentionally does not disable
-spell tags because the server option may be shared with another package.
+confirmed expirations and recoveries are never persisted, and teardown
+intentionally does not disable spell tags because the server option may be
+shared with another package.
 
 Pure-Lua and disposable-profile checks do not establish connected Aardwolf
 behavior. Live installation, natural tag delivery, queue behavior, special
