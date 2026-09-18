@@ -184,6 +184,58 @@ class MapperTests(unittest.TestCase):
           assert(mapper.reflowedRooms==reflowed and rooms[300].y==-2)
         ''')
 
+    def test_east_west_expansion_opens_overlapped_established_interior_rooms(self):
+        for sign, short in ((-1, "w"), (1, "e")):
+            self.check(f'''
+              assert(mapper:receive(packet(100,{{n=201,e=202,s=203,w=300,u=204,d=205}},"test")))
+              assert(mapper:receive(packet(100,{{}},"test")))
+              local sign={sign}
+              local short="{short}"
+              local function place(id,x,y)
+                setRoomCoordinates(id,x,y,0)
+                setRoomUserData(id,"aardwolf-vibe:placement-area",tostring(areas.test))
+                setRoomUserData(id,"aardwolf-vibe:placement-x",tostring(x))
+                setRoomUserData(id,"aardwolf-vibe:placement-y",tostring(y))
+                setRoomUserData(id,"aardwolf-vibe:placement-z","0")
+                setRoomUserData(id,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+              end
+
+              -- The inner target overlaps the compact side column. The two
+              -- connected top/bottom rooms share the source's x coordinate,
+              -- so moving the whole half-perimeter creates the central gap
+              -- shown by the reference layout instead of a gap at the corner.
+              place(100,sign*2,0)
+              place(201,sign*4,4);place(202,sign*4,0);place(203,sign*4,-4)
+              place(204,sign*2,4);place(205,sign*2,-4);place(300,sign*4,0)
+              rooms[201].exits.south=202;rooms[202].exits.north=201
+              rooms[202].exits.south=203;rooms[203].exits.north=202
+              setRoomUserData(201,"aardwolf-vibe:exit:s","202")
+              setRoomUserData(202,"aardwolf-vibe:exit:n","201")
+              setRoomUserData(202,"aardwolf-vibe:exit:s","203")
+              setRoomUserData(203,"aardwolf-vibe:exit:n","202")
+              if sign < 0 then
+                rooms[201].exits.east=204;rooms[203].exits.east=205
+                setRoomUserData(201,"aardwolf-vibe:exit:e","204")
+                setRoomUserData(203,"aardwolf-vibe:exit:e","205")
+              else
+                rooms[201].exits.west=204;rooms[203].exits.west=205
+                setRoomUserData(201,"aardwolf-vibe:exit:w","204")
+                setRoomUserData(203,"aardwolf-vibe:exit:w","205")
+              end
+
+              local beforeReflow=mapper.reflowedRooms
+              assert(mapper:receive(packet(100,{{[short]=300}},"test")))
+              assert(rooms[300].x==sign*4 and rooms[300].y==0)
+              assert(rooms[201].x==sign*6 and rooms[202].x==sign*6
+                and rooms[203].x==sign*6)
+              assert(rooms[204].x==sign*4 and rooms[205].x==sign*4)
+              assert(mapper.reflowedRooms==beforeReflow+5 and mapper.layoutConflicts==0)
+
+              local reflowed=mapper.reflowedRooms
+              assert(mapper:receive(packet(100,{{[short]=300}},"test")))
+              assert(mapper.reflowedRooms==reflowed)
+            ''')
+
     def test_same_room_packet_does_not_count_as_successful_movement(self):
         self.check('''
           assert(mapper:receive(packet(101,{e=102},"test")))

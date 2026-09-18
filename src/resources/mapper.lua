@@ -741,12 +741,12 @@ function Mapper.new(api, settings)
     return authority ~= "" and authority ~= "gmcp-continent"
   end
 
-  local function beyondCut(id, direction, cutX, cutY)
+  local function beyondExpansionPlane(id, direction, sourceX, sourceY)
     local x, y = api.getRoomCoordinates(id)
-    if direction.dx > 0 then return x >= cutX end
-    if direction.dx < 0 then return x <= cutX end
-    if direction.dy > 0 then return y >= cutY end
-    return y <= cutY
+    if direction.dx > 0 then return x >= sourceX end
+    if direction.dx < 0 then return x <= sourceX end
+    if direction.dy > 0 then return y >= sourceY end
+    return y <= sourceY
   end
 
   local function expandSparseGrid(sourceID, targetID, area, currentRoom, direction)
@@ -756,13 +756,18 @@ function Mapper.new(api, settings)
     local blockers = roomsAtPosition(area, cutX, cutY, sz)
     if #blockers == 0 then return false end
 
+    local pullTarget = false
     if targetID then
-      if not provisionalPlacement(targetID, area, sourceID) then return false end
       local tx, ty, tz = api.getRoomCoordinates(targetID)
-      local aligned = tz == sz and (direction.dx ~= 0 and ty == sy
+      local atCut = tx == cutX and ty == cutY and tz == sz
+      local farther = tz == sz and (direction.dx ~= 0 and ty == sy
         and (tx - sx) * direction.dx > 2 or direction.dy ~= 0 and tx == sx
         and (ty - sy) * direction.dy > 2)
-      if not aligned then return false end
+      local authority = api.getRoomUserData(targetID, KEY .. "placement-authority")
+      local intactEstablished = atCut and managed(targetID) and placementIntact(targetID)
+        and api.getRoomArea(targetID) == area and authority ~= "gmcp-continent"
+      pullTarget = farther and provisionalPlacement(targetID, area, sourceID)
+      if not pullTarget and not intactEstablished then return false end
     end
 
     local constraints = placementConstraints(area, sourceID, currentRoom)
@@ -779,11 +784,12 @@ function Mapper.new(api, settings)
       changed = false
       for _, constraint in ipairs(constraints) do
         local from, to = constraint.from, constraint.to
-        if moving[from] and not moving[to] and to ~= targetID and beyondCut(to, direction, cutX, cutY) then
+        if moving[from] and not moving[to] and to ~= targetID and to ~= sourceID
+            and beyondExpansionPlane(to, direction, sx, sy) then
           if not expansionEligible(to, area, sourceID, targetID) then return false end
           moving[to], changed = true, true
-        elseif moving[to] and not moving[from] and from ~= targetID
-            and beyondCut(from, direction, cutX, cutY) then
+        elseif moving[to] and not moving[from] and from ~= targetID and from ~= sourceID
+            and beyondExpansionPlane(from, direction, sx, sy) then
           if not expansionEligible(from, area, sourceID, targetID) then return false end
           moving[from], changed = true, true
         end
@@ -796,7 +802,7 @@ function Mapper.new(api, settings)
         local nx, ny = x + direction.dx * 2, y + direction.dy * 2
         for _, occupant in ipairs(roomsAtPosition(area, nx, ny, z)) do
           if not moving[occupant] and occupant ~= targetID then
-            if not beyondCut(occupant, direction, cutX, cutY)
+            if not beyondExpansionPlane(occupant, direction, sx, sy)
                 or not expansionEligible(occupant, area, sourceID, targetID) then return false end
             moving[occupant], changed = true, true
           end
@@ -810,7 +816,7 @@ function Mapper.new(api, settings)
       positions[id] = {x = x + direction.dx * 2, y = y + direction.dy * 2, z = z}
       authorities[id] = api.getRoomUserData(id, KEY .. "placement-authority")
     end
-    if targetID then
+    if pullTarget then
       moving[targetID] = true
       positions[targetID] = {x = cutX, y = cutY, z = sz}
       authorities[targetID] = "provisional"

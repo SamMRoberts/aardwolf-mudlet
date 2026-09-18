@@ -20,9 +20,10 @@ mapper-owned and provisional; established, continent, manual, and foreign
 coordinates remain fixed. When an interior cardinal edge instead meets an
 intact mapper-owned non-continent perimeter room in the immediately adjacent
 cell, the mapper can shift the connected far side of that perimeter outward by
-one grid step. This opens the intended interior cell while preserving the
-perimeter topology and leaving continent, manual, and foreign coordinates
-untouched.
+one grid step. This also separates an established interior room that already
+overlaps the compact perimeter at that cell. The intended interior room stays
+put while the perimeter expands, preserving topology and leaving continent,
+manual, and foreign coordinates untouched.
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile

@@ -71,14 +71,18 @@ Ordinary loop repair may move only intact placements marked `provisional`.
 Established placements (including existing `gmcp-reciprocal` values) are fixed
 for that repair.
 
-A separate sparse-grid insertion applies when a new or displaced provisional
-destination belongs in the cell immediately beyond a source, but that cell is
-occupied by an intact mapper-owned non-continent perimeter. The mapper shifts
-the connected portion of the perimeter on the far side of that cut outward by
-one two-cell grid step, then places the provisional destination in the opened
-cell. It includes rooms required by owned topology and occupancy so the planned
-move cannot split a row, collapse rooms onto one another, or violate any known
-incident cardinal edge. Existing placement authorities are preserved.
+A separate sparse-grid insertion applies when a destination belongs in the cell
+immediately beyond a source, but that cell is occupied by an intact mapper-owned
+non-continent perimeter. The destination can be a new room, a provisional room
+that was displaced farther along the ray, or an intact established interior
+room already overlapped by the compact perimeter. The mapper shifts the
+connected portion of the perimeter on the far side of that cut outward by one
+two-cell grid step. It then places a new or displaced provisional destination
+in the opened cell, or leaves an established destination there while separating
+the perimeter from it. The plan includes rooms required by owned topology and
+occupancy so it cannot split a row or column, collapse rooms onto one another,
+or violate any known incident cardinal edge. Existing placement authorities are
+preserved.
 
 Continent coordinates, rooms moved manually since their placement marker was
 recorded, and foreign rooms are fixed for every repair. If no safe plan exists,
