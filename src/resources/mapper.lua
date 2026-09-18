@@ -104,6 +104,15 @@ local function cleanString(value, maximum, allowEmpty)
   return result
 end
 
+local function cleanRoomName(value)
+  if type(value) ~= "string" or #value > 8192 then return nil end
+  -- Aardwolf can include ANSI CSI formatting in room.info.name even though
+  -- the payload is GMCP. Remove the formatting, then apply the ordinary
+  -- control-character and length validation to the visible name.
+  local visible = value:gsub("\27%[[0-?]*[ -/]*[@-~]", "")
+  return cleanString(visible, 4096, false)
+end
+
 local function snapshot(value, depth, budget)
   budget.items = budget.items + 1
   if depth > 8 or budget.items > 512 then error("room.info exceeds metadata limits", 0) end
@@ -134,7 +143,7 @@ local function normalize(data)
   if type(data) ~= "table" then return nil, "Missing room.info" end
   local id = roomID(data.num)
   if not id then return nil, "Private, unmappable, or invalid room ID" end
-  local name = cleanString(data.name or data.brief, 4096, false)
+  local name = cleanRoomName(data.name or data.brief)
   local zone = cleanString(data.zone, 256, false)
   if not name or not zone or type(data.exits) ~= "table" then
     return nil, "Incomplete room.info (name, zone, or exits)"

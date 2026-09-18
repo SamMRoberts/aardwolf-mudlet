@@ -47,6 +47,29 @@ class MapperTests(unittest.TestCase):
           assert(writes==before and next(backups)==nil and mapper.skipped==3 and mapper.enabled)
         ''')
 
+    def test_ansi_formatted_aardwolf_room_name_updates_player_room(self):
+        self.check('''
+          local escape=string.char(27)
+          local info={
+            coord={cont=0,id=0,x=30,y=20},
+            details="safe",
+            exits={d=6900,e=26672,n=32884,s=4473,u=5861,w=31561},
+            mapterrain="",
+            name=escape.."[1;32mThe Meadow of Portals"..escape.."[0;37m",
+            num=31560,
+            outside=1,
+            racebonus=1,
+            terrain="field",
+            zone="tanelorn",
+          }
+          assert(getPlayerRoom()==3248)
+          assert(mapper:receive(info))
+          assert(mapper.current==31560 and getPlayerRoom()==31560)
+          assert(centers[#centers]==31560)
+          assert(rooms[31560].name=="The Meadow of Portals")
+          assert(rooms[31560].data["aardwolf-vibe:gmcp"]:find("The Meadow of Portals",1,true))
+        ''')
+
     def test_foreign_room_and_area_collisions_stop_without_adoption(self):
         self.check('''
           addRoom(101);rooms[101].name="Foreign";local before=writes

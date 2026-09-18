@@ -5,6 +5,11 @@ fresh snapshot of the current room's six standard exits and any extra exit keys.
 The event callback reads the current global GMCP table; callback arguments are
 not treated as payload data.
 
+Aardwolf ANSI CSI formatting in `room.info.name` is removed before the visible
+room name is validated and stored. Any remaining control character still
+rejects the packet. This allows names such as the colorized `The Meadow of
+Portals` value to update and center the native mapper on `room.info.num`.
+
 Movement is confirmed only when the validated `room.info.num` changes. A fresh
 packet with the same room number is treated as a stationary room refresh: its
 metadata and exits can still be reconciled, but it does not advance or replace

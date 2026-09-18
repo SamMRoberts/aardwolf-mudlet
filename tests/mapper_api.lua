@@ -2,6 +2,7 @@ rooms, areas, areaData, hashes = {}, {}, {}, {}
 mapData, environmentColors = {}, {}
 handlers, modules, echoes, backups = {}, {}, {}, {}
 packages, writes, updates, centers = {}, 0, 0, {}
+playerRoom = 3248
 fail = {}
 
 local directionLong = {n="north",e="east",s="south",w="west",u="up",d="down"}
@@ -73,7 +74,8 @@ function getMapUserData(key) return mapData[key] or "" end
 function setMapUserData(key,value) mapData[key]=value;writes=writes+1;return true end
 function saveMap(path) if fail.saveMap then fail.saveMap=nil;return false end;backups[path]=true;return true end
 function updateMap() updates=updates+1 end
-function centerview(id) centers[#centers+1]=id;return true end
+function centerview(id) centers[#centers+1]=id;playerRoom=id;return true end
+function getPlayerRoom() return playerRoom end
 function registerNamedEventHandler(owner,name,event,fn)
   if fail.register then fail.register=nil;error("registration failed") end
   handlers[owner..":"..name]={event=event,fn=fn};return true
