@@ -15,7 +15,8 @@ subsequent layout restoration.
 - `show()` and `hide()` control presentation without stopping capture.
 - `status()` returns `enabled`, `lifecycle`, `visible`, `session`,
   `captureActive`, accepted/rejected frame counts, `tagState`,
-  `tagsRequested`, and `lastError` without console output.
+  `masterTagsRequested`, `tagsRequested`, and `lastError` without console
+  output.
 
 The commands are:
 
@@ -32,15 +33,18 @@ reopens it with the most recently captured complete map.
 ## MAP tag negotiation
 
 The minimap consumes the validated character handler rather than reading GMCP
-directly. It sends `tags map on` once per local connection session, without
-echoing the command, when `char.status.state` is one of `3`, `4`, `8`, `9`,
-`11`, or `12`. Login, MOTD, note, edit, and pager states defer the request.
+directly. It sends `tags on` and then `tags map on` once per local connection
+session, without echoing either command, when `char.status.state` is one of
+`3`, `4`, `8`, `9`, `11`, or `12`. Aardwolf's master tag switch otherwise
+suppresses `<MAPSTART>` and `<MAPEND>` even when the MAP option itself is on.
+Login, MOTD, note, edit, and pager states defer both requests.
 
 A fresh character snapshot allows installation or reload during a connected
 session to request the tag immediately. If character state is unavailable,
 the minimap remains able to capture manually enabled MAP output and reports
 `waiting-for-character`. Hide, reload, stop, and uninstall never send
-`tags map off`, because that server setting may be shared with another script.
+`tags off` or `tags map off`, because those server settings may be shared with
+another script.
 
 ## Frame capture
 

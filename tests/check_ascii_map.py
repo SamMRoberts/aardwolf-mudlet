@@ -106,12 +106,14 @@ class ASCIIMapTests(unittest.TestCase):
           for index,state in ipairs({1,2,5,6,7}) do statusUpdate(state,1,index) end
           assert(#sent==0)
           statusUpdate(3,1,6)
-          assert(#sent==1 and sent[1].command=="tags map on" and sent[1].echoCommand==false)
-          statusUpdate(8,1,7);assert(#sent==1)
+          assert(#sent==2 and sent[1].command=="tags on" and sent[1].echoCommand==false)
+          assert(sent[2].command=="tags map on" and sent[2].echoCommand==false)
+          assert(asciiMap:status().masterTagsRequested)
+          statusUpdate(8,1,7);assert(#sent==2)
           fire("sysConnectionEvent")
-          statusUpdate(4,2,1);assert(#sent==2)
-          fire("sysProtocolDisabled","MSDP");statusUpdate(9,2,2);assert(#sent==2)
-          fire("sysProtocolDisabled","GMCP");statusUpdate(11,2,3);assert(#sent==3)
+          statusUpdate(4,2,1);assert(#sent==4)
+          fire("sysProtocolDisabled","MSDP");statusUpdate(9,2,2);assert(#sent==4)
+          fire("sysProtocolDisabled","GMCP");statusUpdate(11,2,3);assert(#sent==6)
           assert(asciiMap:status().tagsRequested)
         ''')
 
@@ -119,13 +121,28 @@ class ASCIIMapTests(unittest.TestCase):
         lua = self.runtime(False)
         lua.execute('''
           characterSnapshot={session=7,sequence=20,fresh={status=true},groups={status={state=4}}}
-          assert(asciiMap:start() and #sent==1)
-          statusUpdate(3,6,99);statusUpdate(3,7,20);assert(#sent==1)
+          assert(asciiMap:start() and #sent==2)
+          statusUpdate(3,6,99);statusUpdate(3,7,20);assert(#sent==2)
           fire("sysConnectionEvent");fail.send=true
           statusUpdate(3,8,1)
-          assert(#sent==1 and asciiMap:status().tagState=="request-failed")
-          assert(asciiMap:status().lastError:find("Cannot request",1,true))
-          fail.send=nil;statusUpdate(4,8,2);assert(#sent==2)
+          assert(#sent==2 and asciiMap:status().tagState=="request-failed")
+          assert(asciiMap:status().lastError:find("Cannot enable",1,true))
+          fail.send=nil;statusUpdate(4,8,2);assert(#sent==4)
+        ''')
+
+    def test_map_request_retry_does_not_repeat_successful_master_request(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          fail.sendAt=2
+          statusUpdate(3,1,1)
+          assert(#sent==1 and sent[1].command=="tags on")
+          assert(asciiMap:status().masterTagsRequested)
+          assert(not asciiMap:status().tagsRequested)
+          assert(asciiMap:status().tagState=="request-failed")
+          fail.sendAt=nil
+          statusUpdate(4,1,2)
+          assert(#sent==2 and sent[2].command=="tags map on")
+          assert(asciiMap:status().tagsRequested)
         ''')
 
     def test_disconnect_cleanup_and_partial_start_failure(self):

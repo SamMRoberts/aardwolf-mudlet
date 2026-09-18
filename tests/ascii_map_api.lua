@@ -3,6 +3,7 @@ triggers = {}
 timers = {}
 windows = {}
 sent = {}
+sendCalls = 0
 visible = {}
 messages = {}
 deletedLines = 0
@@ -76,7 +77,8 @@ end
 function echo(message) messages[#messages + 1] = message end
 
 function send(command, echoCommand)
-  if fail.send then error("send failure") end
+  sendCalls = sendCalls + 1
+  if fail.send or (fail.sendAt and sendCalls == fail.sendAt) then error("send failure") end
   sent[#sent + 1] = {command = command, echoCommand = echoCommand}
 end
 

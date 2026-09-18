@@ -52,7 +52,7 @@ function ASCIIMap.new(api, character)
   local handlers = {}
   local generation, session = 0, 0
   local characterSession, characterSequence = 0, 0
-  local tagsRequestedSession
+  local masterTagsRequestedSession, tagsRequestedSession
   local tagState = "waiting-for-character"
 
   local function killTimer(id)
@@ -196,7 +196,7 @@ function ASCIIMap.new(api, character)
     lastRows = nil
     session = session + 1
     characterSequence = 0
-    tagsRequestedSession = nil
+    masterTagsRequestedSession, tagsRequestedSession = nil, nil
     tagState = reason == "disconnect" and "disconnected" or "waiting-for-character"
     resetWindow()
     return true
@@ -211,6 +211,15 @@ function ASCIIMap.new(api, character)
     if tagsRequestedSession == session then
       tagState = "requested"
       return true
+    end
+    if masterTagsRequestedSession ~= session then
+      local masterOK, masterMessage = pcall(api.send, "tags on", false)
+      if not masterOK then
+        tagState = "request-failed"
+        self.lastError = "Cannot enable Aardwolf tags: " .. tostring(masterMessage)
+        return false
+      end
+      masterTagsRequestedSession = session
     end
     local ok, message = pcall(api.send, "tags map on", false)
     if not ok then
@@ -287,7 +296,7 @@ function ASCIIMap.new(api, character)
     end
     frame, lastRows = nil, nil
     characterSession, characterSequence = 0, 0
-    tagsRequestedSession = nil
+    masterTagsRequestedSession, tagsRequestedSession = nil, nil
     tagState = "stopped"
     if diagnosticMessage then
       self.lastError = tostring(diagnosticMessage)
@@ -429,6 +438,7 @@ function ASCIIMap.new(api, character)
       framesAccepted = self.framesAccepted,
       framesRejected = self.framesRejected,
       tagState = tagState,
+      masterTagsRequested = masterTagsRequestedSession == session,
       tagsRequested = tagsRequestedSession == session,
       lastError = self.lastError,
     }

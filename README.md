@@ -32,8 +32,9 @@ above the command input on normal windows and reflows into two rows below 840
 pixels. See [`docs/character-bars.md`](docs/character-bars.md) for its rendering
 and layout contract.
 
-The always-active ASCII minimap requests Aardwolf's `MAP` tag with
-`tags map on`, captures complete `<MAPSTART>` / `<MAPEND>` frames, and displays
+The always-active ASCII minimap enables Aardwolf's master tag output and then
+requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
+complete `<MAPSTART>` / `<MAPEND>` frames and displays
 them in a movable, resizable native Mudlet dock window. The map canvas preserves
 literal spacing and server colors while suppressing the duplicate frame in the
 main console. It starts in the right dock and Mudlet restores the user's later
