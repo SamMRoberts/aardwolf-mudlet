@@ -75,7 +75,8 @@ keeps it separate from the map and chat docks. After that first successful
 mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
 zero displays “Awaiting server confirmation”; it never invents a wearoff or
-causes a cast.
+causes a cast. Spell rows whose trimmed name is `unknown` are discarded and do
+not appear in the catalog, active-effects window, or maintenance events.
 
 Settings schema v2 retains `mapperEnabled` and adds
 `spellupsAutoCast=false`. Schema v1 migrates atomically. Malformed settings are

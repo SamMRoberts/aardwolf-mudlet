@@ -90,6 +90,30 @@ class SpellupTests(unittest.TestCase):
           assert(controller:status().inflight==false)
         """)
 
+    def test_unknown_buffs_are_never_tracked_or_emitted_as_missing(self):
+        lua = self.runtime()
+        lua.execute("""
+          spellRows('',{'72,Shield,2,0,100,-1,1','99, UnKnOwN ,2,0,100,-1,1'})
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1','99,unknown,2,0,100,-1,1'})
+          spellRows('affected',{'72,Shield,2,120,100,-1,1','99,UNKNOWN,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('{/recoveries}')
+          local snapshot=spells:snapshot()
+          assert(snapshot.fresh and #snapshot.active==1 and snapshot.active[1].id==72)
+          assert(snapshot.catalog[99]==nil and spells:get(99)==nil)
+          local missing=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' and event[2]==99 then missing=missing+1 end
+          end
+          feed('{affon}99,60');feed('{affoff}99')
+          assert(#spells:snapshot().active==1 and spells:get(99)==nil)
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' and event[2]==99 then
+              error('unknown buff emitted a wearoff')
+            end
+          end
+          assert(missing==0)
+        """)
+
     def test_default_off_and_all_readiness_states_send_zero(self):
         lua = self.runtime()
         lua.execute("""
