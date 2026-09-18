@@ -44,6 +44,9 @@ The defensive-copy APIs are:
 - `AardwolfVibe.plugins.spellup:status()`, `setAutomatic(bool)`, and `runOnce()`
 - `AardwolfVibe.plugins.buffsWindow:show()`, `hide()`, and `status()`
 
+`spellup:status().unresolvedQueued` reports how many observed server queue
+entries still await an ability ID from a tag or synchronized affected snapshot.
+
 Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spells.reset`, `aardwolf-vibe.spells.synced`, and
 `aardwolf-vibe.spellup.updated`.
@@ -73,7 +76,11 @@ that might target another player are ignored.
 
 `{spellup-end}` is authoritative completion. In its absence, an
 affon/affoff-triggered affected snapshot can confirm all observed queued
-abilities and terminal failures. The controller never polls for completion.
+abilities and terminal failures. Queue aliases such as a skill command whose
+name differs from its catalog name are reconciled by their confirmed affon or
+affected-snapshot result. Pre-existing effects are not attributed to the new
+batch, so an unrelated wearoff cannot keep that batch locked. The controller
+never polls for completion.
 After 120 seconds without confirmation, automation pauses and keeps the
 outstanding lock. Resume waits for server tags instead of assuming the old
 batch ended. A disconnect may release that lock because the old server queue

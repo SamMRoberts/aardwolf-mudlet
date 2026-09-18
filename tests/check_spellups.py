@@ -268,6 +268,73 @@ class SpellupTests(unittest.TestCase):
           assert(commandCount('slist affected noprompt')==1)
         """)
 
+    def test_queue_alias_is_reconciled_by_affected_snapshot(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          assert(spells:sync());advance(0)
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '35,Detect magic,2,0,100,15,1',
+            '104,Chameleon power,3,0,100,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+
+          assert(controller:runOnce())
+          feed('Queueing skill : chameleon.')
+          assert(controller:status().unresolvedQueued==1)
+          feed('{affoff}72');advance(0)
+          deltaRows({'104,Chameleon power,3,300,100,-1,2'}, {})
+          local status=controller:status()
+          assert(not status.inflight and not status.paused
+            and status.unresolvedQueued==0)
+          advance(120)
+          assert(not controller:status().paused)
+        """)
+
+    def test_queue_alias_is_reconciled_by_affon(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          assert(spells:sync());advance(0)
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '35,Detect magic,2,0,100,15,1',
+            '104,Chameleon power,3,0,100,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+
+          assert(controller:runOnce())
+          feed('Queueing skill : chameleon.')
+          assert(controller:status().unresolvedQueued==1)
+          feed('{affon}104,300');advance(0)
+          assert(controller:status().unresolvedQueued==0
+            and controller:status().inflight)
+          deltaRows({'104,Chameleon power,3,300,100,-1,2'}, {})
+          assert(not controller:status().inflight and not controller:status().paused)
+        """)
+
+    def test_preexisting_wearoff_does_not_hold_new_batch_open(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+
+          assert(controller:runOnce())
+          feed('Queueing spell : Detect magic.')
+          feed('{affon}35,90');advance(0)
+          deltaRows({'35,Detect magic,2,90,100,15,1'}, {})
+          local status=controller:status()
+          assert(not status.inflight and not status.paused)
+          assert(#spells:snapshot().expired==1
+            and spells:snapshot().expired[1].id==72)
+          advance(120)
+          assert(not controller:status().paused)
+        """)
+
     def test_resource_room_status_waits_and_manual_exclusions(self):
         lua = self.runtime()
         lua.execute("""

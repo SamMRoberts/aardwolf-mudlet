@@ -38,7 +38,8 @@ function Spellup.new(api, character, spells, settings)
   local inflight, external = false, false
   local paused, blocked
   local initial = false
-  local observed, unknown = false, false
+  local observed, unresolvedQueued = false, 0
+  local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
   local failures = {}
 
@@ -88,8 +89,9 @@ function Spellup.new(api, character, spells, settings)
     cancel(batchTimer)
     batchTimer = nil
     inflight, external = false, false
+    baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled = {}, {}
-    observed, unknown = false, false
+    observed, unresolvedQueued = false, 0
     if paused == "Batch completion unconfirmed" then paused = nil end
     self.lastError = nil
     emit()
@@ -136,8 +138,11 @@ function Spellup.new(api, character, spells, settings)
       end
     end
     inflight, external = true, isExternal == true
-    targets, settled = activeSet(), {}
-    observed, unknown = false, false
+    -- Only effects queued by this batch are completion targets.  The baseline
+    -- is retained solely to reconcile server queue aliases after a snapshot.
+    baseline, namedTargets, resolvedUnknown = activeSet(), {}, {}
+    targets, settled = {}, {}
+    observed, unresolvedQueued = false, 0
     failures, blocked = {}, nil
     pendingAt, initial = nil, false
     lastSent = now()
@@ -225,6 +230,7 @@ function Spellup.new(api, character, spells, settings)
       inflight = inflight,
       external = external,
       pending = pendingAt ~= nil or initial,
+      unresolvedQueued = unresolvedQueued,
       paused = paused,
       blocked = copy(blocked),
       blockingReason = reason,
@@ -293,8 +299,9 @@ function Spellup.new(api, character, spells, settings)
           inflight, external = false, false
           lastSent = nil
         end
+        baseline, namedTargets, resolvedUnknown = {}, {}, {}
         targets, settled = {}, {}
-        observed, unknown = false, false
+        observed, unresolvedQueued = false, 0
         blocked, failures = nil, {}
         pendingAt, initial = nil, self.automatic
         schedule()
@@ -303,7 +310,15 @@ function Spellup.new(api, character, spells, settings)
       on("synced", "aardwolf-vibe.spells.synced", function()
         if inflight then
           local active = activeSet()
-          local complete = observed and not unknown
+          for id in pairs(active) do
+            if unresolvedQueued > 0 and not baseline[id] and not namedTargets[id]
+                and not resolvedUnknown[id] then
+              resolvedUnknown[id] = true
+              targets[id] = true
+              unresolvedQueued = unresolvedQueued - 1
+            end
+          end
+          local complete = observed and unresolvedQueued == 0
           for id in pairs(targets) do
             if not active[id] and not settled[id] then complete = false end
           end
@@ -324,12 +339,17 @@ function Spellup.new(api, character, spells, settings)
         if not inflight then return end
         observed = true
         local found = spells:findByName(name)
-        if #found == 1 then targets[found[1].id] = true else unknown = true end
+        if #found == 1 then
+          targets[found[1].id] = true
+          namedTargets[found[1].id] = true
+        else
+          unresolvedQueued = unresolvedQueued + 1
+        end
         emit()
       end, token)
       on("no-work", "aardwolf-vibe.spells.noWork", function()
         if not inflight then return end
-        observed, unknown, targets = true, false, {}
+        observed, unresolvedQueued, targets = true, 0, {}
         finish("Server reported no spellup work")
       end, token)
       on("complete", "aardwolf-vibe.spells.complete", function()
@@ -338,10 +358,26 @@ function Spellup.new(api, character, spells, settings)
       on("external", "aardwolf-vibe.spells.batchStarted", function()
         if not inflight then beginBatch(true) end
       end, token)
+      on("applied", "aardwolf-vibe.spells.applied", function(_, id)
+        -- Queue prose sometimes uses a command alias rather than the catalog
+        -- name (for example, "chameleon" versus "chameleon power").
+        if not inflight or unresolvedQueued == 0 or namedTargets[id]
+            or resolvedUnknown[id] then return end
+        resolvedUnknown[id] = true
+        targets[id] = true
+        unresolvedQueued = unresolvedQueued - 1
+        emit()
+      end, token)
       on("failure", "aardwolf-vibe.spells.failure", function(_, event)
         if not inflight or type(event) ~= "table" or event.target ~= 0 then return end
         local reason = event.reason
         if reason == 1 then emit(); return end
+        if unresolvedQueued > 0 and not namedTargets[event.id]
+            and not resolvedUnknown[event.id] then
+          resolvedUnknown[event.id] = true
+          targets[event.id] = true
+          unresolvedQueued = unresolvedQueued - 1
+        end
         settled[event.id] = true
         if reason == 2 then targets[event.id] = nil; emit(); return end
         local key = tostring(event.id) .. ":" .. tostring(reason)
@@ -395,8 +431,9 @@ function Spellup.new(api, character, spells, settings)
     pendingAt, initial = nil, false
     inflight, external = false, false
     paused, blocked = nil, nil
+    baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled, failures = {}, {}, {}
-    observed, unknown = false, false
+    observed, unresolvedQueued = false, 0
     return true
   end
 
