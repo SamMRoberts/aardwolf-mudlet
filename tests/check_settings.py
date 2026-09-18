@@ -42,16 +42,37 @@ class SettingsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             lua, factory, api = self.runtime(directory)
             settings = factory.new(api)
-            loaded, enabled = settings.load()
+            loaded, enabled, spellups = settings.load()
             self.assertTrue(loaded)
             self.assertTrue(enabled)
+            self.assertFalse(spellups)
             self.assertTrue(settings.setEnabled(False))
+            self.assertTrue(settings.setSpellupsAutoCast(True))
             document = Path(settings.path).read_text()
             self.assertIn('"mapperEnabled": false', document)
+            self.assertIn('"spellupsAutoCast": true', document)
+            self.assertIn('"schemaVersion": 2', document)
             again = factory.new(api)
-            loaded, enabled = again.load()
+            loaded, enabled, spellups = again.load()
             self.assertTrue(loaded)
             self.assertFalse(enabled)
+            self.assertTrue(spellups)
+
+    def test_schema_one_migrates_atomically_with_spellups_default_off(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lua, factory, api = self.runtime(directory)
+            root = Path(directory) / "aardwolf-vibe-data"
+            root.mkdir()
+            path = root / "settings.json"
+            path.write_text('{"schemaVersion":1,"mapperEnabled":false}')
+            settings = factory.new(api)
+            loaded, mapper, spellups = settings.load()
+            self.assertTrue(loaded)
+            self.assertFalse(mapper)
+            self.assertFalse(spellups)
+            migrated = path.read_text()
+            self.assertIn('"schemaVersion": 2', migrated)
+            self.assertIn('"spellupsAutoCast": false', migrated)
 
     def test_corrupt_settings_fail_closed_without_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -67,6 +88,10 @@ class SettingsTests(unittest.TestCase):
             self.assertFalse(settings.valid)
             self.assertEqual(path.read_text(), "not json")
             self.assertIn("original file preserved", message)
+            saved, save_message = settings.setSpellupsAutoCast(True)
+            self.assertIsNone(saved)
+            self.assertIn("Cannot overwrite", save_message)
+            self.assertEqual(path.read_text(), "not json")
 
     def test_backup_directory_is_created_outside_package_assets(self):
         with tempfile.TemporaryDirectory() as directory:

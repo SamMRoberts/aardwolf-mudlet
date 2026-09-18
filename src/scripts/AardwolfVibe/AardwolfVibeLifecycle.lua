@@ -16,6 +16,9 @@ end
 
 local Settings = resource("settings")
 local Character = resource("character")
+local Spells = resource("spells")
+local Spellup = resource("spellup")
+local BuffsWindow = resource("buffs-window")
 local CharacterBars = resource("character-bars")
 local ASCIIMap = resource("ascii-map")
 local ChatModel = resource("chat-model")
@@ -23,6 +26,12 @@ local Chat = resource("chat")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
+AardwolfVibe.plugins.spells = Spells.new(_G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.spellup = Spellup.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.spells,
+  AardwolfVibe.settings)
+AardwolfVibe.plugins.buffsWindow = BuffsWindow.new(
+  _G, AardwolfVibe.plugins.spells, AardwolfVibe.plugins.spellup)
 AardwolfVibe.plugins.characterBars = CharacterBars.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
@@ -34,6 +43,26 @@ function AardwolfVibe.start()
   local characterOK = AardwolfVibe.plugins.character:start()
   if not characterOK then
     local status = AardwolfVibe.plugins.character:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  local spellsOK = AardwolfVibe.plugins.spells:start()
+  if not spellsOK then
+    local status = AardwolfVibe.plugins.spells:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  local settingsOK, enabled, spellupsAutoCast = AardwolfVibe.settings.load()
+  if not settingsOK then
+    echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
+  end
+  local spellupOK = AardwolfVibe.plugins.spellup:start(
+    settingsOK and spellupsAutoCast == true)
+  if not spellupOK then
+    local status = AardwolfVibe.plugins.spellup:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  local buffsOK = AardwolfVibe.plugins.buffsWindow:start()
+  if not buffsOK then
+    local status = AardwolfVibe.plugins.buffsWindow:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
   local barsOK = AardwolfVibe.plugins.characterBars:start()
@@ -51,15 +80,14 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.chat:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  if AardwolfVibe.active then return characterOK and barsOK and asciiOK and chatOK end
-  local ok, enabled = AardwolfVibe.settings.load()
-  AardwolfVibe.active = true
-  if not ok then
-    echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
-    return false
+  if AardwolfVibe.active then
+    return characterOK and spellsOK and spellupOK and buffsOK
+      and barsOK and asciiOK and chatOK and settingsOK
   end
-  local mapperOK = not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and barsOK and asciiOK and chatOK and mapperOK
+  AardwolfVibe.active = true
+  local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
+  return characterOK and spellsOK and spellupOK and buffsOK and barsOK
+    and asciiOK and chatOK and settingsOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -69,13 +97,17 @@ function AardwolfVibe.stop()
     return called and stopped ~= false
   end
   local plugins = AardwolfVibe.plugins or {}
+  local mapperOK = stopPlugin(plugins.mapper)
   local chatOK = stopPlugin(plugins.chat)
   local asciiOK = stopPlugin(plugins.asciiMap)
   local barsOK = stopPlugin(plugins.characterBars)
+  local buffsOK = stopPlugin(plugins.buffsWindow)
+  local spellupOK = stopPlugin(plugins.spellup)
+  local spellsOK = stopPlugin(plugins.spells)
   local characterOK = stopPlugin(plugins.character)
-  local mapperOK = stopPlugin(plugins.mapper)
   AardwolfVibe.active = false
-  return chatOK and asciiOK and barsOK and characterOK and mapperOK
+  return mapperOK and chatOK and asciiOK and barsOK and buffsOK
+    and spellupOK and spellsOK and characterOK
 end
 
 local function showMaps()
@@ -158,6 +190,31 @@ function AardwolfVibe.handleMinimapCommand(action)
     return status
   end
   echo("Usage: aardwolf-vibe minimap show|hide|status\n")
+  return false
+end
+
+function AardwolfVibe.handleSpellupsCommand(action)
+  local spells = AardwolfVibe.plugins.spells
+  local spellup = AardwolfVibe.plugins.spellup
+  local window = AardwolfVibe.plugins.buffsWindow
+  action = action or "show"
+  if action == "show" then return window:show() end
+  if action == "hide" then return window:hide() end
+  if action == "sync" then return spells:sync() end
+  if action == "now" then return spellup:runOnce() end
+  if action == "on" then return spellup:setAutomatic(true) end
+  if action == "off" then return spellup:setAutomatic(false) end
+  if action == "status" then
+    local tracking = spells:status()
+    local automation = spellup:status()
+    echo("Aardwolf Vibe: spell tracking " .. tracking.lifecycle .. ", "
+      .. (tracking.fresh and "synchronized" or "not synchronized")
+      .. "; automatic maintenance " .. (automation.automatic and "on" or "off")
+      .. (automation.blockingReason and (" (" .. automation.blockingReason .. ")") or "")
+      .. ".\n")
+    return {spells = tracking, spellup = automation, window = window:status()}
+  end
+  echo("Usage: aardwolf-vibe spellups show|hide|status|sync|on|off|now\n")
   return false
 end
 

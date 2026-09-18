@@ -3,7 +3,8 @@
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
 handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
-configurable GMCP chat window.
+configurable GMCP chat window. It also includes session-only spell/recovery
+tracking and explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -62,6 +63,14 @@ details. Each GMCP session advertises Aardwolf Vibe's `char`, `comm`, and
 command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
+The spellup tracker enables only Aardwolf's spell tag option, synchronizes
+bounded `slist` snapshots, and presents confirmed effects and recoveries in a
+right-docked “Aardwolf Spellups” window. Automatic maintenance defaults off.
+When enabled it submits only `spellup learned retry`, only while fresh GMCP
+reports an active, standing character, and never constructs individual cast
+commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,
+failure handling, public APIs, and acceptance boundaries.
+
 ## Commands
 
 ```text
@@ -77,12 +86,23 @@ aardwolf-vibe chat show
 aardwolf-vibe chat hide
 aardwolf-vibe chat status
 aardwolf-vibe chat config
+aardwolf-vibe spellups
+aardwolf-vibe spellups show
+aardwolf-vibe spellups hide
+aardwolf-vibe spellups status
+aardwolf-vibe spellups sync
+aardwolf-vibe spellups on
+aardwolf-vibe spellups off
+aardwolf-vibe spellups now
 ```
 
 Mapping is enabled on first install. The selected state persists in
 `aardwolf-vibe-data/settings.json` under the active profile. Before the first
 map mutation of each activation, the package saves a timestamped native map
 backup under `aardwolf-vibe-data/backups/`.
+The same settings file stores the automatic-spellup opt-in; its default is
+`false`. Mudlet owns spellup-window geometry and docking through its saved
+layout rather than package JSON.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known

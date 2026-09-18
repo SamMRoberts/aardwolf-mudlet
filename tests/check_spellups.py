@@ -1,0 +1,203 @@
+from pathlib import Path
+import unittest
+
+from lupa.lua51 import LuaRuntime
+
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = (ROOT / "tests/spellups_api.lua").read_text()
+SPELLS = (ROOT / "src/resources/spells.lua").read_text()
+SPELLUP = (ROOT / "src/resources/spellup.lua").read_text()
+
+
+class SpellupTests(unittest.TestCase):
+    def runtime(self, automatic=False):
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute(FIXTURE)
+        lua.globals().SpellsFactory = lua.execute(SPELLS)
+        lua.globals().SpellupFactory = lua.execute(SPELLUP)
+        lua.globals().initial_automatic = automatic
+        lua.execute("""
+          spells=SpellsFactory.new(_G,character)
+          controller=SpellupFactory.new(_G,character,spells,settings)
+          assert(spells:start());advance(0)
+          assert(controller:start(initial_automatic));advance(0)
+        """)
+        return lua
+
+    def test_sequential_sync_tags_defensive_copies_and_display_only_expiry(self):
+        lua = self.runtime()
+        lua.execute("""
+          assert(#commands==1 and commands[1].text=='slist noprompt')
+          assert(#packets==1 and packets[1]==string.char(7,1))
+          synchronize(2)
+          assert(spells:isFresh() and #commands==4)
+          assert(gags==14 and #visible==0)
+          local snapshot=spells:snapshot()
+          assert(snapshot.active[1].name=='Shield' and snapshot.active[1].remaining==2)
+          snapshot.catalog[72].name='changed'
+          assert(spells:get(72).name=='Shield')
+          advance(3)
+          local expired=spells:snapshot().active[1]
+          assert(expired.awaiting and expired.remaining==0)
+          assert(spells:isFresh() and commandCount('spellup learned retry')==0 and #commands==4)
+        """)
+
+    def test_malformed_snapshot_retains_prior_state_and_ordinary_output(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          assert(spells:get(72).active.duration==120)
+          assert(spells:sync());advance(0)
+          feed('{spellheaders noprompt}')
+          feed('72,Bad,2,nan,100,-1,1')
+          assert(not spells:isFresh() and spells:get(72).active.duration==120)
+          feed('Ordinary spell prose')
+          assert(visible[#visible]=='Ordinary spell prose')
+          feed('{affoff}oops')
+          assert(visible[#visible]=='Ordinary spell prose')
+        """)
+
+    def test_duplicate_timeout_and_interrupted_frames_are_atomic(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();local accepted=spells:status().accepted
+          assert(spells:sync());advance(0)
+          feed('{spellheaders noprompt}')
+          feed('72,Shield,2,0,100,-1,1');feed('72,Shield,2,0,100,-1,1')
+          assert(not spells:isFresh() and spells:get(72).name=='Shield')
+          assert(spells:status().accepted==accepted)
+          assert(spells:sync());advance(0);feed('{spellheaders noprompt}')
+          advance(10)
+          assert(not spells:isFresh() and spells:get(72).name=='Shield')
+          assert(spells:status().lastError:find('timed out',1,true))
+          assert(spells:sync());advance(0);feed('{spellheaders noprompt}')
+          feed('{spellheaders noprompt}')
+          assert(not spells:isFresh() and spells:get(72).name=='Shield')
+        """)
+
+    def test_deltas_recoveries_and_reconnect_reset(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}35,50');assert(spells:get(35).active.duration==50)
+          feed('{affoff}35');assert(not spells:get(35).active)
+          feed('{recon}9,40');assert(#spells:snapshot().recoveries==2)
+          feed('{recoff}9');assert(#spells:snapshot().recoveries==1)
+          connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
+          local snapshot=spells:snapshot()
+          assert(not snapshot.fresh and #snapshot.active==0 and #snapshot.recoveries==0)
+          assert(controller:status().inflight==false)
+        """)
+
+    def test_default_off_and_all_readiness_states_send_zero(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();advance(60)
+          assert(not controller:status().automatic and commandCount('spellup learned retry')==0)
+          for _,row in ipairs({{4,'Standing'},{8,'Standing'},{9,'Sleeping'},{10,'Resting'},
+            {11,'Standing'},{12,'Standing'},{5,'Standing'},{3,'Sleeping'},{3,'Resting'}}) do
+            updateStatus(row[1],row[2]);assert(not controller:runOnce())
+          end
+          character.fresh.status=false;assert(not controller:runOnce())
+          connected=false;assert(not controller:runOnce())
+          assert(commandCount('spellup learned retry')==0)
+        """)
+
+    def test_opt_in_initial_batch_coalescing_throttle_and_outstanding_lock(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          assert(controller:setAutomatic(true));advance(0)
+          synchronize();advance(0)
+          assert(commandCount('spellup learned retry')==1)
+          assert(controller:status().inflight and not controller:runOnce())
+          feed('{spellup-end}');advance(0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('15,Detect magic recovery,20');feed('{/recoveries}')
+          feed('{affoff}72');feed('{affoff}35');advance(2)
+          assert(commandCount('spellup learned retry')==1)
+          advance(28);assert(commandCount('spellup learned retry')==2)
+        """)
+
+    def test_failure_waits_manual_collision_and_uncertain_completion(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('{sfail}35,0,3,15');feed('{spellup-end}')
+          assert(controller:status().blocked.code==3)
+          feed('{recoff}15');advance(30)
+          assert(commandCount('spellup learned retry')==1)
+          raiseEvent('sysDataSendRequest','spellup learned retry');advance(0)
+          assert(controller:status().inflight and commandCount('spellup learned retry')==1)
+          advance(120)
+          assert(controller:status().paused and controller:status().inflight)
+          assert(not controller:runOnce())
+          controller:resume();advance(0)
+          assert(controller:status().inflight and commandCount('spellup learned retry')==1)
+          connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
+          assert(not controller:status().inflight)
+        """)
+
+    def test_resource_room_status_waits_and_manual_exclusions(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          for _,command in ipairs({'spellup check','spellup learned retry check',
+            'spellup OtherPlayer','say spellup','spellups'}) do
+            raiseEvent('sysDataSendRequest',command);advance(0)
+            assert(not controller:status().inflight)
+          end
+          assert(controller:setAutomatic(true));advance(0);synchronize();advance(0)
+          assert(commandCount('spellup learned retry')==1)
+          feed('{sfail}35,0,4,-1');feed('{spellup-end}');advance(0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('{/recoveries}')
+          advance(30);assert(commandCount('spellup learned retry')==1)
+          updateVital('mana',101);advance(2)
+          assert(commandCount('spellup learned retry')==2)
+          feed('{sfail}35,0,5,-1');feed('{spellup-end}');advance(0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('{/recoveries}')
+          gmcp.room.info.num=101;raiseEvent('gmcp.room.info');advance(30)
+          assert(commandCount('spellup learned retry')==3)
+          feed('{sfail}35,0,10,-1');feed('{spellup-end}');advance(0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('{/recoveries}')
+          updateStatus(10,'Resting');advance(30)
+          assert(commandCount('spellup learned retry')==3)
+          updateStatus(3,'Standing');advance(2)
+          assert(commandCount('spellup learned retry')==4)
+        """)
+
+    def test_pause_failures_and_unsupported_retry_response(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('{sfail}35,0,8,-1')
+          assert(controller:status().paused)
+          feed('{spellup-end}');advance(0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}');feed('15,Detect magic recovery,20');feed('{/recoveries}')
+          controller:resume();advance(30)
+          assert(controller:runOnce())
+          feed('Syntax: spellup learned retry is invalid')
+          assert(controller:status().paused and controller:status().inflight)
+          assert(visible[#visible]=='Syntax: spellup learned retry is invalid')
+        """)
+
+    def test_duplicate_start_stop_and_failed_start_cleanup(self):
+        lua = self.runtime()
+        lua.execute("""
+          local handlerCount=count(handlers);local triggerCount=count(triggers)
+          assert(spells:start() and controller:start(false))
+          assert(count(handlers)==handlerCount and count(triggers)==triggerCount)
+          controller:stop();spells:stop();advance(0)
+          assert(count(handlers)==0 and count(triggers)==0 and count(timers)==0)
+          triggerFailure=true;assert(not spells:start())
+          assert(count(handlers)==0 and count(triggers)==0)
+        """)
+
+
+if __name__ == "__main__":
+    unittest.main()
