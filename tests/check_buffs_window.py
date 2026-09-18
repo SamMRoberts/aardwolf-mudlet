@@ -34,7 +34,17 @@ class BuffsWindowTests(unittest.TestCase):
           local body=widgets['aardwolf-vibe.buffs-window.body']
           assert(body.text:find('Shield',1,true) and body.text:find('1:01',1,true))
           assert(body.text:find('Awaiting server confirmation',1,true))
+          assert(body.scroll==0 and body.scrollToCalls==1 and body.getScrollCalls==nil)
+          body.scroll=4
+          raiseEvent('aardwolf-vibe.spells.updated')
+          assert(body.scroll==4 and body.scrollToCalls==2 and body.getScrollCalls==1)
           widgets['aardwolf-vibe.buffs-window.sync'].callback();assert(spells.syncs==1)
+          assert(body.scroll==4)
+          body.scroll=6
+          local timerId
+          for id in pairs(timers) do timerId=id end
+          local callback=timers[timerId].callback;timers[timerId]=nil;callback()
+          assert(body.scroll==6 and body.scrollToCalls==4 and body.getScrollCalls==3)
           widgets['aardwolf-vibe.buffs-window.now'].callback();assert(spellup.runs==1)
           widgets['aardwolf-vibe.buffs-window.automatic'].callback()
           assert(spellup.automatic and spellup.sets==1)

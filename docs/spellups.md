@@ -76,7 +76,8 @@ mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
 zero displays “Awaiting server confirmation”; it never invents a wearoff or
 causes a cast. The server's complete recovery catalog includes inactive rows
-with duration zero; those rows are not tracked or displayed.
+with duration zero; those rows are not tracked or displayed. The effects pane
+starts at the top and preserves its current scroll line across refreshes.
 
 Settings schema v2 retains `mapperEnabled` and adds
 `spellupsAutoCast=false`. Schema v1 migrates atomically. Malformed settings are

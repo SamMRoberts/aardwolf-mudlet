@@ -33,6 +33,7 @@ function BuffsWindow.new(api, spells, spellup)
   local window, root, header, body, syncButton, nowButton, automaticButton
   local timer, generation = nil, 0
   local handlers = {}
+  local rendered = false
 
   local function cancelTimer()
     if timer then pcall(api.killTimer, timer); timer = nil end
@@ -52,6 +53,11 @@ function BuffsWindow.new(api, spells, spellup)
 
   local function render()
     if not self.enabled or not body then return end
+    local scroll = 0
+    if rendered then
+      local ok, value = pcall(body.getScroll, body)
+      if ok and type(value) == "number" then scroll = math.max(0, value) end
+    end
     local snapshot = spells:snapshot()
     local control = spellup:status()
     local tracking = snapshot.fresh and "Synchronized" or snapshot.busy and "Synchronizing"
@@ -80,6 +86,8 @@ function BuffsWindow.new(api, spells, spellup)
       body:echo(string.format("  %s — %s\n", recovery.name,
         duration(recovery.remaining, recovery.awaiting)))
     end
+    body:scrollTo(scroll)
+    rendered = true
   end
 
   local function scheduleTick()
@@ -125,6 +133,7 @@ function BuffsWindow.new(api, spells, spellup)
     if window and type(window.delete) == "function" then pcall(window.delete, window) end
     window, root, header, body = nil, nil, nil, nil
     syncButton, nowButton, automaticButton = nil, nil, nil
+    rendered = false
     self.lastError = message and tostring(message) or nil
     return message == nil
   end
@@ -188,6 +197,8 @@ function BuffsWindow.new(api, spells, spellup)
         font = "Menlo", fontSize = 11,
         fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
         color = color(11, 17, 24)}, root)
+      assert(type(body.getScroll) == "function" and type(body.scrollTo) == "function",
+        "Geyser.MiniConsole scroll state is required")
       body:setBufferSize(1000, 100)
 
       stage = "register update handlers"

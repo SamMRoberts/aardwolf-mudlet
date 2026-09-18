@@ -14,17 +14,21 @@ function hideWindow(name) hidden[name]=true end
 function windowVisible(name) return not hidden[name] end
 function remember(name) remembered[name]=_G[name] end
 local function widget(values)
-  local item={name=values.name,values=values,text="",deleted=false}
+  local item={name=values.name,values=values,text="",deleted=false,scroll=17}
   widgets[item.name]=item
   function item:echo(text) self.text=self.text..tostring(text) end
   function item:rawEcho(text) self.text=self.text..tostring(text) end
-  function item:clear() self.text="" end
+  function item:clear() self.text="";self.scroll=999 end
   function item:setStyleSheet(value) self.style=value end
   function item:setClickCallback(callback) self.callback=callback end
   function item:move(x,y) self.x=x;self.y=y end
   function item:resize(width,height) self.width=width;self.height=height end
   function item:setColor(...) error("component must not use Geyser setColor") end
   function item:setBufferSize(...) self.buffer={...} end
+  function item:getScroll() self.getScrollCalls=(self.getScrollCalls or 0)+1;return self.scroll end
+  function item:scrollTo(line)
+    self.scrollToCalls=(self.scrollToCalls or 0)+1;self.scroll=line
+  end
   function item:show()
     self.showCalls=(self.showCalls or 0)+1;self.hidden=false;hidden[self.name]=false
   end
