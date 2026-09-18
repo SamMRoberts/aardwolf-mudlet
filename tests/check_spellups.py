@@ -224,6 +224,32 @@ class SpellupTests(unittest.TestCase):
           assert(#visible==before and #spells:snapshot().recoveries==0)
         """)
 
+    def test_hidden_setting_suppresses_unclaimed_tagged_frames_safely(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          local before=#visible;local gagged=gags
+          feed('{spellheaders learned noprompt}')
+          feed('72,Shield,2,0,100,-1,1')
+          feed('{/spellheaders}')
+          feed('{recoveries noprompt}')
+          feed('15,Detect magic recovery,20')
+          feed('{/recoveries}')
+          assert(#visible==before and gags==gagged+6)
+
+          feed('{spellheaders manual noprompt}')
+          feed('Ordinary spell prose')
+          assert(visible[#visible]=='Ordinary spell prose')
+          feed('72,Shield,2,0,100,-1,1')
+          assert(visible[#visible]=='72,Shield,2,0,100,-1,1')
+          feed('{/spellheaders}')
+
+          feed('{recoveries noprompt}')
+          advance(10)
+          feed('Prompt remains visible')
+          assert(visible[#visible]=='Prompt remains visible')
+        """)
+
     def test_duplicate_start_stop_and_failed_start_cleanup(self):
         lua = self.runtime()
         lua.execute("""

@@ -20,7 +20,10 @@ interrupted, oversized, or timed-out frame leaves the last valid data intact
 but marks synchronization stale. Exact machine records and package-owned
 frames are removed from the main console by default. This suppression is
 configurable and does not affect parsing. Ordinary spell messages, prompts,
-queue text, and manually requested lists remain visible.
+and queue text remain visible. While hiding is enabled, bounded tagged
+`spellheaders` and `recoveries` frames are also suppressed even when another
+command requested them. A malformed frame stops suppressing at the first
+non-record line or after ten seconds so unrelated gameplay cannot disappear.
 
 ## Commands and APIs
 

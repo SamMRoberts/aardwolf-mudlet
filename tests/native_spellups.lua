@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.9", "Aardwolf Vibe 0.7.9 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.10", "Aardwolf Vibe 0.7.10 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups

@@ -2,6 +2,6 @@
   "package": "aardwolf-vibe",
   "title": "Aardwolf Vibe",
   "description": "Defensive Aardwolf GMCP mapping, character state, status bars, ASCII minimap, configurable chat, and opt-in spellup maintenance for Mudlet 5.0.1.",
-  "version": "0.7.9",
+  "version": "0.7.10",
   "author": "SamMRoberts"
 }

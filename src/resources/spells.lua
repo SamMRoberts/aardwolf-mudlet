@@ -98,7 +98,7 @@ function Spells.new(api, character, settings)
   }
   local catalog, classification, active, recoveries = {}, {}, {}, {}
   local handlers = {}
-  local triggerID, frame, timeout, driveTimer
+  local triggerID, frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
@@ -141,6 +141,21 @@ function Spells.new(api, character, settings)
 
   local function cancelTimer(id)
     if id then pcall(api.killTimer, id) end
+  end
+
+  local function clearHiddenFrame()
+    cancelTimer(hiddenFrameTimeout)
+    hiddenFrame, hiddenFrameTimeout = nil, nil
+  end
+
+  local function startHiddenFrame(header)
+    clearHiddenFrame()
+    hiddenFrame = {header = header, lines = 0, bytes = 0}
+    local token = generation
+    hiddenFrameTimeout = api.tempTimer(SNAPSHOT_TIMEOUT, function()
+      hiddenFrameTimeout = nil
+      if self.enabled and token == generation then hiddenFrame = nil end
+    end)
   end
 
   local function cancelRequest()
@@ -361,31 +376,60 @@ function Spells.new(api, character, settings)
 
     local header, arguments = headerFor(value)
     if header then
-      if not expectedHeader(request, header, arguments) then return false end
-      if frame then fail("Interrupted spell snapshot"); return false end
-      frame = {
-        header = header,
-        kind = request.kind,
-        rows = {},
-        deltas = {},
-        lines = 0,
-        bytes = 0,
-        at = now(),
-      }
-      armTimeout(request.kind)
-      suppressOwnedLine()
-      return true
+      if expectedHeader(request, header, arguments) and not frame then
+        clearHiddenFrame()
+        frame = {
+          header = header,
+          kind = request.kind,
+          rows = {},
+          deltas = {},
+          lines = 0,
+          bytes = 0,
+          at = now(),
+        }
+        armTimeout(request.kind)
+        suppressOwnedLine()
+        return true
+      end
+      if frame then fail("Interrupted spell snapshot") end
+      if self.hideTags then
+        startHiddenFrame(header)
+        api.deleteLine()
+        return true
+      end
+      return false
     end
 
     if value == "{/spellheaders}" or value == "{/recoveries}" then
-      if not frame then return false end
-      suppressOwnedLine()
-      if value ~= "{/" .. frame.header .. "}" then fail("Unmatched spell snapshot ending")
-      else completeFrame() end
-      return true
+      if frame then
+        suppressOwnedLine()
+        if value ~= "{/" .. frame.header .. "}" then fail("Unmatched spell snapshot ending")
+        else completeFrame() end
+        return true
+      end
+      if hiddenFrame then clearHiddenFrame() end
+      if self.hideTags then api.deleteLine(); return true end
+      return false
     end
 
-    if not frame then return false end
+    if not frame then
+      if hiddenFrame then
+        local id
+        if hiddenFrame.header == "recoveries" then id = parseRecoveryRow(value)
+        else id = parseSpellRow(value) end
+        if id then
+          hiddenFrame.lines = hiddenFrame.lines + 1
+          hiddenFrame.bytes = hiddenFrame.bytes + #text
+          api.deleteLine()
+          if hiddenFrame.lines >= MAX_ROWS or hiddenFrame.bytes >= MAX_BYTES then
+            clearHiddenFrame()
+          end
+          return true
+        end
+        clearHiddenFrame()
+      end
+      return false
+    end
     suppressOwnedLine()
     frame.lines = frame.lines + 1
     frame.bytes = frame.bytes + #text
@@ -406,6 +450,7 @@ function Spells.new(api, character, settings)
 
   local function clearState(reason)
     cancelRequest()
+    clearHiddenFrame()
     cancelTimer(driveTimer)
     driveTimer = nil
     catalog, classification, active, recoveries = {}, {}, {}, {}
@@ -468,6 +513,7 @@ function Spells.new(api, character, settings)
       if not ok then return nil, message end
     end
     self.hideTags = value
+    if not value then clearHiddenFrame() end
     changed()
     return true
   end
@@ -617,6 +663,7 @@ function Spells.new(api, character, settings)
     generation = generation + 1
     self.enabled = false
     cancelRequest()
+    clearHiddenFrame()
     cancelTimer(driveTimer)
     driveTimer = nil
     removeHandlers()
