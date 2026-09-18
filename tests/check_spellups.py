@@ -90,28 +90,22 @@ class SpellupTests(unittest.TestCase):
           assert(controller:status().inflight==false)
         """)
 
-    def test_unknown_buffs_are_never_tracked_or_emitted_as_missing(self):
+    def test_inactive_recovery_catalog_rows_are_not_tracked(self):
         lua = self.runtime()
         lua.execute("""
-          spellRows('',{'72,Shield,2,0,100,-1,1','99, UnKnOwN ,2,0,100,-1,1'})
-          spellRows('spellup',{'72,Shield,2,0,100,-1,1','99,unknown,2,0,100,-1,1'})
-          spellRows('affected',{'72,Shield,2,120,100,-1,1','99,UNKNOWN,2,120,100,-1,1'})
-          feed('{recoveries noprompt}');feed('{/recoveries}')
+          spellRows('',{'72,Shield,2,0,100,-1,1'})
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          feed('{recoveries noprompt}')
+          feed('0,Augmentation,0')
+          feed('15,Detect magic recovery,20')
+          feed('99,Unknown recovery,0')
+          feed('{/recoveries}')
           local snapshot=spells:snapshot()
           assert(snapshot.fresh and #snapshot.active==1 and snapshot.active[1].id==72)
-          assert(snapshot.catalog[99]==nil and spells:get(99)==nil)
-          local missing=0
-          for _,event in ipairs(events) do
-            if event[1]=='aardwolf-vibe.spells.missing' and event[2]==99 then missing=missing+1 end
-          end
-          feed('{affon}99,60');feed('{affoff}99')
-          assert(#spells:snapshot().active==1 and spells:get(99)==nil)
-          for _,event in ipairs(events) do
-            if event[1]=='aardwolf-vibe.spells.missing' and event[2]==99 then
-              error('unknown buff emitted a wearoff')
-            end
-          end
-          assert(missing==0)
+          assert(#snapshot.recoveries==1)
+          assert(snapshot.recoveries[1].id==15 and snapshot.recoveries[1].remaining==20)
+          assert(snapshot.recoveries[1].name=='Detect magic recovery')
         """)
 
     def test_default_off_and_all_readiness_states_send_zero(self):

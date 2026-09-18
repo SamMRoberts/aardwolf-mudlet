@@ -31,10 +31,6 @@ local function trim(value)
   return type(value) == "string" and value:match("^%s*(.-)%s*$") or ""
 end
 
-local function unknownName(value)
-  return trim(value):lower() == "unknown"
-end
-
 local function headerFor(text)
   local header, arguments = text:match("^{(spellheaders)([^}]*)}$")
   if not header then header, arguments = text:match("^{(recoveries)([^}]*)}$") end
@@ -98,7 +94,7 @@ function Spells.new(api, character)
     rejected = 0,
     lastError = nil,
   }
-  local catalog, classification, active, recoveries, ignored = {}, {}, {}, {}, {}
+  local catalog, classification, active, recoveries = {}, {}, {}, {}
   local handlers = {}
   local triggerID, frame, timeout, driveTimer
   local generation, session = 0, 0
@@ -180,7 +176,6 @@ function Spells.new(api, character)
 
   local function applyDelta(event)
     if event.kind == "affon" then
-      if ignored[event.id] then return end
       active[event.id] = {
         id = event.id,
         reported = event.at,
@@ -189,7 +184,6 @@ function Spells.new(api, character)
       }
       emit("applied", event.id)
     elseif event.kind == "affoff" then
-      if ignored[event.id] then return end
       active[event.id] = nil
       emit("missing", event.id)
     elseif event.kind == "recon" then
@@ -212,8 +206,6 @@ function Spells.new(api, character)
   local function commit(completed)
     if completed.kind == "catalog" then
       catalog = completed.rows
-      ignored = {}
-      for id in pairs(completed.ignored) do ignored[id] = true end
     elseif completed.kind == "classification" then
       classification = {}
       for id in pairs(completed.rows) do classification[id] = true end
@@ -221,7 +213,6 @@ function Spells.new(api, character)
       local previous = active
       local replacement = {}
       for id, row in pairs(completed.rows) do
-        ignored[id] = nil
         if row.duration > 0 then
           replacement[id] = {
             id = id,
@@ -234,26 +225,22 @@ function Spells.new(api, character)
       end
       active = replacement
       for id in pairs(previous) do
-        if not replacement[id] and not completed.ignored[id] then emit("missing", id) end
+        if not replacement[id] then emit("missing", id) end
       end
     elseif completed.kind == "recoveries" then
       local replacement = {}
       for id, row in pairs(completed.rows) do
-        replacement[id] = {
-          id = id,
-          name = row.name,
-          reported = completed.at,
-          duration = row.duration,
-          expires = row.duration > 0 and completed.at + row.duration or nil,
-        }
+        if row.duration > 0 then
+          replacement[id] = {
+            id = id,
+            name = row.name,
+            reported = completed.at,
+            duration = row.duration,
+            expires = completed.at + row.duration,
+          }
+        end
       end
       recoveries = replacement
-    end
-    if completed.kind ~= "recoveries" then
-      for id in pairs(completed.ignored) do
-        ignored[id] = true
-        catalog[id], classification[id], active[id] = nil, nil, nil
-      end
     end
     for _, event in ipairs(completed.deltas) do applyDelta(event) end
   end
@@ -358,7 +345,6 @@ function Spells.new(api, character)
         header = header,
         kind = request.kind,
         rows = {},
-        ignored = {},
         deltas = {},
         lines = 0,
         bytes = 0,
@@ -388,10 +374,8 @@ function Spells.new(api, character)
     local id, row
     if frame.header == "recoveries" then id, row = parseRecoveryRow(value)
     else id, row = parseSpellRow(value) end
-    if not id or frame.rows[id] or frame.ignored[id] then
+    if not id or frame.rows[id] then
       fail("Malformed or duplicate spell snapshot record")
-    elseif frame.header ~= "recoveries" and unknownName(row.name) then
-      frame.ignored[id] = true
     else
       frame.rows[id] = row
     end
@@ -402,7 +386,7 @@ function Spells.new(api, character)
     cancelRequest()
     cancelTimer(driveTimer)
     driveTimer = nil
-    catalog, classification, active, recoveries, ignored = {}, {}, {}, {}, {}
+    catalog, classification, active, recoveries = {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
@@ -600,7 +584,7 @@ function Spells.new(api, character)
     driveTimer = nil
     removeHandlers()
     if triggerID then pcall(api.killTrigger, triggerID); triggerID = nil end
-    catalog, classification, active, recoveries, ignored = {}, {}, {}, {}, {}
+    catalog, classification, active, recoveries = {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
