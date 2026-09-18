@@ -31,10 +31,12 @@ with `protocols gmcp sendchar` after its character consumers are ready. This
 install-only request is sent without local command echo.
 
 The always-visible character strip uses that validated state to show HP, mana,
-moves, level progress, the current enemy, and alignment. It occupies one row
-above the command input on normal windows and reflows into two rows below 840
-pixels. See [`docs/character-bars.md`](docs/character-bars.md) for its rendering
-and layout contract.
+moves, level progress, the current enemy, and alignment. A three-cell status row
+above the gauges shows the character's level, position, and friendly state name.
+The gauges occupy one row on normal windows and reflow into two rows below 840
+pixels while the status row remains horizontal. See
+[`docs/character-bars.md`](docs/character-bars.md) for its rendering and layout
+contract.
 
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures

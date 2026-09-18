@@ -95,7 +95,14 @@ function Gauge:setValue(value, maximum, label)
   self.value, self.maximum, self.label = value, maximum, label
 end
 
-Geyser = {Container = Widget, Gauge = Gauge}
+local Label = setmetatable({}, {__index = Widget})
+Label.__index = Label
+function Label:new(constraints, parent)
+  return Widget.new(self, constraints, parent)
+end
+function Label:echo(value) self.label = value end
+
+Geyser = {Container = Widget, Gauge = Gauge, Label = Label}
 
 characterSnapshot = {session = 1, sequence = 0, fresh = {}, groups = {}}
 character = {}
@@ -114,6 +121,10 @@ end
 
 function gauge(key)
   return widgets["aardwolf-vibe.character-bars." .. key]
+end
+
+function statusCell(key)
+  return widgets["aardwolf-vibe.character-bars.status." .. key]
 end
 
 function count(values)

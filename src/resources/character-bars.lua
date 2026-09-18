@@ -3,18 +3,20 @@ local CharacterBars = {}
 local OWNER = "aardwolf-vibe.character-bars"
 local BREAKPOINT = 840
 local BAR_HEIGHT = 22
+local STATUS_HEIGHT = 22
 local OUTER_PADDING = 5
 local GAP = 6
-local ONE_ROW_HEIGHT = 32
-local TWO_ROW_HEIGHT = 60
+local ONE_ROW_HEIGHT = 60
+local TWO_ROW_HEIGHT = 88
 
 local GROUPS = {"base", "vitals", "maxstats", "status"}
 local FIELDS = {
   base = {"perlevel"},
   vitals = {"hp", "mana", "moves"},
   maxstats = {"maxhp", "maxmana", "maxmoves"},
-  status = {"tnl", "enemy", "enemypct", "align"},
+  status = {"level", "pos", "state", "tnl", "enemy", "enemypct", "align"},
 }
+local STATUS_CELLS = {"level", "position", "state"}
 local GAUGES = {
   {key = "hp"},
   {key = "mana"},
@@ -22,6 +24,20 @@ local GAUGES = {
   {key = "tnl"},
   {key = "enemy"},
   {key = "align"},
+}
+
+local STATE_LABELS = {
+  [1] = "Login screen",
+  [2] = "Logging in",
+  [3] = "Active",
+  [4] = "AFK",
+  [5] = "In note",
+  [6] = "Edit mode",
+  [7] = "Paged prompt",
+  [8] = "In combat",
+  [9] = "Sleeping",
+  [11] = "Resting or sitting",
+  [12] = "Running",
 }
 
 local COLORS = {
@@ -78,7 +94,8 @@ local function normalizeGroup(group, value)
   local result = {}
   for _, field in ipairs(FIELDS[group]) do
     local item = value[field]
-    if exactInteger(item) or (field == "enemy" and validText(item)) then
+    if exactInteger(item)
+        or ((field == "enemy" or field == "pos") and validText(item)) then
       result[field] = item
     end
   end
@@ -90,10 +107,11 @@ function CharacterBars.new(api, character)
     enabled = false,
     lastError = nil,
   }
-  local root, gauges, gaugeColors = nil, {}, {}
+  local root, gauges, gaugeColors, statusCells = nil, {}, {}, {}
   local groups, handlers = {}, {}
   local generation, session, sequence, rows = 0, 0, 0, 0
-  local borderBefore, borderWritten, lastWidth, lastGaugeWidth = nil, nil, 0, 0
+  local borderBefore, borderWritten, lastWidth, lastGaugeWidth, lastStatusWidth =
+    nil, nil, 0, 0, 0
   local busy = false
 
   local function clearReadings()
@@ -120,10 +138,47 @@ function CharacterBars.new(api, character)
     end
   end
 
+  local function setStatusCell(key, label, tooltip)
+    local cell = statusCells[key]
+    cell:echo("<center>" .. label .. "</center>")
+    if type(cell.setToolTip) == "function" then
+      cell:setToolTip(tooltip or label)
+    end
+  end
+
   local function reading(group, field)
     local data = groups[group]
     local value = type(data) == "table" and data[field] or nil
     return exactInteger(value) and value or nil
+  end
+
+  local function renderStatus()
+    local status = groups.status
+    local levelText = integer(reading("status", "level"))
+    local position = type(status) == "table" and status.pos or nil
+    local positionText = validText(position) and position or "--"
+    local state = reading("status", "state")
+    local stateText = "--"
+    if state then
+      stateText = STATE_LABELS[state] or ("Unknown (" .. integer(state) .. ")")
+    end
+
+    local narrow = lastWidth < BREAKPOINT
+    local positionDisplay, stateDisplay = positionText, stateText
+    if narrow then
+      local valueLimit = math.max(3, math.floor(lastStatusWidth / 7) - 7)
+      positionDisplay = truncate(positionDisplay, valueLimit)
+      stateDisplay = truncate(stateDisplay, valueLimit)
+    end
+
+    local levelFull = "Level: " .. levelText
+    local positionFull = "Position: " .. escape(positionText)
+    local stateFull = "State: " .. escape(stateText)
+    setStatusCell("level", narrow and ("Lvl " .. levelText) or levelFull, levelFull)
+    setStatusCell("position",
+      narrow and ("Pos " .. escape(positionDisplay)) or positionFull, positionFull)
+    setStatusCell("state",
+      narrow and ("State " .. escape(stateDisplay)) or stateFull, stateFull)
   end
 
   local function renderResource(key, label, short, maximum, color)
@@ -198,6 +253,7 @@ function CharacterBars.new(api, character)
 
   local function render()
     if not root then return end
+    renderStatus()
     renderResource("hp", "HP", "HP", "maxhp", COLORS.hp)
     renderResource("mana", "Mana", "MP", "maxmana", COLORS.mana)
     renderResource("moves", "Moves", "MV", "maxmoves", COLORS.moves)
@@ -239,6 +295,14 @@ function CharacterBars.new(api, character)
       root:move(left, -panelHeight)
       root:resize(usableWidth, panelHeight)
       local columns = rows == 1 and 6 or 3
+      local statusWidth = math.max(1,
+        (usableWidth - OUTER_PADDING * 2 - GAP * (#STATUS_CELLS - 1)) / #STATUS_CELLS)
+      lastStatusWidth = statusWidth
+      for index, key in ipairs(STATUS_CELLS) do
+        local cell = statusCells[key]
+        cell:move(OUTER_PADDING + (index - 1) * (statusWidth + GAP), OUTER_PADDING)
+        cell:resize(statusWidth, STATUS_HEIGHT)
+      end
       local gaugeWidth = math.max(1,
         (usableWidth - OUTER_PADDING * 2 - GAP * (columns - 1)) / columns)
       lastGaugeWidth = gaugeWidth
@@ -247,7 +311,7 @@ function CharacterBars.new(api, character)
         local column = (index - 1) % columns
         local gauge = gauges[definition.key]
         gauge:move(OUTER_PADDING + column * (gaugeWidth + GAP),
-          OUTER_PADDING + row * (BAR_HEIGHT + GAP))
+          OUTER_PADDING + STATUS_HEIGHT + GAP + row * (BAR_HEIGHT + GAP))
         gauge:resize(gaugeWidth, BAR_HEIGHT)
       end
       render()
@@ -274,7 +338,7 @@ function CharacterBars.new(api, character)
     if root then
       local ok, message = pcall(root.delete, root)
       if ok then
-        root, gauges, gaugeColors = nil, {}, {}
+        root, gauges, gaugeColors, statusCells = nil, {}, {}, {}
       elseif not cleanupError then
         cleanupError = tostring(message)
       end
@@ -286,8 +350,8 @@ function CharacterBars.new(api, character)
         if not restored and not cleanupError then cleanupError = tostring(message) end
       end
     end
-    borderBefore, borderWritten, lastWidth, lastGaugeWidth, rows, busy =
-      nil, nil, 0, 0, 0, false
+    borderBefore, borderWritten, lastWidth, lastGaugeWidth, lastStatusWidth, rows, busy =
+      nil, nil, 0, 0, 0, 0, false
     clearReadings()
     if diagnostic then
       self.lastError = diagnostic
@@ -370,11 +434,23 @@ function CharacterBars.new(api, character)
       assert(type(geyser.Container) == "table" and type(geyser.Container.delete) == "function",
         "Geyser recursive container deletion is required")
       assert(type(geyser.Gauge) == "table", "Geyser.Gauge is required")
+      assert(type(geyser.Label) == "table", "Geyser.Label is required")
       borderBefore = api.getBorderBottom()
       if not finite(borderBefore) or borderBefore < 0 then error("Invalid Mudlet bottom border", 0) end
       root = geyser.Container:new({
         name = OWNER .. ".root", x = 0, y = 0, width = 1, height = 1,
       })
+      for _, key in ipairs(STATUS_CELLS) do
+        local cell = geyser.Label:new({
+          name = OWNER .. ".status." .. key,
+          x = 0, y = 0, width = 1, height = STATUS_HEIGHT,
+        }, root)
+        statusCells[key] = cell
+        cell:setFontSize(11)
+        cell:setStyleSheet(
+          "background-color: #202b39; color: white; border: 1px solid #405169; "
+            .. "border-radius: 3px; padding: 0px;")
+      end
       for _, definition in ipairs(GAUGES) do
         local gauge = geyser.Gauge:new({
           name = OWNER .. "." .. definition.key,

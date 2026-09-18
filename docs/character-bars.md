@@ -28,6 +28,15 @@ stop the bars before stopping the character handler.
 
 ## Readings
 
+The top status row displays three equal-width cells sourced from `char.status`:
+`Level`, `Position`, and `State`. State codes use compact labels: Login screen,
+Logging in, Active, AFK, In note, Edit mode, Paged prompt, In combat, Sleeping,
+Resting or sitting, and Running. Unknown numeric codes display as
+`Unknown (<code>)`; missing values display as `--`. Position text is escaped
+before rendering, compacted on narrow layouts, and retained in full in its
+tooltip. These UI labels do not change the character handler's public
+`stateName()` descriptions.
+
 | Bar | Values | Fill and color |
 |---|---|---|
 | HP | `vitals.hp`, `maxstats.maxhp` | Current divided by maximum; green |
@@ -55,11 +64,13 @@ clears all readings immediately.
 
 ## Layout and ownership
 
-The owned `aardwolf-vibe.character-bars.root` container holds six gauges. At
-840 or more usable pixels, they share one row and reserve 32 pixels at the
-bottom of the Mudlet window. Narrower windows use two rows of three and reserve
-60 pixels. Gauges are 22 pixels high with 5-pixel outer padding and 6-pixel
-gaps; resizing moves existing widgets instead of recreating them.
+The owned `aardwolf-vibe.character-bars.root` container holds three status
+labels and six gauges. The status labels remain in one horizontal row. At 840
+or more usable pixels, the gauges share one row and the component reserves 60
+pixels at the bottom of the Mudlet window. Narrower windows use two gauge rows
+of three and reserve 88 pixels. Labels and gauges are 22 pixels high with
+5-pixel outer padding and 6-pixel gaps; resizing moves existing widgets instead
+of recreating them.
 
 The root uses a negative Geyser Y constraint so its bottom edge remains
 attached to the command-line edge. Any bottom-border space that existed before

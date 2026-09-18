@@ -35,11 +35,15 @@ class CharacterBarsTests(unittest.TestCase):
           gmcp.char.vitals={hp=750,mana=400,moves=200};fire("gmcp.char.vitals")
           gmcp.char.maxstats={maxhp=1000,maxmana=800,maxmoves=400};fire("gmcp.char.maxstats")
           gmcp.char.base={perlevel=2000};fire("gmcp.char.base")
-          gmcp.char.status={tnl=500,enemy="a wyrm",enemypct=40,align=-875}
+          gmcp.char.status={level=210,pos="Standing",state=8,
+            tnl=500,enemy="a wyrm",enemypct=40,align=-875}
           fire("gmcp.char.status")
           assert(gauge("hp").value==75 and gauge("mana").value==50)
           assert(gauge("tnl").value==75 and gauge("enemy").value==40)
           assert(gauge("align").label=="Align Evil -875")
+          assert(statusCell("level").label=="<center>Level: 210</center>")
+          assert(statusCell("position").label=="<center>Position: Standing</center>")
+          assert(statusCell("state").label=="<center>State: In combat</center>")
           assert(modules["aardwolf-vibe.character:Char"])
           assert(modules["aardwolf-vibe.character-bars:Char"]==nil)
           fire("sysDisconnectionEvent")
@@ -57,7 +61,8 @@ class CharacterBarsTests(unittest.TestCase):
               base={perlevel=1000},
               vitals={hp=500,mana=250,moves=75},
               maxstats={maxhp=1000,maxmana=500,maxmoves=300},
-              status={tnl=750,enemy="an owl",enemypct=93,align=875},
+              status={level=210,pos="Standing",state=3,
+                tnl=750,enemy="an owl",enemypct=93,align=875},
             }}
           assert(bars:start())
           assert(gauge("hp").value==50 and gauge("hp").label=="HP 500/1000")
@@ -70,9 +75,52 @@ class CharacterBarsTests(unittest.TestCase):
           assert(gauge("enemy").value==93 and gauge("enemy").label=="Enemy an owl 93%")
           assert(gauge("enemy").foregroundStyle:find("#aa4148",1,true))
           assert(gauge("align").value==67.5 and gauge("align").label=="Align Good 875")
+          assert(statusCell("level").label=="<center>Level: 210</center>")
+          assert(statusCell("position").label=="<center>Position: Standing</center>")
+          assert(statusCell("state").label=="<center>State: Active</center>")
+          assert(statusCell("level").foregroundStyle:find("background-color: #202b39",1,true))
+          assert(statusCell("level").foregroundStyle:find("color: white",1,true))
           local status=bars:status()
           assert(status.enabled and status.lifecycle=="active" and status.session==4)
           assert(status.sequence==8 and status.rows==1 and status.lastError==nil)
+        ''')
+
+    def test_status_row_state_labels_missing_values_and_escaping(self):
+        lua = self.runtime()
+        lua.execute('''
+          local cases={
+            {1,"Login screen"},{2,"Logging in"},{3,"Active"},{4,"AFK"},
+            {5,"In note"},{6,"Edit mode"},{7,"Paged prompt"},{8,"In combat"},
+            {9,"Sleeping"},{11,"Resting or sitting"},{12,"Running"},
+          }
+          for index,item in ipairs(cases) do
+            update("status",{level=210,pos="Standing",state=item[1]},1,index)
+            assert(statusCell("state").label=="<center>State: "..item[2].."</center>")
+          end
+          update("status",{level=211,pos="<Resting> & ready",state=10},1,20)
+          assert(statusCell("level").label=="<center>Level: 211</center>")
+          assert(statusCell("position").label==
+            "<center>Position: &lt;Resting&gt; &amp; ready</center>")
+          assert(statusCell("position").tooltip==
+            "Position: &lt;Resting&gt; &amp; ready")
+          assert(statusCell("state").label=="<center>State: Unknown (10)</center>")
+          windowWidth=600;fire("sysWindowResizeEvent")
+          update("status",{level=211,
+            pos="A very long <resting> position for a narrow window",state=11},1,21)
+          assert(statusCell("level").label=="<center>Lvl 211</center>")
+          assert(statusCell("position").label:find("<center>Pos ",1,true))
+          assert(statusCell("position").label:find("…",1,true))
+          assert(statusCell("position").tooltip==
+            "Position: A very long &lt;resting&gt; position for a narrow window")
+          assert(statusCell("state").label=="<center>State Resting or sitting</center>")
+          assert(statusCell("state").tooltip=="State: Resting or sitting")
+          update("status",{},1,22)
+          assert(statusCell("level").label=="<center>Lvl --</center>")
+          assert(statusCell("position").label=="<center>Pos --</center>")
+          assert(statusCell("state").label=="<center>State --</center>")
+          update("status",{pos="bad\\nposition",state="3"},1,23)
+          assert(statusCell("position").label=="<center>Pos --</center>")
+          assert(statusCell("state").label=="<center>State --</center>")
         ''')
 
     def test_out_of_order_groups_and_unavailable_values(self):
@@ -137,10 +185,17 @@ class CharacterBarsTests(unittest.TestCase):
           update("vitals",{hp=10},1,2)
           update("maxstats",{maxhp=20},1,3)
           assert(gauge("hp").value==50)
+          update("status",{level=210,pos="Standing",state=3},1,4)
+          assert(statusCell("level").label=="<center>Level: 210</center>")
+          update("status",{level=999,pos="Sleeping",state=9},1,3)
+          assert(statusCell("level").label=="<center>Level: 210</center>")
           update("vitals",{hp=19},1,2)
           assert(gauge("hp").label=="HP 10/20")
           reset("disconnect",1)
           assert(gauge("hp").label=="HP --/--" and bars:status().sequence==0)
+          assert(statusCell("level").label=="<center>Level: --</center>")
+          assert(statusCell("position").label=="<center>Position: --</center>")
+          assert(statusCell("state").label=="<center>State: --</center>")
           update("vitals",{hp=15},0,99)
           assert(gauge("hp").label=="HP --/--")
           reset("connect",2)
@@ -153,17 +208,23 @@ class CharacterBarsTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute('''
           local hp=gauge("hp")
-          assert(borderBottom==42 and bars:status().rows==1)
-          assert(widgets["aardwolf-vibe.character-bars.root"].y==-32)
-          assert(gauge("hp").y==5 and gauge("align").y==5)
-          windowWidth=839;fire("sysWindowResizeEvent")
-          assert(borderBottom==70 and bars:status().rows==2)
+          local level=statusCell("level")
+          assert(borderBottom==70 and bars:status().rows==1)
           assert(widgets["aardwolf-vibe.character-bars.root"].y==-60)
-          assert(gauge("hp")==hp and gauge("hp").y==5 and gauge("tnl").y==33)
+          assert(statusCell("level").y==5 and statusCell("state").y==5)
+          assert(math.abs(statusCell("level").width-392.66666666667)<0.001)
+          assert(gauge("hp").y==33 and gauge("align").y==33)
+          windowWidth=839;fire("sysWindowResizeEvent")
+          assert(borderBottom==98 and bars:status().rows==2)
+          assert(widgets["aardwolf-vibe.character-bars.root"].y==-88)
+          assert(statusCell("level")==level and statusCell("level").y==5)
+          assert(gauge("hp")==hp and gauge("hp").y==33 and gauge("tnl").y==61)
           assert(math.abs(gauge("hp").width-272.33333333333)<0.001)
+          assert(math.abs(statusCell("level").width-272.33333333333)<0.001)
           windowWidth=840;fire("sysWindowResizeEvent")
-          assert(borderBottom==42 and bars:status().rows==1 and gauge("hp")==hp)
-          assert(widgets["aardwolf-vibe.character-bars.root"].y==-32)
+          assert(borderBottom==70 and bars:status().rows==1 and gauge("hp")==hp)
+          assert(statusCell("level")==level)
+          assert(widgets["aardwolf-vibe.character-bars.root"].y==-60)
         ''')
 
     def test_preexisting_bottom_border_does_not_create_gap_below_bars(self):
@@ -172,11 +233,11 @@ class CharacterBarsTests(unittest.TestCase):
           borderBottom=180
           assert(bars:start())
           local root=widgets["aardwolf-vibe.character-bars.root"]
-          assert(borderBottom==212 and root.y==-32 and root.height==32)
-          windowHeight=1000;fire("sysWindowResizeEvent")
-          assert(root.y==-32 and root.height==32)
-          windowWidth=839;fire("sysWindowResizeEvent")
           assert(borderBottom==240 and root.y==-60 and root.height==60)
+          windowHeight=1000;fire("sysWindowResizeEvent")
+          assert(root.y==-60 and root.height==60)
+          windowWidth=839;fire("sysWindowResizeEvent")
+          assert(borderBottom==268 and root.y==-88 and root.height==88)
           assert(bars:stop() and borderBottom==180)
         ''')
 
@@ -185,9 +246,11 @@ class CharacterBarsTests(unittest.TestCase):
         lua.execute('''
           handlers["another:handler"]={event="other",callback=function() end}
           assert(bars:start());local hp=gauge("hp")
-          assert(bars:start() and gauge("hp")==hp and count(handlers)==7)
+          local level=statusCell("level")
+          assert(bars:start() and gauge("hp")==hp and statusCell("level")==level)
+          assert(count(handlers)==7)
           assert(bars:stop());assert(bars:stop())
-          assert(borderBottom==10 and gauge("hp")==nil)
+          assert(borderBottom==10 and gauge("hp")==nil and statusCell("level")==nil)
           assert(handlers["another:handler"]~=nil and count(handlers)==1)
           assert(bars:status().lifecycle=="stopped" and bars:status().rows==0)
         ''')
@@ -195,6 +258,11 @@ class CharacterBarsTests(unittest.TestCase):
     def test_partial_start_and_external_border_changes_fail_safely(self):
         lua = self.runtime(False)
         lua.execute('''
+          local labelClass=Geyser.Label
+          Geyser.Label=nil
+          assert(not bars:start())
+          assert(count(handlers)==0 and count(widgets)==0 and borderBottom==10)
+          Geyser.Label=labelClass
           fail.constructionAt=4
           assert(not bars:start())
           assert(count(handlers)==0 and count(widgets)==0 and borderBottom==10)
