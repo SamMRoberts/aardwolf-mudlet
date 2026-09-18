@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.5.0")
+        self.assertEqual(metadata["version"], "0.5.1")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
@@ -50,6 +50,10 @@ class PackageSourceTests(unittest.TestCase):
         model = ROOT / "src/resources/chat-model.lua"
         self.assertTrue(chat.is_file() and model.is_file())
         self.assertIn('gmod.enableModule(OWNER, "Comm")', chat.read_text())
+        self.assertIn(
+            'core.supports.set ["char 1","comm 1","debug 0","room 1"]',
+            chat.read_text(),
+        )
         self.assertNotIn("AardwolfToolbox", chat.read_text() + model.read_text())
 
 

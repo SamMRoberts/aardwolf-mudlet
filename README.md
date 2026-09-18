@@ -48,7 +48,10 @@ Tell, Group, Clan, Newbie, and Gossip tabs can be renamed, reordered, removed,
 or supplemented through the built-in visual editor. Aardwolf channel text is
 requested over GMCP only; `say` and `mobsay` remain mirrored into the gameplay
 console. See [`docs/chat.md`](docs/chat.md) for routing, persistence, and API
-details.
+details. Each GMCP session advertises Aardwolf Vibe's `char`, `comm`, and
+`room` modules through Aardwolf's accepted lowercase `core.supports.set`
+command, explicitly disables GMCP debugging, and only then requests GMCP-only
+channel output.
 
 ## Commands
 

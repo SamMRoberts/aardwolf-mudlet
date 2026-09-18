@@ -62,10 +62,17 @@ the corresponding direction. Selecting a tab clears its unread count.
 
 Startup mounts the renderer and registers its handlers before requesting
 `gmod.enableModule("aardwolf-vibe.chat", "Comm")`. Once connected with GMCP,
-the plugin sends `gmcpchannels on` once for that session. This causes Aardwolf
-to deliver channel text only through GMCP. `say` and `mobsay` are rendered
-literally back into the main gameplay console; all other communication remains
-in the chat window.
+the plugin advertises the complete Aardwolf Vibe module set with
+`core.supports.set ["char 1","comm 1","debug 0","room 1"]`, then sends
+`gmcpchannels on`. Both requests occur once per session and in that order. The
+explicit `debug 0` disables Aardwolf's GMCP error echo after negotiation. The
+full set preserves the package's character and room feeds while enabling Comm;
+the `gmod` registration remains responsible for shared local ownership and
+teardown.
+
+Channel takeover causes Aardwolf to deliver channel text only through GMCP.
+`say` and `mobsay` are rendered literally back into the main gameplay console;
+all other communication remains in the chat window.
 
 Stop, reload, or uninstall sends `gmcpchannels off` before releasing only the
 plugin's `Comm` request. If the chat renderer fails after takeover, it also

@@ -5,6 +5,7 @@ local WINDOW_NAME = OWNER .. ".window"
 local MAX_MESSAGES = 10000
 local MAX_BYTES = 4 * 1024 * 1024
 local TAB_HEIGHT = 30
+local SUPPORTS_SET = 'core.supports.set ["char 1","comm 1","debug 0","room 1"]'
 
 local function close(file)
   local ok, result = pcall(file.close, file)
@@ -38,7 +39,8 @@ function Chat.new(api, model, settings)
   local tabLabels, panes, unread = {}, {}, {}
   local handlers, messages = {}, {}
   local generation, session, sequence, bytes = 0, 0, 0, 0
-  local connected, gmcpEnabled, moduleRequested, takeoverSession = false, false, false, nil
+  local connected, gmcpEnabled, moduleRequested, supportsSession, takeoverSession =
+    false, false, false, nil, nil
   local activeTab, tabFirst, editorVisible, editorDraft, editorTab = nil, 1, false, nil, nil
   local editorNameInput, editorCustomInput, editorStatus
   local renderFailed = false
@@ -174,15 +176,29 @@ function Chat.new(api, model, settings)
     return true
   end
 
+  local function requestSupportsSet()
+    if not self.enabled or not connected or not gmcpEnabled
+        or supportsSession == session or type(api.sendGMCP) ~= "function" then return false end
+    local ok, result, why = pcall(api.sendGMCP, SUPPORTS_SET)
+    if not ok or result ~= true then
+      self.lastError = "Cannot advertise Aardwolf GMCP modules: " .. tostring(why or result)
+      return false
+    end
+    supportsSession = session
+    return true
+  end
+
   local function requestTakeover()
     if not self.enabled or renderFailed or not window or not connected or not gmcpEnabled
         or takeoverSession == session or type(api.sendGMCP) ~= "function" then return false end
+    if not requestSupportsSet() then return false end
     local ok, result, why = pcall(api.sendGMCP, "gmcpchannels on")
-    if not ok or result == false then
+    if not ok or result ~= true then
       self.lastError = "Cannot request GMCP-only channel output: " .. tostring(why or result)
       return false
     end
     takeoverSession = session
+    self.lastError = nil
     return true
   end
 
@@ -503,7 +519,7 @@ function Chat.new(api, model, settings)
 
   local function resetSession(reason)
     session, sequence, messages, bytes = session + 1, 0, {}, 0
-    takeoverSession = nil
+    supportsSession, takeoverSession = nil, nil
     for id, pane in pairs(panes) do pane:clear(); unread[id] = 0 end
     if reason then self.lastError = nil end
     layout()
@@ -573,7 +589,8 @@ function Chat.new(api, model, settings)
     tabLabels, panes, unread, messages = {}, {}, {}, {}
     bytes, sequence, activeTab, tabFirst = 0, 0, nil, 1
     editorVisible, editorDraft, editorTab = false, nil, nil
-    connected, gmcpEnabled, takeoverSession, renderFailed = false, false, nil, false
+    connected, gmcpEnabled, supportsSession, takeoverSession, renderFailed =
+      false, false, nil, nil, false
     if diagnosticMessage then self.lastError = tostring(diagnosticMessage)
     elseif cleanupError then self.lastError = "Cannot fully stop chat: " .. cleanupError
     elseif not restoreOK and not self.lastError then self.lastError = "Cannot restore normal channel output"
@@ -662,7 +679,7 @@ function Chat.new(api, model, settings)
       requestTakeover()
     end)
     if not ok then return fail(message) end
-    if not loaded then self.lastError = loadMessage else self.lastError = nil end
+    if not loaded then self.lastError = loadMessage end
     return true
   end
 
@@ -741,6 +758,7 @@ function Chat.new(api, model, settings)
       tabCount = #config.tabs,
       configSource = configSource,
       configLocked = configLocked,
+      supportsSetRequested = supportsSession == session,
       takeoverRequested = takeoverSession == session,
       lastError = self.lastError,
     }

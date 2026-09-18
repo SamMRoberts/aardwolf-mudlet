@@ -43,7 +43,7 @@ end
 
 function sendGMCP(value)
   calls[#calls + 1] = value
-  if fail.sendGMCP then return false, "send failure" end
+  if fail.sendGMCP == true or fail.sendGMCP == value then return false, "send failure" end
   return true
 end
 

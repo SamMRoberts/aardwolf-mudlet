@@ -78,11 +78,14 @@ class ChatTests(unittest.TestCase):
     def test_window_defaults_lifecycle_takeover_show_hide_and_status(self):
         lua = self.runtime()
         lua.execute(r'''
+          local supports='core.supports.set ["char 1","comm 1","debug 0","room 1"]'
           local window=chatWindow()
           assert(window and window.cons.restoreLayout and window.cons.autoDock)
           assert(window.cons.docked and window.cons.dockPosition=="top")
-          assert(#calls>=2 and calls[1]=="enable:aardwolf-vibe.chat:Comm" and calls[2]=="gmcpchannels on")
-          assert(chat:status().takeoverRequested and chat:status().tabCount==6)
+          assert(#calls>=3 and calls[1]=="enable:aardwolf-vibe.chat:Comm")
+          assert(calls[2]==supports and calls[3]=="gmcpchannels on")
+          assert(chat:status().supportsSetRequested and chat:status().takeoverRequested)
+          assert(chat:status().tabCount==6)
           assert(chat:start() and chatWindow()==window)
           assert(chat:hide() and window.hidden and not chat:status().visible)
           receive("gossip","while hidden","Friend")
@@ -180,24 +183,50 @@ class ChatTests(unittest.TestCase):
     def test_unread_reset_reconnect_and_stale_generation_fencing(self):
         lua = self.runtime()
         lua.execute(r'''
+          local supports='core.supports.set ["char 1","comm 1","debug 0","room 1"]'
           local old=handlers["aardwolf-vibe.chat:message"].callback
           receive("tell","one","Friend")
           assert(widgets["aardwolf-vibe.chat.tab.tell"].text:find("1",1,true))
           click("aardwolf-vibe.chat.tab.tell")
           assert(not widgets["aardwolf-vibe.chat.tab.tell"].text:find("·",1,true))
           fire("sysDisconnectionEvent")
-          assert(chat:status().retained==0 and not chat:status().takeoverRequested)
+          assert(chat:status().retained==0 and not chat:status().supportsSetRequested)
+          assert(not chat:status().takeoverRequested)
           connected=true;fire("sysConnectionEvent")
           fire("sysProtocolEnabled","GMCP")
-          local ons=0;for _,call in ipairs(calls) do if call=="gmcpchannels on" then ons=ons+1 end end
-          assert(ons==2)
+          local sets,ons=0,0
+          for _,call in ipairs(calls) do
+            if call==supports then sets=sets+1 elseif call=="gmcpchannels on" then ons=ons+1 end
+          end
+          assert(sets==2 and ons==2)
           fire("sysProtocolEnabled","GMCP")
-          local again=0;for _,call in ipairs(calls) do if call=="gmcpchannels on" then again=again+1 end end
-          assert(again==2)
+          local setsAgain,onsAgain=0,0
+          for _,call in ipairs(calls) do
+            if call==supports then setsAgain=setsAgain+1
+            elseif call=="gmcpchannels on" then onsAgain=onsAgain+1 end
+          end
+          assert(setsAgain==2 and onsAgain==2)
           assert(chat:stop());assert(chat:start())
           gmcp.comm.channel={chan="gossip",msg="stale",player="Friend"}
           old("gmcp.comm.channel")
           assert(chat:status().retained==0)
+        ''')
+
+    def test_supports_set_failure_blocks_takeover_and_retries(self):
+        lua = self.runtime(False)
+        lua.execute(r'''
+          local supports='core.supports.set ["char 1","comm 1","debug 0","room 1"]'
+          fail.sendGMCP=supports
+          assert(chat:start())
+          local status=chat:status()
+          assert(not status.supportsSetRequested and not status.takeoverRequested)
+          assert(status.lastError:find("Cannot advertise Aardwolf GMCP modules",1,true))
+          for _,call in ipairs(calls) do assert(call~="gmcpchannels on") end
+          fail.sendGMCP=nil
+          fire("sysProtocolEnabled","GMCP")
+          status=chat:status()
+          assert(status.supportsSetRequested and status.takeoverRequested and status.lastError==nil)
+          assert(calls[#calls-1]==supports and calls[#calls]=="gmcpchannels on")
         ''')
 
     def test_render_failure_relinquishes_takeover_and_partial_start_cleans_up(self):
