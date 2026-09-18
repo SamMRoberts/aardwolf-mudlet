@@ -194,6 +194,7 @@ function BuffsWindow.new(api, spells, spellup)
       stage = "create effects console"
       body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 88,
         width = "100%-10", height = "100%-93", autoWrap = true, scrollBar = true,
+        scrolling = false,
         font = "Menlo", fontSize = 11,
         fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
         color = color(11, 17, 24)}, root)

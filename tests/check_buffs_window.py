@@ -32,6 +32,7 @@ class BuffsWindowTests(unittest.TestCase):
             and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
           local body=widgets['aardwolf-vibe.buffs-window.body']
+          assert(body.values.scrollBar==true and body.values.scrolling==false)
           assert(body.text:find('Shield',1,true) and body.text:find('1:01',1,true))
           assert(body.text:find('Awaiting server confirmation',1,true))
           assert(body.scroll==0 and body.scrollToCalls==1 and body.getScrollCalls==nil)
