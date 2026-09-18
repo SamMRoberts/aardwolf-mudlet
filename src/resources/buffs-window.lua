@@ -300,7 +300,7 @@ function BuffsWindow.new(api, spells, spellup)
       local function on(name, event)
         handlers[#handlers + 1] = name
         if api.registerNamedEventHandler(OWNER, name, event, function()
-          if self.enabled and token == generation then render() end
+          if self.enabled and self.visible and token == generation then render() end
         end) ~= true then error("Cannot register " .. name .. " spellup window handler", 0) end
       end
       on("spells", "aardwolf-vibe.spells.updated")
@@ -327,11 +327,12 @@ function BuffsWindow.new(api, spells, spellup)
   function self:stop() return teardown(nil) end
 
   function self:show()
-    if not self.enabled then
-      local ok, message = self:start()
-      if not ok then return false, message end
-    end
-    return reveal()
+    if not self.enabled then return self:start() end
+    local ok, message = reveal()
+    if not ok then return false, message end
+    render()
+    scheduleTick()
+    return true
   end
 
   function self:hide()
@@ -344,6 +345,7 @@ function BuffsWindow.new(api, spells, spellup)
     end
     self.visible = false
     self.lastError = nil
+    cancelTimer()
     return true
   end
 

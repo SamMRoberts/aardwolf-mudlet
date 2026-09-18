@@ -231,6 +231,95 @@ class SpellupTests(unittest.TestCase):
           advance(28);assert(commandCount('spellup learned retry')==2)
         """)
 
+    def test_automatic_batch_is_queued_when_tracked_effect_reaches_expiry(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,5');advance(0)
+          deltaRows({'72,Shield,2,5,100,-1,1'}, {})
+          assert(controller:setAutomatic(true));advance(0)
+          synchronize();advance(0)
+          assert(commandCount('spellup learned retry')==1)
+          feed('{spellup-end}')
+
+          advance(4)
+          assert(not controller:status().pending)
+          advance(1)
+          assert(controller:status().pending)
+          assert(commandCount('spellup learned retry')==1)
+          advance(25)
+          assert(commandCount('spellup learned retry')==2)
+        """)
+
+    def test_expiry_timer_is_single_rescheduled_and_cancelled_with_automatic_mode(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,5');advance(0)
+          deltaRows({'72,Shield,2,5,100,-1,1'}, {})
+          assert(count(timers)==0)
+
+          assert(controller:setAutomatic(true));advance(0)
+          synchronize();advance(0)
+          feed('{spellup-end}')
+          assert(count(timers)==1)
+
+          advance(4)
+          feed('{affon}72,10');advance(0)
+          deltaRows({'72,Shield,2,10,100,-1,1'}, {})
+          assert(count(timers)==1)
+          advance(1)
+          assert(not controller:status().pending)
+
+          assert(controller:setAutomatic(false))
+          assert(count(timers)==0 and not controller:status().pending)
+          advance(20)
+          assert(commandCount('spellup learned retry')==1)
+        """)
+
+    def test_non_spellup_effect_expiry_does_not_queue_automatic_batch(self):
+        lua = self.runtime()
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '104,Chameleon power,3,0,100,-1,2',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          feed('{affon}104,5');advance(0)
+          deltaRows({'104,Chameleon power,3,5,100,-1,2'}, {})
+
+          assert(controller:setAutomatic(true));advance(0)
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          advance(0);feed('{spellup-end}')
+          assert(count(timers)==0)
+          advance(30)
+          assert(commandCount('spellup learned retry')==1
+            and not controller:status().pending)
+        """)
+
+    def test_expiry_work_survives_uncertain_batch_until_late_confirmation(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,5');advance(0)
+          deltaRows({'72,Shield,2,5,100,-1,1'}, {})
+          assert(controller:setAutomatic(true));advance(0)
+          synchronize();advance(0)
+          assert(commandCount('spellup learned retry')==1)
+
+          advance(5)
+          assert(controller:status().pending and controller:status().inflight)
+          advance(115)
+          assert(controller:status().paused and controller:status().inflight
+            and controller:status().pending)
+          assert(commandCount('spellup learned retry')==1)
+
+          feed('{spellup-end}');advance(0)
+          assert(commandCount('spellup learned retry')==2)
+        """)
+
     def test_failure_waits_manual_collision_and_uncertain_completion(self):
         lua = self.runtime()
         lua.execute("""
@@ -314,6 +403,42 @@ class SpellupTests(unittest.TestCase):
             and controller:status().inflight)
           deltaRows({'104,Chameleon power,3,300,100,-1,2'}, {})
           assert(not controller:status().inflight and not controller:status().paused)
+        """)
+
+    def test_server_queued_zero_practice_spellup_can_confirm_batch(self):
+        lua = self.runtime()
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '606,Catalysis,3,0,0,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+
+          assert(controller:runOnce())
+          feed('Queueing skill : catalysis.')
+          feed('{affon}606,300');advance(0)
+          deltaRows({'606,Catalysis,3,300,0,-1,2'}, {})
+          local status=controller:status()
+          assert(not status.inflight and not status.paused)
+        """)
+
+    def test_server_granted_zero_practice_spellup_is_refreshed_at_expiry(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '606,Catalysis,3,0,0,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+          assert(commandCount('spellup learned retry')==1)
+          feed('No spells or skills cast.')
+
+          feed('{affon}606,60');advance(0)
+          deltaRows({'606,Catalysis,3,60,0,-1,2'}, {})
+          advance(59)
+          assert(commandCount('spellup learned retry')==1)
+          advance(3)
+          assert(commandCount('spellup learned retry')==2)
         """)
 
     def test_preexisting_wearoff_does_not_hold_new_batch_open(self):

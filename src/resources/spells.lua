@@ -556,6 +556,13 @@ function Spells.new(api, character, settings)
     return classification[id] == true and row ~= nil and row.practice > 1
   end
 
+  function self:isAutomaticSpellup(id)
+    local row = catalog[id]
+    -- Aardwolf's "spellup learned" includes granted/clan abilities reported
+    -- at 0% practice, while excluding ordinary 1% unlearned abilities.
+    return classification[id] == true and row ~= nil and row.practice ~= 1
+  end
+
   function self:isFresh()
     return self.enabled and connected() and fresh and monitoring
   end
