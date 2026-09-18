@@ -68,10 +68,9 @@ bounded `slist` snapshots, and presents active effects, server-confirmed
 expirations, and recoveries in responsive tables in an “Aardwolf Spellups”
 window. Remaining time changes from green to dark yellow to red as expiry
 approaches. Its first successful mount creates a distinct
-right-side dock with a usable initial height; Mudlet restores the user's later
-placement without reusing the map or chat window. Its scroll area starts at the
-top, retains the user's position across refreshes, and does not use Mudlet's
-split console scrollback.
+right-side dock; Mudlet restores the user's later placement without reusing the
+map or chat window. Its scroll area starts at the top, retains the user's
+position across refreshes, and does not use Mudlet's split console scrollback.
 Spell machine tags are hidden by default and can be made visible without
 disabling their parsing. A single vertical-ellipsis menu provides Sync,
 Spellup now, automatic, and spell-tag visibility actions without consuming
