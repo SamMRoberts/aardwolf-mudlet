@@ -26,6 +26,8 @@ class BuffsWindowTests(unittest.TestCase):
           assert(native.values.titleText=='Aardwolf Spellups')
           assert(type(native.values.color)=='table' and native.values.color.r==11
             and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
+          assert(widgets['aardwolf-vibe.buffs-window.status'].values.fgColor=='nocolor')
+          assert(widgets['aardwolf-vibe.buffs-window.sync'].values.fgColor=='nocolor')
           assert(AardwolfVibeSpellupsWindowLayout==1
             and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
@@ -66,6 +68,21 @@ class BuffsWindowTests(unittest.TestCase):
           assert(not ok and message:find('create status label',1,true))
           assert(message:find('native color failure',1,true))
           assert(not window:status().enabled and count(handlers)==0 and count(timers)==0)
+        """)
+
+    def test_labels_do_not_use_geyser_color_echo_path(self):
+        lua = self.runtime()
+        lua.execute("""
+          local original=Geyser.Label.new
+          Geyser.Label.new=function(class,values,parent)
+            local item=original(class,values,parent)
+            item.echo=function() error('Geyser label color parser invoked') end
+            return item
+          end
+          assert(window:start())
+          assert(widgets['aardwolf-vibe.buffs-window.status'].text:find('Synchronized',1,true))
+          assert(widgets['aardwolf-vibe.buffs-window.automatic'].text:find('Enable automatic',1,true))
+          assert(window:stop())
         """)
 
 

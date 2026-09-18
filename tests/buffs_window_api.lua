@@ -17,6 +17,7 @@ local function widget(values)
   local item={name=values.name,values=values,text="",deleted=false}
   widgets[item.name]=item
   function item:echo(text) self.text=self.text..tostring(text) end
+  function item:rawEcho(text) self.text=self.text..tostring(text) end
   function item:clear() self.text="" end
   function item:setStyleSheet(value) self.style=value end
   function item:setClickCallback(callback) self.callback=callback end

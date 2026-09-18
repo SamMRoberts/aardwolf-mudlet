@@ -41,9 +41,9 @@ function BuffsWindow.new(api, spells, spellup)
   local function button(parent, name, text, callback)
     local item = api.Geyser.Label:new({name = OWNER .. "." .. name,
       x = 0, y = 32, width = "33%", height = 28,
-      fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
+      fgColor = "nocolor", bgColor = color(0, 0, 0),
       color = color(36, 54, 74)}, parent)
-    item:echo(escape(text))
+    item:rawEcho(escape(text))
     item:setStyleSheet("QLabel { background: #24364a; color: #eef5ff; "
       .. "border: 1px solid #526d8c; padding: 4px; }")
     item:setClickCallback(callback)
@@ -62,8 +62,8 @@ function BuffsWindow.new(api, spells, spellup)
       or control.pending and "Automatic maintenance: Work queued"
       or control.blockingReason and ("Automatic maintenance: " .. control.blockingReason)
       or "Automatic maintenance: Ready"
-    header:echo("<b>" .. escape(tracking) .. "</b><br>" .. escape(automation))
-    automaticButton:echo(control.automatic
+    header:rawEcho("<b>" .. escape(tracking) .. "</b><br>" .. escape(automation))
+    automaticButton:rawEcho(control.automatic
       and (control.paused and "Resume automatic" or "Pause automatic")
       or "Enable automatic")
 
@@ -155,7 +155,7 @@ function BuffsWindow.new(api, spells, spellup)
       stage = "create status label"
       header = geyser.Label:new({name = OWNER .. ".status", x = 5, y = 5,
         width = "100%-10", height = 46,
-        fgColor = color(224, 233, 245), bgColor = color(0, 0, 0),
+        fgColor = "nocolor", bgColor = color(0, 0, 0),
         color = color(17, 27, 39)}, root)
       header:setStyleSheet("QLabel { background: #111b27; color: #e0e9f5; padding: 4px; }")
       stage = "create Sync control"
