@@ -96,7 +96,10 @@ server response rejecting `retry` pauses automation until Resume.
 
 ## Window, persistence, and boundaries
 
-“Aardwolf Spellups” initially opens as its own right-side dock. A single
+“Aardwolf Spellups” initially opens as its own right-side dock with enough
+height to show its status and effect rows, even when other docks already occupy
+that side. The initial minimum is released after Mudlet lays out the dock, so it
+remains freely resizable. A single
 vertical-ellipsis menu in the status area contains Sync, Spellup now,
 automatic, and spell-tag visibility actions so the tables keep the remaining
 window space. Its unique user-window name

@@ -10,6 +10,9 @@ local CRITICAL_COLOR = "#e06161"
 local HEADING_COLOR = "#eef5ff"
 local COLUMN_COLOR = "#aebdd0"
 local MUTED_COLOR = "#8291a4"
+local WINDOW_STYLE = "QDockWidget { background-color: #0b1118; border: none; }"
+local INITIAL_DOCK_STYLE = "QDockWidget { background-color: #0b1118; border: none; "
+  .. "min-height: 300px; }"
 
 -- Component tables take the direct branch in Mudlet 5.0.1's color parser.
 -- This avoids its broken single-number path if another package has polluted a
@@ -98,6 +101,7 @@ function BuffsWindow.new(api, spells, spellup)
   local menuButton, automaticMenuItem, tagsMenuItem
   local menuItems, menuOpen = {}, false
   local timer, contentHeight, generation = nil, nil, 0
+  local releaseInitialDockHeight = false
   local handlers = {}
 
   local function cancelTimer()
@@ -167,7 +171,17 @@ function BuffsWindow.new(api, spells, spellup)
     local token = generation
     timer = api.tempTimer(1, function()
       timer = nil
-      if self.enabled and token == generation then render(); scheduleTick() end
+      if self.enabled and token == generation then
+        if releaseInitialDockHeight and window then
+          -- Mudlet ignores constructor height for a docked UserWindow. Give Qt
+          -- one layout pass with a useful minimum, then return sizing to the
+          -- user so the dock remains freely resizable.
+          window:setStyleSheet(WINDOW_STYLE)
+          releaseInitialDockHeight = false
+        end
+        render()
+        scheduleTick()
+      end
     end)
   end
 
@@ -206,6 +220,7 @@ function BuffsWindow.new(api, spells, spellup)
     contentHeight = nil
     menuButton, automaticMenuItem, tagsMenuItem = nil, nil, nil
     menuItems, menuOpen = {}, false
+    releaseInitialDockHeight = false
     self.lastError = message and tostring(message) or nil
     return message == nil
   end
@@ -227,8 +242,10 @@ function BuffsWindow.new(api, spells, spellup)
         x = 60, y = 120, width = 380, height = 520,
         restoreLayout = restoreLayout, autoDock = true, docked = true,
         dockPosition = "right",
+        stylesheet = restoreLayout and WINDOW_STYLE or INITIAL_DOCK_STYLE,
         fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
         color = color(11, 17, 24)})
+      releaseInitialDockHeight = not restoreLayout
       assert(type(window.delete) == "function", "Geyser.UserWindow deletion is required")
       stage = "create window container"
       root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,

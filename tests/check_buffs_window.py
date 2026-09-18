@@ -23,6 +23,7 @@ class BuffsWindowTests(unittest.TestCase):
           local native=widgets['aardwolf-vibe.buffs-window.window']
           assert(native.values.restoreLayout==false and native.values.docked==true
             and native.values.dockPosition=='right')
+          assert(native.values.stylesheet:find('min%-height: 300px'))
           assert(native.values.titleText=='Aardwolf Spellups')
           assert(type(native.values.color)=='table' and native.values.color.r==11
             and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
@@ -77,6 +78,7 @@ class BuffsWindowTests(unittest.TestCase):
           local timerId
           for id in pairs(timers) do timerId=id end
           local callback=timers[timerId].callback;timers[timerId]=nil;callback()
+          assert(native.style=='QDockWidget { background-color: #0b1118; border: none; }')
           assert(widgets['aardwolf-vibe.buffs-window.body']==bodyIdentity
             and widgets['aardwolf-vibe.buffs-window.content']==contentIdentity
             and content.resizeCalls==1)
@@ -103,6 +105,7 @@ class BuffsWindowTests(unittest.TestCase):
           native=widgets['aardwolf-vibe.buffs-window.window']
           assert(native.values.restoreLayout==true and native.values.docked==true
             and native.values.dockPosition=='right')
+          assert(native.values.stylesheet=='QDockWidget { background-color: #0b1118; border: none; }')
           assert(window:stop())
         """)
 
