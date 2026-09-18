@@ -21,7 +21,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
           barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;asciiShows=0
-          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil
+          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil;spellTagsSaved=nil
           spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
           buffsStarts=0;buffsStops=0;buffsShows=0;buffsHides=0
           function echo(message) messages[#messages+1]=message end
@@ -44,11 +44,12 @@ class LifecycleTests(unittest.TestCase):
             return {
               error="Malformed settings",
               load=function()
-                if initial_settings_ok then return true,initial_enabled,false end
+                if initial_settings_ok then return true,initial_enabled,false,true end
                 return nil,"Malformed settings"
               end,
               setEnabled=function(value) saved=value;return true end,
               setSpellupsAutoCast=function(value) spellupSaved=value;return true end,
+              setSpellupsHideTags=function(value) spellTagsSaved=value;return true end,
             }
           end}
           MapperFactory={new=function()
@@ -75,11 +76,16 @@ class LifecycleTests(unittest.TestCase):
             }
           end}
           SpellsFactory={new=function()
+            local hideTags=true
             return {
-              start=function() spellsStarts=spellsStarts+1;return true end,
+              start=function(_,value) spellsStarts=spellsStarts+1;hideTags=value~=false;return true end,
               stop=function() spellsStops=spellsStops+1;stopOrder[#stopOrder+1]="spells";return true end,
               sync=function() return true,"queued" end,
-              status=function() return {enabled=true,lifecycle="active",fresh=true,lastError=nil} end,
+              setHideTags=function(_,value)
+                hideTags=value;spellTagsSaved=value;return true
+              end,
+              status=function() return {enabled=true,lifecycle="active",fresh=true,
+                hideTags=hideTags,lastError=nil} end,
             }
           end}
           SpellupFactory={new=function()
@@ -355,8 +361,13 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleSpellupsCommand("sync"))
           assert(AardwolfVibe.handleSpellupsCommand("now"))
           assert(AardwolfVibe.handleSpellupsCommand("on"));assert(spellupSaved==true)
+          assert(AardwolfVibe.handleSpellupsCommand("tags-show"));assert(spellTagsSaved==false)
+          local tagStatus=AardwolfVibe.handleSpellupsCommand("tags-status")
+          assert(tagStatus.hideTags==false and messages[#messages]:find("visible",1,true))
           local status=AardwolfVibe.handleSpellupsCommand("status")
-          assert(status.spellup.automatic and messages[#messages]:find("spell tracking",1,true))
+          assert(status.spellup.automatic and not status.spells.hideTags
+            and messages[#messages]:find("spell tracking",1,true))
+          assert(AardwolfVibe.handleSpellupsCommand("tags-hide"));assert(spellTagsSaved==true)
           assert(AardwolfVibe.handleSpellupsCommand("off"));assert(spellupSaved==false)
         ''')
 

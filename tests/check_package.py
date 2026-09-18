@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.8")
+        self.assertEqual(metadata["version"], "0.7.9")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
@@ -26,7 +26,7 @@ class PackageSourceTests(unittest.TestCase):
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
-                "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now))?$",
+                "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$",
             },
         )
 

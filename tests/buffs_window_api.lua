@@ -48,12 +48,14 @@ local function class()
   return {new=function(_,values,parent) local item=widget(values);item.parent=parent;return item end}
 end
 Geyser={UserWindow=class(),Container=class(),Label=class(),MiniConsole=class()}
-spells={syncs=0}
+spells={syncs=0,hideTags=true,tagSets=0}
 function spells:snapshot()
   return {fresh=true,busy=false,active={{id=72,name="Shield",remaining=61,awaiting=false}},
-    recoveries={{id=15,name="Recovery",remaining=0,awaiting=true}}}
+    recoveries={{id=15,name="Recovery",remaining=0,awaiting=true}},hideTags=self.hideTags}
 end
 function spells:sync() self.syncs=self.syncs+1;return true end
+function spells:status() return {hideTags=self.hideTags} end
+function spells:setHideTags(value) self.hideTags=value;self.tagSets=self.tagSets+1;return true end
 spellup={runs=0,sets=0,automatic=false,paused=nil}
 function spellup:status()
   return {automatic=self.automatic,paused=self.paused,inflight=false,pending=false,blockingReason=nil}

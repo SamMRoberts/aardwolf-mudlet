@@ -9,8 +9,9 @@ local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
   {kind = "classification", command = "slist spellup noprompt"},
   {kind = "active", command = "slist affected noprompt"},
-  {kind = "recoveries", command = "slist recoveries noprompt"},
 }
+local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
+local RECOVERY_REQUESTS = {RECOVERY_REQUEST}
 
 local function copy(value)
   if type(value) ~= "table" then return value end
@@ -87,12 +88,13 @@ local function parseRecoveryRow(text)
   return id, {id = id, name = name, duration = duration}
 end
 
-function Spells.new(api, character)
+function Spells.new(api, character, settings)
   local self = {
     enabled = false,
     accepted = 0,
     rejected = 0,
     lastError = nil,
+    hideTags = true,
   }
   local catalog, classification, active, recoveries = {}, {}, {}, {}
   local handlers = {}
@@ -100,6 +102,7 @@ function Spells.new(api, character)
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
+  local recoveryRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
 
@@ -130,6 +133,10 @@ function Spells.new(api, character)
 
   local function changed()
     emit("updated", self:snapshot())
+  end
+
+  local function suppressOwnedLine()
+    if self.hideTags then api.deleteLine() end
   end
 
   local function cancelTimer(id)
@@ -265,6 +272,11 @@ function Spells.new(api, character)
         requestPlan, requestIndex = REQUESTS, 1
         pending, fresh = true, false
         scheduleDrive()
+      elseif recoveryRefreshPending then
+        recoveryRefreshPending = false
+        requestPlan, requestIndex = RECOVERY_REQUESTS, 1
+        pending, fresh = true, false
+        scheduleDrive()
       end
     else
       scheduleDrive()
@@ -299,12 +311,21 @@ function Spells.new(api, character)
     end
     return event
   end
+  local function requestRecoveryRefresh()
+    recoveryRefreshPending = true
+    if not busy and not frame and not requestPlan and fresh then
+      recoveryRefreshPending = false
+      requestPlan, requestIndex = RECOVERY_REQUESTS, 1
+    end
+    pending, fresh = true, false
+    scheduleDrive()
+  end
 
   local function receive(text)
     if not self.enabled or type(text) ~= "string" then return false end
     local value = trim(text)
     if value == "{spellup-start}" or value == "{spellup-end}" then
-      api.deleteLine()
+      suppressOwnedLine()
       emit(value == "{spellup-start}" and "batchStarted" or "complete")
       return true
     end
@@ -324,9 +345,10 @@ function Spells.new(api, character)
     local tag, payload = value:match("^{([%a]+)}(.*)$")
     if tag == "affon" or tag == "affoff" or tag == "recon"
         or tag == "recoff" or tag == "sfail" then
-      api.deleteLine()
+      suppressOwnedLine()
       local event = deltaFor(tag, payload)
       if not event then malformed("Malformed spell update: " .. tag); return true end
+      if tag == "affon" or tag == "affoff" then requestRecoveryRefresh() end
       if frame then
         if #frame.deltas >= MAX_ROWS then fail("Too many interleaved spell updates")
         else frame.deltas[#frame.deltas + 1] = event end
@@ -351,20 +373,20 @@ function Spells.new(api, character)
         at = now(),
       }
       armTimeout(request.kind)
-      api.deleteLine()
+      suppressOwnedLine()
       return true
     end
 
     if value == "{/spellheaders}" or value == "{/recoveries}" then
       if not frame then return false end
-      api.deleteLine()
+      suppressOwnedLine()
       if value ~= "{/" .. frame.header .. "}" then fail("Unmatched spell snapshot ending")
       else completeFrame() end
       return true
     end
 
     if not frame then return false end
-    api.deleteLine()
+    suppressOwnedLine()
     frame.lines = frame.lines + 1
     frame.bytes = frame.bytes + #text
     if frame.lines > MAX_ROWS or frame.bytes > MAX_BYTES then
@@ -390,6 +412,7 @@ function Spells.new(api, character)
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
+    recoveryRefreshPending = false
     lastBaseSignature = nil
     session = session + 1
     self.lastError = nil
@@ -435,7 +458,18 @@ function Spells.new(api, character)
   end
 
   function self:confirm()
-    return queue({REQUESTS[3], REQUESTS[4]})
+    return queue({REQUESTS[3]})
+  end
+
+  function self:setHideTags(value)
+    if type(value) ~= "boolean" then return nil, "Invalid spell tag setting" end
+    if settings and type(settings.setSpellupsHideTags) == "function" then
+      local ok, message = settings.setSpellupsHideTags(value)
+      if not ok then return nil, message end
+    end
+    self.hideTags = value
+    changed()
+    return true
   end
 
   function self:get(id)
@@ -509,6 +543,7 @@ function Spells.new(api, character)
       active = effects,
       recoveries = recoveryRows,
       lastError = self.lastError,
+      hideTags = self.hideTags,
     }
   end
 
@@ -524,6 +559,7 @@ function Spells.new(api, character)
       accepted = self.accepted,
       rejected = self.rejected,
       lastError = self.lastError,
+      hideTags = self.hideTags,
     }
   end
 
@@ -532,7 +568,8 @@ function Spells.new(api, character)
     handlers = {}
   end
 
-  function self:start()
+  function self:start(hideTags)
+    if type(hideTags) == "boolean" then self.hideTags = hideTags end
     if self.enabled then scheduleDrive(); return true end
     self:stop()
     generation = generation + 1
@@ -588,6 +625,7 @@ function Spells.new(api, character)
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
+    recoveryRefreshPending = false
     return true
   end
 

@@ -17,6 +17,6 @@
   {
     "name": "spellups",
     "isActive": "yes",
-    "regex": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now))?$"
+    "regex": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$"
   }
 ]

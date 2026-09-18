@@ -67,7 +67,8 @@ The spellup tracker enables only Aardwolf's spell tag option, synchronizes
 bounded `slist` snapshots, and presents confirmed effects and recoveries in an
 “Aardwolf Spellups” window. Its first successful mount creates a distinct
 right-side dock; Mudlet restores the user's later placement without reusing the
-map or chat window. Automatic maintenance defaults off.
+map or chat window. Spell machine tags are hidden by default and can be made
+visible without disabling their parsing. Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,
@@ -96,15 +97,19 @@ aardwolf-vibe spellups sync
 aardwolf-vibe spellups on
 aardwolf-vibe spellups off
 aardwolf-vibe spellups now
+aardwolf-vibe spellups tags hide
+aardwolf-vibe spellups tags show
+aardwolf-vibe spellups tags status
 ```
 
 Mapping is enabled on first install. The selected state persists in
 `aardwolf-vibe-data/settings.json` under the active profile. Before the first
 map mutation of each activation, the package saves a timestamped native map
 backup under `aardwolf-vibe-data/backups/`.
-The same settings file stores the automatic-spellup opt-in; its default is
-`false`. Mudlet owns spellup-window geometry and docking through its saved
-layout rather than package JSON.
+The same settings file stores the automatic-spellup opt-in and spell-tag
+visibility; automatic casting defaults to `false` and tag hiding defaults to
+`true`. Mudlet owns spellup-window geometry and docking through its saved layout
+rather than package JSON.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known

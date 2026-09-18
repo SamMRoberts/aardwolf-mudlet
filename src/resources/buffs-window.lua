@@ -30,7 +30,7 @@ end
 
 function BuffsWindow.new(api, spells, spellup)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, header, body, syncButton, nowButton, automaticButton
+  local window, root, header, body, syncButton, nowButton, automaticButton, tagsButton
   local timer, generation = nil, 0
   local handlers = {}
   local rendered = false
@@ -72,6 +72,7 @@ function BuffsWindow.new(api, spells, spellup)
     automaticButton:rawEcho(control.automatic
       and (control.paused and "Resume automatic" or "Pause automatic")
       or "Enable automatic")
+    tagsButton:rawEcho(snapshot.hideTags and "Show spell tags" or "Hide spell tags")
 
     body:clear()
     body:echo("Active effects\n")
@@ -132,7 +133,7 @@ function BuffsWindow.new(api, spells, spellup)
     removeHandlers()
     if window and type(window.delete) == "function" then pcall(window.delete, window) end
     window, root, header, body = nil, nil, nil, nil
-    syncButton, nowButton, automaticButton = nil, nil, nil
+    syncButton, nowButton, automaticButton, tagsButton = nil, nil, nil, nil
     rendered = false
     self.lastError = message and tostring(message) or nil
     return message == nil
@@ -191,9 +192,17 @@ function BuffsWindow.new(api, spells, spellup)
         render()
       end)
       automaticButton:move("65%", 55); automaticButton:resize("34%-5", 28)
+      stage = "create spell tag visibility control"
+      tagsButton = button(root, "tags", "Show spell tags", function()
+        local hidden = spells:status().hideTags
+        local accepted, why = spells:setHideTags(not hidden)
+        if not accepted then self.lastError = why end
+        render()
+      end)
+      tagsButton:move(5, 88); tagsButton:resize("100%-10", 28)
       stage = "create effects console"
-      body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 88,
-        width = "100%-10", height = "100%-93", autoWrap = true, scrollBar = true,
+      body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 121,
+        width = "100%-10", height = "100%-126", autoWrap = true, scrollBar = true,
         scrolling = false,
         font = "Menlo", fontSize = 11,
         fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),

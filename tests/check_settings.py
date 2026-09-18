@@ -42,21 +42,25 @@ class SettingsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             lua, factory, api = self.runtime(directory)
             settings = factory.new(api)
-            loaded, enabled, spellups = settings.load()
+            loaded, enabled, spellups, hide_tags = settings.load()
             self.assertTrue(loaded)
             self.assertTrue(enabled)
             self.assertFalse(spellups)
+            self.assertTrue(hide_tags)
             self.assertTrue(settings.setEnabled(False))
             self.assertTrue(settings.setSpellupsAutoCast(True))
+            self.assertTrue(settings.setSpellupsHideTags(False))
             document = Path(settings.path).read_text()
             self.assertIn('"mapperEnabled": false', document)
             self.assertIn('"spellupsAutoCast": true', document)
-            self.assertIn('"schemaVersion": 2', document)
+            self.assertIn('"spellupsHideTags": false', document)
+            self.assertIn('"schemaVersion": 3', document)
             again = factory.new(api)
-            loaded, enabled, spellups = again.load()
+            loaded, enabled, spellups, hide_tags = again.load()
             self.assertTrue(loaded)
             self.assertFalse(enabled)
             self.assertTrue(spellups)
+            self.assertFalse(hide_tags)
 
     def test_schema_one_migrates_atomically_with_spellups_default_off(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -66,13 +70,33 @@ class SettingsTests(unittest.TestCase):
             path = root / "settings.json"
             path.write_text('{"schemaVersion":1,"mapperEnabled":false}')
             settings = factory.new(api)
-            loaded, mapper, spellups = settings.load()
+            loaded, mapper, spellups, hide_tags = settings.load()
             self.assertTrue(loaded)
             self.assertFalse(mapper)
             self.assertFalse(spellups)
+            self.assertTrue(hide_tags)
             migrated = path.read_text()
-            self.assertIn('"schemaVersion": 2', migrated)
+            self.assertIn('"schemaVersion": 3', migrated)
             self.assertIn('"spellupsAutoCast": false', migrated)
+            self.assertIn('"spellupsHideTags": true', migrated)
+
+    def test_schema_two_migrates_with_spell_tags_hidden(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lua, factory, api = self.runtime(directory)
+            root = Path(directory) / "aardwolf-vibe-data"
+            root.mkdir()
+            path = root / "settings.json"
+            path.write_text(
+                '{"schemaVersion":2,"mapperEnabled":true,"spellupsAutoCast":true}')
+            settings = factory.new(api)
+            loaded, mapper, spellups, hide_tags = settings.load()
+            self.assertTrue(loaded)
+            self.assertTrue(mapper)
+            self.assertTrue(spellups)
+            self.assertTrue(hide_tags)
+            migrated = path.read_text()
+            self.assertIn('"schemaVersion": 3', migrated)
+            self.assertIn('"spellupsHideTags": true', migrated)
 
     def test_corrupt_settings_fail_closed_without_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -92,6 +116,9 @@ class SettingsTests(unittest.TestCase):
             self.assertIsNone(saved)
             self.assertIn("Cannot overwrite", save_message)
             self.assertEqual(path.read_text(), "not json")
+            saved, save_message = settings.setSpellupsHideTags(False)
+            self.assertIsNone(saved)
+            self.assertIn("Cannot overwrite", save_message)
 
     def test_backup_directory_is_created_outside_package_assets(self):
         with tempfile.TemporaryDirectory() as directory:

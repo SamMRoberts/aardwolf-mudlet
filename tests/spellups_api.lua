@@ -69,8 +69,9 @@ function updateVital(name,value)
   raiseEvent("aardwolf-vibe.character.updated.vitals",character.vitals,character.vitals,1,1)
   advance(0)
 end
-settings={spellupsAutoCast=false}
+settings={spellupsAutoCast=false,spellupsHideTags=true}
 function settings.setSpellupsAutoCast(value) settings.spellupsAutoCast=value; return true end
+function settings.setSpellupsHideTags(value) settings.spellupsHideTags=value; return true end
 function count(values) local result=0; for _ in pairs(values) do result=result+1 end; return result end
 function commandCount(text)
   local result=0; for _,command in ipairs(commands) do if command.text==text then result=result+1 end end
@@ -85,6 +86,11 @@ function synchronize(duration)
   spellRows("",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("spellup",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("affected",{"72,Shield,2,"..tostring(duration or 120)..",100,-1,1"})
-  feed("{recoveries noprompt}"); feed("15,Detect magic recovery,20"); feed("{/recoveries}")
+  advance(0)
+end
+function recoveryRows(rows)
+  feed("{recoveries noprompt}")
+  for _,row in ipairs(rows or {}) do feed(row) end
+  feed("{/recoveries}")
   advance(0)
 end

@@ -26,7 +26,8 @@ local Chat = resource("chat")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
-AardwolfVibe.plugins.spells = Spells.new(_G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.spells = Spells.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.settings)
 AardwolfVibe.plugins.spellup = Spellup.new(
   _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.spells,
   AardwolfVibe.settings)
@@ -45,14 +46,16 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.character:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  local spellsOK = AardwolfVibe.plugins.spells:start()
+  local settingsOK, enabled, spellupsAutoCast, spellupsHideTags =
+    AardwolfVibe.settings.load()
+  if not settingsOK then
+    echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
+  end
+  local spellsOK = AardwolfVibe.plugins.spells:start(
+    not settingsOK or spellupsHideTags ~= false)
   if not spellsOK then
     local status = AardwolfVibe.plugins.spells:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
-  end
-  local settingsOK, enabled, spellupsAutoCast = AardwolfVibe.settings.load()
-  if not settingsOK then
-    echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
   end
   local spellupOK = AardwolfVibe.plugins.spellup:start(
     settingsOK and spellupsAutoCast == true)
@@ -213,6 +216,14 @@ function AardwolfVibe.handleSpellupsCommand(action)
   if action == "now" then return spellup:runOnce() end
   if action == "on" then return spellup:setAutomatic(true) end
   if action == "off" then return spellup:setAutomatic(false) end
+  if action == "tags-hide" then return spells:setHideTags(true) end
+  if action == "tags-show" then return spells:setHideTags(false) end
+  if action == "tags-status" then
+    local status = spells:status()
+    echo("Aardwolf Vibe: spellup tags are "
+      .. (status.hideTags and "hidden" or "visible") .. ".\n")
+    return status
+  end
   if action == "status" then
     local tracking = spells:status()
     local automation = spellup:status()
@@ -224,10 +235,12 @@ function AardwolfVibe.handleSpellupsCommand(action)
       .. "; window " .. windowStatus.lifecycle .. ", "
       .. (windowStatus.visible and "visible" or "hidden")
       .. (windowStatus.lastError and (" (" .. windowStatus.lastError .. ")") or "")
+      .. "; tags " .. (tracking.hideTags and "hidden" or "visible")
       .. ".\n")
     return {spells = tracking, spellup = automation, window = windowStatus}
   end
-  echo("Usage: aardwolf-vibe spellups show|hide|status|sync|on|off|now\n")
+  echo("Usage: aardwolf-vibe spellups show|hide|status|sync|on|off|now"
+    .. " or aardwolf-vibe spellups tags show|hide|status\n")
   return false
 end
 

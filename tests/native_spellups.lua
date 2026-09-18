@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.8", "Aardwolf Vibe 0.7.8 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.9", "Aardwolf Vibe 0.7.9 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -90,9 +90,7 @@ end, function() stage(function()
   assert(not AardwolfVibe.plugins.spellup:runOnce())
   assert(#test.commands == before, "AFK readiness gate sent a command")
 
-  feedTriggers("{affon}35,55\n")
   assert(AardwolfVibe.plugins.spells:get(35).active.duration == 55)
-  feedTriggers("NATIVE_SPELL_AFTER\n")
   local lines = getLines(0, getLineCount())
   local beforeLine, afterLine
   for index, text in ipairs(lines) do
@@ -107,6 +105,10 @@ end) end) end
 activeStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist affected noprompt")
   rows("affected", {"72,Éowyn <red> & 古竜,2,600,100,-1,1"})
+  assert(AardwolfVibe.plugins.spells:isFresh())
+  feedTriggers("NATIVE_SPELL_BEFORE\n")
+  feedTriggers("{affon}35,55\n")
+  feedTriggers("NATIVE_SPELL_AFTER\n")
 end, recoveriesStage) end
 
 classificationStage = function() stage(function()
@@ -127,7 +129,6 @@ end, classificationStage) end
 
 stage(function()
   assert(AardwolfVibe.plugins.spellup:setAutomatic(false))
-  feedTriggers("NATIVE_SPELL_BEFORE\n")
   gmcp.char = gmcp.char or {}
   gmcp.char.status = {state = 3, pos = "Standing"}
   raiseEvent("gmcp.char.status")

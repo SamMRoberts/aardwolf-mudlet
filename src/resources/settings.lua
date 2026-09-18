@@ -13,16 +13,18 @@ function Settings.new(api)
     path = root .. "/settings.json",
     enabled = true,
     spellupsAutoCast = false,
+    spellupsHideTags = true,
     valid = true,
   }
 
-  local function write(mapperEnabled, spellupsAutoCast)
+  local function write(mapperEnabled, spellupsAutoCast, spellupsHideTags)
     local ok, message = self.ensureDirectory()
     if not ok then return nil, message end
     local encodedOK, bytes = pcall(api.yajl.to_string, {
-      schemaVersion = 2,
+      schemaVersion = 3,
       mapperEnabled = mapperEnabled,
       spellupsAutoCast = spellupsAutoCast,
+      spellupsHideTags = spellupsHideTags,
     })
     if not encodedOK or type(bytes) ~= "string" then return nil, "Cannot encode settings" end
     local temporary = self.path .. ".tmp"
@@ -48,7 +50,8 @@ function Settings.new(api)
       return nil, installError or "Cannot replace settings"
     end
     if hadOriginal then api.os.remove(backup) end
-    self.enabled, self.spellupsAutoCast = mapperEnabled, spellupsAutoCast
+    self.enabled, self.spellupsAutoCast, self.spellupsHideTags =
+      mapperEnabled, spellupsAutoCast, spellupsHideTags
     self.valid, self.error = true, nil
     return true
   end
@@ -72,11 +75,12 @@ function Settings.new(api)
   end
 
   function self.load()
-    self.enabled, self.spellupsAutoCast, self.valid, self.error = true, false, true, nil
+    self.enabled, self.spellupsAutoCast, self.spellupsHideTags, self.valid, self.error =
+      true, false, true, true, nil
     local file, message = api.io.open(self.path, "rb")
     if not file then
       if api.lfs.attributes(self.path) == nil then
-        return true, self.enabled, self.spellupsAutoCast
+        return true, self.enabled, self.spellupsAutoCast, self.spellupsHideTags
       end
       self.valid, self.enabled = false, false
       self.error = "Cannot read settings; original file preserved: " .. tostring(message)
@@ -91,35 +95,48 @@ function Settings.new(api)
     local validV1 = version == 1 and type(value.mapperEnabled) == "boolean" and keys == 2
     local validV2 = version == 2 and type(value.mapperEnabled) == "boolean"
       and type(value.spellupsAutoCast) == "boolean" and keys == 3
+    local validV3 = version == 3 and type(value.mapperEnabled) == "boolean"
+      and type(value.spellupsAutoCast) == "boolean"
+      and type(value.spellupsHideTags) == "boolean" and keys == 4
     if not closed or not bytes or #bytes > 65536 or not ok or type(value) ~= "table"
-        or (not validV1 and not validV2) then
+        or (not validV1 and not validV2 and not validV3) then
       self.valid, self.enabled = false, false
       self.error = "Malformed or unsupported settings; original file preserved: " .. self.path
       return nil, self.error
     end
     self.enabled = value.mapperEnabled
-    self.spellupsAutoCast = validV2 and value.spellupsAutoCast or false
-    if validV1 then
-      local migrated, migrationError = write(self.enabled, false)
+    self.spellupsAutoCast = (validV2 or validV3) and value.spellupsAutoCast or false
+    if validV3 then self.spellupsHideTags = value.spellupsHideTags
+    else self.spellupsHideTags = true end
+    if validV1 or validV2 then
+      local migrated, migrationError = write(
+        self.enabled, self.spellupsAutoCast, self.spellupsHideTags)
       if not migrated then
-        self.valid, self.enabled, self.spellupsAutoCast = false, false, false
+        self.valid, self.enabled, self.spellupsAutoCast, self.spellupsHideTags =
+          false, false, false, true
         self.error = "Cannot migrate settings; original file preserved: " .. tostring(migrationError)
         return nil, self.error
       end
     end
-    return true, self.enabled, self.spellupsAutoCast
+    return true, self.enabled, self.spellupsAutoCast, self.spellupsHideTags
   end
 
   function self.setEnabled(enabled)
     if type(enabled) ~= "boolean" then return nil, "Invalid mapper setting" end
     if not self.valid then return nil, "Cannot overwrite preserved malformed settings" end
-    return write(enabled, self.spellupsAutoCast)
+    return write(enabled, self.spellupsAutoCast, self.spellupsHideTags)
   end
 
   function self.setSpellupsAutoCast(enabled)
     if type(enabled) ~= "boolean" then return nil, "Invalid spellup setting" end
     if not self.valid then return nil, "Cannot overwrite preserved malformed settings" end
-    return write(self.enabled, enabled)
+    return write(self.enabled, enabled, self.spellupsHideTags)
+  end
+
+  function self.setSpellupsHideTags(enabled)
+    if type(enabled) ~= "boolean" then return nil, "Invalid spell tag setting" end
+    if not self.valid then return nil, "Cannot overwrite preserved malformed settings" end
+    return write(self.enabled, self.spellupsAutoCast, enabled)
   end
 
   return self

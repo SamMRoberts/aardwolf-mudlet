@@ -9,19 +9,24 @@ order after fresh active-character GMCP is available:
 slist noprompt
 slist spellup noprompt
 slist affected noprompt
-slist recoveries noprompt
 ```
+
+`slist recoveries noprompt` is requested separately only after a valid
+`{affon}` or `{affoff}` record is received. Live `{recon}` and `{recoff}`
+records still update recovery state immediately.
 
 Each frame is bounded and committed atomically. A malformed, duplicate,
 interrupted, oversized, or timed-out frame leaves the last valid data intact
 but marks synchronization stale. Exact machine records and package-owned
-frames are removed from the main console. Ordinary spell messages, prompts,
+frames are removed from the main console by default. This suppression is
+configurable and does not affect parsing. Ordinary spell messages, prompts,
 queue text, and manually requested lists remain visible.
 
 ## Commands and APIs
 
 ```text
 aardwolf-vibe spellups show|hide|status|sync|on|off|now
+aardwolf-vibe spellups tags show|hide|status
 ```
 
 Tracking starts automatically. Automatic casting starts disabled and `on` is
@@ -31,7 +36,8 @@ all readiness, interval, and outstanding-batch gates.
 
 The defensive-copy APIs are:
 
-- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, and `status()`
+- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `status()`, and
+  `setHideTags(bool)`
 - `AardwolfVibe.plugins.spellup:status()`, `setAutomatic(bool)`, and `runOnce()`
 - `AardwolfVibe.plugins.buffsWindow:show()`, `hide()`, and `status()`
 
@@ -70,7 +76,8 @@ server response rejecting `retry` pauses automation until Resume.
 ## Window, persistence, and boundaries
 
 “Aardwolf Spellups” initially opens as its own right-side dock with Sync,
-Spellup now, and automatic-maintenance controls. Its unique user-window name
+Spellup now, automatic-maintenance, and spell-tag visibility controls. Its
+unique user-window name
 keeps it separate from the map and chat docks. After that first successful
 mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
@@ -80,11 +87,11 @@ with duration zero; those rows are not tracked or displayed. The effects pane
 starts at the top and preserves its current scroll line across refreshes. Its
 scrollbar remains available without Mudlet's split-screen scrollback pane.
 
-Settings schema v2 retains `mapperEnabled` and adds
-`spellupsAutoCast=false`. Schema v1 migrates atomically. Malformed settings are
-preserved and fail closed. Catalogs, active effects, and recoveries are never
-persisted, and teardown intentionally does not disable spell tags because the
-server option may be shared with another package.
+Settings schema v3 retains `mapperEnabled` and `spellupsAutoCast`, and adds
+`spellupsHideTags=true`. Schemas v1 and v2 migrate atomically. Malformed
+settings are preserved and fail closed. Catalogs, active effects, and
+recoveries are never persisted, and teardown intentionally does not disable
+spell tags because the server option may be shared with another package.
 
 Pure-Lua and disposable-profile checks do not establish connected Aardwolf
 behavior. Live installation, natural tag delivery, queue behavior, special

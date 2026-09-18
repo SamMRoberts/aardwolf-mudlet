@@ -28,6 +28,7 @@ class BuffsWindowTests(unittest.TestCase):
             and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
           assert(widgets['aardwolf-vibe.buffs-window.status'].values.fgColor=='nocolor')
           assert(widgets['aardwolf-vibe.buffs-window.sync'].values.fgColor=='nocolor')
+          assert(widgets['aardwolf-vibe.buffs-window.tags'].values.fgColor=='nocolor')
           assert(AardwolfVibeSpellupsWindowLayout==1
             and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
@@ -49,6 +50,11 @@ class BuffsWindowTests(unittest.TestCase):
           widgets['aardwolf-vibe.buffs-window.now'].callback();assert(spellup.runs==1)
           widgets['aardwolf-vibe.buffs-window.automatic'].callback()
           assert(spellup.automatic and spellup.sets==1)
+          local tags=widgets['aardwolf-vibe.buffs-window.tags']
+          assert(tags.text:find('Show spell tags',1,true))
+          tags.callback()
+          assert(not spells.hideTags and spells.tagSets==1)
+          assert(tags.text:find('Hide spell tags',1,true))
           assert(window:hide() and native.hideCalls==1 and not window:status().visible)
           assert(window:show() and native.showCalls==2 and native.raiseCalls==2
             and window:status().visible)
