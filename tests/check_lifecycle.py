@@ -20,8 +20,13 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_chat_ok = chat_ok
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
-          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;chatStarts=0;chatStops=0;saved=nil
+          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;asciiShows=0
+          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil
           function echo(message) messages[#messages+1]=message end
+          function openMapWidget()
+            mapWidgetOpens=mapWidgetOpens+1
+            return true
+          end
           function send(command, echoCommand)
             sentCommands[#sentCommands+1]={
               command=command,
@@ -89,7 +94,7 @@ class LifecycleTests(unittest.TestCase):
               stop=function()
                 asciiStops=asciiStops+1;stopOrder[#stopOrder+1]="ascii";return true
               end,
-              show=function() return true end,
+              show=function() asciiShows=asciiShows+1;return true end,
               hide=function() return true end,
               status=function()
                 return {enabled=initial_ascii_ok,lifecycle=initial_ascii_ok and "active" or "stopped",
@@ -127,7 +132,7 @@ class LifecycleTests(unittest.TestCase):
             error("unexpected resource: "..path)
           end
         ''')
-        lua.execute(SOURCE.replace("@VERSION@", "0.6.0").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.6.1").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -159,6 +164,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
           assert(AardwolfVibe.active)
           assert(AardwolfVibe.handleMapperCommand("off"));assert(saved==false and mapperStops==1)
@@ -170,6 +176,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysInstallPackage","another-package")
           assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0 and chatStarts==0)
+          assert(asciiShows==0 and mapWidgetOpens==0)
           assert(#sentCommands==0)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
@@ -179,6 +186,7 @@ class LifecycleTests(unittest.TestCase):
           assert(sentCommands[1].echoCommand==false)
           assert(sentCommands[1].characterStarts==1 and sentCommands[1].barsStarts==1)
           assert(sentCommands[1].asciiStarts==1 and sentCommands[1].chatStarts==1)
+          assert(asciiShows==1 and mapWidgetOpens==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1)
@@ -189,14 +197,33 @@ class LifecycleTests(unittest.TestCase):
     def test_reload_stops_old_plugins_before_new_instance_starts(self):
         lua = self.runtime()
         lua.execute("assert(AardwolfVibe.start())")
-        lua.execute(SOURCE.replace("@VERSION@", "0.6.0").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.6.1").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
           assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
           assert(chatStops==1 and asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(chatStarts==2 and asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
+          assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
+        ''')
+
+    def test_map_visibility_failures_are_isolated_on_load(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibe.plugins.asciiMap.show=function()
+            asciiShows=asciiShows+1;return false,"ASCII show failure"
+          end
+          function openMapWidget() error("native mapper failure") end
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(AardwolfVibe.active)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(mapperStarts==1 and asciiShows==1)
+          assert(#messages==2)
+          assert(messages[1]:find("unable to show ASCII minimap",1,true))
+          assert(messages[1]:find("ASCII show failure",1,true))
+          assert(messages[2]:find("unable to show native mapper",1,true))
+          assert(messages[2]:find("native mapper failure",1,true))
         ''')
 
     def test_install_refresh_failure_does_not_stop_package(self):

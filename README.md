@@ -15,6 +15,8 @@ forward-and-return GMCP exit pairs confirm direct adjacency without causing the
 mapper to invent a reverse exit.
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
+The native graphical mapper is reopened automatically whenever the profile
+launches.
 
 Terrain names follow Aardwolf's complete terrain catalog (including roads,
 weather, water, ice, hell, structures, and dead-land variants) and use the
@@ -46,6 +48,8 @@ literal spacing and server colors while suppressing the duplicate frame in the
 main console. It starts in the right dock and Mudlet restores the user's later
 floating, docked, resized, or tabbed layout. See
 [`docs/ascii-map.md`](docs/ascii-map.md) for its API and capture contract.
+The minimap is also reopened automatically on every profile launch; hiding it
+remains effective for the rest of the current session.
 
 The always-active chat plugin consumes `gmcp.comm.channel` into a movable,
 resizable native window that starts docked across the top. Its initial All,

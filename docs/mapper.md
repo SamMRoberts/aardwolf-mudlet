@@ -28,6 +28,10 @@ north of room 101. A one-way GMCP exit remains a directed exit and its initial
 placeholder remains provisional; the mapper does not invent the missing return
 exit.
 
+The package lifecycle calls Mudlet's `openMapWidget()` after profile load and
+package installation so the native graphical mapper is visible. This does not
+replace or clear map data and does not change the mapper's saved layout.
+
 ## Identity and ownership
 
 The positive integer `room.info.num` is the native Mudlet room ID. Known numeric

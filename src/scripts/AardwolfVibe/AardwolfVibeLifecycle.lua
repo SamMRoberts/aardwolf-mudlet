@@ -78,6 +78,24 @@ function AardwolfVibe.stop()
   return chatOK and asciiOK and barsOK and characterOK and mapperOK
 end
 
+local function showMaps()
+  local asciiCalled, asciiOK, asciiMessage = pcall(
+    AardwolfVibe.plugins.asciiMap.show, AardwolfVibe.plugins.asciiMap)
+  if not asciiCalled or asciiOK == false then
+    local detail = asciiCalled and asciiMessage or asciiOK
+    echo("Aardwolf Vibe: unable to show ASCII minimap: "
+      .. tostring(detail) .. "\n")
+  end
+
+  local mapperCalled, mapperOK, mapperMessage = pcall(openMapWidget)
+  if not mapperCalled or mapperOK == false then
+    local detail = mapperCalled and mapperMessage or mapperOK
+    echo("Aardwolf Vibe: unable to show native mapper: "
+      .. tostring(detail) .. "\n")
+  end
+  return asciiCalled and asciiOK ~= false and mapperCalled and mapperOK ~= false
+end
+
 function AardwolfVibe.requestCharacterRefresh()
   local ok, message = pcall(send, "protocols gmcp sendchar", false)
   if not ok then
@@ -146,8 +164,10 @@ end
 function AardwolfVibeLifecycle(event, packageName)
   if event == "sysLoadEvent" then
     AardwolfVibe.start()
+    showMaps()
   elseif event == "sysInstallPackage" and packageName == "@PKGNAME@" then
     AardwolfVibe.start()
+    showMaps()
     AardwolfVibe.requestCharacterRefresh()
   elseif event == "sysUninstallPackage" and packageName == "@PKGNAME@" then
     AardwolfVibe.stop()

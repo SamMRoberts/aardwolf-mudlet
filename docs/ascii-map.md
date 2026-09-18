@@ -4,7 +4,8 @@
 owned native Mudlet user window. The map canvas is borderless and black; the
 native title frame remains available so the user can move, resize, float,
 dock, or tab the window. On first use it opens in the right dock. Mudlet owns
-subsequent layout restoration.
+subsequent layout restoration, while Aardwolf Vibe overrides a restored hidden
+state and shows the minimap on every profile launch.
 
 ## Public API and commands
 
@@ -28,7 +29,10 @@ aardwolf-vibe minimap status
 ```
 
 Closing or hiding the native window does not disable the feature. `show`
-reopens it with the most recently captured complete map.
+reopens it with the most recently captured complete map. A manual hide remains
+effective for the current session, but the next profile launch shows the
+minimap again. The lifecycle also calls Mudlet's `openMapWidget()` so the native
+graphical mapper is visible after launch without replacing its map or layout.
 
 ## MAP tag negotiation
 
