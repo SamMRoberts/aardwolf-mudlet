@@ -21,6 +21,7 @@ local function widget(values)
     self.rawEchoCalls=(self.rawEchoCalls or 0)+1;self.text=tostring(text)
   end
   function item:setStyleSheet(value) self.style=value end
+  function item:setToolTip(value) self.toolTip=value end
   function item:setClickCallback(callback) self.callback=callback end
   function item:move(x,y) self.x=x;self.y=y end
   function item:resize(width,height)

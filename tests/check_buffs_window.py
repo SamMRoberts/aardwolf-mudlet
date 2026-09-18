@@ -26,15 +26,25 @@ class BuffsWindowTests(unittest.TestCase):
           assert(native.values.titleText=='Aardwolf Spellups')
           assert(type(native.values.color)=='table' and native.values.color.r==11
             and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
-          assert(widgets['aardwolf-vibe.buffs-window.status'].values.fgColor=='nocolor')
-          assert(widgets['aardwolf-vibe.buffs-window.sync'].values.fgColor=='nocolor')
-          assert(widgets['aardwolf-vibe.buffs-window.tags'].values.fgColor=='nocolor')
+          local status=widgets['aardwolf-vibe.buffs-window.status']
+          assert(status.values.fgColor=='nocolor')
+          assert(status.text:find('Automatic: Off',1,true))
+          assert(not status.text:find('Automatic maintenance',1,true))
+          local menu=widgets['aardwolf-vibe.buffs-window.menu']
+          assert(menu and menu.values.fgColor=='nocolor'
+            and menu.text=='<div align="center">&#8942;</div>'
+            and menu.toolTip=='Spellup actions')
+          assert(widgets['aardwolf-vibe.buffs-window.sync']==nil
+            and widgets['aardwolf-vibe.buffs-window.now']==nil
+            and widgets['aardwolf-vibe.buffs-window.automatic']==nil
+            and widgets['aardwolf-vibe.buffs-window.tags']==nil)
           assert(AardwolfVibeSpellupsWindowLayout==1
             and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
           local body=widgets['aardwolf-vibe.buffs-window.body']
           local content=widgets['aardwolf-vibe.buffs-window.content']
           assert(body and content and content.parent==body)
+          assert(body.values.y==55 and body.values.height=='100%-60')
           assert(content.text:find('Active Effects',1,true)
             and content.text:find('Expired Effects',1,true)
             and content.text:find('Recoveries',1,true))
@@ -49,7 +59,21 @@ class BuffsWindowTests(unittest.TestCase):
           assert(widgets['aardwolf-vibe.buffs-window.body']==bodyIdentity
             and widgets['aardwolf-vibe.buffs-window.content']==contentIdentity
             and content.resizeCalls==1)
-          widgets['aardwolf-vibe.buffs-window.sync'].callback();assert(spells.syncs==1)
+          local sync=widgets['aardwolf-vibe.buffs-window.menu.sync']
+          local now=widgets['aardwolf-vibe.buffs-window.menu.now']
+          local automatic=widgets['aardwolf-vibe.buffs-window.menu.automatic']
+          local tags=widgets['aardwolf-vibe.buffs-window.menu.tags']
+          assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
+          menu.callback()
+          assert(not sync.hidden and not now.hidden and not automatic.hidden and not tags.hidden)
+          assert(sync.raiseCalls==1 and tags.raiseCalls==1 and menu.raiseCalls==1)
+          raiseEvent('aardwolf-vibe.spells.updated')
+          assert(not sync.hidden and not now.hidden and not automatic.hidden and not tags.hidden)
+          menu.callback()
+          assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
+          menu.callback()
+          sync.callback();assert(spells.syncs==1)
+          assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
           local timerId
           for id in pairs(timers) do timerId=id end
           local callback=timers[timerId].callback;timers[timerId]=nil;callback()
@@ -57,15 +81,18 @@ class BuffsWindowTests(unittest.TestCase):
             and widgets['aardwolf-vibe.buffs-window.content']==contentIdentity
             and content.resizeCalls==1)
           assert(content.rawEchoCalls>=4 and type(content.height)=='number')
-          widgets['aardwolf-vibe.buffs-window.now'].callback();assert(spellup.runs==1)
-          widgets['aardwolf-vibe.buffs-window.automatic'].callback()
+          menu.callback();now.callback();assert(spellup.runs==1 and now.hidden)
+          menu.callback();automatic.callback()
           assert(spellup.automatic and spellup.sets==1)
-          local tags=widgets['aardwolf-vibe.buffs-window.tags']
+          assert(status.text:find('Automatic: Ready',1,true))
+          assert(automatic.text:find('Pause automatic',1,true))
           assert(tags.text:find('Show spell tags',1,true))
-          tags.callback()
+          menu.callback();tags.callback()
           assert(not spells.hideTags and spells.tagSets==1)
           assert(tags.text:find('Hide spell tags',1,true))
+          menu.callback();assert(not tags.hidden)
           assert(window:hide() and native.hideCalls==1 and not window:status().visible)
+          assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
           assert(window:show() and native.showCalls==2 and native.raiseCalls==2
             and window:status().visible)
           assert(window:start() and count(handlers)==2)
@@ -140,7 +167,7 @@ class BuffsWindowTests(unittest.TestCase):
           end
           assert(window:start())
           assert(widgets['aardwolf-vibe.buffs-window.status'].text:find('Synchronized',1,true))
-          assert(widgets['aardwolf-vibe.buffs-window.automatic'].text:find('Enable automatic',1,true))
+          assert(widgets['aardwolf-vibe.buffs-window.menu.automatic'].text:find('Enable automatic',1,true))
           assert(window:stop())
         """)
 

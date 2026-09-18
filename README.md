@@ -72,7 +72,9 @@ right-side dock; Mudlet restores the user's later placement without reusing the
 map or chat window. Its scroll area starts at the top, retains the user's
 position across refreshes, and does not use Mudlet's split console scrollback.
 Spell machine tags are hidden by default and can be made visible without
-disabling their parsing. Automatic maintenance defaults off.
+disabling their parsing. A single vertical-ellipsis menu provides Sync,
+Spellup now, automatic, and spell-tag visibility actions without consuming
+table space. Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,

@@ -87,9 +87,10 @@ server response rejecting `retry` pauses automation until Resume.
 
 ## Window, persistence, and boundaries
 
-“Aardwolf Spellups” initially opens as its own right-side dock with Sync,
-Spellup now, automatic-maintenance, and spell-tag visibility controls. Its
-unique user-window name
+“Aardwolf Spellups” initially opens as its own right-side dock. A single
+vertical-ellipsis menu in the status area contains Sync, Spellup now,
+automatic, and spell-tag visibility actions so the tables keep the remaining
+window space. Its unique user-window name
 keeps it separate from the map and chat docks. After that first successful
 mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
