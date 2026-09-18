@@ -105,10 +105,15 @@ class BuffsWindowTests(unittest.TestCase):
           assert(not spells.hideTags and spells.tagSets==1)
           assert(tags.text:find('Hide spell tags',1,true))
           menu.callback();assert(not tags.hidden)
+          local renderCalls=content.rawEchoCalls
           assert(window:hide() and native.hideCalls==1 and not window:status().visible)
+          assert(count(timers)==0)
           assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
+          raiseEvent('aardwolf-vibe.spells.updated')
+          assert(content.rawEchoCalls==renderCalls)
           assert(window:show() and native.showCalls==2 and native.raiseCalls==2
             and window:status().visible)
+          assert(content.rawEchoCalls==renderCalls+1 and count(timers)==1)
           assert(window:start() and count(handlers)==2)
           assert(window:stop() and count(handlers)==0 and count(timers)==0 and count(widgets)==0)
 

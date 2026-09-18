@@ -68,11 +68,14 @@ combat, sleeping, resting, running, paging, editing, disconnection, or stale
 status retains automatic work without submitting it.
 
 On opt-in, the tracker synchronizes before the initial batch. Later batches
-react only to a confirmed learned-spellup `{affoff}` or the end of a blocking
-recovery. Wearoffs coalesce for two seconds, batches remain at least 30 seconds
-apart, and only one may be outstanding. Unambiguous manual self-spellup
-commands are observed so automatic work cannot collide; previews and forms
-that might target another player are ignored.
+react when a learned spellup reaches its tracked server-reported expiration,
+when `{affoff}` confirms it missing, or when a blocking recovery ends. The
+controller owns one timer for the nearest relevant expiration and reschedules
+it when effect data changes instead of polling every effect. Expirations
+coalesce for two seconds, batches remain at least 30 seconds apart, and only
+one may be outstanding. Unambiguous manual self-spellup commands are observed
+so automatic work cannot collide; previews and forms that might target another
+player are ignored.
 
 `{spellup-end}` is authoritative completion. In its absence, an
 affon/affoff-triggered affected snapshot can confirm all observed queued
@@ -84,9 +87,10 @@ never polls for completion. If a tracked effect wears off while a batch is
 still running, that pending work is rescheduled as soon as the current batch is
 confirmed complete and still observes the 30-second minimum interval.
 After 120 seconds without confirmation, automation pauses and keeps the
-outstanding lock. Resume waits for server tags instead of assuming the old
-batch ended. A disconnect may release that lock because the old server queue
-can no longer execute.
+outstanding lock. Pending expiry work is retained but cannot submit another
+batch until late completion evidence releases that lock. Resume waits for
+server tags instead of assuming the old batch ended. A disconnect may release
+that lock because the old server queue can no longer execute.
 
 Failure codes are conservative: concentration failures remain owned by the
 server's `retry`; already-affected is satisfied; recoveries, resources, room
@@ -104,14 +108,17 @@ visibility actions so the tables keep the remaining window space. Its unique
 user-window name keeps it separate from the map and chat docks. After that
 first successful mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
-zero displays “Awaiting server confirmation”; it never invents a wearoff or
-causes a cast. Active effects and recoveries use green remaining time above two
+zero displays “Awaiting server confirmation” and does not add the effect to the
+confirmed-expired collection. With automatic maintenance enabled, that tracked
+expiration queues the server-owned spellup batch, which rechecks the effect on
+the server. Active effects and recoveries use green remaining time above two
 minutes, dark yellow from 31 through 120 seconds, and red at 30 seconds or less.
 The server's complete recovery catalog includes inactive rows with duration
 zero; those rows are not tracked or displayed. The table pane starts at the top
 and preserves its current scroll position across refreshes. It uses a Geyser
 scroll area rather than a console, so scrolling cannot open Mudlet's split-screen
-scrollback pane.
+scrollback pane. The one-second countdown repaint runs only while the window is
+visible; showing the window renders a fresh snapshot before restarting it.
 
 Settings schema v3 retains `mapperEnabled` and `spellupsAutoCast`, and adds
 `spellupsHideTags=true`. Schemas v1 and v2 migrate atomically. Malformed
