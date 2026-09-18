@@ -82,7 +82,11 @@ function Spellup.new(api, character, spells, settings)
   local function activeSet()
     local result = {}
     for _, effect in ipairs(spells:snapshot().active) do
-      if effect.spellup and effect.learned and not effect.awaiting then result[effect.id] = true end
+      -- The server's "learned" filter can still queue granted/clan abilities
+      -- whose catalog practice is 0% (for example, Catalysis).  Once the
+      -- server names an ability in this batch, its active effect must count
+      -- as completion evidence regardless of local practice metadata.
+      if effect.spellup and not effect.awaiting then result[effect.id] = true end
     end
     return result
   end
@@ -143,7 +147,7 @@ function Spellup.new(api, character, spells, settings)
     local effects = type(snapshot) == "table" and snapshot.active
       or spells:snapshot().active
     for _, effect in ipairs(type(effects) == "table" and effects or {}) do
-      if effect.spellup and effect.learned and type(effect.expires) == "number" then
+      if spells:isAutomaticSpellup(effect.id) and type(effect.expires) == "number" then
         current[effect.id] = effect.expires
         if effect.expires <= timestamp then
           if signaledExpiries[effect.id] ~= effect.expires then
@@ -378,7 +382,7 @@ function Spellup.new(api, character, spells, settings)
         watchExpiries(snapshot)
       end, token)
       on("missing", "aardwolf-vibe.spells.missing", function(_, id)
-        if self.automatic and spells:isLearnedSpellup(id) then queueWork() end
+        if self.automatic and spells:isAutomaticSpellup(id) then queueWork() end
       end, token)
       on("recovered", "aardwolf-vibe.spells.recovered", function(_, id)
         if blocked and blocked.code == 3 and blocked.recovery == id then

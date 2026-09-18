@@ -405,6 +405,42 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().inflight and not controller:status().paused)
         """)
 
+    def test_server_queued_zero_practice_spellup_can_confirm_batch(self):
+        lua = self.runtime()
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '606,Catalysis,3,0,0,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+
+          assert(controller:runOnce())
+          feed('Queueing skill : catalysis.')
+          feed('{affon}606,300');advance(0)
+          deltaRows({'606,Catalysis,3,300,0,-1,2'}, {})
+          local status=controller:status()
+          assert(not status.inflight and not status.paused)
+        """)
+
+    def test_server_granted_zero_practice_spellup_is_refreshed_at_expiry(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '606,Catalysis,3,0,0,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows)
+          assert(commandCount('spellup learned retry')==1)
+          feed('No spells or skills cast.')
+
+          feed('{affon}606,60');advance(0)
+          deltaRows({'606,Catalysis,3,60,0,-1,2'}, {})
+          advance(59)
+          assert(commandCount('spellup learned retry')==1)
+          advance(3)
+          assert(commandCount('spellup learned retry')==2)
+        """)
+
     def test_preexisting_wearoff_does_not_hold_new_batch_open(self):
         lua = self.runtime()
         lua.execute("""

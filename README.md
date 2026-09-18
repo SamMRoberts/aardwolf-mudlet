@@ -88,8 +88,9 @@ automatic, and spell-tag visibility actions without consuming table space.
 Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
-commands. A single nearest-expiry timer queues that server-owned batch when a
-learned spellup reaches its tracked expiration, without polling every effect.
+commands. A single nearest-expiry timer queues that server-owned batch when an
+eligible spellup reaches its tracked expiration, including granted abilities
+that Aardwolf reports at 0% practice, without polling every effect.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 

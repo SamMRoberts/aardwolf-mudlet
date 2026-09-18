@@ -68,24 +68,29 @@ combat, sleeping, resting, running, paging, editing, disconnection, or stale
 status retains automatic work without submitting it.
 
 On opt-in, the tracker synchronizes before the initial batch. Later batches
-react when a learned spellup reaches its tracked server-reported expiration,
-when `{affoff}` confirms it missing, or when a blocking recovery ends. The
-controller owns one timer for the nearest relevant expiration and reschedules
-it when effect data changes instead of polling every effect. Expirations
-coalesce for two seconds, batches remain at least 30 seconds apart, and only
-one may be outstanding. Unambiguous manual self-spellup commands are observed
-so automatic work cannot collide; previews and forms that might target another
-player are ignored.
+react when a server-eligible spellup reaches its tracked server-reported
+expiration, when `{affoff}` confirms it missing, or when a blocking recovery
+ends. Eligibility includes learned abilities above 1% practice and granted or
+clan abilities that Aardwolf reports at 0% but still queues for
+`spellup learned`. The controller owns one timer for the nearest relevant
+expiration and reschedules it when effect data changes instead of polling every
+effect.
+Expirations coalesce for two seconds, batches remain at least 30 seconds apart,
+and only one may be outstanding. Unambiguous manual self-spellup commands are
+observed so automatic work cannot collide; previews and forms that might target
+another player are ignored.
 
 `{spellup-end}` is authoritative completion. In its absence, an
 affon/affoff-triggered affected snapshot can confirm all observed queued
 abilities and terminal failures. Queue aliases such as a skill command whose
 name differs from its catalog name are reconciled by their confirmed affon or
-affected-snapshot result. Pre-existing effects are not attributed to the new
-batch, so an unrelated wearoff cannot keep that batch locked. The controller
-never polls for completion. If a tracked effect wears off while a batch is
-still running, that pending work is rescheduled as soon as the current batch is
-confirmed complete and still observes the 30-second minimum interval.
+affected-snapshot result. Server-queued targets count as completion evidence
+even when local practice metadata is 0%, so granted abilities such as Catalysis
+cannot hold a successful batch open. Pre-existing effects are not attributed
+to the new batch, so an unrelated wearoff cannot keep that batch locked. The
+controller never polls for completion. If a tracked effect wears off while a
+batch is still running, that pending work is rescheduled as soon as the current
+batch is confirmed complete and still observes the 30-second minimum interval.
 After 120 seconds without confirmation, automation pauses and keeps the
 outstanding lock. Pending expiry work is retained but cannot submit another
 batch until late completion evidence releases that lock. Resume waits for

@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.18", "Aardwolf Vibe 0.7.18 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.19", "Aardwolf Vibe 0.7.19 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -61,6 +61,7 @@ end
 local catalogRows = {
   "72,Éowyn <red> & 古竜,2,0,100,-1,1",
   "35,Detect magic,2,0,100,15,1",
+  "606,Catalysis,3,0,0,-1,2",
 }
 for id = 100, 119 do
   catalogRows[#catalogRows + 1] = string.format(
@@ -121,6 +122,8 @@ end, function() stage(function()
   assert(#copy.active == 22, "Synthetic table did not overflow")
   copy.active[1].name = "changed"
   assert(AardwolfVibe.plugins.spells:get(72).name == "Éowyn <red> & 古竜")
+  assert(not AardwolfVibe.plugins.spells:isLearnedSpellup(606))
+  assert(AardwolfVibe.plugins.spells:isAutomaticSpellup(606))
   assert(not AardwolfVibe.plugins.spellup:status().automatic)
   assert(AardwolfVibe.plugins.buffsWindow:status().enabled)
   assert(AardwolfVibe.plugins.buffsWindow:hide())
