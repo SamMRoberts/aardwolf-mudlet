@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.10", "Aardwolf Vibe 0.7.10 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.11", "Aardwolf Vibe 0.7.11 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -104,11 +104,10 @@ end) end) end
 
 activeStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist affected noprompt")
-  rows("affected", {"72,Éowyn <red> & 古竜,2,600,100,-1,1"})
-  assert(AardwolfVibe.plugins.spells:isFresh())
-  feedTriggers("NATIVE_SPELL_BEFORE\n")
-  feedTriggers("{affon}35,55\n")
-  feedTriggers("NATIVE_SPELL_AFTER\n")
+  rows("affected", {
+    "72,Éowyn <red> & 古竜,2,600,100,-1,1",
+    "35,Detect magic,2,55,100,15,1",
+  })
 end, recoveriesStage) end
 
 classificationStage = function() stage(function()
@@ -117,6 +116,10 @@ classificationStage = function() stage(function()
     "72,Éowyn <red> & 古竜,2,0,100,-1,1",
     "35,Detect magic,2,0,100,15,1",
   })
+  assert(AardwolfVibe.plugins.spells:isFresh())
+  feedTriggers("NATIVE_SPELL_BEFORE\n")
+  feedTriggers("{affon}35,55\n")
+  feedTriggers("NATIVE_SPELL_AFTER\n")
 end, activeStage) end
 
 catalogStage = function() stage(function()

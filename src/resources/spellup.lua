@@ -33,11 +33,11 @@ function Spellup.new(api, character, spells, settings)
   local self = {enabled = false, automatic = false, lastError = nil}
   local handlers = {}
   local generation = 0
-  local timer, batchTimer, probeTimer
+  local timer, batchTimer
   local pendingAt, lastSent
   local inflight, external = false, false
   local paused, blocked
-  local initial, confirming = false, false
+  local initial = false
   local observed, unknown = false, false
   local targets, settled = {}, {}
   local failures = {}
@@ -84,13 +84,7 @@ function Spellup.new(api, character, spells, settings)
     return result
   end
 
-  local function clearProbe()
-    cancel(probeTimer)
-    probeTimer, confirming = nil, false
-  end
-
   local function finish(reason)
-    clearProbe()
     cancel(batchTimer)
     batchTimer = nil
     inflight, external = false, false
@@ -108,26 +102,10 @@ function Spellup.new(api, character, spells, settings)
     batchTimer = api.tempTimer(BATCH_TIMEOUT, function()
       batchTimer = nil
       if not self.enabled or token ~= generation or not inflight then return end
-      clearProbe()
       paused = "Batch completion unconfirmed"
       self.lastError = paused
       pendingAt = nil
       emit()
-    end)
-  end
-
-  local function probe()
-    if probeTimer or not inflight or paused then return end
-    local token = generation
-    probeTimer = api.tempTimer(5, function()
-      probeTimer = nil
-      if not self.enabled or token ~= generation or not inflight or paused then return end
-      if not gate() and not spells:status().busy then
-        confirming = true
-        local ok = spells:confirm()
-        if not ok then confirming = false end
-      end
-      if inflight and not paused then probe() end
     end)
   end
 
@@ -173,7 +151,6 @@ function Spellup.new(api, character, spells, settings)
         return false, self.lastError
       end
     end
-    probe()
     emit()
     return true, isExternal and "Manual spellup observed" or "Spellup submitted"
   end
@@ -286,9 +263,6 @@ function Spellup.new(api, character, spells, settings)
     self.lastError = nil
     if inflight then
       armBatchTimeout()
-      confirming = true
-      local ok = spells:confirm()
-      if not ok then confirming = false; probe() end
     elseif self.automatic then
       initial = true
       spells:sync()
@@ -314,28 +288,26 @@ function Spellup.new(api, character, spells, settings)
       on("status", "aardwolf-vibe.character.updated.status", statusChanged, token)
       on("vitals", "aardwolf-vibe.character.updated.vitals", vitalsChanged, token)
       on("reset", "aardwolf-vibe.spells.reset", function()
-        clearProbe()
         if not connected() then
           cancel(batchTimer); batchTimer = nil
           inflight, external = false, false
           lastSent = nil
         end
         targets, settled = {}, {}
-        observed, unknown, confirming = false, false, false
+        observed, unknown = false, false
         blocked, failures = nil, {}
         pendingAt, initial = nil, self.automatic
         schedule()
         emit()
       end, token)
       on("synced", "aardwolf-vibe.spells.synced", function()
-        if inflight and confirming then
-          confirming = false
+        if inflight then
           local active = activeSet()
           local complete = observed and not unknown
           for id in pairs(targets) do
             if not active[id] and not settled[id] then complete = false end
           end
-          if complete then finish("Confirmed by synchronized effects") else probe() end
+          if complete then finish("Confirmed by synchronized effects") end
         end
         schedule()
       end, token)
@@ -353,18 +325,15 @@ function Spellup.new(api, character, spells, settings)
         observed = true
         local found = spells:findByName(name)
         if #found == 1 then targets[found[1].id] = true else unknown = true end
-        probe(); emit()
+        emit()
       end, token)
       on("no-work", "aardwolf-vibe.spells.noWork", function()
         if not inflight then return end
         observed, unknown, targets = true, false, {}
-        if paused == "Batch completion unconfirmed" then paused = nil end
-        confirming = true
-        local accepted = spells:confirm()
-        if not accepted then confirming = false; probe() end
+        finish("Server reported no spellup work")
       end, token)
       on("complete", "aardwolf-vibe.spells.complete", function()
-        if inflight then finish("Confirmed by spellup-end"); spells:confirm() end
+        if inflight then finish("Confirmed by spellup-end") end
       end, token)
       on("external", "aardwolf-vibe.spells.batchStarted", function()
         if not inflight then beginBatch(true) end
@@ -421,13 +390,13 @@ function Spellup.new(api, character, spells, settings)
     generation = generation + 1
     self.enabled = false
     removeHandlers()
-    cancel(timer); cancel(batchTimer); clearProbe()
+    cancel(timer); cancel(batchTimer)
     timer, batchTimer = nil, nil
     pendingAt, initial = nil, false
     inflight, external = false, false
     paused, blocked = nil, nil
     targets, settled, failures = {}, {}, {}
-    observed, unknown, confirming = false, false, false
+    observed, unknown = false, false
     return true
   end
 

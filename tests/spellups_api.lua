@@ -85,7 +85,6 @@ end
 function synchronize(duration)
   spellRows("",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("spellup",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
-  spellRows("affected",{"72,Shield,2,"..tostring(duration or 120)..",100,-1,1"})
   advance(0)
 end
 function recoveryRows(rows)
@@ -93,4 +92,8 @@ function recoveryRows(rows)
   for _,row in ipairs(rows or {}) do feed(row) end
   feed("{/recoveries}")
   advance(0)
+end
+function deltaRows(affectedRows,recoveryRowsList)
+  spellRows("affected",affectedRows or {})
+  recoveryRows(recoveryRowsList or {})
 end

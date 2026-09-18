@@ -8,10 +8,10 @@ local SNAPSHOT_TIMEOUT = 10
 local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
   {kind = "classification", command = "slist spellup noprompt"},
-  {kind = "active", command = "slist affected noprompt"},
 }
+local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
 local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
-local RECOVERY_REQUESTS = {RECOVERY_REQUEST}
+local DELTA_REQUESTS = {ACTIVE_REQUEST, RECOVERY_REQUEST}
 
 local function copy(value)
   if type(value) ~= "table" then return value end
@@ -102,7 +102,7 @@ function Spells.new(api, character, settings)
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
-  local recoveryRefreshPending = false
+  local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
 
@@ -287,9 +287,9 @@ function Spells.new(api, character, settings)
         requestPlan, requestIndex = REQUESTS, 1
         pending, fresh = true, false
         scheduleDrive()
-      elseif recoveryRefreshPending then
-        recoveryRefreshPending = false
-        requestPlan, requestIndex = RECOVERY_REQUESTS, 1
+      elseif deltaRefreshPending then
+        deltaRefreshPending = false
+        requestPlan, requestIndex = DELTA_REQUESTS, 1
         pending, fresh = true, false
         scheduleDrive()
       end
@@ -326,11 +326,11 @@ function Spells.new(api, character, settings)
     end
     return event
   end
-  local function requestRecoveryRefresh()
-    recoveryRefreshPending = true
+  local function requestDeltaRefresh()
+    deltaRefreshPending = true
     if not busy and not frame and not requestPlan and fresh then
-      recoveryRefreshPending = false
-      requestPlan, requestIndex = RECOVERY_REQUESTS, 1
+      deltaRefreshPending = false
+      requestPlan, requestIndex = DELTA_REQUESTS, 1
     end
     pending, fresh = true, false
     scheduleDrive()
@@ -363,7 +363,7 @@ function Spells.new(api, character, settings)
       suppressOwnedLine()
       local event = deltaFor(tag, payload)
       if not event then malformed("Malformed spell update: " .. tag); return true end
-      if tag == "affon" or tag == "affoff" then requestRecoveryRefresh() end
+      if tag == "affon" or tag == "affoff" then requestDeltaRefresh() end
       if frame then
         if #frame.deltas >= MAX_ROWS then fail("Too many interleaved spell updates")
         else frame.deltas[#frame.deltas + 1] = event end
@@ -457,7 +457,7 @@ function Spells.new(api, character, settings)
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
-    recoveryRefreshPending = false
+    deltaRefreshPending = false
     lastBaseSignature = nil
     session = session + 1
     self.lastError = nil
@@ -503,7 +503,7 @@ function Spells.new(api, character, settings)
   end
 
   function self:confirm()
-    return queue({REQUESTS[3]})
+    return false, "Affected synchronization waits for affon or affoff"
   end
 
   function self:setHideTags(value)
@@ -672,7 +672,7 @@ function Spells.new(api, character, settings)
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
-    recoveryRefreshPending = false
+    deltaRefreshPending = false
     return true
   end
 

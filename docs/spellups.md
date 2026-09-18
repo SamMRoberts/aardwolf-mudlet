@@ -8,12 +8,12 @@ order after fresh active-character GMCP is available:
 ```text
 slist noprompt
 slist spellup noprompt
-slist affected noprompt
 ```
 
-`slist recoveries noprompt` is requested separately only after a valid
-`{affon}` or `{affoff}` record is received. Live `{recon}` and `{recoff}`
-records still update recovery state immediately.
+`slist affected noprompt` and `slist recoveries noprompt` are requested only
+after a valid `{affon}` or `{affoff}` record is received. They are not used as
+periodic batch-completion probes. Live `{recon}` and `{recoff}` records still
+update recovery state immediately.
 
 Each frame is bounded and committed atomically. A malformed, duplicate,
 interrupted, oversized, or timed-out frame leaves the last valid data intact
@@ -63,12 +63,13 @@ apart, and only one may be outstanding. Unambiguous manual self-spellup
 commands are observed so automatic work cannot collide; previews and forms
 that might target another player are ignored.
 
-`{spellup-end}` is authoritative completion. In its absence, a synchronized
-affected snapshot can confirm all observed queued abilities and terminal
-failures. After 120 seconds without confirmation, automation pauses and keeps
-the outstanding lock. Resume requests confirmation instead of assuming the
-old batch ended. A disconnect may release that lock because the old server
-queue can no longer execute.
+`{spellup-end}` is authoritative completion. In its absence, an
+affon/affoff-triggered affected snapshot can confirm all observed queued
+abilities and terminal failures. The controller never polls for completion.
+After 120 seconds without confirmation, automation pauses and keeps the
+outstanding lock. Resume waits for server tags instead of assuming the old
+batch ended. A disconnect may release that lock because the old server queue
+can no longer execute.
 
 Failure codes are conservative: concentration failures remain owned by the
 server's `retry`; already-affected is satisfied; recoveries, resources, room
