@@ -106,7 +106,7 @@ function BuffsWindow.new(api, spells, spellup)
 
   local function menuItem(parent, name, text, callback)
     local item = api.Geyser.Label:new({name = OWNER .. "." .. name,
-      x = "100%-205", y = 51, width = 200, height = 28,
+      x = "100%-205", y = 33, width = 200, height = 28,
       fgColor = "nocolor", bgColor = color(0, 0, 0),
       color = color(36, 54, 74)}, parent)
     item:rawEcho(escape(text))
@@ -140,15 +140,13 @@ function BuffsWindow.new(api, spells, spellup)
     if not self.enabled or not body or not content then return end
     local snapshot = spells:snapshot()
     local control = spellup:status()
-    local tracking = snapshot.fresh and "Synchronized" or snapshot.busy and "Synchronizing"
-      or "Waiting for synchronization"
-    local automation = not control.automatic and "Automatic: Off"
-      or control.paused and ("Automatic: " .. control.blockingReason)
-      or control.inflight and "Automatic: Batch outstanding"
-      or control.pending and "Automatic: Work queued"
-      or control.blockingReason and ("Automatic: " .. control.blockingReason)
-      or "Automatic: Ready"
-    header:rawEcho("<b>" .. escape(tracking) .. "</b><br>" .. escape(automation))
+    local status = not control.automatic and "Off"
+      or control.paused and (control.blockingReason or "Paused")
+      or control.inflight and "Batch outstanding"
+      or control.pending and "Work queued"
+      or control.blockingReason
+      or "Ready"
+    header:rawEcho("<b>" .. escape(status) .. "</b>")
     automaticMenuItem:rawEcho(control.automatic
       and (control.paused and "Resume automatic" or "Pause automatic")
       or "Enable automatic")
@@ -235,13 +233,13 @@ function BuffsWindow.new(api, spells, spellup)
         width = "100%", height = "100%"}, window)
       stage = "create status label"
       header = geyser.Label:new({name = OWNER .. ".status", x = 5, y = 5,
-        width = "100%-50", height = 46,
+        width = "100%-38", height = 28,
         fgColor = "nocolor", bgColor = color(0, 0, 0),
         color = color(17, 27, 39)}, root)
       header:setStyleSheet("QLabel { background: #111b27; color: #e0e9f5; padding: 4px; }")
       stage = "create effects scroll area"
-      body = geyser.ScrollBox:new({name = OWNER .. ".body", x = 5, y = 55,
-        width = "100%-10", height = "100%-60"}, root)
+      body = geyser.ScrollBox:new({name = OWNER .. ".body", x = 5, y = 38,
+        width = "100%-10", height = "100%-43"}, root)
       stage = "create effects table"
       content = geyser.Label:new({name = OWNER .. ".content", x = 0, y = 0,
         width = "100%-4", height = 260,
@@ -253,13 +251,13 @@ function BuffsWindow.new(api, spells, spellup)
         .. "padding: 4px; }")
 
       stage = "create action menu"
-      menuButton = geyser.Label:new({name = OWNER .. ".menu", x = "100%-45", y = 5,
-        width = 40, height = 46,
+      menuButton = geyser.Label:new({name = OWNER .. ".menu", x = "100%-33", y = 5,
+        width = 28, height = 28,
         fgColor = "nocolor", bgColor = color(0, 0, 0),
         color = color(36, 54, 74)}, root)
       menuButton:rawEcho('<div align="center">&#8942;</div>')
       menuButton:setStyleSheet("QLabel { background: #24364a; color: #eef5ff; "
-        .. "border: 1px solid #526d8c; padding: 8px 4px; font-size: 18px; } "
+        .. "border: 1px solid #526d8c; padding: 2px; font-size: 14px; } "
         .. "QLabel:hover { background: #304966; }")
       if type(menuButton.setToolTip) == "function" then
         menuButton:setToolTip("Spellup actions")
@@ -278,7 +276,7 @@ function BuffsWindow.new(api, spells, spellup)
         if not accepted then self.lastError = why end
         render()
       end)
-      nowMenuItem:move("100%-205", 79)
+      nowMenuItem:move("100%-205", 61)
       stage = "create automatic menu item"
       automaticMenuItem = menuItem(root, "menu.automatic", "Enable automatic", function()
         local status = spellup:status()
@@ -288,7 +286,7 @@ function BuffsWindow.new(api, spells, spellup)
         if not accepted then self.lastError = why end
         render()
       end)
-      automaticMenuItem:move("100%-205", 107)
+      automaticMenuItem:move("100%-205", 89)
       stage = "create spell tag visibility menu item"
       tagsMenuItem = menuItem(root, "menu.tags", "Show spell tags", function()
         local hidden = spells:status().hideTags
@@ -296,7 +294,7 @@ function BuffsWindow.new(api, spells, spellup)
         if not accepted then self.lastError = why end
         render()
       end)
-      tagsMenuItem:move("100%-205", 135)
+      tagsMenuItem:move("100%-205", 117)
 
       stage = "register update handlers"
       local function on(name, event)

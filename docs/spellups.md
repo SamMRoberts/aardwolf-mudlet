@@ -96,12 +96,13 @@ server response rejecting `retry` pauses automation until Resume.
 
 ## Window, persistence, and boundaries
 
-“Aardwolf Spellups” initially opens as its own right-side dock. A single
-vertical-ellipsis menu in the status area contains Sync, Spellup now,
-automatic, and spell-tag visibility actions so the tables keep the remaining
-window space. Its unique user-window name
-keeps it separate from the map and chat docks. After that first successful
-mount, Mudlet owns visibility,
+“Aardwolf Spellups” initially opens as its own right-side dock. Its compact
+header shows only the current automation state, such as Off, Ready, Work
+queued, Batch outstanding, or an actionable blocking reason. A small
+vertical-ellipsis menu contains Sync, Spellup now, automatic, and spell-tag
+visibility actions so the tables keep the remaining window space. Its unique
+user-window name keeps it separate from the map and chat docks. After that
+first successful mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
 zero displays “Awaiting server confirmation”; it never invents a wearoff or
 causes a cast. Active effects and recoveries use green remaining time above two

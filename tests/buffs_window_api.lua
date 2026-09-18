@@ -58,9 +58,11 @@ end
 function spells:sync() self.syncs=self.syncs+1;return true end
 function spells:status() return {hideTags=self.hideTags} end
 function spells:setHideTags(value) self.hideTags=value;self.tagSets=self.tagSets+1;return true end
-spellup={runs=0,sets=0,automatic=false,paused=nil}
+spellup={runs=0,sets=0,automatic=false,paused=nil,inflight=false,pending=false,
+  blockingReason=nil}
 function spellup:status()
-  return {automatic=self.automatic,paused=self.paused,inflight=false,pending=false,blockingReason=nil}
+  return {automatic=self.automatic,paused=self.paused,inflight=self.inflight,
+    pending=self.pending,blockingReason=self.blockingReason}
 end
 function spellup:runOnce() self.runs=self.runs+1;return true end
 function spellup:setAutomatic(value) self.automatic=value;self.sets=self.sets+1;return true end

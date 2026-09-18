@@ -28,12 +28,20 @@ class BuffsWindowTests(unittest.TestCase):
             and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
           local status=widgets['aardwolf-vibe.buffs-window.status']
           assert(status.values.fgColor=='nocolor')
-          assert(status.text:find('Automatic: Off',1,true))
-          assert(not status.text:find('Automatic maintenance',1,true))
+          assert(status.values.x==5 and status.values.y==5
+            and status.values.width=='100%-38' and status.values.height==28)
+          assert(status.text=='<b>Off</b>')
+          assert(not status.text:find('Automatic:',1,true)
+            and not status.text:find('Synchronized',1,true)
+            and not status.text:find('<br>',1,true))
           local menu=widgets['aardwolf-vibe.buffs-window.menu']
           assert(menu and menu.values.fgColor=='nocolor'
             and menu.text=='<div align="center">&#8942;</div>'
             and menu.toolTip=='Spellup actions')
+          assert(menu.values.x=='100%-33' and menu.values.y==5
+            and menu.values.width==28 and menu.values.height==28)
+          assert(menu.style:find('padding: 2px',1,true)
+            and menu.style:find('font-size: 14px',1,true))
           assert(widgets['aardwolf-vibe.buffs-window.sync']==nil
             and widgets['aardwolf-vibe.buffs-window.now']==nil
             and widgets['aardwolf-vibe.buffs-window.automatic']==nil
@@ -44,7 +52,8 @@ class BuffsWindowTests(unittest.TestCase):
           local body=widgets['aardwolf-vibe.buffs-window.body']
           local content=widgets['aardwolf-vibe.buffs-window.content']
           assert(body and content and content.parent==body)
-          assert(body.values.y==55 and body.values.height=='100%-60')
+          assert(body.values.x==5 and body.values.y==38
+            and body.values.width=='100%-10' and body.values.height=='100%-43')
           assert(content.text:find('Active Effects',1,true)
             and content.text:find('Expired Effects',1,true)
             and content.text:find('Recoveries',1,true))
@@ -63,6 +72,11 @@ class BuffsWindowTests(unittest.TestCase):
           local now=widgets['aardwolf-vibe.buffs-window.menu.now']
           local automatic=widgets['aardwolf-vibe.buffs-window.menu.automatic']
           local tags=widgets['aardwolf-vibe.buffs-window.menu.tags']
+          assert(sync.values.x=='100%-205' and sync.values.y==33
+            and sync.values.width==200 and sync.values.height==28)
+          assert(now.x=='100%-205' and now.y==61
+            and automatic.x=='100%-205' and automatic.y==89
+            and tags.x=='100%-205' and tags.y==117)
           assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
           menu.callback()
           assert(not sync.hidden and not now.hidden and not automatic.hidden and not tags.hidden)
@@ -84,7 +98,7 @@ class BuffsWindowTests(unittest.TestCase):
           menu.callback();now.callback();assert(spellup.runs==1 and now.hidden)
           menu.callback();automatic.callback()
           assert(spellup.automatic and spellup.sets==1)
-          assert(status.text:find('Automatic: Ready',1,true))
+          assert(status.text=='<b>Ready</b>')
           assert(automatic.text:find('Pause automatic',1,true))
           assert(tags.text:find('Show spell tags',1,true))
           menu.callback();tags.callback()
@@ -112,6 +126,31 @@ class BuffsWindowTests(unittest.TestCase):
           Geyser.ScrollBox=nil
           assert(not window:start())
           assert(not window:status().enabled and count(handlers)==0 and count(timers)==0)
+        """)
+
+    def test_compact_header_statuses_and_exact_blocking_reasons(self):
+        lua = self.runtime()
+        lua.execute("""
+          assert(window:start())
+          local status=widgets['aardwolf-vibe.buffs-window.status']
+          local function expect(value)
+            raiseEvent('aardwolf-vibe.spellup.updated')
+            assert(status.text=='<b>'..value..'</b>',status.text)
+            assert(not status.text:find('Automatic:',1,true)
+              and not status.text:find('Synchronized',1,true)
+              and not status.text:find('<br>',1,true))
+          end
+          expect('Off')
+          spellup.automatic=true;expect('Ready')
+          spellup.pending=true;expect('Work queued')
+          spellup.pending=false;spellup.inflight=true;expect('Batch outstanding')
+          spellup.inflight=false;spellup.blockingReason='Character is not standing'
+          expect('Character is not standing')
+          spellup.paused='Server did not accept retry'
+          spellup.blockingReason='Paused: Server did not accept retry'
+          expect('Paused: Server did not accept retry')
+          spellup.blockingReason=nil;expect('Paused')
+          assert(window:stop())
         """)
 
     def test_table_colors_boundaries_empty_states_and_escaping(self):
@@ -166,7 +205,7 @@ class BuffsWindowTests(unittest.TestCase):
             return item
           end
           assert(window:start())
-          assert(widgets['aardwolf-vibe.buffs-window.status'].text:find('Synchronized',1,true))
+          assert(widgets['aardwolf-vibe.buffs-window.status'].text=='<b>Off</b>')
           assert(widgets['aardwolf-vibe.buffs-window.menu.automatic'].text:find('Enable automatic',1,true))
           assert(window:stop())
         """)
