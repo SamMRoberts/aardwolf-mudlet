@@ -209,35 +209,42 @@ class CharacterBarsTests(unittest.TestCase):
         lua.execute('''
           local hp=gauge("hp")
           local level=statusCell("level")
-          assert(borderBottom==70 and bars:status().rows==1)
+          assert(borderBottom==60 and bars:status().rows==1)
           assert(widgets["aardwolf-vibe.character-bars.root"].y==-60)
+          assert(windowHeight-borderBottom==windowHeight+
+            widgets["aardwolf-vibe.character-bars.root"].y)
           assert(statusCell("level").y==5 and statusCell("state").y==5)
           assert(math.abs(statusCell("level").width-392.66666666667)<0.001)
           assert(gauge("hp").y==33 and gauge("align").y==33)
           windowWidth=839;fire("sysWindowResizeEvent")
-          assert(borderBottom==98 and bars:status().rows==2)
+          assert(borderBottom==88 and bars:status().rows==2)
           assert(widgets["aardwolf-vibe.character-bars.root"].y==-88)
+          assert(windowHeight-borderBottom==windowHeight+
+            widgets["aardwolf-vibe.character-bars.root"].y)
           assert(statusCell("level")==level and statusCell("level").y==5)
           assert(gauge("hp")==hp and gauge("hp").y==33 and gauge("tnl").y==61)
           assert(math.abs(gauge("hp").width-272.33333333333)<0.001)
           assert(math.abs(statusCell("level").width-272.33333333333)<0.001)
           windowWidth=840;fire("sysWindowResizeEvent")
-          assert(borderBottom==70 and bars:status().rows==1 and gauge("hp")==hp)
+          assert(borderBottom==60 and bars:status().rows==1 and gauge("hp")==hp)
           assert(statusCell("level")==level)
           assert(widgets["aardwolf-vibe.character-bars.root"].y==-60)
         ''')
 
-    def test_preexisting_bottom_border_does_not_create_gap_below_bars(self):
+    def test_preexisting_bottom_border_is_replaced_while_active_and_restored(self):
         lua = self.runtime(False)
         lua.execute('''
           borderBottom=180
           assert(bars:start())
           local root=widgets["aardwolf-vibe.character-bars.root"]
-          assert(borderBottom==240 and root.y==-60 and root.height==60)
+          assert(borderBottom==60 and root.y==-60 and root.height==60)
+          assert(windowHeight-borderBottom==windowHeight+root.y)
           windowHeight=1000;fire("sysWindowResizeEvent")
           assert(root.y==-60 and root.height==60)
+          assert(windowHeight-borderBottom==windowHeight+root.y)
           windowWidth=839;fire("sysWindowResizeEvent")
-          assert(borderBottom==268 and root.y==-88 and root.height==88)
+          assert(borderBottom==88 and root.y==-88 and root.height==88)
+          assert(windowHeight-borderBottom==windowHeight+root.y)
           assert(bars:stop() and borderBottom==180)
         ''')
 

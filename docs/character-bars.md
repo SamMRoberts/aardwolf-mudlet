@@ -73,13 +73,14 @@ of three and reserve 88 pixels. Labels and gauges are 22 pixels high with
 of recreating them.
 
 The root uses a negative Geyser Y constraint so its bottom edge remains
-attached to the command-line edge. Any bottom-border space that existed before
-the package loaded remains reserved above the bars instead of becoming a blank
-gap between the bars and the command input.
+attached to the command-line edge. While active, the component reserves exactly
+its own 60- or 88-pixel height instead of adding the previous bottom border.
+This lets the main output console expand until it meets the top of the bars,
+without an empty region between them.
 
-The component records the previous bottom border. If another package changes
-that border after the bars mount, the bars stop and preserve the newer layout
-rather than overwriting it. There is no visibility setting or command, so
+The component records and restores the previous bottom border when it stops. If
+another package changes that border after the bars mount, the bars stop and
+preserve the newer layout rather than overwriting it. There is no visibility setting or command, so
 `settings.json` remains schema version 1 with only `mapperEnabled`.
 
 Pure-Lua tests establish rendering decisions, ownership, responsive geometry,

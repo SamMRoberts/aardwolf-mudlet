@@ -280,7 +280,10 @@ function CharacterBars.new(api, character)
       lastWidth = usableWidth
       rows = usableWidth >= BREAKPOINT and 1 or 2
       local panelHeight = rows == 1 and ONE_ROW_HEIGHT or TWO_ROW_HEIGHT
-      local wantedBorder = borderBefore + panelHeight
+      -- Reserve exactly the space occupied by this component. Adding the
+      -- previous border leaves that older reservation empty between the main
+      -- output console and these bottom-anchored bars.
+      local wantedBorder = panelHeight
       if borderWritten ~= wantedBorder then
         borderWritten = wantedBorder
         api.setBorderBottom(wantedBorder)
@@ -289,9 +292,8 @@ function CharacterBars.new(api, character)
         end
       end
       -- The root Geyser container spans the full main window, including its
-      -- reserved borders. Anchor inside the bottom edge of that coordinate
-      -- space; subtracting borderBefore places the bars above preexisting
-      -- bottom-border space and leaves a visible gap above the command line.
+      -- reserved borders. Keeping its top at the start of the owned border
+      -- makes the main output console end directly against the bars.
       root:move(left, -panelHeight)
       root:resize(usableWidth, panelHeight)
       local columns = rows == 1 and 6 or 3
