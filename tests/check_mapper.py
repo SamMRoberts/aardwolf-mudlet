@@ -69,6 +69,67 @@ class MapperTests(unittest.TestCase):
           assert(rooms[101].exits.east==102)
         ''')
 
+    def test_same_room_packet_does_not_count_as_successful_movement(self):
+        self.check('''
+          assert(mapper:receive(packet(101,{e=102},"test")))
+          assert(mapper.current==101 and mapper.transitions==0 and mapper.stationary==0)
+          assert(mapper.lastMovement=="none")
+
+          -- A failed movement attempt can produce another fresh room.info for
+          -- the room that the character still occupies.
+          assert(mapper:receive(packet(101,{e=102},"test")))
+          assert(mapper.current==101 and mapper.transitions==0 and mapper.stationary==1)
+          assert(mapper.lastMovement=="none")
+
+          assert(mapper:receive(packet(102,{w=101},"test")))
+          assert(mapper.current==102 and mapper.transitions==1 and mapper.stationary==1)
+          assert(mapper.lastMovement=="e")
+          assert(mapper.reciprocalTransitions==1)
+          assert(rooms[102].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+          assert(rooms[102].x==2 and rooms[102].y==0 and rooms[102].z==0)
+        ''')
+
+    def test_reciprocal_gmcp_exits_confirm_direct_adjacency(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{s=101},"test")))
+          assert(rooms[101].x==0 and rooms[101].y==-2 and rooms[101].z==0)
+          assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="provisional")
+
+          assert(mapper:receive(packet(101,{n=100},"test")))
+          assert(mapper.lastMovement=="s" and mapper.reciprocalTransitions==1)
+          assert(rooms[101].x==0 and rooms[101].y==-2 and rooms[101].z==0)
+          assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+          assert(rooms[100].exits.south==101 and rooms[101].exits.north==100)
+        ''')
+
+    def test_changed_room_not_in_prior_exit_table_is_not_given_a_direction(self):
+        self.check('''
+          assert(mapper:receive(packet(101,{e=102},"test")))
+          assert(mapper:receive(packet(103,{},"test")))
+          assert(mapper.current==103 and mapper.transitions==1)
+          assert(mapper.lastMovement=="other")
+          assert(not (rooms[103].x==2 and rooms[103].y==0))
+        ''')
+
+    def test_stationary_refresh_does_not_replace_movement_origin(self):
+        self.check('''
+          assert(mapper:receive(packet(101,{e=102},"test")))
+
+          -- Simulate a placeholder removed outside the mapper, then a
+          -- same-room failure refresh whose exit snapshot is transiently
+          -- incomplete. The next real room must still be placed from the last
+          -- confirmed movement origin, directly east rather than diagonally.
+          rooms[101].exits.east=nil
+          rooms[101].data["aardwolf-vibe:exit:e"]=""
+          hashes[rooms[102].hash]=nil
+          rooms[102]=nil
+          assert(mapper:receive(packet(101,{},"test")))
+          assert(mapper.transitions==0 and mapper.stationary==1)
+          assert(mapper:receive(packet(102,{w=101},"test")))
+          assert(rooms[102].x==2 and rooms[102].y==0 and rooms[102].z==0)
+          assert(mapper.transitions==1 and mapper.reciprocalTransitions==1)
+        ''')
+
     def test_up_and_down_change_only_required_floor(self):
         self.check('''
           assert(mapper:receive(packet(101,{u=102,d=103})))

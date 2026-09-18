@@ -7,7 +7,11 @@ handler, and responsive Geyser status bars.
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
 terrain, creates placeholders for known destinations, and represents unexpected
-non-standard exit keys as Mudlet special exits.
+non-standard exit keys as Mudlet special exits. Movement is confirmed by a
+change in the validated GMCP room number, so a failed direction command that
+leaves the character in the same room does not advance the mapper. Exact
+forward-and-return GMCP exit pairs confirm direct adjacency without causing the
+mapper to invent a reverse exit.
 
 Terrain names follow Aardwolf's complete terrain catalog (including roads,
 weather, water, ice, hell, structures, and dead-land variants) and use the

@@ -5,6 +5,24 @@ fresh snapshot of the current room's six standard exits and any extra exit keys.
 The event callback reads the current global GMCP table; callback arguments are
 not treated as payload data.
 
+Movement is confirmed only when the validated `room.info.num` changes. A fresh
+packet with the same room number is treated as a stationary room refresh: its
+metadata and exits can still be reconciled, but it does not advance or replace
+the movement origin used to place the next room. Consequently, a failed `n`,
+`e`, `s`, `w`, `u`, or `d` attempt that leaves the character in the same room
+cannot be counted as an extra movement. Session boundaries clear the origin.
+For a cardinal transition, the new room number must also exactly match the
+destination number reported for one unique `n`, `e`, `s`, `w`, `u`, or `d`
+exit in that origin snapshot. A changed room number with no such match is still
+accepted as the current room, but is placed as an unanchored or special
+transition; the mapper never guesses a cardinal direction from command text.
+When the destination snapshot also maps the opposite direction back to the
+origin room number, the placement is marked `gmcp-reciprocal`. For example,
+`100.s = 101` together with `101.n = 100` confirms that room 100 is directly
+north of room 101. A one-way GMCP exit remains a directed exit and its initial
+placeholder remains provisional; the mapper does not invent the missing return
+exit.
+
 ## Identity and ownership
 
 The positive integer `room.info.num` is the native Mudlet room ID. Known numeric

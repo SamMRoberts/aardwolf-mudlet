@@ -83,6 +83,7 @@ local DIRECTIONS = {
 }
 
 local STANDARD = {n = true, e = true, s = true, w = true, u = true, d = true}
+local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
 
 local function integer(value, minimum, maximum)
   if type(value) ~= "number" and type(value) ~= "string" then return nil end
@@ -188,12 +189,16 @@ function Mapper.new(api, settings)
     promoted = 0,
     linked = 0,
     specialLinked = 0,
+    transitions = 0,
+    reciprocalTransitions = 0,
+    stationary = 0,
+    lastMovement = "none",
     skipped = 0,
     conflicts = 0,
     failed = 0,
     last = "Waiting to start",
   }
-  local lastPacket, previous, applying, queued = nil, nil, false, false
+  local lastPacket, movementAnchor, applying, queued = nil, nil, false, false
   local backupDone = false
 
   local function required(value, message)
@@ -352,14 +357,21 @@ function Mapper.new(api, settings)
     return match
   end
 
+  local function transitionFromAnchor(room, area)
+    if not movementAnchor or movementAnchor.id == room.id
+        or not owned(movementAnchor.id)
+        or api.getRoomArea(movementAnchor.id) ~= area then return nil, false end
+    local direction = directionTo(movementAnchor.room, room.id)
+    if not direction then return nil, false end
+    return direction, room.exits[OPPOSITE[direction.short]] == movementAnchor.id
+  end
+
   local function placementForCurrent(room, area)
     if room.continent ~= nil then return room.x, room.y, room.z end
-    if previous and owned(previous.id) and api.getRoomArea(previous.id) == area then
-      local direction = directionTo(previous.room, room.id)
-      if direction then
-        local x, y, z = api.getRoomCoordinates(previous.id)
-        return directionalPosition(area, x, y, z, direction, 2)
-      end
+    local direction = transitionFromAnchor(room, area)
+    if direction then
+      local x, y, z = api.getRoomCoordinates(movementAnchor.id)
+      return directionalPosition(area, x, y, z, direction, 2)
     end
     return floorPosition(area, 0, 0, 0)
   end
@@ -501,11 +513,14 @@ function Mapper.new(api, settings)
     local x, y, z = api.getRoomCoordinates(id)
     local nx, ny, nz = x, y, z
     local authority = api.getRoomUserData(id, KEY .. "placement-authority")
+    local _, reciprocal = transitionFromAnchor(room, area)
     if room.continent ~= nil then
       nx, ny, nz, authority = room.x, room.y, room.z, "gmcp-continent"
     elseif oldArea ~= area then
       nx, ny, nz = placementForCurrent(room, area)
       authority = "observed"
+    elseif reciprocal then
+      authority = "gmcp-reciprocal"
     elseif wasPlaceholder then
       authority = "provisional"
     end
@@ -670,7 +685,20 @@ function Mapper.new(api, settings)
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
     if not owned(id) then error("Room construction readback failed: " .. id, 0) end
-    previous = {id = id, room = room}
+    if not movementAnchor then
+      movementAnchor = {id = id, room = room}
+    elseif movementAnchor.id ~= id then
+      local direction, reciprocal = transitionFromAnchor(room, area)
+      self.lastMovement = direction and direction.short or "other"
+      if reciprocal then self.reciprocalTransitions = self.reciprocalTransitions + 1 end
+      movementAnchor = {id = id, room = room}
+      self.transitions = self.transitions + 1
+    else
+      -- A fresh room.info for the room we already occupy is not movement.
+      -- Reconcile its map data above, but keep the last confirmed movement
+      -- snapshot as the origin for placement after a failed move attempt.
+      self.stationary = self.stationary + 1
+    end
     self.current = id
     api.updateMap()
     local ok, result = pcall(api.centerview, id)
@@ -682,7 +710,7 @@ function Mapper.new(api, settings)
   end
 
   function self:resetFreshness()
-    previous, self.current = nil, nil
+    movementAnchor, self.current = nil, nil
     local gmcp = api.gmcp
     lastPacket = type(gmcp) == "table" and type(gmcp.room) == "table" and gmcp.room.info or nil
   end
@@ -699,7 +727,7 @@ function Mapper.new(api, settings)
     end
     local room, message = normalize(data)
     if not room then
-      previous, self.current = nil, nil
+      movementAnchor, self.current = nil, nil
       self.skipped = self.skipped + 1
       note(message, false)
       return false
@@ -770,8 +798,9 @@ function Mapper.new(api, settings)
 
   function self:status()
     api.echo(string.format(
-      "Aardwolf Vibe mapper: %s; current=%s added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
+      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
       self.enabled and "on" or "off", self.current and tostring(self.current) or "none",
+      self.transitions, self.reciprocalTransitions, self.stationary, self.lastMovement,
       self.added, self.reused, self.placeholders, self.promoted, self.linked,
       self.specialLinked, self.skipped, self.conflicts, self.failed, self.last))
     if self.backup then api.echo("Backup: " .. self.backup .. "\n") end
