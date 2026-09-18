@@ -65,8 +65,9 @@ channel output.
 
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
 bounded `slist` snapshots, and presents confirmed effects and recoveries in an
-“Aardwolf Spellups” window. Its first successful mount floats clear of existing
-dock areas; Mudlet restores the user's later placement. Automatic maintenance defaults off.
+“Aardwolf Spellups” window. Its first successful mount creates a distinct
+right-side dock; Mudlet restores the user's later placement without reusing the
+map or chat window. Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,

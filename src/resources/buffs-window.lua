@@ -5,6 +5,13 @@ local WINDOW_NAME = OWNER .. ".window"
 local LAYOUT_MARKER = "AardwolfVibeSpellupsWindowLayout"
 local LAYOUT_VERSION = 1
 
+-- Component tables take the direct branch in Mudlet 5.0.1's color parser.
+-- This avoids its broken single-number path if another package has polluted a
+-- shared Geyser color prototype in a long-running profile.
+local function color(red, green, blue)
+  return {r = red, g = green, b = blue, a = 255}
+end
+
 local function escape(value)
   return tostring(value or ""):gsub("&", "&amp;"):gsub("<", "&lt;")
     :gsub(">", "&gt;"):gsub('"', "&quot;")
@@ -34,7 +41,8 @@ function BuffsWindow.new(api, spells, spellup)
   local function button(parent, name, text, callback)
     local item = api.Geyser.Label:new({name = OWNER .. "." .. name,
       x = 0, y = 32, width = "33%", height = 28,
-      fgColor = "white", bgColor = "black", color = "#24364a"}, parent)
+      fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
+      color = color(36, 54, 74)}, parent)
     item:echo(escape(text))
     item:setStyleSheet("QLabel { background: #24364a; color: #eef5ff; "
       .. "border: 1px solid #526d8c; padding: 4px; }")
@@ -126,36 +134,45 @@ function BuffsWindow.new(api, spells, spellup)
     teardown(nil)
     generation = generation + 1
     local token = generation
+    local stage = "validate Geyser"
     local ok, message = pcall(function()
       local geyser = assert(api.Geyser, "Geyser is required for spellups")
       assert(type(geyser.UserWindow) == "table" and type(geyser.Container) == "table"
         and type(geyser.Label) == "table" and type(geyser.MiniConsole) == "table",
         "Geyser spellup widgets are required")
       local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
+      stage = "create right dock"
       window = geyser.UserWindow:new({name = WINDOW_NAME, titleText = "Aardwolf Spellups",
         x = 60, y = 120, width = 380, height = 520,
-        restoreLayout = restoreLayout, autoDock = true, docked = restoreLayout,
-        dockPosition = restoreLayout and "right" or "floating",
-        fgColor = "white", bgColor = "black", color = "#0b1118"})
+        restoreLayout = restoreLayout, autoDock = true, docked = true,
+        dockPosition = "right",
+        fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
+        color = color(11, 17, 24)})
       assert(type(window.delete) == "function", "Geyser.UserWindow deletion is required")
+      stage = "create window container"
       root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,
         width = "100%", height = "100%"}, window)
+      stage = "create status label"
       header = geyser.Label:new({name = OWNER .. ".status", x = 5, y = 5,
         width = "100%-10", height = 46,
-        fgColor = "white", bgColor = "black", color = "#111b27"}, root)
+        fgColor = color(224, 233, 245), bgColor = color(0, 0, 0),
+        color = color(17, 27, 39)}, root)
       header:setStyleSheet("QLabel { background: #111b27; color: #e0e9f5; padding: 4px; }")
+      stage = "create Sync control"
       syncButton = button(root, "sync", "Sync", function()
         local accepted, why = spells:sync()
         if not accepted then self.lastError = why end
         render()
       end)
       syncButton:move(5, 55); syncButton:resize("31%", 28)
+      stage = "create Spellup now control"
       nowButton = button(root, "now", "Spellup now", function()
         local accepted, why = spellup:runOnce()
         if not accepted then self.lastError = why end
         render()
       end)
       nowButton:move("33%", 55); nowButton:resize("31%", 28)
+      stage = "create automatic maintenance control"
       automaticButton = button(root, "automatic", "Enable automatic", function()
         local status = spellup:status()
         local accepted, why
@@ -165,12 +182,15 @@ function BuffsWindow.new(api, spells, spellup)
         render()
       end)
       automaticButton:move("65%", 55); automaticButton:resize("34%-5", 28)
+      stage = "create effects console"
       body = geyser.MiniConsole:new({name = OWNER .. ".body", x = 5, y = 88,
         width = "100%-10", height = "100%-93", autoWrap = true, scrollBar = true,
         font = "Menlo", fontSize = 11,
-        fgColor = "white", bgColor = "black", color = "#0b1118"}, root)
+        fgColor = color(238, 245, 255), bgColor = color(0, 0, 0),
+        color = color(11, 17, 24)}, root)
       body:setBufferSize(1000, 100)
 
+      stage = "register update handlers"
       local function on(name, event)
         handlers[#handlers + 1] = name
         if api.registerNamedEventHandler(OWNER, name, event, function()
@@ -179,9 +199,11 @@ function BuffsWindow.new(api, spells, spellup)
       end
       on("spells", "aardwolf-vibe.spells.updated")
       on("spellup", "aardwolf-vibe.spellup.updated")
+      stage = "render window"
       self.enabled, self.visible, self.lastError = true, true, nil
       render()
       scheduleTick()
+      stage = "show right dock"
       local revealed, why = reveal()
       if not revealed then error(why, 0) end
       if not restoreLayout then
@@ -189,7 +211,10 @@ function BuffsWindow.new(api, spells, spellup)
         if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
       end
     end)
-    if not ok then teardown("Cannot start spellup window: " .. tostring(message)); return false, self.lastError end
+    if not ok then
+      teardown("Cannot start spellup window during " .. stage .. ": " .. tostring(message))
+      return false, self.lastError
+    end
     return true
   end
 

@@ -360,6 +360,18 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleSpellupsCommand("off"));assert(spellupSaved==false)
         ''')
 
+    def test_spellup_show_reports_caught_window_failure(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibe.plugins.buffsWindow.show=function()
+            return false,"Cannot start spellup window during create right dock: native failure"
+          end
+          local ok,message=AardwolfVibe.handleSpellupsCommand("show")
+          assert(not ok and message:find("create right dock",1,true))
+          assert(messages[#messages]:find("spellups show failed",1,true))
+          assert(messages[#messages]:find("native failure",1,true))
+        ''')
+
 
 if __name__ == "__main__":
     unittest.main()

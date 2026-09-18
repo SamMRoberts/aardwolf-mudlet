@@ -21,10 +21,11 @@ class BuffsWindowTests(unittest.TestCase):
         lua.execute("""
           assert(window:start())
           local native=widgets['aardwolf-vibe.buffs-window.window']
-          assert(native.values.restoreLayout==false and native.values.docked==false
-            and native.values.dockPosition=='floating')
+          assert(native.values.restoreLayout==false and native.values.docked==true
+            and native.values.dockPosition=='right')
           assert(native.values.titleText=='Aardwolf Spellups')
-          assert(native.values.color=='#0b1118' and native.values.fgColor=='white')
+          assert(type(native.values.color)=='table' and native.values.color.r==11
+            and type(native.values.fgColor)=='table' and native.values.fgColor.r==238)
           assert(AardwolfVibeSpellupsWindowLayout==1
             and remembered.AardwolfVibeSpellupsWindowLayout==1)
           assert(native.showCalls==1 and native.raiseCalls==1 and not native.hidden)
@@ -54,6 +55,16 @@ class BuffsWindowTests(unittest.TestCase):
         lua.execute("""
           Geyser.MiniConsole=nil
           assert(not window:start())
+          assert(not window:status().enabled and count(handlers)==0 and count(timers)==0)
+        """)
+
+    def test_constructor_failure_identifies_stage(self):
+        lua = self.runtime()
+        lua.execute("""
+          Geyser.Label.new=function() error('native color failure') end
+          local ok,message=window:start()
+          assert(not ok and message:find('create status label',1,true))
+          assert(message:find('native color failure',1,true))
           assert(not window:status().enabled and count(handlers)==0 and count(timers)==0)
         """)
 

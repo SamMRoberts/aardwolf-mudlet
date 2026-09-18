@@ -197,9 +197,18 @@ function AardwolfVibe.handleSpellupsCommand(action)
   local spells = AardwolfVibe.plugins.spells
   local spellup = AardwolfVibe.plugins.spellup
   local window = AardwolfVibe.plugins.buffsWindow
+  local function reportFailure(operation, ok, message)
+    if ok == false then
+      local detail = message
+      if detail == nil and operation == "show" then detail = window:status().lastError end
+      echo("Aardwolf Vibe: spellups " .. operation .. " failed: "
+        .. tostring(detail or "unknown error") .. "\n")
+    end
+    return ok, message
+  end
   action = action or "show"
-  if action == "show" then return window:show() end
-  if action == "hide" then return window:hide() end
+  if action == "show" then return reportFailure("show", window:show()) end
+  if action == "hide" then return reportFailure("hide", window:hide()) end
   if action == "sync" then return spells:sync() end
   if action == "now" then return spellup:runOnce() end
   if action == "on" then return spellup:setAutomatic(true) end
@@ -207,12 +216,16 @@ function AardwolfVibe.handleSpellupsCommand(action)
   if action == "status" then
     local tracking = spells:status()
     local automation = spellup:status()
+    local windowStatus = window:status()
     echo("Aardwolf Vibe: spell tracking " .. tracking.lifecycle .. ", "
       .. (tracking.fresh and "synchronized" or "not synchronized")
       .. "; automatic maintenance " .. (automation.automatic and "on" or "off")
       .. (automation.blockingReason and (" (" .. automation.blockingReason .. ")") or "")
+      .. "; window " .. windowStatus.lifecycle .. ", "
+      .. (windowStatus.visible and "visible" or "hidden")
+      .. (windowStatus.lastError and (" (" .. windowStatus.lastError .. ")") or "")
       .. ".\n")
-    return {spells = tracking, spellup = automation, window = window:status()}
+    return {spells = tracking, spellup = automation, window = windowStatus}
   end
   echo("Usage: aardwolf-vibe spellups show|hide|status|sync|on|off|now\n")
   return false

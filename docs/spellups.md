@@ -69,9 +69,10 @@ server response rejecting `retry` pauses automation until Resume.
 
 ## Window, persistence, and boundaries
 
-“Aardwolf Spellups” opens once as a floating window with Sync, Spellup now,
-and automatic-maintenance controls, avoiding collisions with the existing map
-and chat docks. After that first successful mount, Mudlet owns visibility,
+“Aardwolf Spellups” initially opens as its own right-side dock with Sync,
+Spellup now, and automatic-maintenance controls. Its unique user-window name
+keeps it separate from the map and chat docks. After that first successful
+mount, Mudlet owns visibility,
 docking, floating, size, and tab placement through `restoreLayout`. Countdown
 zero displays “Awaiting server confirmation”; it never invents a wearoff or
 causes a cast.
