@@ -3,7 +3,8 @@
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
 handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
-configurable GMCP chat window.
+configurable GMCP chat window. It also includes session-only spell/recovery
+tracking and explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -62,6 +63,24 @@ details. Each GMCP session advertises Aardwolf Vibe's `char`, `comm`, and
 command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
+The spellup tracker enables only Aardwolf's spell tag option, synchronizes
+bounded `slist` snapshots, and presents active effects, server-confirmed
+expirations, and recoveries in responsive tables in an “Aardwolf Spellups”
+window. Remaining time changes from green to dark yellow to red as expiry
+approaches. Its first successful mount creates a distinct
+right-side dock; Mudlet restores the user's later placement without reusing the
+map or chat window. Its scroll area starts at the top, retains the user's
+position across refreshes, and does not use Mudlet's split console scrollback.
+Spell machine tags are hidden by default and can be made visible without
+disabling their parsing. A compact header shows only the current automation
+status, while a small vertical-ellipsis menu provides Sync, Spellup now,
+automatic, and spell-tag visibility actions without consuming table space.
+Automatic maintenance defaults off.
+When enabled it submits only `spellup learned retry`, only while fresh GMCP
+reports an active, standing character, and never constructs individual cast
+commands. See [`docs/spellups.md`](docs/spellups.md) for readiness gates,
+failure handling, public APIs, and acceptance boundaries.
+
 ## Commands
 
 ```text
@@ -77,12 +96,27 @@ aardwolf-vibe chat show
 aardwolf-vibe chat hide
 aardwolf-vibe chat status
 aardwolf-vibe chat config
+aardwolf-vibe spellups
+aardwolf-vibe spellups show
+aardwolf-vibe spellups hide
+aardwolf-vibe spellups status
+aardwolf-vibe spellups sync
+aardwolf-vibe spellups on
+aardwolf-vibe spellups off
+aardwolf-vibe spellups now
+aardwolf-vibe spellups tags hide
+aardwolf-vibe spellups tags show
+aardwolf-vibe spellups tags status
 ```
 
 Mapping is enabled on first install. The selected state persists in
 `aardwolf-vibe-data/settings.json` under the active profile. Before the first
 map mutation of each activation, the package saves a timestamped native map
 backup under `aardwolf-vibe-data/backups/`.
+The same settings file stores the automatic-spellup opt-in and spell-tag
+visibility; automatic casting defaults to `false` and tag hiding defaults to
+`true`. Mudlet owns spellup-window geometry and docking through its saved layout
+rather than package JSON.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known

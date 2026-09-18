@@ -21,7 +21,9 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
           barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;asciiShows=0
-          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil
+          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil;spellTagsSaved=nil
+          spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
+          buffsStarts=0;buffsStops=0;buffsShows=0;buffsHides=0
           function echo(message) messages[#messages+1]=message end
           function openMapWidget()
             mapWidgetOpens=mapWidgetOpens+1
@@ -42,10 +44,12 @@ class LifecycleTests(unittest.TestCase):
             return {
               error="Malformed settings",
               load=function()
-                if initial_settings_ok then return true,initial_enabled end
+                if initial_settings_ok then return true,initial_enabled,false,true end
                 return nil,"Malformed settings"
               end,
               setEnabled=function(value) saved=value;return true end,
+              setSpellupsAutoCast=function(value) spellupSaved=value;return true end,
+              setSpellupsHideTags=function(value) spellTagsSaved=value;return true end,
             }
           end}
           MapperFactory={new=function()
@@ -69,6 +73,39 @@ class LifecycleTests(unittest.TestCase):
               status=function()
                 return {enabled=initial_character_ok,lastError="character start failure"}
               end,
+            }
+          end}
+          SpellsFactory={new=function()
+            local hideTags=true
+            return {
+              start=function(_,value) spellsStarts=spellsStarts+1;hideTags=value~=false;return true end,
+              stop=function() spellsStops=spellsStops+1;stopOrder[#stopOrder+1]="spells";return true end,
+              sync=function() return true,"queued" end,
+              setHideTags=function(_,value)
+                hideTags=value;spellTagsSaved=value;return true
+              end,
+              status=function() return {enabled=true,lifecycle="active",fresh=true,
+                hideTags=hideTags,lastError=nil} end,
+            }
+          end}
+          SpellupFactory={new=function()
+            local automatic=false
+            return {
+              start=function(_,value) spellupStarts=spellupStarts+1;automatic=value==true;return true end,
+              stop=function() spellupStops=spellupStops+1;stopOrder[#stopOrder+1]="spellup";return true end,
+              setAutomatic=function(_,value) automatic=value;spellupSaved=value;return true end,
+              runOnce=function() return true,"submitted" end,
+              status=function() return {enabled=true,lifecycle="active",automatic=automatic,
+                inflight=false,pending=false,blockingReason=nil,lastError=nil} end,
+            }
+          end}
+          BuffsFactory={new=function()
+            return {
+              start=function() buffsStarts=buffsStarts+1;return true end,
+              stop=function() buffsStops=buffsStops+1;stopOrder[#stopOrder+1]="buffs";return true end,
+              show=function() buffsShows=buffsShows+1;return true end,
+              hide=function() buffsHides=buffsHides+1;return true end,
+              status=function() return {enabled=true,lifecycle="active",visible=true,lastError=nil} end,
             }
           end}
           BarsFactory={new=function()
@@ -123,6 +160,9 @@ class LifecycleTests(unittest.TestCase):
           end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
+            if string.match(path,"/buffs%-window.lua$") then return BuffsFactory end
+            if string.match(path,"/spellup.lua$") then return SpellupFactory end
+            if string.match(path,"/spells.lua$") then return SpellsFactory end
             if string.match(path,"/character%-bars.lua$") then return BarsFactory end
             if string.match(path,"/ascii%-map.lua$") then return ASCIIFactory end
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
@@ -132,7 +172,7 @@ class LifecycleTests(unittest.TestCase):
             error("unexpected resource: "..path)
           end
         ''')
-        lua.execute(SOURCE.replace("@VERSION@", "0.6.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -156,6 +196,7 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibe.active=true
           assert(not AardwolfVibe.stop())
           assert(characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1 and mapperStops==1)
+          assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
         ''')
 
@@ -164,6 +205,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
           assert(AardwolfVibe.active)
@@ -181,6 +223,7 @@ class LifecycleTests(unittest.TestCase):
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
           assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(#sentCommands==1)
           assert(sentCommands[1].command=="protocols gmcp sendchar")
           assert(sentCommands[1].echoCommand==false)
@@ -190,17 +233,19 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1)
-          assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
+          assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
+          assert(table.concat(stopOrder,",")=="mapper,chat,ascii,bars,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
     def test_reload_stops_old_plugins_before_new_instance_starts(self):
         lua = self.runtime()
         lua.execute("assert(AardwolfVibe.start())")
-        lua.execute(SOURCE.replace("@VERSION@", "0.6.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
+          assert(table.concat(stopOrder,",")=="mapper,chat,ascii,bars,buffs,spellup,spells,character")
           assert(chatStops==1 and asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
+          assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(chatStarts==2 and asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
@@ -304,6 +349,38 @@ class LifecycleTests(unittest.TestCase):
           local status=AardwolfVibe.handleChatCommand("status")
           assert(status.retained==2 and messages[#messages]:find("chat",1,true))
           assert(saved==nil)
+        ''')
+
+    def test_spellup_commands_delegate_and_preserve_default_off(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(AardwolfVibe.start())
+          assert(not AardwolfVibe.plugins.spellup:status().automatic)
+          assert(AardwolfVibe.handleSpellupsCommand("show"));assert(buffsShows==1)
+          assert(AardwolfVibe.handleSpellupsCommand("hide"));assert(buffsHides==1)
+          assert(AardwolfVibe.handleSpellupsCommand("sync"))
+          assert(AardwolfVibe.handleSpellupsCommand("now"))
+          assert(AardwolfVibe.handleSpellupsCommand("on"));assert(spellupSaved==true)
+          assert(AardwolfVibe.handleSpellupsCommand("tags-show"));assert(spellTagsSaved==false)
+          local tagStatus=AardwolfVibe.handleSpellupsCommand("tags-status")
+          assert(tagStatus.hideTags==false and messages[#messages]:find("visible",1,true))
+          local status=AardwolfVibe.handleSpellupsCommand("status")
+          assert(status.spellup.automatic and not status.spells.hideTags
+            and messages[#messages]:find("spell tracking",1,true))
+          assert(AardwolfVibe.handleSpellupsCommand("tags-hide"));assert(spellTagsSaved==true)
+          assert(AardwolfVibe.handleSpellupsCommand("off"));assert(spellupSaved==false)
+        ''')
+
+    def test_spellup_show_reports_caught_window_failure(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibe.plugins.buffsWindow.show=function()
+            return false,"Cannot start spellup window during create right dock: native failure"
+          end
+          local ok,message=AardwolfVibe.handleSpellupsCommand("show")
+          assert(not ok and message:find("create right dock",1,true))
+          assert(messages[#messages]:find("spellups show failed",1,true))
+          assert(messages[#messages]:find("native failure",1,true))
         ''')
 
 

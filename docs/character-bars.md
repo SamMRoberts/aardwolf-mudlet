@@ -81,7 +81,8 @@ without an empty region between them.
 The component records and restores the previous bottom border when it stops. If
 another package changes that border after the bars mount, the bars stop and
 preserve the newer layout rather than overwriting it. There is no visibility setting or command, so
-`settings.json` remains schema version 1 with only `mapperEnabled`.
+`settings.json` is schema version 2 with `mapperEnabled` and the independent
+`spellupsAutoCast` opt-in; character bars do not read or modify either setting.
 
 Pure-Lua tests establish rendering decisions, ownership, responsive geometry,
 and cleanup under their Geyser stubs. A disposable native Mudlet profile is

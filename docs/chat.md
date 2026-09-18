@@ -44,8 +44,8 @@ kept as a distinct message.
 
 Tab configuration is stored atomically in
 `aardwolf-vibe-data/chat.json`. This file has its own schema version and does
-not change `settings.json`, which remains schema version 1 with only
-`mapperEnabled`. A malformed chat file is preserved while built-in defaults
+not change `settings.json`, whose schema version 2 contains `mapperEnabled` and
+the independent `spellupsAutoCast` opt-in. A malformed chat file is preserved while built-in defaults
 run in memory. Apply remains disabled until the user explicitly chooses Reset;
 Reset renames the malformed file before writing defaults.
 
