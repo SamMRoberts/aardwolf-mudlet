@@ -42,6 +42,7 @@ function Spellup.new(api, character, spells, settings)
   local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
   local failures = {}
+  local pump, schedule
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -94,6 +95,7 @@ function Spellup.new(api, character, spells, settings)
     observed, unresolvedQueued = false, 0
     if paused == "Batch completion unconfirmed" then paused = nil end
     self.lastError = nil
+    if self.enabled and self.automatic and pendingAt then schedule() end
     emit()
     return true, reason or "Spellup complete"
   end
@@ -111,8 +113,7 @@ function Spellup.new(api, character, spells, settings)
     end)
   end
 
-  local pump
-  local function schedule(delay)
+  schedule = function(delay)
     if not self.enabled or timer then return end
     local token = generation
     timer = api.tempTimer(delay or 0, function()

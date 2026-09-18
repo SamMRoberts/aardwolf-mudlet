@@ -335,6 +335,27 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().paused)
         """)
 
+    def test_wearoff_during_batch_runs_after_completion(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(controller:setAutomatic(true));advance(0)
+          synchronize();advance(0)
+          assert(commandCount('spellup learned retry')==1
+            and controller:status().inflight)
+
+          feed('{affoff}72');advance(0)
+          deltaRows({}, {})
+          assert(controller:status().pending and controller:status().inflight)
+          feed('{spellup-end}')
+          assert(controller:status().pending and not controller:status().inflight)
+          advance(30)
+          assert(commandCount('spellup learned retry')==2
+            and controller:status().inflight)
+        """)
+
     def test_resource_room_status_waits_and_manual_exclusions(self):
         lua = self.runtime()
         lua.execute("""

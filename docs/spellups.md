@@ -80,7 +80,9 @@ abilities and terminal failures. Queue aliases such as a skill command whose
 name differs from its catalog name are reconciled by their confirmed affon or
 affected-snapshot result. Pre-existing effects are not attributed to the new
 batch, so an unrelated wearoff cannot keep that batch locked. The controller
-never polls for completion.
+never polls for completion. If a tracked effect wears off while a batch is
+still running, that pending work is rescheduled as soon as the current batch is
+confirmed complete and still observes the 30-second minimum interval.
 After 120 seconds without confirmation, automation pauses and keeps the
 outstanding lock. Resume waits for server tags instead of assuming the old
 batch ended. A disconnect may release that lock because the old server queue
