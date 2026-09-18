@@ -12,8 +12,12 @@ terrain, creates placeholders for known destinations, and represents unexpected
 non-standard exit keys as Mudlet special exits. Movement is confirmed by a
 change in the validated GMCP room number, so a failed direction command that
 leaves the character in the same room does not advance the mapper. Exact
-forward-and-return GMCP exit pairs confirm direct adjacency without causing the
-mapper to invent a reverse exit.
+forward-and-return GMCP exit pairs confirm bidirectional topology without
+requiring adjacent grid cells or causing the mapper to invent a reverse exit.
+Cardinal exits may span intentional gaps. When a new edge closes a loop, the
+mapper may reflow only the smallest affected component whose placement is still
+mapper-owned and provisional; established, continent, manual, and foreign
+coordinates remain fixed.
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile
