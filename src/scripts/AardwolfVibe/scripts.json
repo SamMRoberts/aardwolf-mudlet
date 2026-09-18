@@ -1,0 +1,7 @@
+[
+  {
+    "name": "AardwolfVibeLifecycle",
+    "isActive": "yes",
+    "eventHandlerList": ["sysLoadEvent", "sysInstallPackage", "sysUninstallPackage"]
+  }
+]
