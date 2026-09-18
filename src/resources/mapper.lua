@@ -84,6 +84,7 @@ local DIRECTIONS = {
 
 local STANDARD = {n = true, e = true, s = true, w = true, u = true, d = true}
 local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
+local MAX_LAYOUT_SEARCH_STATES = 200000
 
 local function integer(value, minimum, maximum)
   if type(value) ~= "number" and type(value) ~= "string" then return nil end
@@ -202,12 +203,15 @@ function Mapper.new(api, settings)
     reciprocalTransitions = 0,
     stationary = 0,
     lastMovement = "none",
+    reflowedRooms = 0,
+    layoutConflicts = 0,
     skipped = 0,
     conflicts = 0,
     failed = 0,
     last = "Waiting to start",
   }
   local lastPacket, movementAnchor, applying, queued = nil, nil, false, false
+  local reportedLayoutConflicts = {}
   local backupDone = false
 
   local function required(value, message)
@@ -221,6 +225,17 @@ function Mapper.new(api, settings)
 
   local function conflict(message)
     self.conflicts = self.conflicts + 1
+    note(message, true)
+  end
+
+  local function layoutConflict(key, message)
+    if reportedLayoutConflicts[key] then
+      note(message, false)
+      return
+    end
+    reportedLayoutConflicts[key] = true
+    self.conflicts = self.conflicts + 1
+    self.layoutConflicts = self.layoutConflicts + 1
     note(message, true)
   end
 
@@ -240,19 +255,13 @@ function Mapper.new(api, settings)
       and api.getRoomIDbyHash(hash(id)) == id
   end
 
-  local function owned(id)
+  local function managed(id)
     if not coreOwned(id) or api.getRoomUserData(id, KEY .. "ready") ~= "1" then return false end
     local placeholder = api.getRoomUserData(id, KEY .. "placeholder")
     if placeholder ~= "0" and placeholder ~= "1" then return false end
     if api.getRoomUserData(id, KEY .. "zone") == ""
         or api.getRoomUserData(id, KEY .. "terrain-key") == "" then return false end
-    local area = api.getRoomArea(id)
-    local x, y, z = api.getRoomCoordinates(id)
-    if api.getRoomUserData(id, KEY .. "placement-area") ~= tostring(area)
-        or api.getRoomUserData(id, KEY .. "placement-x") ~= tostring(x)
-        or api.getRoomUserData(id, KEY .. "placement-y") ~= tostring(y)
-        or api.getRoomUserData(id, KEY .. "placement-z") ~= tostring(z)
-        or api.getRoomUserData(id, KEY .. "placement-authority") == "" then return false end
+    if api.getRoomUserData(id, KEY .. "placement-authority") == "" then return false end
     local environment = integer(api.getRoomUserData(id, KEY .. "terrain-environment"), 1000, 11999)
     if not environment or api.getRoomEnv(id) ~= environment then return false end
     local exitVersion = api.getRoomUserData(id, KEY .. "exit-metadata-version")
@@ -260,6 +269,21 @@ function Mapper.new(api, settings)
     return exitVersion == "1"
       and api.getRoomUserData(id, KEY .. "gmcp") ~= ""
       and api.getRoomUserData(id, KEY .. "special-exits") ~= ""
+  end
+
+  local function placementIntact(id)
+    if not coreOwned(id) then return false end
+    local area = api.getRoomArea(id)
+    local x, y, z = api.getRoomCoordinates(id)
+    return api.getRoomUserData(id, KEY .. "placement-area") == tostring(area)
+      and api.getRoomUserData(id, KEY .. "placement-x") == tostring(x)
+      and api.getRoomUserData(id, KEY .. "placement-y") == tostring(y)
+      and api.getRoomUserData(id, KEY .. "placement-z") == tostring(z)
+      and api.getRoomUserData(id, KEY .. "placement-authority") ~= ""
+  end
+
+  local function owned(id)
+    return managed(id) and placementIntact(id)
   end
 
   local function competingMapper()
@@ -368,7 +392,7 @@ function Mapper.new(api, settings)
 
   local function transitionFromAnchor(room, area)
     if not movementAnchor or movementAnchor.id == room.id
-        or not owned(movementAnchor.id)
+        or not managed(movementAnchor.id)
         or api.getRoomArea(movementAnchor.id) ~= area then return nil, false end
     local direction = directionTo(movementAnchor.room, room.id)
     if not direction then return nil, false end
@@ -392,6 +416,499 @@ function Mapper.new(api, settings)
       required(api.setRoomUserData(id, KEY .. "placement-" .. key, tostring(value)),
         "Cannot record room placement")
     end
+  end
+
+  local function layoutRoomReady(id, currentID)
+    if not coreOwned(id) then return false end
+    if id == currentID then return true end
+    return managed(id)
+  end
+
+  local function provisionalPlacement(id, area, currentID)
+    return layoutRoomReady(id, currentID)
+      and api.getRoomArea(id) == area
+      and placementIntact(id)
+      and api.getRoomUserData(id, KEY .. "placement-authority") == "provisional"
+  end
+
+  local function roomIDs()
+    local rooms = api.getRooms()
+    if type(rooms) ~= "table" then error("Cannot inspect mapped rooms", 0) end
+    local result, seen = {}, {}
+    for key in pairs(rooms) do
+      local id = roomID(key)
+      if id and not seen[id] then result[#result + 1], seen[id] = id, true end
+    end
+    table.sort(result)
+    return result
+  end
+
+  local function placementConstraints(area, currentID, currentRoom)
+    local byKey = {}
+    for _, id in ipairs(roomIDs()) do
+      if managed(id) and api.getRoomArea(id) == area then
+        local exits = api.getRoomExits(id)
+        if type(exits) ~= "table" then error("Cannot inspect room exits", 0) end
+        for _, direction in ipairs(DIRECTIONS) do
+          if direction.dz == 0 then
+            local target = roomID(api.getRoomUserData(id, KEY .. "exit:" .. direction.short))
+            if target and exits[direction.long] == target and layoutRoomReady(target, currentID)
+                and api.getRoomArea(target) == area then
+              byKey[tostring(id) .. ":" .. direction.short] = {
+                from = id, to = target, direction = direction,
+                key = tostring(id) .. ":" .. direction.short,
+              }
+            end
+          end
+        end
+      end
+    end
+    if currentRoom then
+      local exits = api.getRoomExits(currentID)
+      local stubs = api.getExitStubsNames(currentID)
+      if type(exits) ~= "table" or type(stubs) ~= "table" then
+        error("Cannot inspect current room exits", 0)
+      end
+      local stubbed = {}
+      for _, name in pairs(stubs) do stubbed[name] = true end
+      for _, direction in ipairs(DIRECTIONS) do
+        local target = direction.dz == 0 and currentRoom.exits[direction.short] or nil
+        local recorded = api.getRoomUserData(currentID, KEY .. "exit:" .. direction.short)
+        if recorded == nil then recorded = "" end
+        local actual, stub = exits[direction.long], stubbed[direction.long] == true
+        local unchanged = recorded == "" and actual == nil and not stub
+          or recorded == "stub" and actual == nil and stub
+          or roomID(recorded) ~= nil and actual == roomID(recorded) and not stub
+        if unchanged and target and layoutRoomReady(target, currentID)
+            and api.getRoomArea(target) == area then
+          byKey[tostring(currentID) .. ":" .. direction.short] = {
+            from = currentID, to = target, direction = direction,
+            key = tostring(currentID) .. ":" .. direction.short,
+          }
+        end
+      end
+    end
+    local result = {}
+    for _, constraint in pairs(byKey) do result[#result + 1] = constraint end
+    table.sort(result, function(left, right)
+      if left.from ~= right.from then return left.from < right.from end
+      if left.direction.short ~= right.direction.short then
+        return left.direction.short < right.direction.short
+      end
+      return left.to < right.to
+    end)
+    return result
+  end
+
+  local function coordinatesFor(id, positions)
+    local position = positions[id]
+    if position then return position.x, position.y, position.z end
+    return api.getRoomCoordinates(id)
+  end
+
+  local function constraintSatisfied(constraint, positions)
+    local fx, fy, fz = coordinatesFor(constraint.from, positions)
+    local tx, ty, tz = coordinatesFor(constraint.to, positions)
+    if fz ~= tz then return false end
+    local direction = constraint.direction
+    if direction.dx ~= 0 then
+      return fy == ty and (tx - fx) * direction.dx > 0
+    end
+    return fx == tx and (ty - fy) * direction.dy > 0
+  end
+
+  local function setSignature(set)
+    local ids = {}
+    for id in pairs(set) do ids[#ids + 1] = id end
+    table.sort(ids)
+    local text = {}
+    for _, id in ipairs(ids) do text[#text + 1] = tostring(id) end
+    return table.concat(text, ","), ids
+  end
+
+  local function provisionalComponent(start, constraints, omitted, area, currentID)
+    if not provisionalPlacement(start, area, currentID) then return nil end
+    local result, changed = {[start] = true}, true
+    while changed do
+      changed = false
+      for _, constraint in ipairs(constraints) do
+        if constraint.key ~= omitted then
+          local from, to = constraint.from, constraint.to
+          if result[from] and not result[to] and provisionalPlacement(to, area, currentID) then
+            result[to], changed = true, true
+          elseif result[to] and not result[from]
+              and provisionalPlacement(from, area, currentID) then
+            result[from], changed = true, true
+          end
+        end
+      end
+    end
+    return result
+  end
+
+  local function candidateSets(from, target, constraints, currentKey, area, currentID)
+    local candidates, known = {}, {}
+    local function add(set)
+      if not set then return end
+      local signature, ids = setSignature(set)
+      if known[signature] then return end
+      known[signature] = true
+      candidates[#candidates + 1] = {set = set, signature = signature, ids = ids}
+    end
+    local left = provisionalComponent(from, constraints, currentKey, area, currentID)
+    local right = provisionalComponent(target, constraints, currentKey, area, currentID)
+    add(left)
+    add(right)
+    if left and right then
+      local combined = {}
+      for id in pairs(left) do combined[id] = true end
+      for id in pairs(right) do combined[id] = true end
+      add(combined)
+    end
+    table.sort(candidates, function(a, b)
+      if #a.ids ~= #b.ids then return #a.ids < #b.ids end
+      return a.signature < b.signature
+    end)
+    return candidates
+  end
+
+  local function roomsAtPosition(area, x, y, z)
+    local rooms = api.getRoomsByPosition(area, x, y, z)
+    if type(rooms) ~= "table" then error("Cannot inspect room placement", 0) end
+    local result = {}
+    for _, value in pairs(rooms) do
+      local id = roomID(value)
+      if not id then error("Invalid room returned for map position", 0) end
+      result[#result + 1] = id
+    end
+    table.sort(result)
+    return result
+  end
+
+  local function positionVacantForSet(area, x, y, z, moving)
+    for _, id in ipairs(roomsAtPosition(area, x, y, z)) do
+      if not moving[id] then return false end
+    end
+    return true
+  end
+
+  local function placementPlan(candidate, constraints, area)
+    local moving, original, domains = candidate.set, {}, {}
+    local relevant = {}
+    for _, id in ipairs(candidate.ids) do
+      local x, y, z = api.getRoomCoordinates(id)
+      original[id] = {x = x, y = y, z = z}
+      relevant[id] = {}
+    end
+    for _, constraint in ipairs(constraints) do
+      if moving[constraint.from] then
+        relevant[constraint.from][#relevant[constraint.from] + 1] = constraint
+      end
+      if moving[constraint.to] then
+        relevant[constraint.to][#relevant[constraint.to] + 1] = constraint
+      end
+    end
+    for _, id in ipairs(candidate.ids) do
+      local source = original[id]
+      local domain = {}
+      for radius = 0, 32 do
+        local distance = radius * 2
+        for dx = -distance, distance, 2 do
+          local remainder = distance - math.abs(dx)
+          for _, dy in ipairs(remainder == 0 and {0} or {-remainder, remainder}) do
+            local position = {x = source.x + dx, y = source.y + dy, z = source.z,
+              distance = distance, moved = distance == 0 and 0 or 1}
+            local partial = {[id] = position}
+            local valid = positionVacantForSet(area, position.x, position.y, position.z, moving)
+            if valid then
+              for _, constraint in ipairs(relevant[id]) do
+                local other = constraint.from == id and constraint.to or constraint.from
+                if not moving[other] and not constraintSatisfied(constraint, partial) then
+                  valid = false
+                  break
+                end
+              end
+            end
+            if valid then domain[#domain + 1] = position end
+          end
+        end
+      end
+      if #domain == 0 then return nil end
+      domains[id] = domain
+    end
+
+    local order = {}
+    for _, id in ipairs(candidate.ids) do order[#order + 1] = id end
+    table.sort(order, function(left, right)
+      if #domains[left] ~= #domains[right] then return #domains[left] < #domains[right] end
+      return left < right
+    end)
+    local assigned, occupied, best, attempts = {}, {}, nil, 0
+    local function better(plan)
+      if not best or plan.moved < best.moved then return true end
+      if plan.moved > best.moved then return false end
+      if plan.distance < best.distance then return true end
+      if plan.distance > best.distance then return false end
+      for _, id in ipairs(candidate.ids) do
+        local left, right = plan.positions[id], best.positions[id]
+        if left.x ~= right.x then return left.x < right.x end
+        if left.y ~= right.y then return left.y < right.y end
+      end
+      return false
+    end
+
+    local function search(index, moved, distance)
+      attempts = attempts + 1
+      if attempts > MAX_LAYOUT_SEARCH_STATES then return end
+      if best and (moved > best.moved or moved == best.moved and distance > best.distance) then return end
+      if index > #order then
+        for _, constraint in ipairs(constraints) do
+          if (moving[constraint.from] or moving[constraint.to])
+              and not constraintSatisfied(constraint, assigned) then return end
+        end
+        local positions = {}
+        for id, position in pairs(assigned) do
+          positions[id] = {x = position.x, y = position.y, z = position.z}
+        end
+        local plan = {positions = positions, moved = moved, distance = distance}
+        if better(plan) then best = plan end
+        return
+      end
+      local id = order[index]
+      for _, position in ipairs(domains[id]) do
+        local key = tostring(position.x) .. ":" .. tostring(position.y) .. ":" .. tostring(position.z)
+        if not occupied[key] then
+          assigned[id], occupied[key] = position, true
+          local valid = true
+          for _, constraint in ipairs(relevant[id]) do
+            local other = constraint.from == id and constraint.to or constraint.from
+            if assigned[other] and not constraintSatisfied(constraint, assigned) then
+              valid = false
+              break
+            end
+          end
+          if valid then search(index + 1, moved + position.moved, distance + position.distance) end
+          assigned[id], occupied[key] = nil, nil
+        end
+      end
+    end
+    search(1, 0, 0)
+    return best
+  end
+
+  local function applyPlacementPlan(candidate, constraints, area, currentID, plan)
+    local moving, original = candidate.set, {}
+    for _, id in ipairs(candidate.ids) do
+      if not provisionalPlacement(id, area, currentID) then return false end
+      local x, y, z = api.getRoomCoordinates(id)
+      original[id] = {x = x, y = y, z = z}
+    end
+    for _, constraint in ipairs(constraints) do
+      if (moving[constraint.from] or moving[constraint.to])
+          and not constraintSatisfied(constraint, plan.positions) then return false end
+    end
+    for _, id in ipairs(candidate.ids) do
+      local position = plan.positions[id]
+      if not positionVacantForSet(area, position.x, position.y, position.z, moving) then return false end
+    end
+    local moved = 0
+    for _, id in ipairs(candidate.ids) do
+      local before, position = original[id], plan.positions[id]
+      if before.x ~= position.x or before.y ~= position.y or before.z ~= position.z then
+        required(api.setRoomCoordinates(id, position.x, position.y, position.z),
+          "Cannot reflow provisional room " .. id)
+        moved = moved + 1
+      end
+    end
+    for _, id in ipairs(candidate.ids) do
+      local position = plan.positions[id]
+      local x, y, z = api.getRoomCoordinates(id)
+      if x ~= position.x or y ~= position.y or z ~= position.z then
+        error("Provisional room reflow readback failed: " .. id, 0)
+      end
+      recordPlacement(id, "provisional")
+      if not placementIntact(id) then error("Provisional placement readback failed: " .. id, 0) end
+    end
+    self.reflowedRooms = self.reflowedRooms + moved
+    if moved > 0 then note("Reflowed " .. moved .. " provisional room(s) for sparse layout", false) end
+    return true
+  end
+
+  local function expansionEligible(id, area, sourceID, targetID)
+    if id == sourceID or id == targetID or not managed(id) or not placementIntact(id)
+        or api.getRoomArea(id) ~= area then return false end
+    local authority = api.getRoomUserData(id, KEY .. "placement-authority")
+    return authority ~= "" and authority ~= "gmcp-continent"
+  end
+
+  local function beyondExpansionPlane(id, direction, sourceX, sourceY)
+    local x, y = api.getRoomCoordinates(id)
+    if direction.dx > 0 then return x >= sourceX end
+    if direction.dx < 0 then return x <= sourceX end
+    if direction.dy > 0 then return y >= sourceY end
+    return y <= sourceY
+  end
+
+  local function expandSparseGrid(sourceID, targetID, area, currentRoom, direction)
+    if not direction or direction.dz ~= 0 then return false end
+    local sx, sy, sz = api.getRoomCoordinates(sourceID)
+    local cutX, cutY = sx + direction.dx * 2, sy + direction.dy * 2
+    local blockers = roomsAtPosition(area, cutX, cutY, sz)
+    if #blockers == 0 then return false end
+
+    local pullTarget = false
+    if targetID then
+      local tx, ty, tz = api.getRoomCoordinates(targetID)
+      local atCut = tx == cutX and ty == cutY and tz == sz
+      local farther = tz == sz and (direction.dx ~= 0 and ty == sy
+        and (tx - sx) * direction.dx > 2 or direction.dy ~= 0 and tx == sx
+        and (ty - sy) * direction.dy > 2)
+      local authority = api.getRoomUserData(targetID, KEY .. "placement-authority")
+      local intactEstablished = atCut and managed(targetID) and placementIntact(targetID)
+        and api.getRoomArea(targetID) == area and authority ~= "gmcp-continent"
+      pullTarget = farther and provisionalPlacement(targetID, area, sourceID)
+      if not pullTarget and not intactEstablished then return false end
+    end
+
+    local constraints = placementConstraints(area, sourceID, currentRoom)
+    local moving, changed = {}, true
+    for _, id in ipairs(blockers) do
+      if id ~= targetID then
+        if not expansionEligible(id, area, sourceID, targetID) then return false end
+        moving[id] = true
+      end
+    end
+    if not next(moving) then return false end
+
+    while changed do
+      changed = false
+      for _, constraint in ipairs(constraints) do
+        local from, to = constraint.from, constraint.to
+        if moving[from] and not moving[to] and to ~= targetID and to ~= sourceID
+            and beyondExpansionPlane(to, direction, sx, sy) then
+          if not expansionEligible(to, area, sourceID, targetID) then return false end
+          moving[to], changed = true, true
+        elseif moving[to] and not moving[from] and from ~= targetID and from ~= sourceID
+            and beyondExpansionPlane(from, direction, sx, sy) then
+          if not expansionEligible(from, area, sourceID, targetID) then return false end
+          moving[from], changed = true, true
+        end
+      end
+      local snapshot = {}
+      for id in pairs(moving) do snapshot[#snapshot + 1] = id end
+      table.sort(snapshot)
+      for _, id in ipairs(snapshot) do
+        local x, y, z = api.getRoomCoordinates(id)
+        local nx, ny = x + direction.dx * 2, y + direction.dy * 2
+        for _, occupant in ipairs(roomsAtPosition(area, nx, ny, z)) do
+          if not moving[occupant] and occupant ~= targetID then
+            if not beyondExpansionPlane(occupant, direction, sx, sy)
+                or not expansionEligible(occupant, area, sourceID, targetID) then return false end
+            moving[occupant], changed = true, true
+          end
+        end
+      end
+    end
+
+    local positions, authorities, movedCount = {}, {}, 0
+    for id in pairs(moving) do
+      local x, y, z = api.getRoomCoordinates(id)
+      positions[id] = {x = x + direction.dx * 2, y = y + direction.dy * 2, z = z}
+      authorities[id] = api.getRoomUserData(id, KEY .. "placement-authority")
+    end
+    if pullTarget then
+      moving[targetID] = true
+      positions[targetID] = {x = cutX, y = cutY, z = sz}
+      authorities[targetID] = "provisional"
+    end
+
+    local occupied = {}
+    for id, position in pairs(positions) do
+      local key = tostring(position.x) .. ":" .. tostring(position.y) .. ":" .. tostring(position.z)
+      if occupied[key] or not positionVacantForSet(area, position.x, position.y, position.z, moving) then
+        return false
+      end
+      occupied[key] = id
+    end
+    for _, constraint in ipairs(constraints) do
+      if (moving[constraint.from] or moving[constraint.to])
+          and not constraintSatisfied(constraint, positions) then return false end
+    end
+
+    local ids = {}
+    for id in pairs(moving) do ids[#ids + 1] = id end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+      if id ~= targetID and not expansionEligible(id, area, sourceID, targetID) then return false end
+      if id == targetID and not provisionalPlacement(id, area, sourceID) then return false end
+    end
+    for _, id in ipairs(ids) do
+      local beforeX, beforeY, beforeZ = api.getRoomCoordinates(id)
+      local position = positions[id]
+      if beforeX ~= position.x or beforeY ~= position.y or beforeZ ~= position.z then
+        required(api.setRoomCoordinates(id, position.x, position.y, position.z),
+          "Cannot expand sparse grid at room " .. id)
+        movedCount = movedCount + 1
+      end
+    end
+    for _, id in ipairs(ids) do
+      local position = positions[id]
+      local x, y, z = api.getRoomCoordinates(id)
+      if x ~= position.x or y ~= position.y or z ~= position.z then
+        error("Sparse grid expansion readback failed: " .. id, 0)
+      end
+      recordPlacement(id, authorities[id])
+      if not placementIntact(id) then error("Sparse grid placement readback failed: " .. id, 0) end
+    end
+    self.reflowedRooms = self.reflowedRooms + movedCount
+    note("Expanded sparse grid by moving " .. movedCount .. " mapper-owned room(s)", false)
+    return true
+  end
+
+  local function reconcileSparsePlacement(from, target, area, currentRoom, direction)
+    if direction.dz ~= 0 or api.getRoomArea(target) ~= area then return true end
+    local constraints = placementConstraints(area, from, currentRoom)
+    local currentKey = tostring(from) .. ":" .. direction.short
+    local reportKey = currentKey .. ":" .. tostring(target)
+    local current
+    for _, constraint in ipairs(constraints) do
+      if constraint.key == currentKey and constraint.to == target then current = constraint; break end
+    end
+    if not current then return true end
+    local candidates = candidateSets(from, target, constraints, currentKey, area, from)
+    local needsRepair = not constraintSatisfied(current, {})
+    if not needsRepair then
+      local affected = {}
+      for _, candidate in ipairs(candidates) do
+        for id in pairs(candidate.set) do affected[id] = true end
+      end
+      for _, constraint in ipairs(constraints) do
+        if (affected[constraint.from] or affected[constraint.to])
+            and not constraintSatisfied(constraint, {}) then
+          needsRepair = true
+          break
+        end
+      end
+    end
+    if not needsRepair then return true end
+    local bestCandidate, bestPlan
+    for _, candidate in ipairs(candidates) do
+      local plan = placementPlan(candidate, constraints, area)
+      if plan and (not bestPlan or plan.moved < bestPlan.moved
+          or plan.moved == bestPlan.moved and plan.distance < bestPlan.distance
+          or plan.moved == bestPlan.moved and plan.distance == bestPlan.distance
+            and candidate.signature < bestCandidate.signature) then
+        bestCandidate, bestPlan = candidate, plan
+      end
+    end
+    if bestPlan and applyPlacementPlan(bestCandidate, constraints, area, from, bestPlan) then
+      reportedLayoutConflicts[reportKey] = nil
+      return true
+    end
+    layoutConflict(reportKey,
+      "Preserved sparse layout conflict for " .. direction.short .. " exit in room "
+        .. from .. " to " .. target)
+    return false
   end
 
   local function createRoom(id, area, zone, x, y, z, placeholder, source, direction)
@@ -427,7 +944,7 @@ function Mapper.new(api, settings)
 
   local function ensureIdentity(id)
     if not roomExists(id) then return nil end
-    if not owned(id) then error("Foreign or inconsistent room identity: " .. id, 0) end
+    if not managed(id) then error("Foreign or inconsistent room identity: " .. id, 0) end
     if api.getRoomUserData(id, KEY .. "ready") ~= "1" then
       error("Partially constructed room requires inspection: " .. id, 0)
     end
@@ -492,13 +1009,14 @@ function Mapper.new(api, settings)
       "Cannot record terrain color")
   end
 
-  local function ensurePlaceholder(sourceID, targetID, area, direction, continent)
+  local function ensurePlaceholder(sourceID, targetID, area, direction, continent, currentRoom)
     if sourceID == targetID then return sourceID end
     local existing = ensureIdentity(targetID)
     if existing then return existing end
     local sx, sy, sz = api.getRoomCoordinates(sourceID)
     local x, y, z
     if direction then
+      if not continent then expandSparseGrid(sourceID, nil, area, currentRoom, direction) end
       x, y, z = directionalPosition(area, sx, sy, sz, direction, continent and 1 or 2)
     else
       x, y, z = floorPosition(area, sx, sy, sz)
@@ -517,21 +1035,26 @@ function Mapper.new(api, settings)
     return id
   end
 
-  local function updateCurrent(id, room, area, wasPlaceholder)
+  local function updateCurrent(id, room, area, wasPlaceholder, placementWasIntact)
     local oldArea = api.getRoomArea(id)
     local x, y, z = api.getRoomCoordinates(id)
     local nx, ny, nz = x, y, z
     local authority = api.getRoomUserData(id, KEY .. "placement-authority")
+    local finalAuthority
     local _, reciprocal = transitionFromAnchor(room, area)
     if room.continent ~= nil then
       nx, ny, nz, authority = room.x, room.y, room.z, "gmcp-continent"
     elseif oldArea ~= area then
       nx, ny, nz = placementForCurrent(room, area)
       authority = "observed"
-    elseif reciprocal then
-      authority = "gmcp-reciprocal"
+    elseif not placementWasIntact then
+      authority = nil
+    elseif reciprocal and authority == "provisional" then
+      finalAuthority = "gmcp-reciprocal"
     elseif wasPlaceholder then
       authority = "provisional"
+    elseif reciprocal then
+      authority = "gmcp-reciprocal"
     end
     if oldArea ~= area then required(api.setRoomArea(id, area), "Cannot update room area") end
     if x ~= nx or y ~= ny or z ~= nz then
@@ -546,24 +1069,27 @@ function Mapper.new(api, settings)
       required(api.setRoomChar(id, ""), "Cannot clear placeholder marker")
       self.promoted = self.promoted + 1
     end
-    recordPlacement(id, authority ~= "" and authority or "observed")
+    if authority then recordPlacement(id, authority ~= "" and authority or "observed") end
     colorRoom(id, room)
+    return finalAuthority
   end
 
   local function ensureCurrent(room)
     local area = areaFor(room.zone)
     local id = ensureIdentity(room.id)
     local placeholder = false
+    local placementWasIntact = true
     if id then
       placeholder = api.getRoomUserData(id, KEY .. "placeholder") == "1"
+      placementWasIntact = placementIntact(id)
       self.reused = self.reused + 1
     else
       local x, y, z = placementForCurrent(room, area)
       id = createRoom(room.id, area, room.zone, x, y, z, false)
     end
     required(api.setRoomUserData(id, KEY .. "ready", "0"), "Cannot begin room update")
-    updateCurrent(id, room, area, placeholder)
-    return id, area
+    local finalAuthority = updateCurrent(id, room, area, placeholder, placementWasIntact)
+    return id, area, finalAuthority
   end
 
   local function hasStub(id, direction)
@@ -602,7 +1128,12 @@ function Mapper.new(api, settings)
     end
     local target = room.exits[direction.short]
     if target then
-      ensurePlaceholder(id, target, area, direction, room.continent ~= nil)
+      local existed = roomExists(target)
+      ensurePlaceholder(id, target, area, direction, room.continent ~= nil, room)
+      if existed and room.continent == nil then
+        expandSparseGrid(id, target, area, room, direction)
+      end
+      reconcileSparsePlacement(id, target, area, room, direction)
       if stub then setStub(id, direction, false) end
       if current ~= target then required(api.setExit(id, target, direction.short), "Cannot set exit") end
       required(api.setRoomUserData(id, key, tostring(target)), "Cannot record exit ownership")
@@ -667,7 +1198,7 @@ function Mapper.new(api, settings)
       elseif not old and current then
         conflict("Preserved foreign special exit '" .. command .. "' in room " .. id)
       elseif desired then
-        ensurePlaceholder(id, desired, area, nil, room.continent ~= nil)
+        ensurePlaceholder(id, desired, area, nil, room.continent ~= nil, room)
         if old and old ~= desired then api.removeSpecialExit(id, command) end
         if current ~= desired then api.addSpecialExit(id, desired, command) end
         if specialExits(id)[command] ~= desired then error("Special-exit readback failed", 0) end
@@ -687,13 +1218,14 @@ function Mapper.new(api, settings)
 
   local function apply(room)
     backup()
-    local id, area = ensureCurrent(room)
+    local id, area, finalAuthority = ensureCurrent(room)
     for _, direction in ipairs(DIRECTIONS) do reconcileStandard(id, area, room, direction) end
     reconcileSpecial(id, area, room)
+    if finalAuthority then recordPlacement(id, finalAuthority) end
     required(api.setRoomUserData(id, KEY .. "exit-metadata-version", "1"),
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
-    if not owned(id) then error("Room construction readback failed: " .. id, 0) end
+    if not managed(id) then error("Room construction readback failed: " .. id, 0) end
     if not movementAnchor then
       movementAnchor = {id = id, room = room}
     elseif movementAnchor.id ~= id then
@@ -807,9 +1339,10 @@ function Mapper.new(api, settings)
 
   function self:status()
     api.echo(string.format(
-      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
+      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s reflowed=%d layout-conflicts=%d added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
       self.enabled and "on" or "off", self.current and tostring(self.current) or "none",
       self.transitions, self.reciprocalTransitions, self.stationary, self.lastMovement,
+      self.reflowedRooms, self.layoutConflicts,
       self.added, self.reused, self.placeholders, self.promoted, self.linked,
       self.specialLinked, self.skipped, self.conflicts, self.failed, self.last))
     if self.backup then api.echo("Backup: " .. self.backup .. "\n") end

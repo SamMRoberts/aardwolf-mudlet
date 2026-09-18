@@ -23,10 +23,10 @@ accepted as the current room, but is placed as an unanchored or special
 transition; the mapper never guesses a cardinal direction from command text.
 When the destination snapshot also maps the opposite direction back to the
 origin room number, the placement is marked `gmcp-reciprocal`. For example,
-`100.s = 101` together with `101.n = 100` confirms that room 100 is directly
-north of room 101. A one-way GMCP exit remains a directed exit and its initial
-placeholder remains provisional; the mapper does not invent the missing return
-exit.
+`100.s = 101` together with `101.n = 100` confirms that room 100 is north of
+room 101, but the rooms may have unused grid cells between them. A one-way GMCP
+exit remains a directed exit and its initial placeholder remains provisional;
+the mapper does not invent the missing return exit.
 
 The package lifecycle calls Mudlet's `openMapWidget()` after profile load and
 package installation so the native graphical mapper is visible. This does not
@@ -37,8 +37,11 @@ replace or clear map data and does not change the mapper's saved layout.
 The positive integer `room.info.num` is the native Mudlet room ID. Known numeric
 exit destinations use the same number for their placeholder room. Each owned
 room also carries the hash `aardwolf-vibe:aardwolf:room:<number>`, matching
-owner and server-ID metadata, and a final construction marker. Any disagreement
-stops mapping rather than adopting or overwriting the room.
+owner and server-ID metadata, and a final construction marker. Identity or
+construction disagreement stops mapping rather than adopting or overwriting
+the room. A coordinate that differs from the mapper's recorded placement is
+instead treated as a fixed manual layout change: mapping may continue, but the
+mapper does not re-adopt or automatically move that room.
 
 Areas are named exactly from `room.info.zone`. A same-name area is reusable only
 when it already carries the mapper's owner metadata. The package never renames
@@ -48,10 +51,45 @@ or takes ownership of a foreign area.
 
 For continent rooms (`coord.cont = 1`), GMCP x and inverted y are authoritative.
 For other rooms, north/east/south/west preserve the source floor and remain on
-the requested axis. If the nearest location is occupied, the mapper searches
-farther along that axis rather than drawing an east room to the southeast. Up
-and down always change z by exactly one; a collision is displaced only in x/y
-on that target floor.
+the requested axis, but they do not require adjacent grid cells. North and
+south share x, east and west share y, and the destination only needs to be on
+the correct positive directional ray. If the nearest location is occupied, the
+mapper searches farther along that ray rather than drawing an east room to the
+southeast. Up and down always change z by exactly one; a collision is displaced
+only in x/y on that target floor.
+
+Before linking an existing destination, the mapper validates every known owned
+cardinal edge incident to the affected provisional rooms. If the new edge
+closes a loop with incompatible provisional coordinates, it searches the
+existing two-cell grid for the smallest connected provisional component that
+can be reflowed without moving or overlapping fixed rooms. Candidate plans are
+ordered by rooms moved, total Manhattan distance, room ID, and coordinates.
+The complete plan is checked before any coordinate write and each applied
+coordinate and placement marker is read back.
+
+Ordinary loop repair may move only intact placements marked `provisional`.
+Established placements (including existing `gmcp-reciprocal` values) are fixed
+for that repair.
+
+A separate sparse-grid insertion applies when a destination belongs in the cell
+immediately beyond a source, but that cell is occupied by an intact mapper-owned
+non-continent perimeter. The destination can be a new room, a provisional room
+that was displaced farther along the ray, or an intact established interior
+room already overlapped by the compact perimeter. The mapper shifts the
+connected portion of the perimeter on the far side of that cut outward by one
+two-cell grid step. It then places a new or displaced provisional destination
+in the opened cell, or leaves an established destination there while separating
+the perimeter from it. The plan includes rooms required by owned topology and
+occupancy so it cannot split a row or column, collapse rooms onto one another,
+or violate any known incident cardinal edge. Existing placement authorities are
+preserved.
+
+Continent coordinates, rooms moved manually since their placement marker was
+recorded, and foreign rooms are fixed for every repair. If no safe plan exists,
+the coordinates are retained, the server-authoritative exit is still recorded,
+and the mapper reports a non-fatal layout conflict. Mapper status reports
+cumulative `reflowed` and `layout-conflicts` counts for the current package
+lifetime.
 
 Known destinations are created as gray `?` rooms and promoted when visited.
 Cross-zone promotion moves the room into the exact newly reported zone. A room
