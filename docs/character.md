@@ -63,3 +63,10 @@ Mudlet's in-place merge behavior for `Char.Status` still produces updates.
 The package requests `Char` through `gmod`, but that request alone does not prove
 that Aardwolf negotiated or delivered the module. Connected-game acceptance is
 separate from synthetic event tests.
+
+On an exact `aardwolf-vibe` install or upgrade event, the package starts its
+character consumers and then sends `protocols gmcp sendchar` without local echo.
+This repopulates session-only groups that Aardwolf may not otherwise resend after
+a package reinstall. Ordinary profile loads and unrelated package installs do
+not issue the refresh command. A send failure is reported without stopping the
+character handler, UI, chat, minimap, or mapper.

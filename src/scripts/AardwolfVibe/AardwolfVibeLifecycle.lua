@@ -78,6 +78,16 @@ function AardwolfVibe.stop()
   return chatOK and asciiOK and barsOK and characterOK and mapperOK
 end
 
+function AardwolfVibe.requestCharacterRefresh()
+  local ok, message = pcall(send, "protocols gmcp sendchar", false)
+  if not ok then
+    echo("Aardwolf Vibe: unable to request fresh character GMCP data: "
+      .. tostring(message) .. "\n")
+    return false
+  end
+  return true
+end
+
 function AardwolfVibe.handleChatCommand(action)
   local chat = AardwolfVibe.plugins.chat
   action = action or "show"
@@ -134,9 +144,11 @@ function AardwolfVibe.handleMinimapCommand(action)
 end
 
 function AardwolfVibeLifecycle(event, packageName)
-  if event == "sysLoadEvent"
-      or (event == "sysInstallPackage" and packageName == "@PKGNAME@") then
+  if event == "sysLoadEvent" then
     AardwolfVibe.start()
+  elseif event == "sysInstallPackage" and packageName == "@PKGNAME@" then
+    AardwolfVibe.start()
+    AardwolfVibe.requestCharacterRefresh()
   elseif event == "sysUninstallPackage" and packageName == "@PKGNAME@" then
     AardwolfVibe.stop()
     AardwolfVibe = nil

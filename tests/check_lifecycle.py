@@ -19,9 +19,19 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_ascii_ok = ascii_ok
         lua.globals().initial_chat_ok = chat_ok
         lua.execute('''
-          messages={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
+          messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
           barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;chatStarts=0;chatStops=0;saved=nil
           function echo(message) messages[#messages+1]=message end
+          function send(command, echoCommand)
+            sentCommands[#sentCommands+1]={
+              command=command,
+              echoCommand=echoCommand,
+              characterStarts=characterStarts,
+              barsStarts=barsStarts,
+              asciiStarts=asciiStarts,
+              chatStarts=chatStarts,
+            }
+          end
           function getMudletHomeDir() return "/profile" end
           SettingsFactory={new=function()
             return {
@@ -117,7 +127,7 @@ class LifecycleTests(unittest.TestCase):
             error("unexpected resource: "..path)
           end
         ''')
-        lua.execute(SOURCE.replace("@VERSION@", "0.5.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.5.3").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -149,6 +159,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(#sentCommands==0)
           assert(AardwolfVibe.active)
           assert(AardwolfVibe.handleMapperCommand("off"));assert(saved==false and mapperStops==1)
           assert(AardwolfVibe.handleMapperCommand("on"));assert(saved==true and mapperStarts==2)
@@ -159,9 +170,15 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysInstallPackage","another-package")
           assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0 and chatStarts==0)
+          assert(#sentCommands==0)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
           assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(#sentCommands==1)
+          assert(sentCommands[1].command=="protocols gmcp sendchar")
+          assert(sentCommands[1].echoCommand==false)
+          assert(sentCommands[1].characterStarts==1 and sentCommands[1].barsStarts==1)
+          assert(sentCommands[1].asciiStarts==1 and sentCommands[1].chatStarts==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1)
@@ -172,13 +189,27 @@ class LifecycleTests(unittest.TestCase):
     def test_reload_stops_old_plugins_before_new_instance_starts(self):
         lua = self.runtime()
         lua.execute("assert(AardwolfVibe.start())")
-        lua.execute(SOURCE.replace("@VERSION@", "0.5.2").replace("@PKGNAME@", "aardwolf-vibe"))
+        lua.execute(SOURCE.replace("@VERSION@", "0.5.3").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
           assert(table.concat(stopOrder,",")=="chat,ascii,bars,character,mapper")
           assert(chatStops==1 and asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(chatStarts==2 and asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
+          assert(#sentCommands==0)
+        ''')
+
+    def test_install_refresh_failure_does_not_stop_package(self):
+        lua = self.runtime()
+        lua.execute('''
+          function send() error("not connected") end
+          AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
+          assert(AardwolfVibe.active)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(mapperStarts==1)
+          assert(#messages==1)
+          assert(messages[1]:find("unable to request fresh character GMCP data",1,true))
+          assert(messages[1]:find("not connected",1,true))
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):

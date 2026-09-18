@@ -26,6 +26,9 @@ validated defensive-copy snapshots through `AardwolfVibe.plugins.character`
 and raises local update events for other scripts. Character state is scoped to
 the current GMCP session and is never written to disk. See
 [`docs/character.md`](docs/character.md) for the API and event contract.
+After an install or upgrade, the package requests a fresh character snapshot
+with `protocols gmcp sendchar` after its character consumers are ready. This
+install-only request is sent without local command echo.
 
 The always-visible character strip uses that validated state to show HP, mana,
 moves, level progress, the current enemy, and alignment. It occupies one row
