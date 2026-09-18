@@ -61,6 +61,11 @@ bottom of the Mudlet window. Narrower windows use two rows of three and reserve
 60 pixels. Gauges are 22 pixels high with 5-pixel outer padding and 6-pixel
 gaps; resizing moves existing widgets instead of recreating them.
 
+The root uses a negative Geyser Y constraint so its bottom edge remains
+attached to the command-line edge. Any bottom-border space that existed before
+the package loaded remains reserved above the bars instead of becoming a blank
+gap between the bars and the command input.
+
 The component records the previous bottom border. If another package changes
 that border after the bars mount, the bars stop and preserve the newer layout
 rather than overwriting it. There is no visibility setting or command, so

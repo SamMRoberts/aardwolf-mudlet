@@ -232,7 +232,11 @@ function CharacterBars.new(api, character)
           error("Cannot reserve bottom space for character bars", 0)
         end
       end
-      root:move(left, math.max(0, windowHeight - borderBefore - panelHeight))
+      -- The root Geyser container spans the full main window, including its
+      -- reserved borders. Anchor inside the bottom edge of that coordinate
+      -- space; subtracting borderBefore places the bars above preexisting
+      -- bottom-border space and leaves a visible gap above the command line.
+      root:move(left, -panelHeight)
       root:resize(usableWidth, panelHeight)
       local columns = rows == 1 and 6 or 3
       local gaugeWidth = math.max(1,

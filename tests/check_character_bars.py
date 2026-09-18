@@ -154,13 +154,30 @@ class CharacterBarsTests(unittest.TestCase):
         lua.execute('''
           local hp=gauge("hp")
           assert(borderBottom==42 and bars:status().rows==1)
+          assert(widgets["aardwolf-vibe.character-bars.root"].y==-32)
           assert(gauge("hp").y==5 and gauge("align").y==5)
           windowWidth=839;fire("sysWindowResizeEvent")
           assert(borderBottom==70 and bars:status().rows==2)
+          assert(widgets["aardwolf-vibe.character-bars.root"].y==-60)
           assert(gauge("hp")==hp and gauge("hp").y==5 and gauge("tnl").y==33)
           assert(math.abs(gauge("hp").width-272.33333333333)<0.001)
           windowWidth=840;fire("sysWindowResizeEvent")
           assert(borderBottom==42 and bars:status().rows==1 and gauge("hp")==hp)
+          assert(widgets["aardwolf-vibe.character-bars.root"].y==-32)
+        ''')
+
+    def test_preexisting_bottom_border_does_not_create_gap_below_bars(self):
+        lua = self.runtime(False)
+        lua.execute('''
+          borderBottom=180
+          assert(bars:start())
+          local root=widgets["aardwolf-vibe.character-bars.root"]
+          assert(borderBottom==212 and root.y==-32 and root.height==32)
+          windowHeight=1000;fire("sysWindowResizeEvent")
+          assert(root.y==-32 and root.height==32)
+          windowWidth=839;fire("sysWindowResizeEvent")
+          assert(borderBottom==240 and root.y==-60 and root.height==60)
+          assert(bars:stop() and borderBottom==180)
         ''')
 
     def test_idempotent_lifecycle_and_owned_cleanup(self):
