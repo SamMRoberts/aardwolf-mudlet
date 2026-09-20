@@ -15,6 +15,11 @@
     "regex": "^aardwolf-vibe chat(?: (show|hide|status|config))?$"
   },
   {
+    "name": "help",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe help(?: (show|hide|status))?$"
+  },
+  {
     "name": "spellups",
     "isActive": "yes",
     "regex": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$"

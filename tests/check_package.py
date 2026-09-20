@@ -10,10 +10,11 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.22")
+        self.assertEqual(metadata["version"], "0.7.23")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
+        self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
@@ -26,6 +27,7 @@ class PackageSourceTests(unittest.TestCase):
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
+                "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
                 "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$",
             },
         )
@@ -38,6 +40,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.character", source)
         self.assertIn("AardwolfVibe.plugins.characterBars", source)
         self.assertIn("AardwolfVibe.plugins.asciiMap", source)
+        self.assertIn("AardwolfVibe.plugins.helpWindow", source)
         self.assertIn("AardwolfVibe.plugins.chat", source)
         self.assertIn("AardwolfVibe.plugins.spells", source)
         self.assertIn("AardwolfVibe.plugins.spellup", source)
@@ -53,6 +56,11 @@ class PackageSourceTests(unittest.TestCase):
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())
         self.assertNotIn("tags map off", ascii_map.read_text())
+        help_window = ROOT / "src/resources/help-window.lua"
+        self.assertTrue(help_window.is_file())
+        self.assertIn('api.send, "tags HELPS on", false', help_window.read_text())
+        self.assertNotIn("tags HELPS off", help_window.read_text())
+        self.assertIn("{helpsearch}", help_window.read_text())
         chat = ROOT / "src/resources/chat.lua"
         model = ROOT / "src/resources/chat-model.lua"
         self.assertTrue(chat.is_file() and model.is_file())

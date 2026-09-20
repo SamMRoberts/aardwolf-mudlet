@@ -21,6 +21,7 @@ local Spellup = resource("spellup")
 local BuffsWindow = resource("buffs-window")
 local CharacterBars = resource("character-bars")
 local ASCIIMap = resource("ascii-map")
+local HelpWindow = resource("help-window")
 local ChatModel = resource("chat-model")
 local Chat = resource("chat")
 local Mapper = resource("mapper")
@@ -37,6 +38,7 @@ AardwolfVibe.plugins.characterBars = CharacterBars.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
   _G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.helpWindow = HelpWindow.new(_G)
 AardwolfVibe.plugins.chat = Chat.new(_G, ChatModel, AardwolfVibe.settings)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
@@ -78,6 +80,11 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.asciiMap:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local helpOK = AardwolfVibe.plugins.helpWindow:start()
+  if not helpOK then
+    local status = AardwolfVibe.plugins.helpWindow:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   local chatOK = AardwolfVibe.plugins.chat:start()
   if not chatOK then
     local status = AardwolfVibe.plugins.chat:status()
@@ -85,12 +92,12 @@ function AardwolfVibe.start()
   end
   if AardwolfVibe.active then
     return characterOK and spellsOK and spellupOK and buffsOK
-      and barsOK and asciiOK and chatOK and settingsOK
+      and barsOK and asciiOK and helpOK and chatOK and settingsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and spellsOK and spellupOK and buffsOK and barsOK
-    and asciiOK and chatOK and settingsOK and mapperOK
+    and asciiOK and helpOK and chatOK and settingsOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -102,6 +109,7 @@ function AardwolfVibe.stop()
   local plugins = AardwolfVibe.plugins or {}
   local mapperOK = stopPlugin(plugins.mapper)
   local chatOK = stopPlugin(plugins.chat)
+  local helpOK = stopPlugin(plugins.helpWindow)
   local asciiOK = stopPlugin(plugins.asciiMap)
   local barsOK = stopPlugin(plugins.characterBars)
   local buffsOK = stopPlugin(plugins.buffsWindow)
@@ -109,7 +117,7 @@ function AardwolfVibe.stop()
   local spellsOK = stopPlugin(plugins.spells)
   local characterOK = stopPlugin(plugins.character)
   AardwolfVibe.active = false
-  return mapperOK and chatOK and asciiOK and barsOK and buffsOK
+  return mapperOK and chatOK and helpOK and asciiOK and barsOK and buffsOK
     and spellupOK and spellsOK and characterOK
 end
 
@@ -196,6 +204,25 @@ function AardwolfVibe.handleMinimapCommand(action)
   return false
 end
 
+function AardwolfVibe.handleHelpCommand(action)
+  local helpWindow = AardwolfVibe.plugins.helpWindow
+  action = action or "show"
+  if action == "show" then return helpWindow:show() end
+  if action == "hide" then return helpWindow:hide() end
+  if action == "status" then
+    local status = helpWindow:status()
+    local visibility = status.visible and "visible" or "hidden"
+    local capture = status.captureActive and (", capturing " .. tostring(status.captureKind)) or ""
+    echo("Aardwolf Vibe: help " .. status.lifecycle .. ", " .. visibility
+      .. capture .. ", " .. tostring(status.responsesAccepted) .. " accepted, "
+      .. tostring(status.responsesRejected) .. " rejected, tags "
+      .. tostring(status.tagState) .. ".\n")
+    return status
+  end
+  echo("Usage: aardwolf-vibe help show|hide|status\n")
+  return false
+end
+
 function AardwolfVibe.handleSpellupsCommand(action)
   local spells = AardwolfVibe.plugins.spells
   local spellup = AardwolfVibe.plugins.spellup
@@ -250,6 +277,11 @@ function AardwolfVibeLifecycle(event, packageName)
     showMaps()
   elseif event == "sysInstallPackage" and packageName == "@PKGNAME@" then
     AardwolfVibe.start()
+    local helpOK, helpMessage = AardwolfVibe.plugins.helpWindow:requestTags("install")
+    if not helpOK then
+      echo("Aardwolf Vibe: unable to enable HELPS tags: "
+        .. tostring(helpMessage) .. "\n")
+    end
     showMaps()
     AardwolfVibe.requestCharacterRefresh()
   elseif event == "sysUninstallPackage" and packageName == "@PKGNAME@" then

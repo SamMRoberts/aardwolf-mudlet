@@ -3,8 +3,9 @@
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
 handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
-configurable GMCP chat window. It also includes session-only spell/recovery
-tracking and explicitly opt-in self-spellup maintenance.
+transient tagged-help popup, plus a configurable GMCP chat window. It also
+includes session-only spell/recovery tracking and explicitly opt-in
+self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -86,6 +87,17 @@ floating, docked, resized, or tabbed layout. See
 The minimap is also reopened automatically on every profile launch; hiding it
 remains effective for the rest of the current session.
 
+The always-active help plugin requests Aardwolf's `HELPS` tags with
+`tags HELPS on` after installation and on every connection. Ordinary help and
+`help search` responses are captured between their server-owned outer tags,
+removed from the main console, and displayed with their original colors and
+spacing in a transient “Aardwolf Help” window. Each completed response replaces
+the previous one and opens the window; its floating or docked layout remains
+under Mudlet's window-layout ownership. Incomplete or malformed responses leave
+the previous document intact and stop capture after a bounded timeout. See
+[`docs/help-window.md`](docs/help-window.md) for its API, limits, and acceptance
+boundary.
+
 The always-active chat plugin consumes `gmcp.comm.channel` into a movable,
 resizable native window that starts docked across the top. Its initial All,
 Tell, Group, Clan, Newbie, and Gossip tabs can be renamed, reordered, removed,
@@ -133,6 +145,10 @@ aardwolf-vibe chat show
 aardwolf-vibe chat hide
 aardwolf-vibe chat status
 aardwolf-vibe chat config
+aardwolf-vibe help
+aardwolf-vibe help show
+aardwolf-vibe help hide
+aardwolf-vibe help status
 aardwolf-vibe spellups
 aardwolf-vibe spellups show
 aardwolf-vibe spellups hide
