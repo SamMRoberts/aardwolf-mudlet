@@ -22,6 +22,196 @@ class MapperTests(unittest.TestCase):
         lua.execute("mapper=factory.new(_G,settings);assert(mapper:start())")
         lua.execute(snippet)
 
+    def sparse_check(self, direction, snippet):
+        self.check('''
+          assert(mapper:receive(packet(100,{n=201,e=202,w=203})))
+          assert(mapper:receive(packet(100,{})))
+          local short="''' + direction + '''"
+          local vectors={n={0,1,"s"},e={1,0,"w"},s={0,-1,"n"},w={-1,0,"e"}}
+          local dx,dy,reverse=unpack(vectors[short])
+          local function place(id,distance)
+            setRoomCoordinates(id,dx*distance,dy*distance,0)
+            for key,value in pairs({area=areas.test,x=dx*distance,y=dy*distance,
+                z=0,authority="provisional"}) do
+              setRoomUserData(id,"aardwolf-vibe:placement-"..key,tostring(value))
+            end
+          end
+          local function link(from,direction,target)
+            setExit(from,target,direction)
+            setRoomUserData(from,"aardwolf-vibe:exit:"..direction,tostring(target))
+          end
+          local function distance(id) return rooms[id].x*dx+rooms[id].y*dy end
+          place(201,20);place(202,22);place(203,24)
+        ''' + snippet)
+
+    def test_sparse_insertion_leaves_fixed_neighbor_across_existing_gap(self):
+        for direction in "nesw":
+            with self.subTest(direction=direction):
+                self.sparse_check(direction, '''
+                  place(201,2);place(202,6)
+                  setRoomUserData(202,"aardwolf-vibe:placement-x","999")
+                  link(201,short,202)
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(distance(300)==2 and distance(201)==4 and distance(202)==6)
+                  assert(mapper.reflowedRooms==1 and mapper.layoutConflicts==0)
+                  local moved=mapper.reflowedRooms
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(mapper.reflowedRooms==moved)
+                ''')
+
+    def test_sparse_insertion_tries_larger_shift_past_fixed_obstacle(self):
+        for direction in "nesw":
+            with self.subTest(direction=direction):
+                self.sparse_check(direction, '''
+                  place(201,2)
+                  addRoom(999);setRoomArea(999,areas.test)
+                  setRoomCoordinates(999,dx*4,dy*4,0)
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(distance(300)==2 and distance(201)==6 and distance(999)==4)
+                  assert(mapper.reflowedRooms==1 and mapper.layoutConflicts==0)
+                ''')
+
+    def test_sparse_insertion_prefers_fewer_moved_rooms_over_shorter_shift(self):
+        for direction in "nesw":
+            with self.subTest(direction=direction):
+                self.sparse_check(direction, '''
+                  place(201,2);place(202,4)
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(distance(300)==2 and distance(201)==6 and distance(202)==4)
+                  assert(mapper.reflowedRooms==1)
+                ''')
+
+    def test_collision_displacement_survives_visits_and_reload_until_repaired(self):
+        for direction in "nesw":
+            with self.subTest(direction=direction):
+                self.sparse_check(direction, '''
+                  place(201,2)
+                  setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(distance(300)==4 and mapper.layoutConflicts==1)
+                  assert(rooms[300].data["aardwolf-vibe:displaced-from"]=="100")
+                  assert(rooms[300].data["aardwolf-vibe:displaced-direction"]==short)
+                  assert(mapper:receive(packet(2000,{},"other")))
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(mapper:receive(packet(300,{[reverse]=100})))
+                  assert(rooms[300].data["aardwolf-vibe:placement-authority"]=="provisional")
+                  assert(mapper.layoutConflicts==1 and distance(300)==4)
+                  mapper:stop();mapper=factory.new(_G,settings);assert(mapper:start())
+                  assert(mapper:receive(packet(300,{[reverse]=100})))
+                  assert(distance(300)==4)
+                  assert(rooms[300].data["aardwolf-vibe:placement-authority"]=="provisional")
+                  setRoomCoordinates(201,dx*8,dy*8,0)
+                  assert(mapper:receive(packet(300,{[reverse]=100})))
+                  assert(distance(300)==2 and distance(201)==8)
+                  assert(rooms[300].data["aardwolf-vibe:displaced-from"]=="")
+                  assert(rooms[300].data["aardwolf-vibe:displaced-direction"]=="")
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(mapper:receive(packet(300,{[reverse]=100})))
+                  assert(rooms[300].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+                ''')
+
+    def test_source_refresh_repairs_recorded_displacement_without_blockers(self):
+        self.sparse_check("e", '''
+          place(201,2);setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(distance(300)==4 and mapper.layoutConflicts==1)
+          setRoomCoordinates(201,8,0,0)
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(distance(300)==2 and distance(201)==8)
+          assert(rooms[300].data["aardwolf-vibe:displaced-from"]=="")
+          local moved=mapper.reflowedRooms
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(mapper.reflowedRooms==moved and mapper.layoutConflicts==1)
+        ''')
+
+    def test_impossible_sparse_insertion_keeps_all_existing_coordinates(self):
+        for direction in "nesw":
+            with self.subTest(direction=direction):
+                self.sparse_check(direction, '''
+                  place(201,2);place(202,4)
+                  setRoomUserData(202,"aardwolf-vibe:placement-x","999")
+                  link(201,short,202)
+                  assert(mapper:receive(packet(100,{[short]=300})))
+                  assert(distance(201)==2 and distance(202)==4 and distance(300)==6)
+                  assert(mapper.reflowedRooms==0 and mapper.layoutConflicts==1)
+                  for attempt=1,3 do assert(mapper:receive(packet(100,{[short]=300}))) end
+                  assert(distance(201)==2 and distance(202)==4 and distance(300)==6)
+                  assert(mapper.reflowedRooms==0 and mapper.layoutConflicts==1)
+                  assert(rooms[100].exits[({n="north",e="east",s="south",w="west"})[short]]==300)
+                ''')
+
+    def test_sparse_expansion_search_includes_sixty_four_unit_shift(self):
+        self.sparse_check("e", '''
+          place(201,2)
+          for position=4,64,2 do
+            local id=1000+position
+            addRoom(id);setRoomArea(id,areas.test);setRoomCoordinates(id,position,0,0)
+          end
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(distance(201)==66 and distance(300)==2 and mapper.reflowedRooms==1)
+          for position=4,64,2 do assert(distance(1000+position)==position) end
+        ''')
+
+    def test_recorded_displacement_repairs_on_arrival_before_reciprocal_promotion(self):
+        self.sparse_check("e", '''
+          place(201,2);setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(mapper:receive(packet(2000,{},"other")))
+          assert(mapper:receive(packet(100,{e=300})))
+          place(201,2)
+          assert(mapper:receive(packet(300,{w=100})))
+          assert(distance(300)==2 and distance(201)==4)
+          assert(rooms[300].data["aardwolf-vibe:displaced-from"]=="")
+          assert(rooms[300].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+        ''')
+
+    def test_displacement_retry_respects_new_destination_topology(self):
+        self.sparse_check("e", '''
+          place(201,2);place(202,4)
+          setRoomCoordinates(202,4,2,0)
+          setRoomUserData(202,"aardwolf-vibe:placement-y","2")
+          setRoomUserData(202,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+          setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+          assert(mapper:receive(packet(100,{e=300})))
+          setRoomCoordinates(201,8,0,0)
+          assert(mapper:receive(packet(300,{w=100,n=202})))
+          assert(rooms[300].x==4 and rooms[300].y==0)
+          assert(rooms[202].x==4 and rooms[202].y==2)
+          assert(rooms[300].exits.north==202 and rooms[300].exits.west==100)
+          assert(rooms[300].data["aardwolf-vibe:displaced-from"]=="100")
+          assert(mapper.reflowedRooms==0)
+        ''')
+
+    def test_displacement_retry_preserves_manual_and_established_destinations(self):
+        self.sparse_check("e", '''
+          place(201,2);setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+          assert(mapper:receive(packet(100,{e=300})))
+          setRoomCoordinates(300,10,0,0)
+          setRoomCoordinates(201,8,0,0)
+          assert(mapper:receive(packet(100,{e=300})))
+          assert(mapper:receive(packet(300,{w=100})))
+          assert(distance(300)==10 and rooms[300].data["aardwolf-vibe:placement-x"]=="4")
+          assert(mapper.reflowedRooms==0)
+        ''')
+        self.sparse_check("e", '''
+          place(201,2);place(202,6)
+          setRoomUserData(202,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+          assert(mapper:receive(packet(100,{e=202})))
+          assert(distance(201)==2 and distance(202)==6 and mapper.reflowedRooms==0)
+          assert(getRoomUserData(202,"aardwolf-vibe:displaced-from")=="")
+        ''')
+
+    def test_displacement_retry_does_not_follow_a_replaced_owned_exit(self):
+        self.sparse_check("e", '''
+          place(201,2);setRoomUserData(201,"aardwolf-vibe:placement-x","999")
+          assert(mapper:receive(packet(100,{e=300})))
+          setRoomCoordinates(201,8,0,0)
+          setExit(100,202,"e")
+          assert(mapper:receive(packet(300,{w=100})))
+          assert(distance(300)==4 and rooms[100].exits.east==202)
+          assert(mapper.reflowedRooms==0)
+        ''')
+
     def test_room_ids_areas_hashes_and_placeholders_use_gmcp_ids(self):
         self.check('''
           assert(mapper:receive(packet("101",{e="102"},"academy","city")))
@@ -300,7 +490,9 @@ class MapperTests(unittest.TestCase):
           assert(rooms[101].x==4 and rooms[101].y==0)
           assert(rooms[103].x==4 and rooms[103].y==2)
           assert(rooms[999].x==2 and rooms[999].y==2)
-          assert(mapper.reflowedRooms==2 and mapper.layoutConflicts==0)
+          -- The initial collision is now reported even though its later repair succeeds.
+          assert(mapper.reflowedRooms==2 and mapper.layoutConflicts==1)
+          assert(rooms[103].data["aardwolf-vibe:displaced-from"]=="")
           assert(rooms[102].exits.east==103 and rooms[101].exits.north==103)
 
           local reflowed=mapper.reflowedRooms

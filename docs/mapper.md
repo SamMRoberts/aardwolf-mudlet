@@ -75,21 +75,47 @@ A separate sparse-grid insertion applies when a destination belongs in the cell
 immediately beyond a source, but that cell is occupied by an intact mapper-owned
 non-continent perimeter. The destination can be a new room, a provisional room
 that was displaced farther along the ray, or an intact established interior
-room already overlapped by the compact perimeter. The mapper shifts the
-connected portion of the perimeter on the far side of that cut outward by one
-two-cell grid step. It then places a new or displaced provisional destination
-in the opened cell, or leaves an established destination there while separating
-the perimeter from it. The plan includes rooms required by owned topology and
-occupancy so it cannot split a row or column, collapse rooms onto one another,
-or violate any known incident cardinal edge. Existing placement authorities are
-preserved.
+room already overlapped by the compact perimeter. The mapper evaluates outward
+shifts from 2 through 64 coordinate units in two-unit increments. For new or
+provisional destinations, it starts with the blockers at the cut and includes
+other eligible rooms only when a collision or incident cardinal constraint
+requires them to move. Existing gaps can therefore accommodate insertion without
+moving a fixed neighbor. Plans prefer fewer moved rooms, then less total
+Manhattan movement, with deterministic tie-breaking.
+
+The selected plan places a new or displaced provisional destination in the
+opened cell. For an established interior destination already overlapping the
+perimeter, the existing connected half-perimeter expansion is retained and the
+destination stays put. All candidates are validated before coordinate writes;
+room coordinates and placement markers are read back after application. Plans
+cannot overlap rooms or violate known incident cardinal edges. Existing
+placement authorities are preserved during expansion.
+
+New non-continent cardinal placeholders forced beyond the adjacent cell record
+their source and direction in `aardwolf-vibe:displaced-from` and
+`aardwolf-vibe:displaced-direction`. These fields survive package reloads and
+allow retries when either the source or destination receives fresh room
+information, even if the adjacent cell has since become vacant. Destination
+retries validate the original owned exit and include the destination's fresh
+topology before moving anything. Unresolved collision-displaced rooms remain
+provisional even when reciprocal exits confirm movement. Successful repair
+clears the fields and allows normal reciprocal establishment. Cross-area or
+continent-authoritative placement also clears the obsolete displacement record.
+
+A long edge alone does not create displacement metadata. Intentional sparse gaps
+remain valid, and existing established destinations without displacement history
+are not migrated or pulled closer. Older provisional destinations retain the
+existing occupied-cut insertion behavior.
 
 Continent coordinates, rooms moved manually since their placement marker was
 recorded, and foreign rooms are fixed for every repair. If no safe plan exists,
 the coordinates are retained, the server-authoritative exit is still recorded,
-and the mapper reports a non-fatal layout conflict. Mapper status reports
-cumulative `reflowed` and `layout-conflicts` counts for the current package
-lifetime.
+and the mapper reports a non-fatal layout conflict. Collision-displaced fallback
+placement is also reported, even when its exit still satisfies axis and direction
+checks. Repeated unresolved insertion reports are deduplicated by source,
+direction, and destination. Mapper status reports cumulative `reflowed` and
+`layout-conflicts` counts for the current package lifetime; successful repair
+does not subtract an earlier conflict from that history.
 
 Known destinations are created as gray `?` rooms and promoted when visited.
 Cross-zone promotion moves the room into the exact newly reported zone. A room
