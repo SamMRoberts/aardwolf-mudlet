@@ -452,7 +452,7 @@ function Mapper.new(api, settings)
         for _, direction in ipairs(DIRECTIONS) do
           if direction.dz == 0 then
             local target = roomID(api.getRoomUserData(id, KEY .. "exit:" .. direction.short))
-            if target and exits[direction.long] == target and layoutRoomReady(target, currentID)
+            if target and exits[direction.long] == target and roomExists(target)
                 and api.getRoomArea(target) == area then
               byKey[tostring(id) .. ":" .. direction.short] = {
                 from = id, to = target, direction = direction,
@@ -592,8 +592,53 @@ function Mapper.new(api, settings)
     return true
   end
 
+  local function corridorHits(constraint, positions, rooms)
+    local hits = {}
+    if not constraintSatisfied(constraint, positions) then return hits end
+    local fx, fy, fz = coordinatesFor(constraint.from, positions)
+    local tx, ty = coordinatesFor(constraint.to, positions)
+    for id, original in pairs(rooms) do
+      local position = positions[id] or original
+      if id ~= constraint.from and id ~= constraint.to and position.z == fz
+          and (fx == tx and position.x == fx and position.y > math.min(fy, ty)
+            and position.y < math.max(fy, ty)
+          or fy == ty and position.y == fy and position.x > math.min(fx, tx)
+            and position.x < math.max(fx, tx)) then hits[id] = true end
+    end
+    return hits
+  end
+
+  local function layoutGeometry(area, constraints)
+    local geometry = {rooms = {}, hits = {}}
+    for _, id in ipairs(roomIDs()) do
+      if api.getRoomArea(id) == area then
+        local x, y, z = api.getRoomCoordinates(id)
+        geometry.rooms[id] = {x = x, y = y, z = z}
+      end
+    end
+    for _, constraint in ipairs(constraints) do
+      geometry.hits[constraint.key] = corridorHits(constraint, {}, geometry.rooms)
+    end
+    return geometry
+  end
+
+  local function corridorsClear(positions, moving, constraints, geometry)
+    for _, constraint in ipairs(constraints) do
+      local affected = moving[constraint.from] or moving[constraint.to]
+      if affected and not constraintSatisfied(constraint, positions) then return false end
+      local hits = corridorHits(constraint, positions, geometry.rooms)
+      if affected and next(hits) then return false end
+      -- Moving a room must not introduce an obstruction on an untouched exit.
+      for id in pairs(hits) do
+        if not geometry.hits[constraint.key][id] then return false end
+      end
+    end
+    return true
+  end
+
   local function placementPlan(candidate, constraints, area)
     local moving, original, domains = candidate.set, {}, {}
+    local geometry = layoutGeometry(area, constraints)
     local relevant = {}
     for _, id in ipairs(candidate.ids) do
       local x, y, z = api.getRoomCoordinates(id)
@@ -666,6 +711,7 @@ function Mapper.new(api, settings)
           if (moving[constraint.from] or moving[constraint.to])
               and not constraintSatisfied(constraint, assigned) then return end
         end
+        if not corridorsClear(assigned, moving, constraints, geometry) then return end
         local positions = {}
         for id, position in pairs(assigned) do
           positions[id] = {x = position.x, y = position.y, z = position.z}
@@ -821,6 +867,7 @@ function Mapper.new(api, settings)
         or recordedDirection.short ~= direction.short) then return false end
 
     local constraints = placementConstraints(area, currentID, currentRoom)
+    local geometry = layoutGeometry(area, constraints)
     local function candidate(distance)
       local moving, positions = {}, {}
       local function include(id)
@@ -886,6 +933,7 @@ function Mapper.new(api, settings)
             or constraint.from == targetID or constraint.to == targetID)
             and not constraintSatisfied(constraint, positions) then return nil end
       end
+      if not corridorsClear(positions, moving, constraints, geometry) then return nil end
       return {set = moving, ids = ids, signature = signature, positions = positions,
         moved = #ids, distance = totalDistance}
     end
@@ -943,18 +991,177 @@ function Mapper.new(api, settings)
     reportDisplacement(id)
   end
 
+  local function repairDirectionalStrand(start, area, constraints)
+    local geometry = layoutGeometry(area, constraints)
+    local best
+    for _, vertical in ipairs({true, false}) do
+      local function parallel(constraint)
+        return (constraint.direction.dx == 0) == vertical
+      end
+      local function strand(seed)
+        local members, changed = {[seed] = true}, true
+        while changed do
+          changed = false
+          for _, constraint in ipairs(constraints) do
+            if parallel(constraint) then
+              local from, to = constraint.from, constraint.to
+              local fx, fy, fz = api.getRoomCoordinates(from)
+              local tx, ty, tz = api.getRoomCoordinates(to)
+              if fz == tz and (vertical and fx == tx or not vertical and fy == ty) then
+                if members[from] and not members[to] then members[to], changed = true, true end
+                if members[to] and not members[from] then members[from], changed = true, true end
+              end
+            end
+          end
+        end
+        return members
+      end
+      local primary = strand(start)
+      local seeds, needsRepair = {[start] = true}, false
+      for _, constraint in ipairs(constraints) do
+        if parallel(constraint) and (primary[constraint.from] or primary[constraint.to])
+            and (not constraintSatisfied(constraint, {}) or next(geometry.hits[constraint.key])) then
+          needsRepair = true
+          seeds[constraint.from], seeds[constraint.to] = true, true
+        end
+      end
+      if needsRepair then
+        local seen = {}
+        local _, seedIDs = setSignature(seeds)
+        for _, seed in ipairs(seedIDs) do
+          local members = strand(seed)
+          local signature, ids = setSignature(members)
+          if #ids >= 2 and not seen[signature] then
+            seen[signature] = true
+            for distance = 2, 64, 2 do
+              for _, sign in ipairs({1, -1}) do
+                local positions, moving, valid = {}, {}, true
+                for _, id in ipairs(ids) do
+                  local original = geometry.rooms[id]
+                  if not layoutRoomReady(id, start) or not placementIntact(id)
+                      or api.getRoomUserData(id, KEY .. "placement-authority") == "gmcp-continent" then
+                    valid = false
+                    break
+                  end
+                  positions[id] = {x = original.x + (vertical and sign * distance or 0),
+                    y = original.y + (vertical and 0 or sign * distance), z = original.z}
+                  moving[id] = true
+                end
+                -- A side placeholder may occupy the column's new position.
+                -- Carry only provisional dependencies needed to keep those exits valid.
+                local changed = true
+                while valid and changed do
+                  changed = false
+                  for _, constraint in ipairs(constraints) do
+                    if (moving[constraint.from] or moving[constraint.to])
+                        and not constraintSatisfied(constraint, positions) then
+                      local other = moving[constraint.from] and constraint.to or constraint.from
+                      if moving[other] or parallel(constraint)
+                          or not provisionalPlacement(other, area, start) then
+                        valid = false
+                        break
+                      end
+                      for id in pairs(strand(other)) do
+                        if not moving[id] then
+                          if not provisionalPlacement(id, area, start) then valid = false; break end
+                          local original = geometry.rooms[id]
+                          positions[id] = {x = original.x + (vertical and sign * distance or 0),
+                            y = original.y + (vertical and 0 or sign * distance), z = original.z}
+                          moving[id], changed = true, true
+                        end
+                      end
+                    end
+                  end
+                end
+                local _, planIDs = setSignature(moving)
+                if valid then
+                  local occupied = {}
+                  for _, id in ipairs(planIDs) do
+                    local position = positions[id]
+                    local key = position.x .. ":" .. position.y .. ":" .. position.z
+                    if occupied[key]
+                        or not positionVacantForSet(area, position.x, position.y, position.z, moving) then
+                      valid = false
+                      break
+                    end
+                    occupied[key] = true
+                  end
+                end
+                if valid and corridorsClear(positions, moving, constraints, geometry) then
+                  -- A candidate on the other side must also resolve the original strand's defect.
+                  for _, constraint in ipairs(constraints) do
+                    if parallel(constraint) and (primary[constraint.from] or primary[constraint.to])
+                        and (not constraintSatisfied(constraint, positions)
+                          or next(corridorHits(constraint, positions, geometry.rooms))) then
+                      valid = false
+                      break
+                    end
+                  end
+                  local total = #planIDs * distance
+                  if valid and (not best or #planIDs < #best.ids
+                      or #planIDs == #best.ids and total < best.distance) then
+                    best = {ids = planIDs, members = moving, positions = positions, distance = total}
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    if not best then return false end
+    local authorities = {}
+    for _, id in ipairs(best.ids) do
+      if not layoutRoomReady(id, start) or not placementIntact(id) then return false end
+      authorities[id] = api.getRoomUserData(id, KEY .. "placement-authority")
+      if authorities[id] == "gmcp-continent" then return false end
+      local position = best.positions[id]
+      if not positionVacantForSet(area, position.x, position.y, position.z, best.members) then return false end
+    end
+    if not corridorsClear(best.positions, best.members, constraints, geometry) then return false end
+    for _, id in ipairs(best.ids) do
+      local position = best.positions[id]
+      required(api.setRoomCoordinates(id, position.x, position.y, position.z),
+        "Cannot shift sparse row or column at room " .. id)
+    end
+    for _, id in ipairs(best.ids) do
+      local position = best.positions[id]
+      local x, y, z = api.getRoomCoordinates(id)
+      if x ~= position.x or y ~= position.y or z ~= position.z then
+        error("Sparse row or column readback failed: " .. id, 0)
+      end
+      recordPlacement(id, authorities[id])
+      if not placementIntact(id) then error("Sparse row or column placement readback failed: " .. id, 0) end
+    end
+    for _, id in ipairs(best.ids) do clearResolvedDisplacement(id) end
+    self.reflowedRooms = self.reflowedRooms + #best.ids
+    note("Shifted " .. #best.ids .. " mapper-owned room(s) to align a sparse row or column", false)
+    return true
+  end
+
   local function reconcileSparsePlacement(from, target, area, currentRoom, direction)
     if direction.dz ~= 0 or api.getRoomArea(target) ~= area then return true end
     local constraints = placementConstraints(area, from, currentRoom)
     local currentKey = tostring(from) .. ":" .. direction.short
     local reportKey = currentKey .. ":" .. tostring(target)
+    local displacedFrom, displacedDirection = displacement(target)
+    if displacedFrom == from and displacedDirection.short == direction.short then
+      reportKey = insertionKey(from, target, direction)
+    else
+      local source, originDirection = displacement(from)
+      if source == target and originDirection.short == OPPOSITE[direction.short] then
+        reportKey = insertionKey(target, from, originDirection)
+      end
+    end
     local current
     for _, constraint in ipairs(constraints) do
       if constraint.key == currentKey and constraint.to == target then current = constraint; break end
     end
     if not current then return true end
+    repairDirectionalStrand(from, area, constraints)
+    local geometry = layoutGeometry(area, constraints)
     local candidates = candidateSets(from, target, constraints, currentKey, area, from)
-    local needsRepair = not constraintSatisfied(current, {})
+    local needsRepair = not constraintSatisfied(current, {}) or next(geometry.hits[current.key]) ~= nil
     if not needsRepair then
       local affected = {}
       for _, candidate in ipairs(candidates) do
@@ -962,7 +1169,7 @@ function Mapper.new(api, settings)
       end
       for _, constraint in ipairs(constraints) do
         if (affected[constraint.from] or affected[constraint.to])
-            and not constraintSatisfied(constraint, {}) then
+            and (not constraintSatisfied(constraint, {}) or next(geometry.hits[constraint.key])) then
           needsRepair = true
           break
         end

@@ -103,9 +103,40 @@ clears the fields and allows normal reciprocal establishment. Cross-area or
 continent-authoritative placement also clears the obsolete displacement record.
 
 A long edge alone does not create displacement metadata. Intentional sparse gaps
-remain valid, and existing established destinations without displacement history
-are not migrated or pulled closer. Older provisional destinations retain the
-existing occupied-cut insertion behavior.
+remain valid and do not trigger compaction of established destinations. Older
+provisional destinations retain the existing occupied-cut insertion behavior.
+
+### Sideways row and column repair
+
+A cardinal connection must also have a clear connector: an unrelated room on
+the same area and floor cannot occupy a point strictly between its endpoints.
+The mapper checks the complete segment, including rooms on non-grid coordinates,
+rather than only checking whether the destination cell is vacant.
+
+If a known north/south edge is diagonal or obstructed, the mapper evaluates
+sideways translations of the affected aligned north/south chain. East/west chains
+are handled symmetrically with vertical translations. It checks both sides of
+a misaligned boundary and shifts of 2 through 64 coordinate units, preferring
+fewer moved rooms and then less movement, with deterministic ties. A candidate
+must move a connected row or column of at least two rooms; this is not a general
+re-layout of isolated established destinations or a whole-map migration.
+
+Unlike ordinary provisional loop repair, this targeted operation may move intact
+mapper-owned established rooms while preserving their placement authorities.
+The whole aligned chain moves together. A required provisional side branch may
+move with it to keep its exits valid; unrelated occupied destination cells block
+the candidate. A manual, foreign, or continent room in the chain prevents its
+translation. Owned links to protected endpoints remain constraints even when
+those endpoints are not mapper-owned.
+
+All affected cardinal exits must satisfy their axis and direction and have clear
+connector segments. A moved room also cannot become a new obstacle on an
+otherwise untouched owned connector. Room IDs, exit destinations, and floors do
+not change. Plans are validated before coordinate writes and coordinates and
+placement markers are read back afterward. Repairs are considered on room
+updates near the affected chain and repeated packets do not repeat a successful
+translation. If protected anchors or other constraints prevent a safe repair,
+the server exit is retained and the layout conflict is reported instead.
 
 Continent coordinates, rooms moved manually since their placement marker was
 recorded, and foreign rooms are fixed for every repair. If no safe plan exists,

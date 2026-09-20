@@ -26,6 +26,9 @@ class MapperTests(unittest.TestCase):
         self.check('''
           assert(mapper:receive(packet(100,{n=201,e=202,w=203})))
           assert(mapper:receive(packet(100,{})))
+          -- Anchor the source manually so these fixtures exercise insertion and
+          -- displacement retry, rather than the separate sideways-column repair.
+          setRoomUserData(100,"aardwolf-vibe:placement-x","999")
           local short="''' + direction + '''"
           local vectors={n={0,1,"s"},e={1,0,"w"},s={0,-1,"n"},w={-1,0,"e"}}
           local dx,dy,reverse=unpack(vectors[short])
@@ -43,6 +46,157 @@ class MapperTests(unittest.TestCase):
           local function distance(id) return rooms[id].x*dx+rooms[id].y*dy end
           place(201,20);place(202,22);place(203,24)
         ''' + snippet)
+
+    def column_check(self, snippet, rotate=False):
+        self.check('''
+          assert(mapper:receive(packet(100,{n=101,e=102,s=103,w=104,u=105,d=201})))
+          assert(mapper:receive(packet(100,{})))
+          assert(mapper:receive(packet(202,{})))
+          assert(mapper:receive(packet(203,{u=300})))
+          assert(mapper:receive(packet(203,{})))
+          assert(mapper:receive(packet(204,{})))
+          local rotate=''' + str(rotate).lower() + '''
+          local directions=rotate and {n="e",s="w",e="s",w="n"} or {n="n",s="s",e="e",w="w"}
+          local function place(id,x,y)
+            if rotate then x,y=y,-x end
+            setRoomCoordinates(id,x,y,0)
+            for key,value in pairs({area=areas.test,x=x,y=y,z=0,authority="gmcp-reciprocal"}) do
+              setRoomUserData(id,"aardwolf-vibe:placement-"..key,tostring(value))
+            end
+          end
+          local function link(a,d,b)
+            d=directions[d]
+            setExit(a,b,d);setRoomUserData(a,"aardwolf-vibe:exit:"..d,tostring(b))
+          end
+          local function at(id,x,y)
+            if rotate then x,y=y,-x end
+            return rooms[id].x==x and rooms[id].y==y and rooms[id].z==0
+          end
+          place(100,4,0);place(101,4,2);place(102,6,4)
+          place(103,4,-6);place(104,4,-8);place(105,4,-10)
+          place(201,4,-4);place(202,4,4);place(203,2,0);place(204,2,-10)
+          place(300,20,20)
+          link(100,"n",101);link(101,"s",100);link(101,"n",102)
+          link(100,"s",103);link(103,"n",100)
+          link(103,"s",104);link(104,"n",103)
+          link(104,"s",105);link(105,"n",104)
+          link(100,"w",203);link(203,"e",100)
+          link(105,"w",204);link(204,"e",105)
+          local fresh=packet(100,{[directions.n]=101,[directions.s]=103,[directions.w]=203})
+        ''' + snippet)
+
+    def test_sideways_column_repair_aligns_north_and_clears_south_connector(self):
+        for rotate in (False, True):
+            with self.subTest(rotate=rotate):
+                self.column_check('''
+                  assert(mapper:receive(fresh))
+                  assert(at(100,6,0) and at(101,6,2))
+                  assert(at(103,6,-6) and at(104,6,-8) and at(105,6,-10))
+                  assert(at(102,6,4) and at(201,4,-4) and at(202,4,4))
+                  assert(at(203,2,0) and at(204,2,-10))
+                  assert(mapper.reflowedRooms==5 and mapper.layoutConflicts==0)
+                  for _,id in ipairs({100,101,103,104,105}) do
+                    assert(rooms[id].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+                  end
+                  assert(mapper:receive(fresh))
+                  assert(mapper.reflowedRooms==5)
+                ''', rotate)
+
+    def test_sideways_column_repair_preserves_protected_member(self):
+        for protection in ("manual", "continent", "foreign"):
+            with self.subTest(protection=protection):
+                self.column_check('''
+                  local protection="''' + protection + '''"
+                  if protection=="manual" then
+                    setRoomUserData(104,"aardwolf-vibe:placement-x","999")
+                  elseif protection=="continent" then
+                    setRoomUserData(104,"aardwolf-vibe:placement-authority","gmcp-continent")
+                  else
+                    setRoomUserData(104,"aardwolf-vibe:owner","")
+                  end
+                  assert(mapper:receive(fresh))
+                  assert(at(100,4,0) and at(101,4,2) and at(103,4,-6))
+                  assert(at(104,4,-8) and at(105,4,-10))
+                  assert(mapper.reflowedRooms==0 and mapper.layoutConflicts>0)
+                ''')
+
+    def test_sideways_column_carries_required_provisional_side_exit(self):
+        self.column_check('''
+          place(300,6,-8)
+          setRoomUserData(300,"aardwolf-vibe:placement-authority","provisional")
+          link(104,"e",300)
+          assert(mapper:receive(fresh))
+          assert(at(100,6,0) and at(101,6,2) and at(104,6,-8))
+          assert(at(300,8,-8) and rooms[104].exits.east==300)
+          assert(rooms[300].data["aardwolf-vibe:placement-authority"]=="provisional")
+          assert(mapper.reflowedRooms==6 and mapper.layoutConflicts==0)
+          assert(mapper:receive(fresh))
+          assert(mapper.reflowedRooms==6)
+        ''')
+
+    def test_sideways_column_rejects_obstacle_in_new_connector_corridor(self):
+        self.column_check('''
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,6,-2,0)
+          assert(mapper:receive(fresh))
+          assert(at(100,4,0) and at(101,4,2) and at(103,4,-6))
+          assert(at(999,6,-2) and mapper.reflowedRooms==0)
+          assert(mapper.layoutConflicts>0)
+        ''')
+
+    def test_sideways_column_does_not_place_room_on_unrelated_connector(self):
+        self.column_check('''
+          place(202,5,-6);place(300,7,-6)
+          link(202,"e",300)
+          assert(mapper:receive(fresh))
+          assert(at(100,4,0) and at(103,4,-6) and at(105,4,-10))
+          assert(at(202,5,-6) and at(300,7,-6))
+          assert(mapper.reflowedRooms==0 and mapper.layoutConflicts>0)
+        ''')
+
+    def test_aligned_column_with_obstructed_exit_still_opens_a_gap(self):
+        self.column_check('''
+          place(102,4,4);place(202,2,4)
+          assert(mapper:receive(fresh))
+          assert(at(100,6,0) and at(102,6,4) and at(105,6,-10))
+          assert(at(201,4,-4) and at(202,2,4))
+          assert(mapper.reflowedRooms==6 and mapper.layoutConflicts==0)
+        ''')
+
+    def test_diagonal_north_exit_without_corridor_obstruction_aligns_column(self):
+        self.column_check('''
+          place(201,0,-4)
+          assert(mapper:receive(fresh))
+          assert(at(100,6,0) and at(101,6,2) and at(102,6,4))
+          assert(at(103,6,-6) and at(201,0,-4))
+          assert(mapper.reflowedRooms==5 and mapper.layoutConflicts==0)
+        ''')
+
+    def test_column_corridor_ignores_rooms_on_other_floors_or_areas(self):
+        self.column_check('''
+          addRoom(998);setRoomArea(998,areas.test);setRoomCoordinates(998,6,-2,1)
+          local other=addAreaName("other")
+          addRoom(999);setRoomArea(999,other);setRoomCoordinates(999,6,-2,0)
+          assert(mapper:receive(fresh))
+          assert(at(100,6,0) and at(103,6,-6))
+          assert(rooms[998].z==1 and rooms[999].area==other)
+          assert(mapper.reflowedRooms==5 and mapper.layoutConflicts==0)
+        ''')
+
+    def test_fixed_anchor_cannot_close_loop_through_foreign_room(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101,n=102})))
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,2,2,0)
+          assert(mapper:receive(packet(101,{n=103})))
+          local fixed=packet(102,{s=100,e=103},"test","inside",{cont=1,id=0,x=0,y=-2})
+          assert(mapper:receive(fixed))
+          assert(rooms[102].x==0 and rooms[102].y==2)
+          assert(rooms[103].x==4 and rooms[103].y==4)
+          assert(rooms[999].x==2 and rooms[999].y==2)
+          assert(rooms[102].exits.east==103 and mapper.layoutConflicts==2)
+          local moved=mapper.reflowedRooms
+          assert(mapper:receive(fixed))
+          assert(mapper.reflowedRooms==moved and mapper.layoutConflicts==2)
+        ''')
 
     def test_sparse_insertion_leaves_fixed_neighbor_across_existing_gap(self):
         for direction in "nesw":
@@ -276,6 +430,7 @@ class MapperTests(unittest.TestCase):
     def test_horizontal_collision_stays_on_directional_axis(self):
         self.check('''
           assert(mapper:receive(packet(101,{},"test")))
+          setRoomUserData(101,"aardwolf-vibe:placement-x","999")
           addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,2,0,0)
           assert(mapper:receive(packet(101,{e=102},"test")))
           assert(rooms[102].x==4 and rooms[102].y==0 and rooms[102].z==0)
@@ -287,6 +442,7 @@ class MapperTests(unittest.TestCase):
         self.check('''
           assert(mapper:receive(packet(100,{e=201,w=202},"test")))
           assert(mapper:receive(packet(100,{},"test")))
+          setRoomUserData(100,"aardwolf-vibe:placement-x","999")
 
           -- Keep room 201 at the eastern insertion point, but deliberately
           -- leave its recorded x coordinate stale to model a manual move.
@@ -470,29 +626,29 @@ class MapperTests(unittest.TestCase):
           assert(rooms[100].exits.east==101 and rooms[101].exits.west==100)
         ''')
 
-    def test_sparse_loop_reflows_smallest_provisional_component(self):
+    def test_sparse_column_clears_blocker_before_loop_closure(self):
         self.check('''
           assert(mapper:receive(packet(100,{e=101,n=102},"test")))
           addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,2,2,0)
 
-          -- The fixed blocker leaves the provisional north room at (2,4).
+          -- Shift the column sideways instead of drawing through the blocker.
           assert(mapper:receive(packet(101,{n=103},"test")))
           assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="provisional")
-          assert(rooms[103].x==2 and rooms[103].y==4)
+          assert(rooms[101].x==4 and rooms[101].y==0)
+          assert(rooms[103].x==4 and rooms[103].y==4)
           assert(mapper:receive(packet(100,{e=101,n=102},"test")))
 
-          -- Continent coordinates fix room 102 at (0,2). Closing the east
-          -- edge moves only the connected provisional rooms around 999.
-          local continent={cont=1,id=0,x=0,y=-2}
+          -- The east edge can close at y=4 without crossing the blocker at y=2.
+          local continent={cont=1,id=0,x=0,y=-4}
           assert(mapper:receive(packet(102,{s=100,e=103},"test","inside",continent)))
-          assert(rooms[102].x==0 and rooms[102].y==2)
+          assert(rooms[102].x==0 and rooms[102].y==4)
           assert(rooms[102].data["aardwolf-vibe:placement-authority"]=="gmcp-continent")
           assert(rooms[101].x==4 and rooms[101].y==0)
-          assert(rooms[103].x==4 and rooms[103].y==2)
+          assert(rooms[103].x==4 and rooms[103].y==4)
           assert(rooms[999].x==2 and rooms[999].y==2)
           -- The initial collision is now reported even though its later repair succeeds.
           assert(mapper.reflowedRooms==2 and mapper.layoutConflicts==1)
-          assert(rooms[103].data["aardwolf-vibe:displaced-from"]=="")
+          assert(rooms[103].data["aardwolf-vibe:displaced-from"]=="101")
           assert(rooms[102].exits.east==103 and rooms[101].exits.north==103)
 
           local reflowed=mapper.reflowedRooms

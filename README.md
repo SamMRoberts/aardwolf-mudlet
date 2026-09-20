@@ -32,7 +32,17 @@ displacement metadata. The mapper retries insertion when the source or
 destination is refreshed, keeping unresolved placements provisional even after
 a reciprocal visit. Successful repair clears that metadata and allows normal
 establishment. Unresolved insertion is reported as a non-fatal layout conflict;
-intentional long gaps and existing established destinations are not migrated.
+intentional long gaps are not compacted automatically.
+
+When a north/south connection is diagonal or passes through an unrelated room,
+the mapper can shift the connected north/south column sideways to open a gap.
+East/west rows receive the equivalent vertical repair. This targeted repair can
+move intact mapper-owned established rooms and carry required provisional side
+exits; manual, foreign, and continent placements remain fixed. Every affected
+exit must remain correctly aligned and clear of intervening rooms, and moved
+rooms must not obstruct other connectors. If no safe plan exists, the original
+layout and exit destinations are retained and a conflict is reported.
+
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile
