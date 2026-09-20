@@ -19,11 +19,35 @@ mapper may reflow only the smallest affected component whose placement is still
 mapper-owned and provisional; established, continent, manual, and foreign
 coordinates remain fixed. When an interior cardinal edge instead meets an
 intact mapper-owned non-continent perimeter room in the immediately adjacent
-cell, the mapper can shift the connected far side of that perimeter outward by
-one grid step. This also separates an established interior room that already
-overlaps the compact perimeter at that cell. The intended interior room stays
-put while the perimeter expands, preserving topology and leaving continent,
-manual, and foreign coordinates untouched.
+cell, the mapper evaluates outward shifts of one through 32 grid steps. For
+new or provisional destinations, only rooms required by collisions or cardinal
+constraints join the expansion; existing gaps can keep fixed neighbors in place.
+Plans prefer fewer moved rooms, then less total movement. Established interior
+rooms that already overlap the compact perimeter retain the connected
+half-perimeter expansion behavior. Continent, manual, and foreign coordinates
+remain untouched.
+
+New placeholders forced farther away by a collision retain persistent
+displacement metadata. The mapper retries insertion when the source or
+destination is refreshed, keeping unresolved placements provisional even after
+a reciprocal visit. Successful repair clears that metadata and allows normal
+establishment. Unresolved insertion is reported as a non-fatal layout conflict;
+intentional long gaps are not compacted automatically.
+
+When a north/south connection is diagonal or passes through an unrelated room,
+the mapper can shift the connected north/south column sideways to open a gap.
+East/west rows receive the equivalent vertical repair. This targeted repair can
+move intact mapper-owned established rooms and carry required provisional side
+exits; manual, foreign, and continent placements remain fixed. Every affected
+exit must remain correctly aligned and clear of intervening rooms, and moved
+rooms must not obstruct other connectors. If no safe plan exists, the original
+layout and exit destinations are retained and a conflict is reported.
+
+Refresh checks use row/column indexes and skip unnecessary repair searches on
+healthy layouts. Map membership is shared only within an update, so later
+packets still detect manual edits. The offline refresh benchmark and its limits
+are described in [the mapper contract](docs/mapper.md#refresh-performance).
+
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile

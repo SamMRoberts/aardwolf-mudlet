@@ -75,21 +75,78 @@ A separate sparse-grid insertion applies when a destination belongs in the cell
 immediately beyond a source, but that cell is occupied by an intact mapper-owned
 non-continent perimeter. The destination can be a new room, a provisional room
 that was displaced farther along the ray, or an intact established interior
-room already overlapped by the compact perimeter. The mapper shifts the
-connected portion of the perimeter on the far side of that cut outward by one
-two-cell grid step. It then places a new or displaced provisional destination
-in the opened cell, or leaves an established destination there while separating
-the perimeter from it. The plan includes rooms required by owned topology and
-occupancy so it cannot split a row or column, collapse rooms onto one another,
-or violate any known incident cardinal edge. Existing placement authorities are
-preserved.
+room already overlapped by the compact perimeter. The mapper evaluates outward
+shifts from 2 through 64 coordinate units in two-unit increments. For new or
+provisional destinations, it starts with the blockers at the cut and includes
+other eligible rooms only when a collision or incident cardinal constraint
+requires them to move. Existing gaps can therefore accommodate insertion without
+moving a fixed neighbor. Plans prefer fewer moved rooms, then less total
+Manhattan movement, with deterministic tie-breaking.
+
+The selected plan places a new or displaced provisional destination in the
+opened cell. For an established interior destination already overlapping the
+perimeter, the existing connected half-perimeter expansion is retained and the
+destination stays put. All candidates are validated before coordinate writes;
+room coordinates and placement markers are read back after application. Plans
+cannot overlap rooms or violate known incident cardinal edges. Existing
+placement authorities are preserved during expansion.
+
+New non-continent cardinal placeholders forced beyond the adjacent cell record
+their source and direction in `aardwolf-vibe:displaced-from` and
+`aardwolf-vibe:displaced-direction`. These fields survive package reloads and
+allow retries when either the source or destination receives fresh room
+information, even if the adjacent cell has since become vacant. Destination
+retries validate the original owned exit and include the destination's fresh
+topology before moving anything. Unresolved collision-displaced rooms remain
+provisional even when reciprocal exits confirm movement. Successful repair
+clears the fields and allows normal reciprocal establishment. Cross-area or
+continent-authoritative placement also clears the obsolete displacement record.
+
+A long edge alone does not create displacement metadata. Intentional sparse gaps
+remain valid and do not trigger compaction of established destinations. Older
+provisional destinations retain the existing occupied-cut insertion behavior.
+
+### Sideways row and column repair
+
+A cardinal connection must also have a clear connector: an unrelated room on
+the same area and floor cannot occupy a point strictly between its endpoints.
+The mapper checks the complete segment, including rooms on non-grid coordinates,
+rather than only checking whether the destination cell is vacant.
+
+If a known north/south edge is diagonal or obstructed, the mapper evaluates
+sideways translations of the affected aligned north/south chain. East/west chains
+are handled symmetrically with vertical translations. It checks both sides of
+a misaligned boundary and shifts of 2 through 64 coordinate units, preferring
+fewer moved rooms and then less movement, with deterministic ties. A candidate
+must move a connected row or column of at least two rooms; this is not a general
+re-layout of isolated established destinations or a whole-map migration.
+
+Unlike ordinary provisional loop repair, this targeted operation may move intact
+mapper-owned established rooms while preserving their placement authorities.
+The whole aligned chain moves together. A required provisional side branch may
+move with it to keep its exits valid; unrelated occupied destination cells block
+the candidate. A manual, foreign, or continent room in the chain prevents its
+translation. Owned links to protected endpoints remain constraints even when
+those endpoints are not mapper-owned.
+
+All affected cardinal exits must satisfy their axis and direction and have clear
+connector segments. A moved room also cannot become a new obstacle on an
+otherwise untouched owned connector. Room IDs, exit destinations, and floors do
+not change. Plans are validated before coordinate writes and coordinates and
+placement markers are read back afterward. Repairs are considered on room
+updates near the affected chain and repeated packets do not repeat a successful
+translation. If protected anchors or other constraints prevent a safe repair,
+the server exit is retained and the layout conflict is reported instead.
 
 Continent coordinates, rooms moved manually since their placement marker was
 recorded, and foreign rooms are fixed for every repair. If no safe plan exists,
 the coordinates are retained, the server-authoritative exit is still recorded,
-and the mapper reports a non-fatal layout conflict. Mapper status reports
-cumulative `reflowed` and `layout-conflicts` counts for the current package
-lifetime.
+and the mapper reports a non-fatal layout conflict. Collision-displaced fallback
+placement is also reported, even when its exit still satisfies axis and direction
+checks. Repeated unresolved insertion reports are deduplicated by source,
+direction, and destination. Mapper status reports cumulative `reflowed` and
+`layout-conflicts` counts for the current package lifetime; successful repair
+does not subtract an earlier conflict from that history.
 
 Known destinations are created as gray `?` rooms and promoted when visited.
 Cross-zone promotion moves the room into the exact newly reported zone. A room
@@ -120,3 +177,37 @@ map backup under `aardwolf-vibe-data/backups/`.
 Automated tests validate normalization, topology, ownership, terrain mapping,
 settings, lifecycle contracts, and the built archive. They do not establish
 live Aardwolf negotiation, native rendering, or gameplay movement.
+
+## Refresh performance
+
+Healthy updates validate topology and connector clearance before skipping repair
+searches. An adjacent destination alone in its cell does not trigger sparse
+expansion. Connector checks use sorted row/column indexes on each floor instead
+of comparing every exit with every room. Candidate positions override the index
+so moved rooms are still checked for new obstructions on unrelated connectors.
+
+Room membership is enumerated once per update and limited to the current area
+before ownership inspection. New rooms and area changes invalidate that list,
+and it is discarded after each packet, including failures. Geometry is reused
+only while coordinates remain unchanged. External edits are therefore visible
+on the next packet, even if its room data is otherwise identical. No repair
+search bounds, ownership checks, display updates, or packets are throttled.
+
+Run the offline refresh benchmark with the development environment:
+
+```sh
+.venv/bin/python tools/benchmark_mapper.py
+.venv/bin/python tools/benchmark_mapper.py --sides 10 --outside 10000
+```
+
+The benchmark seeds unobstructed, fully explored grids and reports median update
+time over three runs plus mapper API call counts. `--source` accepts another
+mapper source file for comparison; `--sides` sets grid side lengths. It measures
+Lua mapping logic with the test API, not native Mudlet painting or server latency.
+
+In the local comparison of 0.7.21 and 0.7.22, a 100-room grid dropped from about
+388 ms to 7 ms per update, a 400-room grid from 5.65 seconds to 29 ms, and a
+900-room grid from 28.84 seconds to 67 ms. The 100-room case with 10,000 rooms in
+other areas dropped from 521 ms to 11 ms. Both versions issued one map update
+and one centering call per packet. Timing varies by machine; regression tests
+bound unnecessary API reads instead of imposing fragile wall-clock limits.
