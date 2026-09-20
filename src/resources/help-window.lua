@@ -3,6 +3,7 @@ local HelpWindow = {}
 local OWNER = "aardwolf-vibe.help-window"
 local WINDOW_NAME = OWNER .. ".window"
 local OPEN_TRIGGER = [[^\s*\{(?:help|helpsearch)\}]]
+local CAPTURE_TRIGGER = [[^(?!\s*\{(?:help|helpsearch)\}).*$]]
 local MAX_LINES = 2048
 local MAX_BYTES = 2 * 1024 * 1024
 local CAPTURE_TIMEOUT = 15
@@ -200,7 +201,11 @@ function HelpWindow.new(api)
         diagnostic("Incomplete " .. captured.kind .. " response timed out; previous help retained", token)
       end
     end), "Cannot schedule help capture timeout")
-    captureID = assert(api.tempRegexTrigger("^.*$", function()
+    -- Mudlet evaluates a newly-created trigger against the line currently being
+    -- processed. Excluding openers prevents this trigger from matching the line
+    -- whose opener callback creates it; nested openers remain owned by the
+    -- permanent opener trigger below.
+    captureID = assert(api.tempRegexTrigger(CAPTURE_TRIGGER, function()
       if not self.enabled or token ~= generation then return end
       local ok, message = pcall(receive, api.line or "", token)
       if not ok then
@@ -339,7 +344,7 @@ function HelpWindow.new(api)
 
       stage = "register help opener"
       openerID = assert(api.tempRegexTrigger(OPEN_TRIGGER, function()
-        if not self.enabled or token ~= generation or frame then return end
+        if not self.enabled or token ~= generation then return end
         local text = api.line or ""
         local kind, markerEnd = outerMarker(text)
         if not kind then return end

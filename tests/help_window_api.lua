@@ -11,6 +11,8 @@ line = ""
 currentColors = {}
 selectedIndex = 0
 fail = {}
+processingLine = false
+sameLineTriggerActivations = 0
 
 local function count(values)
   local total = 0
@@ -39,10 +41,27 @@ function fire(event, ...)
   for _, callback in ipairs(callbacks) do callback(event, ...) end
 end
 
+local function isHelpOpener(text)
+  return text:match("^%s*{help}") ~= nil or text:match("^%s*{helpsearch}") ~= nil
+end
+
+local function matchesTrigger(regex, text)
+  if regex == "^.*$" then return true end
+  if regex:find("?!", 1, true) then return not isHelpOpener(text) end
+  return isHelpOpener(text)
+end
+
 function tempRegexTrigger(regex, callback)
   if fail.trigger then error("trigger failure") end
   nextID = nextID + 1
   triggers[nextID] = {regex = regex, callback = callback}
+  if processingLine and matchesTrigger(regex, line) then
+    sameLineTriggerActivations = sameLineTriggerActivations + 1
+    if sameLineTriggerActivations > 1000 then
+      error("new trigger repeatedly matched the line being processed")
+    end
+    callback()
+  end
   return nextID
 end
 
@@ -105,11 +124,6 @@ end
 
 function deselect() selectedIndex = 0 end
 
-local function matchesTrigger(regex, text)
-  if regex == "^.*$" then return true end
-  return text:match("^%s*{help}") ~= nil or text:match("^%s*{helpsearch}") ~= nil
-end
-
 function incoming(text, colors)
   line = text
   currentColors = colors or {}
@@ -121,9 +135,11 @@ function incoming(text, colors)
     end
   end
   table.sort(callbacks, function(left, right) return left.id < right.id end)
+  processingLine = true
   for _, entry in ipairs(callbacks) do
     if triggers[entry.id] then entry.callback() end
   end
+  processingLine = false
   if not currentDeleted then visible[#visible + 1] = text end
 end
 

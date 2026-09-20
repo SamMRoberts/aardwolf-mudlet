@@ -74,6 +74,19 @@ class HelpWindowTests(unittest.TestCase):
             end
           end
           assert(found)
+          assert(sameLineTriggerActivations==0)
+        ''')
+
+    def test_capture_trigger_does_not_match_the_opener_line_that_creates_it(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          incoming("{help}")
+          assert(help:status().captureActive)
+          assert(sameLineTriggerActivations==0)
+          assert(tableCount(triggers)==2)
+          incoming("body");incoming("{/help}")
+          assert(helpWindow().text=="body\n")
+          assert(help:status().responsesAccepted==1)
         ''')
 
     def test_helpsearch_replaces_previous_document_and_attached_outer_text(self):
@@ -86,6 +99,7 @@ class HelpWindowTests(unittest.TestCase):
           incoming("{/helpsearch}")
           assert(helpWindow().text=="Search results\none\n")
           assert(help:status().responsesAccepted==2)
+          assert(sameLineTriggerActivations==0)
           assert(#visible==0)
         ''')
 
