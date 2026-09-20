@@ -213,6 +213,7 @@ function Mapper.new(api, settings)
   local lastPacket, movementAnchor, applying, queued = nil, nil, false, false
   local reportedLayoutConflicts = {}
   local backupDone = false
+  local layoutRoomLists
 
   local function required(value, message)
     if value ~= true then error(message, 0) end
@@ -431,22 +432,26 @@ function Mapper.new(api, settings)
       and api.getRoomUserData(id, KEY .. "placement-authority") == "provisional"
   end
 
-  local function roomIDs()
+  local function areaRoomIDs(area)
+    if layoutRoomLists and layoutRoomLists[area] then return layoutRoomLists[area] end
     local rooms = api.getRooms()
     if type(rooms) ~= "table" then error("Cannot inspect mapped rooms", 0) end
     local result, seen = {}, {}
     for key in pairs(rooms) do
       local id = roomID(key)
-      if id and not seen[id] then result[#result + 1], seen[id] = id, true end
+      if id and not seen[id] and api.getRoomArea(id) == area then
+        result[#result + 1], seen[id] = id, true
+      end
     end
     table.sort(result)
+    if layoutRoomLists then layoutRoomLists[area] = result end
     return result
   end
 
   local function placementConstraints(area, currentID, currentRoom)
     local byKey = {}
-    for _, id in ipairs(roomIDs()) do
-      if managed(id) and api.getRoomArea(id) == area then
+    for _, id in ipairs(areaRoomIDs(area)) do
+      if managed(id) then
         local exits = api.getRoomExits(id)
         if type(exits) ~= "table" then error("Cannot inspect room exits", 0) end
         for _, direction in ipairs(DIRECTIONS) do
@@ -500,15 +505,15 @@ function Mapper.new(api, settings)
     return result
   end
 
-  local function coordinatesFor(id, positions)
-    local position = positions[id]
+  local function coordinatesFor(id, positions, original)
+    local position = positions[id] or original and original[id]
     if position then return position.x, position.y, position.z end
     return api.getRoomCoordinates(id)
   end
 
-  local function constraintSatisfied(constraint, positions)
-    local fx, fy, fz = coordinatesFor(constraint.from, positions)
-    local tx, ty, tz = coordinatesFor(constraint.to, positions)
+  local function constraintSatisfied(constraint, positions, original)
+    local fx, fy, fz = coordinatesFor(constraint.from, positions, original)
+    local tx, ty, tz = coordinatesFor(constraint.to, positions, original)
     if fz ~= tz then return false end
     local direction = constraint.direction
     if direction.dx ~= 0 then
@@ -592,32 +597,75 @@ function Mapper.new(api, settings)
     return true
   end
 
-  local function corridorHits(constraint, positions, rooms)
+  local function corridorHits(constraint, positions, geometry, onlyMoved)
     local hits = {}
-    if not constraintSatisfied(constraint, positions) then return hits end
-    local fx, fy, fz = coordinatesFor(constraint.from, positions)
-    local tx, ty = coordinatesFor(constraint.to, positions)
-    for id, original in pairs(rooms) do
-      local position = positions[id] or original
+    if not constraintSatisfied(constraint, positions, geometry.rooms) then return hits end
+    local fx, fy, fz = coordinatesFor(constraint.from, positions, geometry.rooms)
+    local tx, ty = coordinatesFor(constraint.to, positions, geometry.rooms)
+    local vertical = constraint.direction.dx == 0
+    local first, last = vertical and fy or fx, vertical and ty or tx
+    local low, high = math.min(first, last), math.max(first, last)
+    local axis = vertical and fx or fy
+    if not onlyMoved then
+      local floor = (vertical and geometry.columns or geometry.rows)[fz]
+      local line = floor and floor[axis] or {}
+      -- The index describes the unchanged snapshot. Strict interval bounds keep
+      -- endpoints out and work for arbitrary coordinates, not just grid cells.
+      local left, right = 1, #line
+      while left <= right do
+        local middle = math.floor((left + right) / 2)
+        if line[middle].coordinate <= low then left = middle + 1 else right = middle - 1 end
+      end
+      for index = left, #line do
+        local entry = line[index]
+        if entry.coordinate >= high then break end
+        if not positions[entry.id] and entry.id ~= constraint.from and entry.id ~= constraint.to then
+          hits[entry.id] = true
+        end
+      end
+    end
+    -- A proposed room can leave its indexed row or enter a different one.
+    -- Always overlay candidate positions rather than trusting the old index.
+    for id, position in pairs(positions) do
+      local coordinate = vertical and position.y or position.x
       if id ~= constraint.from and id ~= constraint.to and position.z == fz
-          and (fx == tx and position.x == fx and position.y > math.min(fy, ty)
-            and position.y < math.max(fy, ty)
-          or fy == ty and position.y == fy and position.x > math.min(fx, tx)
-            and position.x < math.max(fx, tx)) then hits[id] = true end
+          and (vertical and position.x or position.y) == axis
+          and coordinate > low and coordinate < high then hits[id] = true end
     end
     return hits
   end
 
   local function layoutGeometry(area, constraints)
-    local geometry = {rooms = {}, hits = {}}
-    for _, id in ipairs(roomIDs()) do
-      if api.getRoomArea(id) == area then
-        local x, y, z = api.getRoomCoordinates(id)
-        geometry.rooms[id] = {x = x, y = y, z = z}
+    local geometry = {rooms = {}, hits = {}, rows = {}, columns = {}, hasIssues = false}
+    local function indexRoom(index, floor, axis, coordinate, id)
+      index[floor] = index[floor] or {}
+      local lines = index[floor]
+      lines[axis] = lines[axis] or {}
+      local line = lines[axis]
+      line[#line + 1] = {id = id, coordinate = coordinate}
+    end
+    for _, id in ipairs(areaRoomIDs(area)) do
+      local x, y, z = api.getRoomCoordinates(id)
+      geometry.rooms[id] = {x = x, y = y, z = z}
+      indexRoom(geometry.rows, z, y, x, id)
+      indexRoom(geometry.columns, z, x, y, id)
+    end
+    for _, index in ipairs({geometry.rows, geometry.columns}) do
+      for _, floor in pairs(index) do
+        for _, line in pairs(floor) do
+          table.sort(line, function(a, b)
+            if a.coordinate ~= b.coordinate then return a.coordinate < b.coordinate end
+            return a.id < b.id
+          end)
+        end
       end
     end
     for _, constraint in ipairs(constraints) do
-      geometry.hits[constraint.key] = corridorHits(constraint, {}, geometry.rooms)
+      local hits = corridorHits(constraint, {}, geometry)
+      geometry.hits[constraint.key] = hits
+      if next(hits) or not constraintSatisfied(constraint, {}, geometry.rooms) then
+        geometry.hasIssues = true
+      end
     end
     return geometry
   end
@@ -625,10 +673,10 @@ function Mapper.new(api, settings)
   local function corridorsClear(positions, moving, constraints, geometry)
     for _, constraint in ipairs(constraints) do
       local affected = moving[constraint.from] or moving[constraint.to]
-      if affected and not constraintSatisfied(constraint, positions) then return false end
-      local hits = corridorHits(constraint, positions, geometry.rooms)
+      if affected and not constraintSatisfied(constraint, positions, geometry.rooms) then return false end
+      local hits = corridorHits(constraint, positions, geometry, not affected)
       if affected and next(hits) then return false end
-      -- Moving a room must not introduce an obstruction on an untouched exit.
+      -- Only proposed room positions can newly obstruct an untouched exit.
       for id in pairs(hits) do
         if not geometry.hits[constraint.key][id] then return false end
       end
@@ -636,9 +684,8 @@ function Mapper.new(api, settings)
     return true
   end
 
-  local function placementPlan(candidate, constraints, area)
+  local function placementPlan(candidate, constraints, area, geometry)
     local moving, original, domains = candidate.set, {}, {}
-    local geometry = layoutGeometry(area, constraints)
     local relevant = {}
     for _, id in ipairs(candidate.ids) do
       local x, y, z = api.getRoomCoordinates(id)
@@ -866,6 +913,10 @@ function Mapper.new(api, settings)
     if #blockers == 0 and (not targetID or recordedSource ~= sourceID
         or recordedDirection.short ~= direction.short) then return false end
 
+    -- An already adjacent destination alone in its cell needs no expansion.
+    -- Pending displacement still takes the validating path before it is cleared.
+    if targetID and #blockers == 1 and blockers[1] == targetID and not recordedSource then return false end
+
     local constraints = placementConstraints(area, currentID, currentRoom)
     local geometry = layoutGeometry(area, constraints)
     local function candidate(distance)
@@ -991,8 +1042,7 @@ function Mapper.new(api, settings)
     reportDisplacement(id)
   end
 
-  local function repairDirectionalStrand(start, area, constraints)
-    local geometry = layoutGeometry(area, constraints)
+  local function repairDirectionalStrand(start, area, constraints, geometry)
     local best
     for _, vertical in ipairs({true, false}) do
       local function parallel(constraint)
@@ -1092,7 +1142,7 @@ function Mapper.new(api, settings)
                   for _, constraint in ipairs(constraints) do
                     if parallel(constraint) and (primary[constraint.from] or primary[constraint.to])
                         and (not constraintSatisfied(constraint, positions)
-                          or next(corridorHits(constraint, positions, geometry.rooms))) then
+                          or next(corridorHits(constraint, positions, geometry))) then
                       valid = false
                       break
                     end
@@ -1158,8 +1208,12 @@ function Mapper.new(api, settings)
       if constraint.key == currentKey and constraint.to == target then current = constraint; break end
     end
     if not current then return true end
-    repairDirectionalStrand(from, area, constraints)
     local geometry = layoutGeometry(area, constraints)
+    if not geometry.hasIssues then return true end
+    if repairDirectionalStrand(from, area, constraints, geometry) then
+      geometry = layoutGeometry(area, constraints)
+      if not geometry.hasIssues then return true end
+    end
     local candidates = candidateSets(from, target, constraints, currentKey, area, from)
     local needsRepair = not constraintSatisfied(current, {}) or next(geometry.hits[current.key]) ~= nil
     if not needsRepair then
@@ -1178,7 +1232,7 @@ function Mapper.new(api, settings)
     if not needsRepair then return true end
     local bestCandidate, bestPlan
     for _, candidate in ipairs(candidates) do
-      local plan = placementPlan(candidate, constraints, area)
+      local plan = placementPlan(candidate, constraints, area, geometry)
       if plan and (not bestPlan or plan.moved < bestPlan.moved
           or plan.moved == bestPlan.moved and plan.distance < bestPlan.distance
           or plan.moved == bestPlan.moved and plan.distance == bestPlan.distance
@@ -1202,6 +1256,7 @@ function Mapper.new(api, settings)
     local reverse = api.getRoomHashByID(id)
     if reverse ~= nil and reverse ~= "" then error("Room reverse-hash collision: " .. id, 0) end
     required(api.addRoom(id), "Cannot create room " .. id)
+    layoutRoomLists = {}
     required(api.setRoomUserData(id, KEY .. "ready", "0"), "Cannot begin room construction")
     required(api.setRoomUserData(id, KEY .. "owner", OWNER), "Cannot mark room ownership")
     required(api.setRoomUserData(id, KEY .. "server-room-id", tostring(id)), "Cannot store room identity")
@@ -1355,7 +1410,10 @@ function Mapper.new(api, settings)
     elseif reciprocal then
       authority = "gmcp-reciprocal"
     end
-    if oldArea ~= area then required(api.setRoomArea(id, area), "Cannot update room area") end
+    if oldArea ~= area then
+      required(api.setRoomArea(id, area), "Cannot update room area")
+      layoutRoomLists = {}
+    end
     if x ~= nx or y ~= ny or z ~= nz then
       required(api.setRoomCoordinates(id, nx, ny, nz), "Cannot update room coordinates")
     end
@@ -1576,7 +1634,11 @@ function Mapper.new(api, settings)
       return false
     end
     applying = true
+    -- Membership is shared only within this synchronous update. New rooms or
+    -- area changes invalidate it; the next packet must see external map edits.
+    layoutRoomLists = {}
     local ok, failure = pcall(apply, room)
+    layoutRoomLists = nil
     applying = false
     if not ok then
       self.failed = self.failed + 1

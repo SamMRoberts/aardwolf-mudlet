@@ -22,6 +22,29 @@ class MapperTests(unittest.TestCase):
         lua.execute("mapper=factory.new(_G,settings);assert(mapper:start())")
         lua.execute(snippet)
 
+    def test_healthy_grid_refresh_uses_bounded_map_reads_and_one_redraw(self):
+        self.check((ROOT / "tests/mapper_grid.lua").read_text() + '''
+          local fresh=seedMapperGrid(10,1000)
+          countMapperAPI()
+          assert(mapper:receive(fresh))
+          assert(mapper.reflowedRooms==0 and mapper.layoutConflicts==0)
+          assert(apiCounts.getRooms==1)
+          assert(apiCounts.getRoomCoordinates<=3200)
+          assert(apiCounts.updateMap==1 and apiCounts.centerview==1)
+        ''')
+
+    def test_grid_refresh_detects_external_changes_between_identical_packets(self):
+        self.check((ROOT / "tests/mapper_grid.lua").read_text() + '''
+          local fresh=seedMapperGrid(5,0)
+          assert(mapper:receive(fresh))
+          assert(mapper.layoutConflicts==0)
+          local x,y,z=getRoomCoordinates(fresh.num)
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,x+1,y,z)
+          assert(mapper:receive(fresh))
+          assert(mapper.layoutConflicts>0 and rooms[999].x==x+1)
+          assert(rooms[fresh.num].exits.east==fresh.exits.e)
+        ''')
+
     def sparse_check(self, direction, snippet):
         self.check('''
           assert(mapper:receive(packet(100,{n=201,e=202,w=203})))

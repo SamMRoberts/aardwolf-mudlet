@@ -177,3 +177,37 @@ map backup under `aardwolf-vibe-data/backups/`.
 Automated tests validate normalization, topology, ownership, terrain mapping,
 settings, lifecycle contracts, and the built archive. They do not establish
 live Aardwolf negotiation, native rendering, or gameplay movement.
+
+## Refresh performance
+
+Healthy updates validate topology and connector clearance before skipping repair
+searches. An adjacent destination alone in its cell does not trigger sparse
+expansion. Connector checks use sorted row/column indexes on each floor instead
+of comparing every exit with every room. Candidate positions override the index
+so moved rooms are still checked for new obstructions on unrelated connectors.
+
+Room membership is enumerated once per update and limited to the current area
+before ownership inspection. New rooms and area changes invalidate that list,
+and it is discarded after each packet, including failures. Geometry is reused
+only while coordinates remain unchanged. External edits are therefore visible
+on the next packet, even if its room data is otherwise identical. No repair
+search bounds, ownership checks, display updates, or packets are throttled.
+
+Run the offline refresh benchmark with the development environment:
+
+```sh
+.venv/bin/python tools/benchmark_mapper.py
+.venv/bin/python tools/benchmark_mapper.py --sides 10 --outside 10000
+```
+
+The benchmark seeds unobstructed, fully explored grids and reports median update
+time over three runs plus mapper API call counts. `--source` accepts another
+mapper source file for comparison; `--sides` sets grid side lengths. It measures
+Lua mapping logic with the test API, not native Mudlet painting or server latency.
+
+In the local comparison of 0.7.21 and 0.7.22, a 100-room grid dropped from about
+388 ms to 7 ms per update, a 400-room grid from 5.65 seconds to 29 ms, and a
+900-room grid from 28.84 seconds to 67 ms. The 100-room case with 10,000 rooms in
+other areas dropped from 521 ms to 11 ms. Both versions issued one map update
+and one centering call per packet. Timing varies by machine; regression tests
+bound unnecessary API reads instead of imposing fragile wall-clock limits.

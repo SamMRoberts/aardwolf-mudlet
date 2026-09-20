@@ -43,6 +43,11 @@ exit must remain correctly aligned and clear of intervening rooms, and moved
 rooms must not obstruct other connectors. If no safe plan exists, the original
 layout and exit destinations are retained and a conflict is reported.
 
+Refresh checks use row/column indexes and skip unnecessary repair searches on
+healthy layouts. Map membership is shared only within an update, so later
+packets still detect manual edits. The offline refresh benchmark and its limits
+are described in [the mapper contract](docs/mapper.md#refresh-performance).
+
 Aardwolf color formatting embedded in GMCP room names is stripped before the
 visible room name is stored, so it cannot prevent current-room synchronization.
 The native graphical mapper is reopened automatically whenever the profile
