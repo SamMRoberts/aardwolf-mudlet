@@ -142,6 +142,7 @@ end
 function synchronize(duration)
   spellRows("",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("spellup",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
+  spellRows("bad",{})
   advance(0)
 end
 function recoveryRows(rows)

@@ -1,13 +1,14 @@
 # Spellup tracking and maintenance
 
 `AardwolfVibe.plugins.spells` is a session-only authoritative view of learned
-abilities, spellup classification, active effects, and recoveries. It enables
-only Aardwolf telnet channel-102 option `7,1`, then requests these frames in
-order after fresh active-character GMCP is available:
+abilities, spellup and bad-effect classifications, active effects, and
+recoveries. It enables only Aardwolf telnet channel-102 option `7,1`, then
+requests these frames in order after fresh active-character GMCP is available:
 
 ```text
 slist noprompt
 slist spellup noprompt
+slist bad noprompt
 ```
 
 `slist affected noprompt` and `slist recoveries noprompt` are requested only
@@ -39,8 +40,8 @@ all readiness, interval, and outstanding-batch gates.
 
 The defensive-copy APIs are:
 
-- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `status()`, and
-  `setHideTags(bool)`
+- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `status()`,
+  `isBadEffect(id)`, and `setHideTags(bool)`
 - `AardwolfVibe.plugins.spellup:status()`, `setAutomatic(bool)`, and `runOnce()`
 - `AardwolfVibe.plugins.buffsWindow:show()`, `hide()`, and `status()`
 
@@ -52,12 +53,13 @@ Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spellup.updated`.
 
 `spells:snapshot()` returns `active`, `expired`, and `recoveries` display
-collections. `expired` contains only effects whose removal was confirmed by an
-`affoff` record or a valid affected snapshot. A confirmed reapplication removes
-the entry, unknown wearoffs are ignored for this collection, and the collection
-is cleared with the rest of the session state. Each expired row reports `id`,
-`name`, `expiredAt`, elapsed seconds in `elapsed`, and the current `spellup` and
-`learned` classifications.
+collections. `expired` contains only non-bad effects whose removal was confirmed
+by an `affoff` record or a valid affected snapshot. Effects classified by
+Aardwolf's `bad` filter remain visible while active but never enter this
+collection. A confirmed reapplication removes the entry, unknown wearoffs are
+ignored for this collection, and the collection is cleared with the rest of the
+session state. Each expired row reports `id`, `name`, `expiredAt`, elapsed
+seconds in `elapsed`, and the current `spellup` and `learned` classifications.
 
 ## Casting contract
 
@@ -86,7 +88,9 @@ abilities and terminal failures. Queue aliases such as a skill command whose
 name differs from its catalog name are reconciled by their confirmed affon or
 affected-snapshot result. Server-queued targets count as completion evidence
 even when local practice metadata is 0%, so granted abilities such as Catalysis
-cannot hold a successful batch open. Pre-existing effects are not attributed
+cannot hold a successful batch open. Only automatic-spellup-eligible effects
+may resolve an unknown queue alias; a mob-applied bad effect cannot be mistaken
+for that queued target. Pre-existing effects are not attributed
 to the new batch, so an unrelated wearoff cannot keep that batch locked. The
 controller never polls for completion. If a tracked effect wears off while a
 batch is still running, that pending work is rescheduled as soon as the current

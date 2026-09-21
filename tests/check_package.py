@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.32")
+        self.assertEqual(metadata["version"], "0.7.33")
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
         self.assertIn("bottom vitals", metadata["description"])
@@ -18,6 +18,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
+        self.assertIn("bad-effect-safe", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
         aliases = json.loads((ROOT / "src/aliases/AardwolfVibe/aliases.json").read_text())
         self.assertEqual(scripts[0]["eventHandlerList"],
@@ -92,7 +93,10 @@ class PackageSourceTests(unittest.TestCase):
         buffs = ROOT / "src/resources/buffs-window.lua"
         self.assertTrue(spells.is_file() and spellup.is_file() and buffs.is_file())
         self.assertIn("sendTelnetChannel102, string.char(7, 1)", spells.read_text())
+        self.assertIn('{kind = "bad", command = "slist bad noprompt"}', spells.read_text())
+        self.assertIn("function self:isBadEffect(id)", spells.read_text())
         self.assertIn('local COMMAND = "spellup learned retry"', spellup.read_text())
+        self.assertIn("not spells:isAutomaticSpellup(id)", spellup.read_text())
         self.assertNotIn("tags off", spells.read_text())
         self.assertIn("geyser.ScrollBox:new", buffs.read_text())
         self.assertNotIn("geyser.MiniConsole:new", buffs.read_text())

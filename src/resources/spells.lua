@@ -10,6 +10,7 @@ local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or ski
 local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
   {kind = "classification", command = "slist spellup noprompt"},
+  {kind = "bad", command = "slist bad noprompt"},
 }
 local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
 local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
@@ -49,6 +50,9 @@ local function expectedHeader(request, header, arguments)
   elseif request.kind == "classification" then
     return header == "spellheaders"
       and (arguments == "spellup" or arguments == "spellup noprompt")
+  elseif request.kind == "bad" then
+    return header == "spellheaders"
+      and (arguments == "bad" or arguments == "bad noprompt")
   elseif request.kind == "active" then
     return header == "spellheaders"
       and (arguments == "affected" or arguments == "affected noprompt")
@@ -98,7 +102,7 @@ function Spells.new(api, character, settings)
     lastError = nil,
     hideTags = true,
   }
-  local catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+  local catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
   local handlers = {}
   local triggerIDs, captureID = {}, nil
   local frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
@@ -221,8 +225,12 @@ function Spells.new(api, character, settings)
 
   local function confirmExpired(id, at)
     if not active[id] then return false end
-    expired[id] = {id = id, expiredAt = at}
     active[id] = nil
+    if bad[id] then
+      expired[id] = nil
+      return false
+    end
+    expired[id] = {id = id, expiredAt = at}
     return true
   end
 
@@ -237,8 +245,10 @@ function Spells.new(api, character, settings)
       }
       emit("applied", event.id)
     elseif event.kind == "affoff" then
-      confirmExpired(event.id, event.at)
-      emit("missing", event.id)
+      local confirmed = confirmExpired(event.id, event.at)
+      if confirmed or (classification[event.id] and not bad[event.id]) then
+        emit("missing", event.id)
+      end
     elseif event.kind == "recon" then
       local old = recoveries[event.id]
       recoveries[event.id] = {
@@ -262,6 +272,12 @@ function Spells.new(api, character, settings)
     elseif completed.kind == "classification" then
       classification = {}
       for id in pairs(completed.rows) do classification[id] = true end
+    elseif completed.kind == "bad" then
+      bad = {}
+      for id in pairs(completed.rows) do
+        bad[id] = true
+        expired[id] = nil
+      end
     elseif completed.kind == "active" then
       local previous = active
       local replacement = {}
@@ -279,8 +295,12 @@ function Spells.new(api, character, settings)
       end
       for id in pairs(previous) do
         if not replacement[id] then
-          expired[id] = {id = id, expiredAt = completed.at}
-          emit("missing", id)
+          if bad[id] then
+            expired[id] = nil
+          else
+            expired[id] = {id = id, expiredAt = completed.at}
+            emit("missing", id)
+          end
         end
       end
       active = replacement
@@ -490,7 +510,7 @@ function Spells.new(api, character, settings)
     clearHiddenFrame()
     cancelTimer(driveTimer)
     driveTimer = nil
-    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+    catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
@@ -560,6 +580,7 @@ function Spells.new(api, character, settings)
     if not id or not (catalog[id] or active[id]) then return nil end
     local result = copy(catalog[id] or {id = id, name = effectName(id)})
     result.spellup = classification[id] == true
+    result.bad = bad[id] == true
     result.learned = type(result.practice) == "number" and result.practice > 1
     result.active = copy(active[id])
     return result
@@ -578,14 +599,20 @@ function Spells.new(api, character, settings)
 
   function self:isLearnedSpellup(id)
     local row = catalog[id]
-    return classification[id] == true and row ~= nil and row.practice > 1
+    return classification[id] == true and bad[id] ~= true
+      and row ~= nil and row.practice > 1
   end
 
   function self:isAutomaticSpellup(id)
     local row = catalog[id]
     -- Aardwolf's "spellup learned" includes granted/clan abilities reported
     -- at 0% practice, while excluding ordinary 1% unlearned abilities.
-    return classification[id] == true and row ~= nil and row.practice ~= 1
+    return classification[id] == true and bad[id] ~= true
+      and row ~= nil and row.practice ~= 1
+  end
+
+  function self:isBadEffect(id)
+    return bad[id] == true
   end
 
   function self:isFresh()
@@ -599,6 +626,7 @@ function Spells.new(api, character, settings)
       local row = copy(effect)
       row.name = effectName(id)
       row.spellup = classification[id] == true
+      row.bad = bad[id] == true
       row.learned = catalog[id] ~= nil and catalog[id].practice > 1
       row.remaining = math.max(0, math.ceil(effect.expires - timestamp))
       row.awaiting = row.remaining == 0
@@ -644,6 +672,7 @@ function Spells.new(api, character, settings)
       pending = pending,
       catalog = copy(catalog),
       classification = copy(classification),
+      bad = copy(bad),
       active = effects,
       expired = expiredRows,
       recoveries = recoveryRows,
@@ -736,7 +765,7 @@ function Spells.new(api, character, settings)
     cancelLineCapture()
     for _, id in ipairs(triggerIDs) do pcall(api.killTrigger, id) end
     triggerIDs = {}
-    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+    catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false

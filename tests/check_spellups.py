@@ -40,8 +40,8 @@ class SpellupTests(unittest.TestCase):
           assert(#commands==1 and commands[1].text=='slist noprompt')
           assert(#packets==1 and packets[1]==string.char(7,1))
           synchronize()
-          assert(spells:isFresh() and #commands==2)
-          assert(gags==8 and #visible==0 and #spells:snapshot().active==0)
+          assert(spells:isFresh() and #commands==3)
+          assert(gags==10 and #visible==0 and #spells:snapshot().active==0)
           advance(60)
           assert(commandCount('slist affected noprompt')==0)
           feed('{affon}72,2');advance(0)
@@ -56,7 +56,7 @@ class SpellupTests(unittest.TestCase):
           assert(expired.awaiting and expired.remaining==0)
           assert(#spells:snapshot().expired==0)
           assert(spells:isFresh() and commandCount('spellup learned retry')==0
-            and commandCount('slist affected noprompt')==1 and #commands==4)
+            and commandCount('slist affected noprompt')==1 and #commands==5)
         """)
 
     def test_confirmed_expirations_are_current_ordered_and_defensive(self):
@@ -98,6 +98,41 @@ class SpellupTests(unittest.TestCase):
           feed('{affoff}999');advance(0)
           deltaRows({'72,Shield,2,60,100,-1,1','35,Detect magic,2,40,100,15,1'}, {})
           assert(#spells:snapshot().expired==0)
+        """)
+
+    def test_bad_effects_are_not_expired_or_claimed_as_spellup_targets(self):
+        lua = self.runtime()
+        lua.execute("""
+          local catalog={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',catalog)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          assert(spells:isFresh() and spells:isBadEffect(237))
+          assert(spells:get(237).bad and not spells:isAutomaticSpellup(237))
+
+          feed('{affon}237,30');advance(0)
+          deltaRows({'237,Web,1,30,100,-1,1'}, {})
+          feed('{affoff}237');advance(0)
+          assert(#spells:snapshot().active==0 and #spells:snapshot().expired==0)
+          deltaRows({}, {})
+          assert(#spells:snapshot().expired==0)
+
+          assert(controller:runOnce())
+          feed('Queueing spell : unknown alias.')
+          assert(controller:status().unresolvedQueued==1)
+          feed('{affon}237,30');advance(0)
+          assert(controller:status().unresolvedQueued==1)
+          deltaRows({'237,Web,1,30,100,-1,1'}, {})
+          assert(controller:status().inflight
+            and controller:status().unresolvedQueued==1)
+
+          feed('{affon}72,60');advance(0)
+          assert(controller:status().unresolvedQueued==0)
+          deltaRows({'237,Web,1,30,100,-1,1','72,Shield,2,60,100,-1,1'}, {})
+          assert(not controller:status().inflight and not controller:status().paused)
         """)
 
     def test_interleaved_affoff_is_replayed_into_expired_state(self):
@@ -199,6 +234,7 @@ class SpellupTests(unittest.TestCase):
         lua.execute("""
           spellRows('',{'72,Shield,2,0,100,-1,1'})
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'},
             {'0,Augmentation,0','15,Detect magic recovery,20',
@@ -295,12 +331,14 @@ class SpellupTests(unittest.TestCase):
           }
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
           feed('{affon}104,5');advance(0)
           deltaRows({'104,Chameleon power,3,5,100,-1,2'}, {})
 
           assert(controller:setAutomatic(true));advance(0)
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
           advance(0);feed('{spellup-end}')
           assert(count(timers)==0)
           advance(30)
@@ -376,7 +414,7 @@ class SpellupTests(unittest.TestCase):
             '35,Detect magic,2,0,100,15,1',
             '104,Chameleon power,3,0,100,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
 
@@ -402,7 +440,7 @@ class SpellupTests(unittest.TestCase):
             '35,Detect magic,2,0,100,15,1',
             '104,Chameleon power,3,0,100,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
 
           assert(controller:runOnce())
           feed('Queueing skill : chameleon.')
@@ -421,7 +459,7 @@ class SpellupTests(unittest.TestCase):
             '72,Shield,2,0,100,-1,1',
             '606,Catalysis,3,0,0,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
 
           assert(controller:runOnce())
           feed('Queueing skill : catalysis.')
@@ -438,7 +476,7 @@ class SpellupTests(unittest.TestCase):
             '72,Shield,2,0,100,-1,1',
             '606,Catalysis,3,0,0,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
           assert(commandCount('spellup learned retry')==1)
           feed('No spells or skills cast.')
 

@@ -86,7 +86,9 @@ function Spellup.new(api, character, spells, settings)
       -- whose catalog practice is 0% (for example, Catalysis).  Once the
       -- server names an ability in this batch, its active effect must count
       -- as completion evidence regardless of local practice metadata.
-      if effect.spellup and not effect.awaiting then result[effect.id] = true end
+      if spells:isAutomaticSpellup(effect.id) and not effect.awaiting then
+        result[effect.id] = true
+      end
     end
     return result
   end
@@ -417,7 +419,7 @@ function Spellup.new(api, character, spells, settings)
         -- Queue prose sometimes uses a command alias rather than the catalog
         -- name (for example, "chameleon" versus "chameleon power").
         if not inflight or unresolvedQueued == 0 or namedTargets[id]
-            or resolvedUnknown[id] then return end
+            or resolvedUnknown[id] or not spells:isAutomaticSpellup(id) then return end
         resolvedUnknown[id] = true
         targets[id] = true
         unresolvedQueued = unresolvedQueued - 1
