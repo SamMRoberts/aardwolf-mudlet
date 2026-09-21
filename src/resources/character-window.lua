@@ -163,9 +163,9 @@ local function section(title, rows, first)
     .. table.concat(rows) .. "</table>"
 end
 
-function CharacterWindow.new(api, character)
+function CharacterWindow.new(api, character, workspace)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, scroll, header, details, bottomRoot
+  local window, root, scroll, header, details, bottomRoot, workspaceHandle
   local gauges, gaugeColors, handlers = {}, {}, {}
   local groups, fresh = {}, {}
   local generation, session, sequence = 0, 0, 0
@@ -470,6 +470,12 @@ function CharacterWindow.new(api, character)
     generation = generation + 1
     self.enabled, self.visible = false, false
     local cleanupError = removeHandlers()
+    if workspaceHandle and workspace then
+      local ok, why = pcall(workspace.unregisterPanel, workspace, OWNER)
+      if not ok and not cleanupError then cleanupError = tostring(why) end
+    end
+    workspaceHandle = nil
+    if workspace and root and type(root.delete) == "function" then pcall(root.delete, root) end
     if window then
       local ok, why = pcall(window.delete, window)
       if not ok and not cleanupError then cleanupError = tostring(why) end
@@ -662,6 +668,37 @@ function CharacterWindow.new(api, character)
         api[LAYOUT_MARKER] = LAYOUT_VERSION
         if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
       end
+      if workspace then
+        local viewParent = window
+        local handle, why = workspace:registerPanel({
+          id = OWNER,
+          title = "Character",
+          root = root,
+          parent = window,
+          minimumWidth = 300,
+          minimumHeight = 300,
+          standalone = {host = function() return window end},
+          mount = function(parent)
+            if viewParent ~= parent then
+              assert(type(root.changeContainer) == "function", "Character root cannot be reparented")
+              root:changeContainer(parent)
+              viewParent = parent
+            end
+            root:show()
+            render()
+            return root
+          end,
+          unmount = function(mounted)
+            if viewParent ~= window then mounted:changeContainer(window); viewParent = window end
+            mounted:hide()
+            return true
+          end,
+          onVisibilityChanged = function(visible) self.visible = visible end,
+          onResize = function() render() end,
+        })
+        if not handle then error(why, 0) end
+        workspaceHandle = handle
+      end
     end)
     if not ok then return fail("Cannot start character window during " .. stage .. ": "
       .. tostring(message)) end
@@ -674,10 +711,12 @@ function CharacterWindow.new(api, character)
 
   function self:show()
     if not self.enabled then return self:start() end
+    if workspaceHandle then return workspaceHandle:show() end
     return reveal()
   end
 
   function self:hide()
+    if workspaceHandle then return workspaceHandle:hide() end
     if not window then self.visible = false; return true end
     local ok, message = pcall(window.hide, window)
     if not ok then
@@ -690,7 +729,9 @@ function CharacterWindow.new(api, character)
 
   function self:status()
     local visible = self.visible
-    if window and type(api.windowVisible) == "function" then
+    if workspaceHandle then
+      visible = workspaceHandle:status().visible
+    elseif window and type(api.windowVisible) == "function" then
       local ok, result = pcall(api.windowVisible, WINDOW_NAME)
       if ok and type(result) == "boolean" then visible = result end
     end

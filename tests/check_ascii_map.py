@@ -23,14 +23,16 @@ class ASCIIMapTests(unittest.TestCase):
     def test_native_window_defaults_show_hide_and_idempotence(self):
         lua = self.runtime()
         lua.execute(r'''
-          local window=minimapWindow()
+          local window=minimapNativeWindow()
+          local console=minimapWindow()
           assert(window and window.cons.restoreLayout and window.cons.autoDock)
           assert(window.cons.docked and window.cons.dockPosition=="right")
           assert(window.cons.stylesheet:find("border: none",1,true))
           assert(window.cons.font=="Menlo" and window.cons.fontSize==11)
-          assert(window.scrollBar and window.horizontalScrollBar and not window.autoWrap)
-          assert(window.text=="Waiting for map\n")
-          assert(asciiMap:start() and minimapWindow()==window)
+          assert(console.cons.font=="Menlo" and console.cons.fontSize==11)
+          assert(console.scrollBar and console.horizontalScrollBar and not console.autoWrap)
+          assert(console.text=="Waiting for map\n")
+          assert(asciiMap:start() and minimapNativeWindow()==window)
           assert(asciiMap:hide() and window.hidden and not asciiMap:status().visible)
           assert(asciiMap:show() and not window.hidden and asciiMap:status().visible)
         ''')
@@ -171,6 +173,37 @@ class ASCIIMapTests(unittest.TestCase):
           assert(tableCount(timers)==0 and minimapWindow()==nil)
           fail.registrationAt=nil
           assert(asciiMap:start())
+        ''')
+
+    def test_workspace_mount_uses_child_console_and_preserves_last_map(self):
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute(API)
+        lua.globals().factory = lua.execute(SOURCE)
+        lua.execute(r'''
+          workspace={visible=true}
+          function workspace:registerPanel(spec)
+            self.spec=spec
+            local handle={}
+            function handle:show() workspace.visible=true;spec.onVisibilityChanged(true);return true end
+            function handle:hide() workspace.visible=false;spec.onVisibilityChanged(false);return true end
+            function handle:status() return {visible=workspace.visible,host="workspace"} end
+            return handle
+          end
+          function workspace:unregisterPanel() self.spec=nil;return true end
+          asciiMap=factory.new(_G,character,workspace)
+          assert(asciiMap:start() and workspace.spec)
+          local native=minimapNativeWindow();local console=minimapWindow()
+          local root=windows["aardwolf-vibe.ascii-map.root"]
+          assert(console.parent==root and root.parent==native)
+          incoming("<MAPSTART>");incoming("retained");incoming("<MAPEND>")
+          local handlerCount=tableCount(handlers)
+          local target=Geyser.Container:new({name="workspace.slot",x=0,y=0,width=100,height=100})
+          assert(workspace.spec.unmount(root))
+          assert(workspace.spec.mount(target)==root and root.parent==target)
+          assert(minimapWindow()==console and console.text=="retained\n")
+          assert(tableCount(handlers)==handlerCount and asciiMap:status().framesAccepted==1)
+          assert(asciiMap:hide() and not asciiMap:status().visible)
+          assert(asciiMap:show() and asciiMap:status().visible)
         ''')
 
 

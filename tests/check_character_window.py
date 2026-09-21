@@ -341,6 +341,38 @@ class CharacterWindowTests(unittest.TestCase):
           assert(#sent==0 and borderBottom==17)
         ''')
 
+    def test_workspace_remount_preserves_snapshot_and_bottom_gauges(self):
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute(API)
+        lua.globals().factory = lua.execute(SOURCE)
+        lua.execute(r'''
+          workspace={visible=true}
+          function workspace:registerPanel(spec)
+            self.spec=spec
+            local handle={}
+            function handle:show() workspace.visible=true;spec.onVisibilityChanged(true);return true end
+            function handle:hide() workspace.visible=false;spec.onVisibilityChanged(false);return true end
+            function handle:status() return {visible=workspace.visible,host="workspace"} end
+            return handle
+          end
+          function workspace:unregisterPanel() self.spec=nil;return true end
+          characterSnapshot={session=3,sequence=7,fresh={base=true},
+            groups={base={name="Persistent Hero",level=123}}}
+          panel=factory.new(_G,character,workspace)
+          assert(panel:start() and workspace.spec)
+          local root=widgets["aardwolf-vibe.character-window.root"]
+          local header=headerLabel();local bottom=bottomGaugeRoot()
+          local target=Geyser.Container:new({name="workspace.slot",x=0,y=0,width=500,height=600})
+          assert(workspace.spec.unmount(root))
+          assert(workspace.spec.mount(target)==root and root.parent==target)
+          assert(headerLabel()==header and header.label:find("Persistent Hero",1,true))
+          assert(bottomGaugeRoot()==bottom and bottom.parent==nil)
+          assert(panel:status().session==3 and panel:status().sequence==7)
+          assert(count(handlers)==8)
+          assert(panel:hide() and not panel:status().visible and not bottom.hidden)
+          assert(panel:show() and panel:status().visible)
+        ''')
+
 
 if __name__ == "__main__":
     unittest.main()

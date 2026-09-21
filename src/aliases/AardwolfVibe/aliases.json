@@ -5,6 +5,11 @@
     "regex": "^aardwolf-vibe mapper(?: (on|off|status))?$"
   },
   {
+    "name": "workspace",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$"
+  },
+  {
     "name": "minimap",
     "isActive": "yes",
     "regex": "^aardwolf-vibe minimap(?: (show|hide|status))?$"

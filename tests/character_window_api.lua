@@ -99,6 +99,10 @@ function Widget:setAlignment(value) self.alignment = value end
 function Widget:setBold(value) self.bold = value end
 function Widget:move(x, y) self.x, self.y = x, y end
 function Widget:resize(width, height) self.width, self.height = width, height end
+function Widget:changeContainer(parent)
+  self.parent = parent
+  parent.children[#parent.children + 1] = self
+end
 function Widget:echo(value)
   if fail.echo == "once" then fail.echo = nil; error("echo failure") end
   if fail.echo then error("echo failure") end

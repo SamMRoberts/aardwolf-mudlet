@@ -4,8 +4,9 @@
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
 handler, a dockable real-time character sheet with bottom vitals, a native
 dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
-GMCP chat window. It also includes session-only spell/recovery tracking and
-explicitly opt-in self-spellup maintenance.
+GMCP chat window. Character, ASCII map, chat, and spellup content can optionally
+share one right-docked split/tab workspace. It also includes session-only
+spell/recovery tracking and explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -138,12 +139,28 @@ that Aardwolf reports at 0% practice, without polling every effect.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 
+The workspace is off by default. When enabled it reparents the existing
+Character, ASCII Map, Chat, and Spellups Geyser roots into one right-docked
+window without restarting their producers or discarding retained UI state.
+The initial layout is a 45/55 map-over-tabs split. Tabs can be moved or split
+through five drag targets or equivalent stack-menu actions, and splitter ratios
+are persisted. Turning the workspace off returns every panel to its prior
+standalone native window identity and Mudlet-managed placement. See
+[`docs/workspace.md`](docs/workspace.md) for commands, persistence, rollback,
+and the external panel adapter API.
+
 ## Commands
 
 ```text
 aardwolf-vibe mapper on
 aardwolf-vibe mapper off
 aardwolf-vibe mapper status
+aardwolf-vibe workspace on
+aardwolf-vibe workspace off
+aardwolf-vibe workspace show
+aardwolf-vibe workspace hide
+aardwolf-vibe workspace status
+aardwolf-vibe workspace reset
 aardwolf-vibe minimap
 aardwolf-vibe minimap show
 aardwolf-vibe minimap hide
@@ -182,6 +199,8 @@ The same settings file stores the automatic-spellup opt-in and spell-tag
 visibility; automatic casting defaults to `false` and tag hiding defaults to
 `true`. Mudlet owns spellup-window geometry and docking through its saved layout
 rather than package JSON.
+Workspace mode and its bounded inner layout are stored separately in
+`aardwolf-vibe-data/workspace.json`; workspace mode defaults to `false`.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known

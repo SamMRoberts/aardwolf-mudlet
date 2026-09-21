@@ -67,6 +67,10 @@ function Widget:new(cons, parent)
 end
 function Widget:move(x, y) self.x, self.y = x, y end
 function Widget:resize(width, height) self.width, self.height = width, height end
+function Widget:changeContainer(parent)
+  self.parent = parent
+  parent.children[#parent.children + 1] = self
+end
 function Widget:get_width() return type(self.width) == "number" and self.width or 900 end
 function Widget:get_height() return type(self.height) == "number" and self.height or 260 end
 function Widget:show() self.hidden = false end

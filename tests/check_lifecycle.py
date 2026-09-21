@@ -22,6 +22,7 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_character_ready = character_ready
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
+          workspaceStarts=0;workspaceStops=0;workspaceEnabled=false;workspaceVisible=false;workspaceResets=0
           barsStarts=0;barsStops=0;barsShows=0;barsHides=0
           asciiStarts=0;asciiStops=0;asciiShows=0
           helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
@@ -56,6 +57,22 @@ class LifecycleTests(unittest.TestCase):
               setSpellupsAutoCast=function(value) spellupSaved=value;return true end,
               setSpellupsHideTags=function(value) spellTagsSaved=value;return true end,
             }
+          end}
+          WorkspaceFactory={new=function()
+            local item={}
+            function item:start() workspaceStarts=workspaceStarts+1;return true end
+            function item:stop()
+              workspaceStops=workspaceStops+1;stopOrder[#stopOrder+1]="workspace";return true
+            end
+            function item:setEnabled(value) workspaceEnabled=value;workspaceVisible=value;return true end
+            function item:show() workspaceVisible=true;return workspaceEnabled end
+            function item:hide() workspaceVisible=false;return workspaceEnabled end
+            function item:reset() workspaceResets=workspaceResets+1;return true end
+            function item:status()
+              return {enabled=workspaceEnabled,mode=workspaceEnabled and "on" or "off",
+                visible=workspaceVisible,registered=4,placeholders=0,locked=false}
+            end
+            return item
           end}
           MapperFactory={new=function()
             return {
@@ -203,6 +220,7 @@ class LifecycleTests(unittest.TestCase):
           end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
+            if string.match(path,"/workspace.lua$") then return WorkspaceFactory end
             if string.match(path,"/buffs%-window.lua$") then return BuffsFactory end
             if string.match(path,"/spellup.lua$") then return SpellupFactory end
             if string.match(path,"/spells.lua$") then return SpellsFactory end
@@ -282,8 +300,8 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
             and helpStops==1 and chatStops==1)
-          assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
-          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(spellsStops==1 and spellupStops==1 and buffsStops==1 and workspaceStops==1)
+          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,workspace,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
@@ -292,7 +310,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute("assert(AardwolfVibe.start())")
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,workspace,spellup,spells,character")
           assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
             and characterStops==1 and mapperStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
@@ -337,6 +355,17 @@ class LifecycleTests(unittest.TestCase):
           assert(messages[1]:find("not connected",1,true))
           assert(messages[2]:find("unable to request fresh character GMCP data",1,true))
           assert(messages[2]:find("not connected",1,true))
+        ''')
+
+    def test_saved_workspace_visibility_is_not_overridden_by_launch_map_show(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibe.plugins.workspace.status=function()
+            return {enabled=true,mode="on",visible=false,registered=4,
+              placeholders=0,locked=false}
+          end
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(asciiShows==0 and mapWidgetOpens==1 and AardwolfVibe.active)
         ''')
 
     def test_install_sends_commands_only_when_character_is_authenticated(self):
@@ -479,6 +508,23 @@ class LifecycleTests(unittest.TestCase):
           assert(not ok and message:find("create right dock",1,true))
           assert(messages[#messages]:find("spellups show failed",1,true))
           assert(messages[#messages]:find("native failure",1,true))
+        ''')
+
+    def test_workspace_commands_delegate_without_touching_gameplay_settings(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(workspaceStarts==1 and not workspaceEnabled)
+          assert(AardwolfVibe.handleWorkspaceCommand("on") and workspaceEnabled)
+          local status=AardwolfVibe.handleWorkspaceCommand("status")
+          assert(status.mode=="on" and status.visible and status.registered==4)
+          assert(AardwolfVibe.handleWorkspaceCommand("hide") and not workspaceVisible)
+          assert(AardwolfVibe.handleWorkspaceCommand("show") and workspaceVisible)
+          assert(AardwolfVibe.handleWorkspaceCommand("reset") and workspaceResets==1)
+          assert(AardwolfVibe.handleWorkspaceCommand("off") and not workspaceEnabled)
+          assert(saved==nil and spellupSaved==nil and spellTagsSaved==nil)
+          assert(not AardwolfVibe.handleWorkspaceCommand("invalid"))
+          assert(messages[#messages]:find("workspace on|off|show|hide|status|reset",1,true))
         ''')
 
 

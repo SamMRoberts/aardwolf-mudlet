@@ -24,7 +24,7 @@ local function listContains(values, wanted)
   return nil
 end
 
-function Chat.new(api, model, settings)
+function Chat.new(api, model, settings, workspace)
   local self = {
     enabled = false,
     visible = false,
@@ -35,7 +35,7 @@ function Chat.new(api, model, settings)
   local path = settings.root .. "/chat.json"
   local config = model.defaultConfig()
   local configLocked, configSource = false, "defaults"
-  local window, root, tabBar, content, gear, indicator, editorRoot
+  local window, root, tabBar, content, gear, indicator, editorRoot, workspaceHandle
   local tabLabels, panes, unread = {}, {}, {}
   local handlers, messages = {}, {}
   local generation, session, sequence, bytes = 0, 0, 0, 0
@@ -115,6 +115,15 @@ function Chat.new(api, model, settings)
   end
 
   local function windowSize()
+    local workspaceHosted = workspaceHandle
+      and workspaceHandle:status().host == "workspace"
+    if workspaceHosted and root and type(root.get_width) == "function"
+        and type(root.get_height) == "function" then
+      local width, height = root:get_width(), root:get_height()
+      if type(width) == "number" and width > 0 and type(height) == "number" and height > 0 then
+        return width, height
+      end
+    end
     if window and type(window.get_width) == "function" and type(window.get_height) == "function" then
       local width, height = window:get_width(), window:get_height()
       if type(width) == "number" and width > 0 and type(height) == "number" and height > 0 then
@@ -582,6 +591,9 @@ function Chat.new(api, model, settings)
       if not ok and not cleanupError then cleanupError = tostring(message) end
       moduleRequested = false
     end
+    if workspaceHandle and workspace then pcall(workspace.unregisterPanel, workspace, OWNER) end
+    workspaceHandle = nil
+    if workspace and root and type(root.delete) == "function" then pcall(root.delete, root) end
     deleteWidget(editorRoot); editorRoot = nil
     deleteWidget(root); root = nil
     deleteWidget(window); window = nil
@@ -677,6 +689,39 @@ function Chat.new(api, model, settings)
       gmcpEnabled = connected and type(api.gmcp) == "table"
       layout()
       requestTakeover()
+      if workspace then
+        local viewParent = window
+        local handle, why = workspace:registerPanel({
+          id = OWNER,
+          title = "Chat",
+          root = root,
+          parent = window,
+          minimumWidth = 320,
+          minimumHeight = 180,
+          standalone = {host = function() return window end},
+          mount = function(parent)
+            captureEditorInputs()
+            if viewParent ~= parent then
+              assert(type(root.changeContainer) == "function", "Chat root cannot be reparented")
+              root:changeContainer(parent)
+              viewParent = parent
+            end
+            root:show()
+            layout()
+            return root
+          end,
+          unmount = function(mounted)
+            captureEditorInputs()
+            if viewParent ~= window then mounted:changeContainer(window); viewParent = window end
+            mounted:hide()
+            return true
+          end,
+          onVisibilityChanged = function(visible) self.visible = visible end,
+          onResize = function() layout() end,
+        })
+        if not handle then error(why, 0) end
+        workspaceHandle = handle
+      end
     end)
     if not ok then return fail(message) end
     if not loaded then self.lastError = loadMessage end
@@ -692,6 +737,7 @@ function Chat.new(api, model, settings)
       local ok, why = self:start()
       if not ok then return false, why end
     end
+    if workspaceHandle then return workspaceHandle:show() end
     local ok, message = pcall(api.showWindow, WINDOW_NAME)
     if not ok then self.lastError = "Cannot show chat: " .. tostring(message); return false, self.lastError end
     window.hidden, self.visible = false, true
@@ -699,6 +745,7 @@ function Chat.new(api, model, settings)
   end
 
   function self:hide()
+    if workspaceHandle then return workspaceHandle:hide() end
     if not window then self.visible = false; return true end
     local ok, message = pcall(api.hideWindow, WINDOW_NAME)
     if not ok then self.lastError = "Cannot hide chat: " .. tostring(message); return false, self.lastError end
@@ -740,7 +787,9 @@ function Chat.new(api, model, settings)
 
   function self:status()
     local visible = self.visible
-    if window and type(api.windowVisible) == "function" then
+    if workspaceHandle then
+      visible = workspaceHandle:status().visible
+    elseif window and type(api.windowVisible) == "function" then
       local ok, result = pcall(api.windowVisible, WINDOW_NAME)
       if ok and type(result) == "boolean" then visible = result end
     end

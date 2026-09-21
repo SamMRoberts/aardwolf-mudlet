@@ -41,7 +41,7 @@ local function copyRows(rows)
   return result
 end
 
-function ASCIIMap.new(api, character)
+function ASCIIMap.new(api, character, workspace)
   local self = {
     enabled = false,
     visible = false,
@@ -49,7 +49,8 @@ function ASCIIMap.new(api, character)
     framesRejected = 0,
     lastError = nil,
   }
-  local window, openerID, captureID, captureTimer, diagnosticTimer, frame, lastRows
+  local window, root, console, workspaceHandle
+  local openerID, captureID, captureTimer, diagnosticTimer, frame, lastRows
   local handlers = {}
   local generation, session = 0, 0
   local characterSession, characterSequence = 0, 0
@@ -81,26 +82,26 @@ function ASCIIMap.new(api, character)
   end
 
   local function resetWindow()
-    if not window then return end
-    window:clear()
-    api.setFgColor(window.name, 255, 255, 255)
-    api.setBgColor(window.name, 0, 0, 0)
-    window:echo("Waiting for map\n")
+    if not console then return end
+    console:clear()
+    api.setFgColor(console.name, 255, 255, 255)
+    api.setBgColor(console.name, 0, 0, 0)
+    console:echo("Waiting for map\n")
   end
 
   local function render(rows)
-    window:clear()
+    console:clear()
     for _, row in ipairs(rows) do
       for _, run in ipairs(row) do
-        api.setFgColor(window.name, run.fg[1], run.fg[2], run.fg[3])
-        api.setBgColor(window.name, run.bg[1], run.bg[2], run.bg[3])
-        window:echo(run.text)
+        api.setFgColor(console.name, run.fg[1], run.fg[2], run.fg[3])
+        api.setBgColor(console.name, run.bg[1], run.bg[2], run.bg[3])
+        console:echo(run.text)
       end
-      window:echo("\n")
+      console:echo("\n")
     end
-    api.setFgColor(window.name, 255, 255, 255)
-    api.setBgColor(window.name, 0, 0, 0)
-    window:scrollTo()
+    api.setFgColor(console.name, 255, 255, 255)
+    api.setBgColor(console.name, 0, 0, 0)
+    console:scrollTo()
   end
 
   local function snapshot(text)
@@ -297,6 +298,10 @@ function ASCIIMap.new(api, character)
       if not ok and not cleanupError then cleanupError = tostring(message) end
       openerID = nil
     end
+    if workspaceHandle and workspace then pcall(workspace.unregisterPanel, workspace, OWNER) end
+    workspaceHandle = nil
+    if root and type(root.delete) == "function" then pcall(root.delete, root) end
+    root, console = nil, nil
     if window then
       local ok, message = pcall(window.delete, window)
       if ok then window = nil
@@ -341,6 +346,8 @@ function ASCIIMap.new(api, character)
     local ok, message = pcall(function()
       local geyser = assert(api.Geyser, "Geyser is required for the ASCII minimap")
       assert(type(geyser.UserWindow) == "table", "Geyser.UserWindow is required")
+      assert(type(geyser.Container) == "table" and type(geyser.MiniConsole) == "table",
+        "Geyser ASCII minimap content widgets are required")
       window = geyser.UserWindow:new({
         name = WINDOW_NAME,
         titleText = "Aardwolf ASCII Minimap",
@@ -360,13 +367,28 @@ function ASCIIMap.new(api, character)
         stylesheet = "QDockWidget { background-color: black; border: none; }",
       })
       assert(type(window.delete) == "function", "Geyser.UserWindow deletion is required")
-      api.setBgColor(window.name, 0, 0, 0)
       window:setColor(0, 0, 0, 255)
-      window:setWrap(MAX_BYTES + 1)
-      window:disableAutoWrap()
-      window:enableScrollBar()
-      window:enableHorizontalScrollBar()
-      window:setBufferSize(300, 10)
+      root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,
+        width = "100%", height = "100%"}, window)
+      console = geyser.MiniConsole:new({
+        name = OWNER .. ".console",
+        x = 0,
+        y = 0,
+        width = "100%",
+        height = "100%",
+        autoWrap = false,
+        wrapAt = MAX_BYTES + 1,
+        scrollBar = true,
+        font = "Menlo",
+        fontSize = 11,
+      }, root)
+      api.setBgColor(console.name, 0, 0, 0)
+      console:setColor(0, 0, 0, 255)
+      console:setWrap(MAX_BYTES + 1)
+      console:disableAutoWrap()
+      console:enableScrollBar()
+      console:enableHorizontalScrollBar()
+      console:setBufferSize(300, 10)
       resetWindow()
 
       openerID = assert(api.tempRegexTrigger(FRAME_TRIGGER, function()
@@ -395,6 +417,35 @@ function ASCIIMap.new(api, character)
       self.visible = true
       self.lastError = nil
       hydrate(token)
+      if workspace then
+        local viewParent = window
+        local handle, why = workspace:registerPanel({
+          id = OWNER,
+          title = "ASCII Map",
+          root = root,
+          parent = window,
+          minimumWidth = 220,
+          minimumHeight = 160,
+          standalone = {host = function() return window end},
+          mount = function(parent)
+            if viewParent ~= parent then
+              assert(type(root.changeContainer) == "function", "ASCII minimap root cannot be reparented")
+              root:changeContainer(parent)
+              viewParent = parent
+            end
+            root:show()
+            return root
+          end,
+          unmount = function(mounted)
+            if viewParent ~= window then mounted:changeContainer(window); viewParent = window end
+            mounted:hide()
+            return true
+          end,
+          onVisibilityChanged = function(visible) self.visible = visible end,
+        })
+        if not handle then error(why, 0) end
+        workspaceHandle = handle
+      end
     end)
     if not ok then return fail("Cannot start ASCII minimap: " .. tostring(message)) end
     return true
@@ -409,6 +460,7 @@ function ASCIIMap.new(api, character)
       local ok = self:start()
       if not ok then return false, self.lastError end
     end
+    if workspaceHandle then return workspaceHandle:show() end
     local ok, message = pcall(api.showWindow, window.name)
     if not ok then
       self.lastError = "Cannot show ASCII minimap: " .. tostring(message)
@@ -420,6 +472,7 @@ function ASCIIMap.new(api, character)
   end
 
   function self:hide()
+    if workspaceHandle then return workspaceHandle:hide() end
     if not window then self.visible = false; return true end
     local ok, message = pcall(api.hideWindow, window.name)
     if not ok then
@@ -433,7 +486,10 @@ function ASCIIMap.new(api, character)
 
   function self:status()
     local visible = self.visible
-    if window and type(api.windowVisible) == "function" then
+    if workspaceHandle then
+      local hosted = workspaceHandle:status()
+      visible = hosted.visible
+    elseif window and type(api.windowVisible) == "function" then
       local ok, result = pcall(api.windowVisible, window.name)
       if ok and type(result) == "boolean" then visible = result end
     end

@@ -10,9 +10,9 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.31")
+        self.assertEqual(metadata["version"], "0.8.0")
         self.assertIn("character state", metadata["description"])
-        self.assertIn("character sheet", metadata["description"])
+        self.assertIn("split/tab workspace", metadata["description"])
         self.assertIn("bottom vitals", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
         self.assertIn("tagged help popup", metadata["description"])
@@ -26,6 +26,7 @@ class PackageSourceTests(unittest.TestCase):
             {item["name"]: item["regex"] for item in aliases},
             {
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
+                "workspace": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
@@ -48,6 +49,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.spells", source)
         self.assertIn("AardwolfVibe.plugins.spellup", source)
         self.assertIn("AardwolfVibe.plugins.buffsWindow", source)
+        self.assertIn("AardwolfVibe.plugins.workspace", source)
         self.assertIn("pcall(openMapWidget)", source)
         self.assertIn('send, "protocols gmcp sendchar", false', source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
@@ -68,6 +70,11 @@ class PackageSourceTests(unittest.TestCase):
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())
         self.assertNotIn("tags map off", ascii_map.read_text())
+        self.assertIn("geyser.MiniConsole:new", ascii_map.read_text())
+        workspace = ROOT / "src/resources/workspace.lua"
+        self.assertTrue(workspace.is_file())
+        self.assertIn('dockPosition = "right"', workspace.read_text())
+        self.assertIn("function self:registerPanel(spec)", workspace.read_text())
         help_window = ROOT / "src/resources/help-window.lua"
         self.assertTrue(help_window.is_file())
         self.assertIn('api.send, "tags HELPS on", false', help_window.read_text())

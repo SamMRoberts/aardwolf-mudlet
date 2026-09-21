@@ -27,6 +27,7 @@ local function widget(values)
   function item:resize(width,height)
     self.resizeCalls=(self.resizeCalls or 0)+1;self.width=width;self.height=height
   end
+  function item:changeContainer(parent) self.parent=parent end
   function item:setColor(...) error("component must not use Geyser setColor") end
   function item:show()
     self.showCalls=(self.showCalls or 0)+1;self.hidden=false;hidden[self.name]=false

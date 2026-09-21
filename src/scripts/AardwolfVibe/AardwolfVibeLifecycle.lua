@@ -15,6 +15,7 @@ local function resource(name)
 end
 
 local Settings = resource("settings")
+local Workspace = resource("workspace")
 local Character = resource("character")
 local Spells = resource("spells")
 local Spellup = resource("spellup")
@@ -26,6 +27,7 @@ local ChatModel = resource("chat-model")
 local Chat = resource("chat")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
+AardwolfVibe.plugins.workspace = Workspace.new(_G, AardwolfVibe.settings)
 AardwolfVibe.plugins.character = Character.new(_G)
 AardwolfVibe.plugins.spells = Spells.new(
   _G, AardwolfVibe.plugins.character, AardwolfVibe.settings)
@@ -33,15 +35,18 @@ AardwolfVibe.plugins.spellup = Spellup.new(
   _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.spells,
   AardwolfVibe.settings)
 AardwolfVibe.plugins.buffsWindow = BuffsWindow.new(
-  _G, AardwolfVibe.plugins.spells, AardwolfVibe.plugins.spellup)
-local characterWindow = CharacterWindow.new(_G, AardwolfVibe.plugins.character)
+  _G, AardwolfVibe.plugins.spells, AardwolfVibe.plugins.spellup,
+  AardwolfVibe.plugins.workspace)
+local characterWindow = CharacterWindow.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace)
 AardwolfVibe.plugins.characterWindow = characterWindow
 AardwolfVibe.plugins.characterBars = characterWindow
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
-  _G, AardwolfVibe.plugins.character)
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace)
 AardwolfVibe.plugins.helpWindow = HelpWindow.new(
   _G, AardwolfVibe.plugins.character)
-AardwolfVibe.plugins.chat = Chat.new(_G, ChatModel, AardwolfVibe.settings)
+AardwolfVibe.plugins.chat = Chat.new(
+  _G, ChatModel, AardwolfVibe.settings, AardwolfVibe.plugins.workspace)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
 function AardwolfVibe.start()
@@ -54,6 +59,10 @@ function AardwolfVibe.start()
     AardwolfVibe.settings.load()
   if not settingsOK then
     echo("Aardwolf Vibe: " .. AardwolfVibe.settings.error .. "\n")
+  end
+  local workspaceOK, workspaceMessage = AardwolfVibe.plugins.workspace:start()
+  if not workspaceOK then
+    echo("Aardwolf Vibe: " .. tostring(workspaceMessage) .. "\n")
   end
   local spellsOK = AardwolfVibe.plugins.spells:start(
     not settingsOK or spellupsHideTags ~= false)
@@ -93,12 +102,12 @@ function AardwolfVibe.start()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
   if AardwolfVibe.active then
-    return characterOK and spellsOK and spellupOK and buffsOK
+    return characterOK and workspaceOK and spellsOK and spellupOK and buffsOK
       and characterWindowOK and asciiOK and helpOK and chatOK and settingsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and spellsOK and spellupOK and buffsOK and characterWindowOK
+  return characterOK and workspaceOK and spellsOK and spellupOK and buffsOK and characterWindowOK
     and asciiOK and helpOK and chatOK and settingsOK and mapperOK
 end
 
@@ -115,17 +124,51 @@ function AardwolfVibe.stop()
   local asciiOK = stopPlugin(plugins.asciiMap)
   local characterWindowOK = stopPlugin(plugins.characterWindow)
   local buffsOK = stopPlugin(plugins.buffsWindow)
+  local workspaceOK = stopPlugin(plugins.workspace)
   local spellupOK = stopPlugin(plugins.spellup)
   local spellsOK = stopPlugin(plugins.spells)
   local characterOK = stopPlugin(plugins.character)
   AardwolfVibe.active = false
-  return mapperOK and chatOK and helpOK and asciiOK and characterWindowOK and buffsOK
+  return mapperOK and chatOK and helpOK and asciiOK and characterWindowOK and buffsOK and workspaceOK
     and spellupOK and spellsOK and characterOK
 end
 
+function AardwolfVibe.handleWorkspaceCommand(action)
+  local workspace = AardwolfVibe.plugins.workspace
+  action = action or "status"
+  local ok, message
+  if action == "on" then ok, message = workspace:setEnabled(true)
+  elseif action == "off" then ok, message = workspace:setEnabled(false)
+  elseif action == "show" then ok, message = workspace:show()
+  elseif action == "hide" then ok, message = workspace:hide()
+  elseif action == "reset" then ok, message = workspace:reset()
+  elseif action == "status" then
+    local status = workspace:status()
+    echo("Aardwolf Vibe: workspace " .. status.mode
+      .. (status.enabled and (status.visible and ", visible" or ", hidden") or "")
+      .. ", " .. tostring(status.registered) .. " registered panels, "
+      .. tostring(status.placeholders) .. " unavailable placeholders"
+      .. (status.locked and ", configuration preserved for reset" or "") .. ".\n")
+    return status
+  else
+    echo("Usage: aardwolf-vibe workspace on|off|show|hide|status|reset\n")
+    return false
+  end
+  if not ok then
+    echo("Aardwolf Vibe: workspace " .. action .. " failed: " .. tostring(message) .. "\n")
+    return false, message
+  end
+  echo("Aardwolf Vibe: workspace " .. action .. ".\n")
+  return true
+end
+
 local function showMaps()
-  local asciiCalled, asciiOK, asciiMessage = pcall(
-    AardwolfVibe.plugins.asciiMap.show, AardwolfVibe.plugins.asciiMap)
+  local workspaceStatus = AardwolfVibe.plugins.workspace:status()
+  local asciiCalled, asciiOK, asciiMessage = true, true, nil
+  if not workspaceStatus.enabled then
+    asciiCalled, asciiOK, asciiMessage = pcall(
+      AardwolfVibe.plugins.asciiMap.show, AardwolfVibe.plugins.asciiMap)
+  end
   if not asciiCalled or asciiOK == false then
     local detail = asciiCalled and asciiMessage or asciiOK
     echo("Aardwolf Vibe: unable to show ASCII minimap: "
