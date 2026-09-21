@@ -3,24 +3,44 @@ triggers = {}
 timers = {}
 windows = {}
 sent = {}
-sendCalls = 0
 visible = {}
 messages = {}
+remembered = {}
 deletedLines = 0
 nextID = 0
 line = ""
 currentColors = {}
 selectedIndex = 0
 fail = {}
-triggerFires = 0
+processingLine = false
+sameLineTriggerActivations = 0
+characterFresh = false
+characterState = nil
 
-local function count(value)
+character = {}
+
+function character:getGroup(group)
+  if group ~= "status" or not characterFresh then return nil, nil, false end
+  return {state = characterState}, {state = characterState}, true
+end
+
+function setCharacterState(state, fresh)
+  characterState = state
+  characterFresh = fresh == true
+end
+
+function publishCharacterState(state)
+  setCharacterState(state, true)
+  fire("aardwolf-vibe.character.updated.status", {state = state}, {state = state}, 1, 1)
+end
+
+local function count(values)
   local total = 0
-  for _ in pairs(value) do total = total + 1 end
+  for _ in pairs(values) do total = total + 1 end
   return total
 end
 
-function tableCount(value) return count(value) end
+function tableCount(values) return count(values) end
 
 function registerNamedEventHandler(owner, name, event, callback)
   if fail.registrationAt and count(handlers) + 1 == fail.registrationAt then return false end
@@ -41,10 +61,27 @@ function fire(event, ...)
   for _, callback in ipairs(callbacks) do callback(event, ...) end
 end
 
+local function isHelpOpener(text)
+  return text == "{help}" or text == "{helpsearch}"
+end
+
+local function matchesTrigger(regex, text)
+  if regex == [[^\{(?:help|helpsearch)\}$]] then return isHelpOpener(text) end
+  if regex == "^.*$" then return true end
+  error("unsupported fixture regex: " .. tostring(regex))
+end
+
 function tempRegexTrigger(regex, callback)
   if fail.trigger then error("trigger failure") end
   nextID = nextID + 1
   triggers[nextID] = {regex = regex, callback = callback}
+  if processingLine and matchesTrigger(regex, line) then
+    sameLineTriggerActivations = sameLineTriggerActivations + 1
+    if sameLineTriggerActivations > 1000 then
+      error("new trigger repeatedly matched the line being processed")
+    end
+    callback()
+  end
   return nextID
 end
 
@@ -89,9 +126,10 @@ end
 
 function echo(message) messages[#messages + 1] = message end
 
+function remember(name) remembered[#remembered + 1] = name end
+
 function send(command, echoCommand)
-  sendCalls = sendCalls + 1
-  if fail.send or (fail.sendAt and sendCalls == fail.sendAt) then error("send failure") end
+  if fail.send then error("send failure") end
   sent[#sent + 1] = {command = command, echoCommand = echoCommand}
 end
 
@@ -107,15 +145,15 @@ function selectSection(index, length)
 end
 
 function getFgColor()
-  local color = currentColors[selectedIndex + 1] or currentColors.default
+  local value = currentColors[selectedIndex + 1] or currentColors.default
     or {fg = {255, 255, 255}, bg = {0, 0, 0}}
-  return color.fg[1], color.fg[2], color.fg[3]
+  return value.fg[1], value.fg[2], value.fg[3]
 end
 
 function getBgColor()
-  local color = currentColors[selectedIndex + 1] or currentColors.default
+  local value = currentColors[selectedIndex + 1] or currentColors.default
     or {fg = {255, 255, 255}, bg = {0, 0, 0}}
-  return color.bg[1], color.bg[2], color.bg[3]
+  return value.bg[1], value.bg[2], value.bg[3]
 end
 
 function deselect() selectedIndex = 0 end
@@ -126,27 +164,24 @@ function incoming(text, colors)
   currentDeleted = false
   local callbacks = {}
   for id, trigger in pairs(triggers) do
-    local matches = false
     if trigger.lineTrigger then
-      if trigger.skip > 0 then trigger.skip = trigger.skip - 1 else matches = true end
-    elseif trigger.regex == [[^\s*<(?:MAPSTART|MAPEND)>\s*$]] then
-      matches = text:match("^%s*<MAPSTART>%s*$") ~= nil
-        or text:match("^%s*<MAPEND>%s*$") ~= nil
-    else
-      error("unsupported fixture regex: " .. tostring(trigger.regex))
-    end
-    if matches then
-      callbacks[#callbacks + 1] = {
-        id = id,
-        callback = trigger.callback,
-        lineTrigger = trigger.lineTrigger,
-      }
+      if trigger.skip > 0 then
+        trigger.skip = trigger.skip - 1
+      else
+        callbacks[#callbacks + 1] = {
+          id = id,
+          callback = trigger.callback,
+          lineTrigger = true,
+        }
+      end
+    elseif matchesTrigger(trigger.regex, text) then
+      callbacks[#callbacks + 1] = {id = id, callback = trigger.callback}
     end
   end
   table.sort(callbacks, function(left, right) return left.id < right.id end)
+  processingLine = true
   for _, entry in ipairs(callbacks) do
     if triggers[entry.id] then
-      triggerFires = triggerFires + 1
       entry.callback()
       local trigger = triggers[entry.id]
       if trigger and entry.lineTrigger then
@@ -155,10 +190,12 @@ function incoming(text, colors)
       end
     end
   end
+  processingLine = false
   if not currentDeleted then visible[#visible + 1] = text end
 end
 
-local function windowMethod(self, name)
+local function windowMethod(name)
+  if fail[name] == "once" then fail[name] = nil; error(name .. " failure") end
   if fail[name] then error(name .. " failure") end
 end
 
@@ -176,9 +213,9 @@ function Geyser.UserWindow:new(cons)
     fg = {255, 255, 255},
     bg = {0, 0, 0},
   }
-  function item:clear() windowMethod(self, "clear"); self.text = ""; self.runs = {} end
+  function item:clear() windowMethod("clear"); self.text = ""; self.runs = {} end
   function item:echo(text)
-    windowMethod(self, "render")
+    windowMethod("render")
     self.text = self.text .. text
     self.runs[#self.runs + 1] = {
       text = text,
@@ -186,15 +223,16 @@ function Geyser.UserWindow:new(cons)
       bg = {self.bg[1], self.bg[2], self.bg[3]},
     }
   end
-  function item:scrollTo() windowMethod(self, "scrollTo") end
+  function item:scrollTo(value) windowMethod("scrollTo"); self.scroll = value end
   function item:setColor(...) self.color = {...} end
   function item:setWrap(value) self.wrap = value end
   function item:disableAutoWrap() self.autoWrap = false end
   function item:enableScrollBar() self.scrollBar = true end
   function item:enableHorizontalScrollBar() self.horizontalScrollBar = true end
   function item:setBufferSize(lines, batch) self.buffer = {lines, batch} end
-  function item:show() self.hidden = false end
-  function item:hide() self.hidden = true end
+  function item:show() windowMethod("show"); self.hidden = false; self.showCalls = (self.showCalls or 0) + 1 end
+  function item:hide() windowMethod("hide"); self.hidden = true end
+  function item:raise() windowMethod("raise"); self.raiseCalls = (self.raiseCalls or 0) + 1 end
   function item:delete() self.deleted = true; windows[self.name] = nil end
   windows[item.name] = item
   return item
@@ -210,37 +248,10 @@ function setBgColor(name, r, g, b)
   item.bg = {r, g, b}
 end
 
-function showWindow(name)
-  windows[name].hidden = false
-  return true
-end
-
-function hideWindow(name)
-  windows[name].hidden = true
-  return true
-end
-
 function windowVisible(name)
   return windows[name] ~= nil and not windows[name].hidden
 end
 
-characterSnapshot = {
-  session = 1,
-  sequence = 0,
-  fresh = {status = false},
-  groups = {},
-}
-
-character = {
-  snapshot = function()
-    return characterSnapshot
-  end,
-}
-
-function minimapWindow()
-  return windows["aardwolf-vibe.ascii-map.window"]
-end
-
-function statusUpdate(state, session, sequence)
-  fire("aardwolf-vibe.character.updated.status", {state = state}, {}, session, sequence)
+function helpWindow()
+  return windows["aardwolf-vibe.help-window.window"]
 end

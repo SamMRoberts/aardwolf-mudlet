@@ -2,9 +2,10 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
-configurable GMCP chat window. It also includes session-only spell/recovery
-tracking and explicitly opt-in self-spellup maintenance.
+handler, a dockable real-time character sheet with bottom vitals, a native
+dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
+GMCP chat window. It also includes session-only spell/recovery tracking and
+explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -67,13 +68,17 @@ After an install or upgrade, the package requests a fresh character snapshot
 with `protocols gmcp sendchar` after its character consumers are ready. This
 install-only request is sent without local command echo.
 
-The always-visible character strip uses that validated state to show HP, mana,
-moves, level progress, the current enemy, and alignment. A three-cell status row
-above the gauges shows the character's level, position, and friendly state name.
-The gauges occupy one row on normal windows and reflow into two rows below 840
-pixels while the status row remains horizontal. See
-[`docs/character-bars.md`](docs/character-bars.md) for its rendering and layout
-contract.
+The always-active “Aardwolf Character” window renders the validated character
+state as a compact, width-constrained identity, attribute, combat,
+progression, status, and worth sheet without horizontal scrolling. HP, mana,
+moves, TNL, enemy, and alignment
+gauges remain in a responsive strip across the bottom of the main Mudlet
+window. The sheet starts in the left dock on first creation, then lets Mudlet
+restore the user's later docked or floating placement. It reopens visibly on
+each profile launch; hiding the sheet is session-only and leaves the bottom
+gauges visible. See
+[`docs/character-window.md`](docs/character-window.md) for its rendering,
+layout, and lifecycle contract.
 
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
@@ -85,6 +90,21 @@ floating, docked, resized, or tabbed layout. See
 [`docs/ascii-map.md`](docs/ascii-map.md) for its API and capture contract.
 The minimap is also reopened automatically on every profile launch; hiding it
 remains effective for the rest of the current session.
+
+The always-active help plugin queues Aardwolf's `HELPS` tags after installation
+and on every connection, then sends `tags HELPS on` only after fresh character
+status confirms that the session can accept game commands. It never submits the
+tag command at the username or password prompt. Ordinary help and `help search`
+responses are captured between their server-owned outer tags,
+removed from the main console, and displayed with their original colors and
+spacing in a transient “Aardwolf Help” window. Each completed response replaces
+the previous one and opens the window; its floating or docked layout remains
+under Mudlet's window-layout ownership. Its first creation is a 700×460 floating
+window; subsequent launches restore the placement chosen by the user. Incomplete
+or malformed responses leave
+the previous document intact and stop capture after a bounded timeout. See
+[`docs/help-window.md`](docs/help-window.md) for its API, limits, and acceptance
+boundary.
 
 The always-active chat plugin consumes `gmcp.comm.channel` into a movable,
 resizable native window that starts docked across the top. Its initial All,
@@ -133,6 +153,14 @@ aardwolf-vibe chat show
 aardwolf-vibe chat hide
 aardwolf-vibe chat status
 aardwolf-vibe chat config
+aardwolf-vibe help
+aardwolf-vibe help show
+aardwolf-vibe help hide
+aardwolf-vibe help status
+aardwolf-vibe stats
+aardwolf-vibe stats show
+aardwolf-vibe stats hide
+aardwolf-vibe stats status
 aardwolf-vibe spellups
 aardwolf-vibe spellups show
 aardwolf-vibe spellups hide

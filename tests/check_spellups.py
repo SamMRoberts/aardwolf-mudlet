@@ -25,6 +25,15 @@ class SpellupTests(unittest.TestCase):
         """)
         return lua
 
+    def test_login_prompts_do_not_activate_spell_triggers(self):
+        lua = self.runtime()
+        lua.execute("""
+          feed('What be thy name, adventurer?')
+          feed('Existing profile loaded - please enter your password.')
+          assert(triggerFires==0)
+          assert(#visible==2)
+        """)
+
     def test_sequential_sync_tags_defensive_copies_and_display_only_expiry(self):
         lua = self.runtime()
         lua.execute("""

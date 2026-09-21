@@ -1,4 +1,4 @@
-clock=1000; timers={}; handlers={}; commands={}; packets={}; visible={}; triggers={}; events={}; gags=0
+clock=1000; timers={}; handlers={}; commands={}; packets={}; visible={}; triggers={}; events={}; gags=0; triggerFires=0
 local sequence=0
 function tempTimer(delay,fn)
   sequence=sequence+1; timers[sequence]={at=clock+delay,fn=fn}; return sequence
@@ -30,16 +30,73 @@ function raiseEvent(event,...)
   end
   for _,callback in ipairs(callbacks) do callback(event,...) end
 end
-function tempRegexTrigger(_,callback)
+function tempRegexTrigger(regex,callback)
   if triggerFailure then error("trigger failure") end
-  sequence=sequence+1; triggers[sequence]=callback; return sequence
+  sequence=sequence+1; triggers[sequence]={regex=regex,callback=callback}; return sequence
+end
+function tempLineTrigger(from,howMany,callback)
+  if triggerFailure then error("trigger failure") end
+  sequence=sequence+1
+  triggers[sequence]={lineTrigger=true,skip=from-1,remaining=howMany,callback=callback}
+  return sequence
 end
 function killTrigger(id) triggers[id]=nil end
 function deleteLine() visible[#visible]=nil; gags=gags+1 end
+local function tagSignal(text)
+  return text:match("^{spellup%-start}$") ~= nil
+    or text:match("^{spellup%-end}$") ~= nil
+    or text:match("^{affon}") ~= nil
+    or text:match("^{affoff}") ~= nil
+    or text:match("^{recon}") ~= nil
+    or text:match("^{recoff}") ~= nil
+    or text:match("^{sfail}") ~= nil
+    or text:match("^{spellheaders[%s}]") ~= nil
+    or text:match("^{recoveries[%s}]") ~= nil
+    or text=="{/spellheaders}"
+    or text=="{/recoveries}"
+end
+local function responseSignal(text)
+  if text:match("^Queueing spell : .+%.$")
+      or text:match("^Queueing skill : .+%.$")
+      or text=="No spells or skills cast." then return true end
+  local lower=text:lower()
+  return lower:find("retry",1,true) ~= nil
+    and (lower:find("unknown",1,true) ~= nil
+      or lower:find("invalid",1,true) ~= nil
+      or lower:find("syntax",1,true) ~= nil
+      or lower:find("usage",1,true) ~= nil)
+end
+local function regexMatches(regex,text)
+  if regex:find("spellup-",1,true) then return tagSignal(text) end
+  if regex:find("Queueing",1,true) then return responseSignal(text) end
+  error("unsupported fixture regex: "..tostring(regex))
+end
 function feed(text)
   line=text; visible[#visible+1]=text
-  local callbacks={}; for _,callback in pairs(triggers) do callbacks[#callbacks+1]=callback end
-  for _,callback in ipairs(callbacks) do callback() end
+  local callbacks={}
+  for id,trigger in pairs(triggers) do
+    local matches=false
+    if trigger.lineTrigger then
+      if trigger.skip>0 then trigger.skip=trigger.skip-1 else matches=true end
+    else
+      matches=regexMatches(trigger.regex,text)
+    end
+    if matches then
+      callbacks[#callbacks+1]={id=id,callback=trigger.callback,lineTrigger=trigger.lineTrigger}
+    end
+  end
+  table.sort(callbacks,function(left,right) return left.id<right.id end)
+  for _,entry in ipairs(callbacks) do
+    if triggers[entry.id] then
+      triggerFires=triggerFires+1
+      entry.callback()
+      local trigger=triggers[entry.id]
+      if trigger and entry.lineTrigger then
+        trigger.remaining=trigger.remaining-1
+        if trigger.remaining<=0 then triggers[entry.id]=nil end
+      end
+    end
+  end
   advance(0)
 end
 connected=true

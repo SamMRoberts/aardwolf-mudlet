@@ -10,7 +10,7 @@ SOURCE = (ROOT / "src/scripts/AardwolfVibe/AardwolfVibeLifecycle.lua").read_text
 
 class LifecycleTests(unittest.TestCase):
     def runtime(self, enabled=True, settings_ok=True, character_ok=True, bars_ok=True,
-                ascii_ok=True, chat_ok=True):
+                ascii_ok=True, chat_ok=True, help_ok=True, character_ready=False):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.globals().initial_enabled = enabled
         lua.globals().initial_settings_ok = settings_ok
@@ -18,9 +18,13 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_bars_ok = bars_ok
         lua.globals().initial_ascii_ok = ascii_ok
         lua.globals().initial_chat_ok = chat_ok
+        lua.globals().initial_help_ok = help_ok
+        lua.globals().initial_character_ready = character_ready
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
-          barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;asciiShows=0
+          barsStarts=0;barsStops=0;barsShows=0;barsHides=0
+          asciiStarts=0;asciiStops=0;asciiShows=0
+          helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
           chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil;spellTagsSaved=nil
           spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
           buffsStarts=0;buffsStops=0;buffsShows=0;buffsHides=0
@@ -36,6 +40,7 @@ class LifecycleTests(unittest.TestCase):
               characterStarts=characterStarts,
               barsStarts=barsStarts,
               asciiStarts=asciiStarts,
+              helpStarts=helpStarts,
               chatStarts=chatStarts,
             }
           end
@@ -62,7 +67,7 @@ class LifecycleTests(unittest.TestCase):
             }
           end}
           CharacterFactory={new=function()
-            return {
+            local item={
               start=function()
                 characterStarts=characterStarts+1
                 return initial_character_ok
@@ -74,6 +79,13 @@ class LifecycleTests(unittest.TestCase):
                 return {enabled=initial_character_ok,lastError="character start failure"}
               end,
             }
+            function item:getGroup(group)
+              if group=="status" and initial_character_ready then
+                return {state=3},{state=3},true
+              end
+              return nil,nil,false
+            end
+            return item
           end}
           SpellsFactory={new=function()
             local hideTags=true
@@ -108,17 +120,22 @@ class LifecycleTests(unittest.TestCase):
               status=function() return {enabled=true,lifecycle="active",visible=true,lastError=nil} end,
             }
           end}
-          BarsFactory={new=function()
+          CharacterWindowFactory={new=function()
             return {
               start=function()
                 barsStarts=barsStarts+1
                 return initial_bars_ok
               end,
               stop=function()
-                barsStops=barsStops+1;stopOrder[#stopOrder+1]="bars";return true
+                barsStops=barsStops+1;stopOrder[#stopOrder+1]="character-window";return true
               end,
+              show=function() barsShows=barsShows+1;return true end,
+              hide=function() barsHides=barsHides+1;return true end,
               status=function()
-                return {enabled=initial_bars_ok,lastError="character bars start failure"}
+                return {enabled=initial_bars_ok,
+                  lifecycle=initial_bars_ok and "active" or "stopped",visible=true,
+                  fresh={base=true,vitals=true,stats=true,maxstats=true,status=true,worth=true},
+                  lastError="character window start failure"}
               end,
             }
           end}
@@ -136,6 +153,32 @@ class LifecycleTests(unittest.TestCase):
               status=function()
                 return {enabled=initial_ascii_ok,lifecycle=initial_ascii_ok and "active" or "stopped",
                   visible=true,tagState="requested",lastError="ASCII minimap start failure"}
+              end,
+            }
+          end}
+          HelpFactory={new=function(_,character)
+            return {
+              start=function()
+                helpStarts=helpStarts+1
+                return initial_help_ok
+              end,
+              stop=function()
+                helpStops=helpStops+1;stopOrder[#stopOrder+1]="help";return true
+              end,
+              show=function() helpShows=helpShows+1;return true end,
+              hide=function() helpHides=helpHides+1;return true end,
+              requestTags=function()
+                helpRequests=helpRequests+1
+                local _,_,fresh=character:getGroup("status")
+                if not fresh then return true,"queued" end
+                local ok,message=pcall(send,"tags HELPS on",false)
+                if not ok then return false,"Cannot enable Aardwolf HELPS tags: "..tostring(message) end
+                return true
+              end,
+              status=function()
+                return {enabled=initial_help_ok,lifecycle=initial_help_ok and "active" or "stopped",
+                  visible=false,captureActive=false,captureKind=nil,responsesAccepted=2,
+                  responsesRejected=1,tagState="requested",lastError="help start failure"}
               end,
             }
           end}
@@ -163,8 +206,9 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/buffs%-window.lua$") then return BuffsFactory end
             if string.match(path,"/spellup.lua$") then return SpellupFactory end
             if string.match(path,"/spells.lua$") then return SpellsFactory end
-            if string.match(path,"/character%-bars.lua$") then return BarsFactory end
+            if string.match(path,"/character%-window.lua$") then return CharacterWindowFactory end
             if string.match(path,"/ascii%-map.lua$") then return ASCIIFactory end
+            if string.match(path,"/help%-window.lua$") then return HelpFactory end
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
             if string.match(path,"/chat.lua$") then return ChatFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
@@ -184,18 +228,23 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibe.plugins.mapper.stop=function()
             mapperStops=mapperStops+1;return true
           end
-          AardwolfVibe.plugins.characterBars.stop=function()
+          assert(AardwolfVibe.plugins.characterBars==AardwolfVibe.plugins.characterWindow)
+          AardwolfVibe.plugins.characterWindow.stop=function()
             barsStops=barsStops+1;return true
           end
           AardwolfVibe.plugins.asciiMap.stop=function()
             asciiStops=asciiStops+1;return true
+          end
+          AardwolfVibe.plugins.helpWindow.stop=function()
+            helpStops=helpStops+1;return true
           end
           AardwolfVibe.plugins.chat.stop=function()
             chatStops=chatStops+1;return true
           end
           AardwolfVibe.active=true
           assert(not AardwolfVibe.stop())
-          assert(characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1 and mapperStops==1)
+          assert(characterStops==1 and barsStops==1 and asciiStops==1 and helpStops==1
+            and chatStops==1 and mapperStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
         ''')
@@ -204,7 +253,8 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1
+            and helpStarts==1 and chatStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
@@ -217,24 +267,23 @@ class LifecycleTests(unittest.TestCase):
         lua = self.runtime(False)
         lua.execute('''
           AardwolfVibeLifecycle("sysInstallPackage","another-package")
-          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0 and chatStarts==0)
+          assert(mapperStarts==0 and characterStarts==0 and barsStarts==0 and asciiStarts==0
+            and helpStarts==0 and chatStarts==0)
           assert(asciiShows==0 and mapWidgetOpens==0)
           assert(#sentCommands==0)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
-          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1
+            and helpStarts==1 and chatStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
-          assert(#sentCommands==1)
-          assert(sentCommands[1].command=="protocols gmcp sendchar")
-          assert(sentCommands[1].echoCommand==false)
-          assert(sentCommands[1].characterStarts==1 and sentCommands[1].barsStarts==1)
-          assert(sentCommands[1].asciiStarts==1 and sentCommands[1].chatStarts==1)
+          assert(helpRequests==1 and #sentCommands==0)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
-          assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1 and chatStops==1)
+          assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
+            and helpStops==1 and chatStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
-          assert(table.concat(stopOrder,",")=="mapper,chat,ascii,bars,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
@@ -243,12 +292,14 @@ class LifecycleTests(unittest.TestCase):
         lua.execute("assert(AardwolfVibe.start())")
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="mapper,chat,ascii,bars,buffs,spellup,spells,character")
-          assert(chatStops==1 and asciiStops==1 and barsStops==1 and characterStops==1 and mapperStops==1)
+          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
+            and characterStops==1 and mapperStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
-          assert(chatStarts==2 and asciiStarts==2 and barsStarts==2 and characterStarts==2 and mapperStarts==2)
+          assert(chatStarts==2 and helpStarts==2 and asciiStarts==2 and barsStarts==2
+            and characterStarts==2 and mapperStarts==2)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
         ''')
@@ -262,7 +313,8 @@ class LifecycleTests(unittest.TestCase):
           function openMapWidget() error("native mapper failure") end
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(AardwolfVibe.active)
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1
+            and helpStarts==1 and chatStarts==1)
           assert(mapperStarts==1 and asciiShows==1)
           assert(#messages==2)
           assert(messages[1]:find("unable to show ASCII minimap",1,true))
@@ -272,16 +324,30 @@ class LifecycleTests(unittest.TestCase):
         ''')
 
     def test_install_refresh_failure_does_not_stop_package(self):
-        lua = self.runtime()
+        lua = self.runtime(character_ready=True)
         lua.execute('''
           function send() error("not connected") end
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
           assert(AardwolfVibe.active)
-          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1)
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1
+            and helpStarts==1 and chatStarts==1)
           assert(mapperStarts==1)
-          assert(#messages==1)
-          assert(messages[1]:find("unable to request fresh character GMCP data",1,true))
+          assert(#messages==2)
+          assert(messages[1]:find("unable to enable HELPS tags",1,true))
           assert(messages[1]:find("not connected",1,true))
+          assert(messages[2]:find("unable to request fresh character GMCP data",1,true))
+          assert(messages[2]:find("not connected",1,true))
+        ''')
+
+    def test_install_sends_commands_only_when_character_is_authenticated(self):
+        lua = self.runtime(character_ready=True)
+        lua.execute('''
+          AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
+          assert(helpRequests==1 and #sentCommands==2)
+          assert(sentCommands[1].command=="tags HELPS on")
+          assert(sentCommands[1].echoCommand==false)
+          assert(sentCommands[2].command=="protocols gmcp sendchar")
+          assert(sentCommands[2].echoCommand==false)
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):
@@ -302,13 +368,13 @@ class LifecycleTests(unittest.TestCase):
           assert(#messages==1 and string.find(messages[1],"character start failure",1,true))
         ''')
 
-    def test_character_bars_failure_does_not_block_character_or_mapper(self):
+    def test_character_window_failure_does_not_block_character_or_mapper(self):
         lua = self.runtime(bars_ok=False)
         lua.execute('''
           assert(not AardwolfVibe.start())
           assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
-          assert(#messages==1 and string.find(messages[1],"character bars start failure",1,true))
+          assert(#messages==1 and string.find(messages[1],"character window start failure",1,true))
         ''')
 
     def test_ascii_failure_does_not_block_other_components(self):
@@ -318,6 +384,23 @@ class LifecycleTests(unittest.TestCase):
           assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
           assert(#messages==1 and string.find(messages[1],"ASCII minimap start failure",1,true))
+        ''')
+
+    def test_help_failure_is_isolated_and_commands_delegate(self):
+        lua = self.runtime(help_ok=False)
+        lua.execute('''
+          assert(not AardwolfVibe.start())
+          assert(characterStarts==1 and barsStarts==1 and asciiStarts==1
+            and helpStarts==1 and chatStarts==1 and mapperStarts==1)
+          assert(messages[1]:find("help start failure",1,true))
+          assert(AardwolfVibe.handleHelpCommand("show"));assert(helpShows==1)
+          assert(AardwolfVibe.handleHelpCommand("hide"));assert(helpHides==1)
+          local status=AardwolfVibe.handleHelpCommand("status")
+          assert(status.responsesAccepted==2 and status.responsesRejected==1)
+          assert(messages[#messages]:find("2 accepted",1,true))
+          assert(messages[#messages]:find("1 rejected",1,true))
+          assert(not AardwolfVibe.handleHelpCommand("unknown"))
+          assert(messages[#messages]:find("Usage:",1,true))
         ''')
 
     def test_minimap_commands_delegate_without_changing_settings(self):
@@ -330,6 +413,21 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleMinimapCommand("hide"));assert(hidden==1)
           local status=AardwolfVibe.handleMinimapCommand("status")
           assert(status.tagState=="requested" and messages[#messages]:find("minimap",1,true))
+          assert(saved==nil)
+        ''')
+
+    def test_stats_commands_delegate_through_character_window_alias(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(AardwolfVibe.plugins.characterBars==AardwolfVibe.plugins.characterWindow)
+          assert(AardwolfVibe.handleStatsCommand());assert(barsShows==1)
+          assert(AardwolfVibe.handleStatsCommand("show"));assert(barsShows==2)
+          assert(AardwolfVibe.handleStatsCommand("hide"));assert(barsHides==1)
+          local status=AardwolfVibe.handleStatsCommand("status")
+          assert(status.lifecycle=="active" and status.visible)
+          assert(messages[#messages]:find("6/6 GMCP groups fresh",1,true))
+          assert(not AardwolfVibe.handleStatsCommand("unknown"))
+          assert(messages[#messages]:find("Usage: aardwolf-vibe stats",1,true))
           assert(saved==nil)
         ''')
 
