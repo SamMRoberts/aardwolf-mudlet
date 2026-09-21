@@ -139,10 +139,12 @@ function spellRows(kind,rows)
   for _,row in ipairs(rows or {}) do feed(row) end
   feed("{/spellheaders}")
 end
-function synchronize(duration)
+function synchronize(affectedRows,recoveryRowsList)
   spellRows("",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("spellup",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("bad",{})
+  spellRows("affected",affectedRows or {})
+  recoveryRows(recoveryRowsList or {})
   advance(0)
 end
 function recoveryRows(rows)

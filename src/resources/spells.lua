@@ -7,13 +7,15 @@ local SNAPSHOT_TIMEOUT = 10
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
 local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$|(?i:.*retry.*(?:unknown|invalid|syntax|usage).*))$]]
 
+local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
+local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
 local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
   {kind = "classification", command = "slist spellup noprompt"},
   {kind = "bad", command = "slist bad noprompt"},
+  ACTIVE_REQUEST,
+  RECOVERY_REQUEST,
 }
-local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
-local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
 local DELTA_REQUESTS = {ACTIVE_REQUEST, RECOVERY_REQUEST}
 
 local function copy(value)
@@ -560,7 +562,7 @@ function Spells.new(api, character, settings)
   end
 
   function self:confirm()
-    return false, "Affected synchronization waits for affon or affoff"
+    return queue(DELTA_REQUESTS)
   end
 
   function self:setHideTags(value)

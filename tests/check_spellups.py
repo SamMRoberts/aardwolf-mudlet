@@ -40,12 +40,12 @@ class SpellupTests(unittest.TestCase):
           assert(#commands==1 and commands[1].text=='slist noprompt')
           assert(#packets==1 and packets[1]==string.char(7,1))
           synchronize()
-          assert(spells:isFresh() and #commands==3)
-          assert(gags==10 and #visible==0 and #spells:snapshot().active==0)
+          assert(spells:isFresh() and #commands==5)
+          assert(gags==14 and #visible==0 and #spells:snapshot().active==0)
           advance(60)
-          assert(commandCount('slist affected noprompt')==0)
-          feed('{affon}72,2');advance(0)
           assert(commandCount('slist affected noprompt')==1)
+          feed('{affon}72,2');advance(0)
+          assert(commandCount('slist affected noprompt')==2)
           deltaRows({'72,Shield,2,2,100,-1,1'}, {})
           local snapshot=spells:snapshot()
           assert(snapshot.active[1].name=='Shield' and snapshot.active[1].remaining==2)
@@ -56,7 +56,53 @@ class SpellupTests(unittest.TestCase):
           assert(expired.awaiting and expired.remaining==0)
           assert(#spells:snapshot().expired==0)
           assert(spells:isFresh() and commandCount('spellup learned retry')==0
-            and commandCount('slist affected noprompt')==1 and #commands==5)
+            and commandCount('slist affected noprompt')==2 and #commands==7)
+        """)
+
+    def test_full_sync_hydrates_preexisting_buffs_and_recoveries(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize({
+            '72,Shield,2,120,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {'15,Detect magic recovery,20'})
+          local snapshot=spells:snapshot()
+          assert(snapshot.fresh and #snapshot.active==2)
+          assert(snapshot.active[1].id==35 and snapshot.active[1].remaining==90)
+          assert(snapshot.active[2].id==72 and snapshot.active[2].remaining==120)
+          assert(#snapshot.recoveries==1 and snapshot.recoveries[1].id==15)
+          assert(commandCount('slist affected noprompt')==1)
+          assert(commandCount('slist recoveries noprompt')==1)
+        """)
+
+    def test_initial_automatic_batch_waits_for_existing_buff_hydration(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          spellRows('',{'72,Shield,2,0,100,-1,1'})
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
+          assert(commandCount('spellup learned retry')==0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          assert(commandCount('spellup learned retry')==0)
+          recoveryRows({'15,Detect magic recovery,20'})
+          assert(spells:isFresh() and #spells:snapshot().active==1)
+          assert(commandCount('spellup learned retry')==1)
+          assert(controller:status().inflight)
+        """)
+
+    def test_manual_confirm_refreshes_active_state_without_full_catalog_sync(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize({'72,Shield,2,120,100,-1,1'}, {})
+          local catalogRequests=commandCount('slist noprompt')
+          assert(spells:confirm());advance(0)
+          deltaRows({
+            '72,Shield,2,119,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {'15,Detect magic recovery,20'})
+          local snapshot=spells:snapshot()
+          assert(snapshot.fresh and #snapshot.active==2 and #snapshot.recoveries==1)
+          assert(commandCount('slist noprompt')==catalogRequests)
         """)
 
     def test_confirmed_expirations_are_current_ordered_and_defensive(self):
@@ -110,6 +156,7 @@ class SpellupTests(unittest.TestCase):
           spellRows('',catalog)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
           spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{});recoveryRows({})
           assert(spells:isFresh() and spells:isBadEffect(237))
           assert(spells:get(237).bad and not spells:isAutomaticSpellup(237))
 
@@ -209,17 +256,17 @@ class SpellupTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute("""
           synchronize()
-          assert(commandCount('slist affected noprompt')==0
-            and commandCount('slist recoveries noprompt')==0)
+          assert(commandCount('slist affected noprompt')==1
+            and commandCount('slist recoveries noprompt')==1)
           feed('{affon}35,50');assert(spells:get(35).active.duration==50);advance(0)
-          assert(commandCount('slist affected noprompt')==1)
+          assert(commandCount('slist affected noprompt')==2)
           deltaRows({'35,Detect magic,2,50,100,15,1'},
             {'15,Detect magic recovery,20'})
-          assert(commandCount('slist recoveries noprompt')==1)
-          feed('{affoff}35');assert(not spells:get(35).active);advance(0)
-          assert(commandCount('slist affected noprompt')==2)
-          deltaRows({}, {'15,Detect magic recovery,20'})
           assert(commandCount('slist recoveries noprompt')==2)
+          feed('{affoff}35');assert(not spells:get(35).active);advance(0)
+          assert(commandCount('slist affected noprompt')==3)
+          deltaRows({}, {'15,Detect magic recovery,20'})
+          assert(commandCount('slist recoveries noprompt')==3)
           feed('{recon}9,40');assert(#spells:snapshot().recoveries==2)
           feed('{recoff}9');assert(#spells:snapshot().recoveries==1)
           connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
@@ -235,8 +282,8 @@ class SpellupTests(unittest.TestCase):
           spellRows('',{'72,Shield,2,0,100,-1,1'})
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
           spellRows('bad',{})
-          feed('{affon}72,120');advance(0)
-          deltaRows({'72,Shield,2,120,100,-1,1'},
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          recoveryRows(
             {'0,Augmentation,0','15,Detect magic recovery,20',
               '99,Unknown recovery,0'})
           local snapshot=spells:snapshot()
@@ -283,7 +330,7 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
           assert(commandCount('spellup learned retry')==1)
           feed('{spellup-end}')
 
@@ -305,7 +352,7 @@ class SpellupTests(unittest.TestCase):
           assert(count(timers)==0)
 
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
           feed('{spellup-end}')
           assert(count(timers)==1)
 
@@ -332,6 +379,7 @@ class SpellupTests(unittest.TestCase):
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
           spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
           feed('{affon}104,5');advance(0)
           deltaRows({'104,Chameleon power,3,5,100,-1,2'}, {})
 
@@ -339,6 +387,8 @@ class SpellupTests(unittest.TestCase):
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
           spellRows('bad',{})
+          spellRows('affected',{'104,Chameleon power,3,5,100,-1,2'})
+          recoveryRows({})
           advance(0);feed('{spellup-end}')
           assert(count(timers)==0)
           advance(30)
@@ -353,7 +403,7 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
           assert(commandCount('spellup learned retry')==1)
 
           advance(5)
@@ -378,7 +428,7 @@ class SpellupTests(unittest.TestCase):
           raiseEvent('sysDataSendRequest','spellup learned retry');advance(0)
           assert(controller:status().inflight and commandCount('spellup learned retry')==1)
           advance(119)
-          assert(commandCount('slist affected noprompt')==0)
+          assert(commandCount('slist affected noprompt')==1)
           advance(1)
           assert(controller:status().paused and controller:status().inflight)
           assert(not controller:runOnce())
@@ -395,13 +445,13 @@ class SpellupTests(unittest.TestCase):
           feed('Queueing spell : Shield.')
           advance(20)
           assert(controller:status().inflight)
-          assert(commandCount('slist affected noprompt')==0)
-          feed('{affon}72,120');advance(0)
           assert(commandCount('slist affected noprompt')==1)
+          feed('{affon}72,120');advance(0)
+          assert(commandCount('slist affected noprompt')==2)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
           assert(not controller:status().inflight)
           advance(120)
-          assert(commandCount('slist affected noprompt')==1)
+          assert(commandCount('slist affected noprompt')==2)
         """)
 
     def test_queue_alias_is_reconciled_by_affected_snapshot(self):
@@ -415,6 +465,7 @@ class SpellupTests(unittest.TestCase):
             '104,Chameleon power,3,0,100,-1,2',
           }
           spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
 
@@ -441,6 +492,7 @@ class SpellupTests(unittest.TestCase):
             '104,Chameleon power,3,0,100,-1,2',
           }
           spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
 
           assert(controller:runOnce())
           feed('Queueing skill : chameleon.')
@@ -460,6 +512,7 @@ class SpellupTests(unittest.TestCase):
             '606,Catalysis,3,0,0,-1,2',
           }
           spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
 
           assert(controller:runOnce())
           feed('Queueing skill : catalysis.')
@@ -477,6 +530,7 @@ class SpellupTests(unittest.TestCase):
             '606,Catalysis,3,0,0,-1,2',
           }
           spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
           assert(commandCount('spellup learned retry')==1)
           feed('No spells or skills cast.')
 
@@ -514,7 +568,7 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
+          synchronize({'72,Shield,2,120,100,-1,1'}, {});advance(0)
           assert(commandCount('spellup learned retry')==1
             and controller:status().inflight)
 

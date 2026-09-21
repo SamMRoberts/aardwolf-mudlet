@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.35", "Aardwolf Vibe 0.7.35 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.36", "Aardwolf Vibe 0.7.36 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -156,16 +156,14 @@ end, expiryStartStage) end) end
 
 activeStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist affected noprompt")
+  feedTriggers("NATIVE_SPELL_BEFORE\n")
   rows("affected", affectedRows(true))
+  feedTriggers("NATIVE_SPELL_AFTER\n")
 end, recoveriesStage) end
 
 badStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist bad noprompt")
   rows("bad", {})
-  assert(AardwolfVibe.plugins.spells:isFresh())
-  feedTriggers("NATIVE_SPELL_BEFORE\n")
-  feedTriggers("{affon}35,55\n")
-  feedTriggers("NATIVE_SPELL_AFTER\n")
 end, activeStage) end
 
 classificationStage = function() stage(function()

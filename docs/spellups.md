@@ -9,12 +9,15 @@ requests these frames in order after fresh active-character GMCP is available:
 slist noprompt
 slist spellup noprompt
 slist bad noprompt
+slist affected noprompt
+slist recoveries noprompt
 ```
 
-`slist affected noprompt` and `slist recoveries noprompt` are requested only
-after a valid `{affon}` or `{affoff}` record is received. They are not used as
-periodic batch-completion probes. Live `{recon}` and `{recoff}` records still
-update recovery state immediately.
+The affected and recovery frames hydrate buffs and recoveries that were already
+active when the package started or was reloaded. They are requested again after
+a valid `{affon}` or `{affoff}` record, but are not used as periodic
+batch-completion probes. Live `{recon}` and `{recoff}` records still update
+recovery state immediately.
 
 Each frame is bounded and committed atomically. A malformed, duplicate,
 interrupted, oversized, or timed-out frame leaves the last valid data intact
@@ -40,13 +43,15 @@ all readiness, interval, and outstanding-batch gates.
 
 The defensive-copy APIs are:
 
-- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `status()`,
-  `isBadEffect(id)`, and `setHideTags(bool)`
+- `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `confirm()`,
+  `status()`, `isBadEffect(id)`, and `setHideTags(bool)`
 - `AardwolfVibe.plugins.spellup:status()`, `setAutomatic(bool)`, and `runOnce()`
 - `AardwolfVibe.plugins.buffsWindow:show()`, `hide()`, and `status()`
 
 `spellup:status().unresolvedQueued` reports how many observed server queue
 entries still await an ability ID from a tag or synchronized affected snapshot.
+`spells:sync()` refreshes all five spell datasets; `spells:confirm()` refreshes
+only active effects and recoveries.
 
 Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spells.reset`, `aardwolf-vibe.spells.synced`, and
@@ -69,8 +74,9 @@ spell data, fresh `char.status`, state `3`, and position `Standing`. AFK,
 combat, sleeping, resting, running, paging, editing, disconnection, or stale
 status retains automatic work without submitting it.
 
-On opt-in, the tracker synchronizes before the initial batch. Later batches
-react when a server-eligible spellup reaches its tracked server-reported
+On opt-in, the tracker synchronizes the catalog, classifications, existing
+active effects, and recoveries before the initial batch. Later batches react
+when a server-eligible spellup reaches its tracked server-reported
 expiration, when `{affoff}` confirms it missing, or when a blocking recovery
 ends. Eligibility includes learned abilities above 1% practice and granted or
 clan abilities that Aardwolf reports at 0% but still queues for

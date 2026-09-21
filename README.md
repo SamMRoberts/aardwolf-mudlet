@@ -125,7 +125,9 @@ channel output.
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
 bounded `slist` snapshots, and presents active effects, server-confirmed
 beneficial expirations, and recoveries in responsive tables in an “Aardwolf
-Spellups” window. Aardwolf-classified bad effects remain visible while active,
+Spellups” window. Full synchronization hydrates effects and recoveries that
+were already active before a package reload, before automation can submit its
+first batch. Aardwolf-classified bad effects remain visible while active,
 but are excluded from expired-effect and automatic batch-completion tracking so
 mob debuffs cannot hold a spellup batch open. Remaining time changes from green
 to dark yellow to red as expiry approaches. Its first successful mount creates
