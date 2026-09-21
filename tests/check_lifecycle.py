@@ -135,7 +135,7 @@ class LifecycleTests(unittest.TestCase):
                 return {enabled=initial_bars_ok,
                   lifecycle=initial_bars_ok and "active" or "stopped",visible=true,
                   fresh={base=true,vitals=true,stats=true,maxstats=true,status=true,worth=true},
-                  lastError="character window start failure"}
+                  lastError="character status bay start failure"}
               end,
             }
           end}
@@ -374,7 +374,7 @@ class LifecycleTests(unittest.TestCase):
           assert(not AardwolfVibe.start())
           assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
-          assert(#messages==1 and string.find(messages[1],"character window start failure",1,true))
+          assert(#messages==1 and string.find(messages[1],"character status bay start failure",1,true))
         ''')
 
     def test_ascii_failure_does_not_block_other_components(self):
@@ -425,6 +425,7 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleStatsCommand("hide"));assert(barsHides==1)
           local status=AardwolfVibe.handleStatsCommand("status")
           assert(status.lifecycle=="active" and status.visible)
+          assert(messages[#messages]:find("character status bay",1,true))
           assert(messages[#messages]:find("6/6 GMCP groups fresh",1,true))
           assert(not AardwolfVibe.handleStatsCommand("unknown"))
           assert(messages[#messages]:find("Usage: aardwolf-vibe stats",1,true))

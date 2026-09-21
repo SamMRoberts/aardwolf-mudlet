@@ -230,7 +230,7 @@ function AardwolfVibe.handleStatsCommand(action)
       total = total + 1
       if fresh then ready = ready + 1 end
     end
-    echo("Aardwolf Vibe: character window " .. status.lifecycle .. ", "
+    echo("Aardwolf Vibe: character status bay " .. status.lifecycle .. ", "
       .. visibility .. ", " .. tostring(ready) .. "/" .. tostring(total)
       .. " GMCP groups fresh.\n")
     return status
