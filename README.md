@@ -69,8 +69,9 @@ with `protocols gmcp sendchar` after its character consumers are ready. This
 install-only request is sent without local command echo.
 
 The always-active “Aardwolf Character” window renders the validated character
-state as a readable, width-constrained identity, attribute, combat,
-progression, status, and worth sheet. HP, mana, moves, TNL, enemy, and alignment
+state as a compact, width-constrained identity, attribute, combat,
+progression, status, and worth sheet without horizontal scrolling. HP, mana,
+moves, TNL, enemy, and alignment
 gauges remain in a responsive strip across the bottom of the main Mudlet
 window. The sheet starts in the left dock on first creation, then lets Mudlet
 restore the user's later docked or floating placement. It reopens visibly on

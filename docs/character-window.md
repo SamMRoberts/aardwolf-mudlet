@@ -68,11 +68,13 @@ layout restoration so Mudlet owns the user's dock, float, and size choices, but
 the package explicitly shows the window at session start.
 
 The sheet uses 13-point body text, an 18-point identity heading, stronger label
-and value colors, and 14-point section headings. Its content labels are inset
-from the scroll viewport, use fixed-width table columns and word wrapping, and
-insert invisible safe break opportunities into long GMCP text. This keeps the
-content inside narrow docked or floating windows instead of widening beyond the
-viewport.
+and value colors, and 14-point section headings. Its content labels are
+top-aligned and use compact fixed heights, avoiding the empty space produced by
+vertical centering inside oversized labels. They also reserve the native
+vertical scrollbar's width, use fixed-width table columns and word wrapping,
+and insert invisible safe break opportunities into long GMCP text. This keeps
+the content inside narrow docked or floating windows without creating a
+horizontal scrollbar.
 
 The bottom strip reserves exactly 36 pixels for one row or 68 pixels for two
 rows below 960 usable pixels. Gauge geometry is calculated from the main window

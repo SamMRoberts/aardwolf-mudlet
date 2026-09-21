@@ -10,6 +10,12 @@ local BOTTOM_PADDING = 5
 local BAR_GAP = 6
 local ONE_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT
 local TWO_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT * 2 + BAR_GAP
+-- Geyser calculates percentage child widths before Qt subtracts the native
+-- vertical scrollbar, so leave enough room for that scrollbar and an inset.
+local SHEET_CONTENT_WIDTH = "100%-44px"
+local HEADER_HEIGHT = 116
+local DETAILS_TOP = 132
+local DETAILS_HEIGHT = 960
 
 local GROUPS = {"base", "vitals", "stats", "maxstats", "status", "worth"}
 local GAUGE_KEYS = {"hp", "mana", "moves", "tnl", "enemy", "align"}
@@ -148,9 +154,10 @@ local function row(label, value)
     .. value .. "</td></tr>"
 end
 
-local function section(title, rows)
+local function section(title, rows, first)
   return "<div style='color:#7dd3fc;font-size:14px;font-weight:bold;"
-    .. "background:#142436;padding:5px;margin-top:10px;'>" .. title
+    .. "background:#142436;padding:5px;margin-top:"
+    .. (first and "0" or "10px") .. ";'>" .. title
     .. "</div><table width='100%' cellspacing='0' cellpadding='0' "
     .. "style='table-layout:fixed;'>"
     .. table.concat(rows) .. "</table>"
@@ -324,7 +331,7 @@ function CharacterWindow.new(api, character)
         row("Dexterity", attribute("dex", "maxdex")),
         row("Constitution", attribute("con", "maxcon")),
         row("Luck", attribute("luck", "maxluck")),
-      }),
+      }, true),
       section("Combat", {
         row("Hit roll", formatInteger(reading("stats", "hr"))),
         row("Damage roll", formatInteger(reading("stats", "dr"))),
@@ -593,18 +600,20 @@ function CharacterWindow.new(api, character)
       scroll = geyser.ScrollBox:new({name = OWNER .. ".scroll", x = 0, y = 0,
         width = "100%", height = "100%"}, root)
       header = geyser.Label:new({name = OWNER .. ".header", x = 8, y = 8,
-        width = "100%-16px", height = 160}, scroll)
+        width = SHEET_CONTENT_WIDTH, height = HEADER_HEIGHT}, scroll)
       header:setFontSize(13)
       header:setStyleSheet("QLabel { background: #111b27; color: #eef5ff; "
         .. "border: 1px solid #30445c; border-radius: 4px; padding: 2px; "
-        .. "qproperty-wordWrap: true; }")
+        .. "qproperty-wordWrap: true; "
+        .. "qproperty-alignment: 'AlignLeft | AlignTop'; }")
 
-      details = geyser.Label:new({name = OWNER .. ".details", x = 8, y = 176,
-        width = "100%-16px", height = 1100}, scroll)
+      details = geyser.Label:new({name = OWNER .. ".details", x = 8, y = DETAILS_TOP,
+        width = SHEET_CONTENT_WIDTH, height = DETAILS_HEIGHT}, scroll)
       details:setFontSize(13)
       details:setStyleSheet("QLabel { background: #0b1118; color: #f7fbff; "
         .. "border: 1px solid #26384d; border-radius: 4px; padding: 0px; "
-        .. "qproperty-wordWrap: true; }")
+        .. "qproperty-wordWrap: true; "
+        .. "qproperty-alignment: 'AlignLeft | AlignTop'; }")
 
       stage = "create bottom gauges"
       bottomRoot = geyser.Container:new({name = OWNER .. ".bottom", x = 0, y = 0,
