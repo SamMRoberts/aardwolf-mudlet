@@ -80,6 +80,9 @@ class HelpWindowTests(unittest.TestCase):
     def test_capture_trigger_does_not_match_the_opener_line_that_creates_it(self):
         lua = self.runtime()
         lua.execute(r'''
+          incoming("{help} is available after login")
+          assert(not help:status().captureActive)
+          assert(visible[#visible]=="{help} is available after login")
           incoming("{help}")
           assert(help:status().captureActive)
           assert(sameLineTriggerActivations==0)
@@ -89,13 +92,13 @@ class HelpWindowTests(unittest.TestCase):
           assert(help:status().responsesAccepted==1)
         ''')
 
-    def test_helpsearch_replaces_previous_document_and_attached_outer_text(self):
+    def test_helpsearch_replaces_previous_document(self):
         lua = self.runtime()
         lua.execute(r'''
           incoming("{help}");incoming("old");incoming("{/help}")
           assert(helpWindow().text=="old\n")
-          incoming(" {helpsearch}Search results")
-          incoming("one")
+          incoming("{helpsearch}")
+          incoming("Search results");incoming("one")
           incoming("{/helpsearch}")
           assert(helpWindow().text=="Search results\none\n")
           assert(help:status().responsesAccepted==2)

@@ -2,8 +2,7 @@ local HelpWindow = {}
 
 local OWNER = "aardwolf-vibe.help-window"
 local WINDOW_NAME = OWNER .. ".window"
-local OPEN_TRIGGER = [[^\s*\{(?:help|helpsearch)\}]]
-local CAPTURE_TRIGGER = [[^(?!\s*\{(?:help|helpsearch)\}).*$]]
+local OPEN_TRIGGER = [[^\{(?:help|helpsearch)\}$]]
 local MAX_LINES = 2048
 local MAX_BYTES = 2 * 1024 * 1024
 local CAPTURE_TIMEOUT = 15
@@ -36,16 +35,14 @@ local function codepointCount(value)
 end
 
 local function outerMarker(text)
-  local first, last = text:find("^%s*{helpsearch}")
-  if first then return "helpsearch", last end
-  first, last = text:find("^%s*{help}")
-  if first then return "help", last end
+  if text == "{helpsearch}" then return "helpsearch" end
+  if text == "{help}" then return "help" end
   return nil
 end
 
 local function closingMarker(text)
-  if text:match("^%s*{/helpsearch}%s*$") then return "helpsearch" end
-  if text:match("^%s*{/help}%s*$") then return "help" end
+  if text == "{/helpsearch}" then return "helpsearch" end
+  if text == "{/help}" then return "help" end
   return nil
 end
 
@@ -201,11 +198,10 @@ function HelpWindow.new(api)
         diagnostic("Incomplete " .. captured.kind .. " response timed out; previous help retained", token)
       end
     end), "Cannot schedule help capture timeout")
-    -- Mudlet evaluates a newly-created trigger against the line currently being
-    -- processed. Excluding openers prevents this trigger from matching the line
-    -- whose opener callback creates it; nested openers remain owned by the
-    -- permanent opener trigger below.
-    captureID = assert(api.tempRegexTrigger(CAPTURE_TRIGGER, function()
+    -- Start on the line after the exact opener. Unlike a regex catch-all, a
+    -- line trigger cannot match the opener that creates it or unrelated login
+    -- text before a tagged frame begins.
+    captureID = assert(api.tempLineTrigger(1, MAX_LINES + 1, function()
       if not self.enabled or token ~= generation then return end
       local ok, message = pcall(receive, api.line or "", token)
       if not ok then
@@ -233,13 +229,9 @@ function HelpWindow.new(api)
     if not self.enabled or token ~= generation or type(text) ~= "string" or not frame then
       return false
     end
-    local opened, markerEnd = outerMarker(text)
+    local opened = outerMarker(text)
     if opened then
       beginCapture(opened, token)
-      local remainder = text:sub(markerEnd + 1)
-      if remainder:match("%S") then
-        return addLine(remainder, codepointCount(text:sub(1, markerEnd)), #text, token)
-      end
       api.deleteLine()
       return true
     end
@@ -346,16 +338,11 @@ function HelpWindow.new(api)
       openerID = assert(api.tempRegexTrigger(OPEN_TRIGGER, function()
         if not self.enabled or token ~= generation then return end
         local text = api.line or ""
-        local kind, markerEnd = outerMarker(text)
+        local kind = outerMarker(text)
         if not kind then return end
         local opened, why = pcall(function()
           beginCapture(kind, token)
-          local remainder = text:sub(markerEnd + 1)
-          if remainder:match("%S") then
-            addLine(remainder, codepointCount(text:sub(1, markerEnd)), #text, token)
-          else
-            api.deleteLine()
-          end
+          api.deleteLine()
         end)
         if not opened then
           api.deleteLine()

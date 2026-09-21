@@ -18,6 +18,9 @@ Both response forms owned by HELPS are supported:
 {helpsearch} ... {/helpsearch}
 ```
 
+The outer markers must occupy their complete line. Text that merely starts
+with `{help}` or `{helpsearch}` is ordinary output and does not arm capture.
+
 The outer markers and the inner `{helpkeywords}`, `{helpbody}`, and
 `{/helpbody}` markers are omitted from the popup. Inner markers may share a line
 with visible text; only the marker prefix is removed. Every line belonging to a

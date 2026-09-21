@@ -42,13 +42,13 @@ function fire(event, ...)
 end
 
 local function isHelpOpener(text)
-  return text:match("^%s*{help}") ~= nil or text:match("^%s*{helpsearch}") ~= nil
+  return text == "{help}" or text == "{helpsearch}"
 end
 
 local function matchesTrigger(regex, text)
+  if regex == [[^\{(?:help|helpsearch)\}$]] then return isHelpOpener(text) end
   if regex == "^.*$" then return true end
-  if regex:find("?!", 1, true) then return not isHelpOpener(text) end
-  return isHelpOpener(text)
+  error("unsupported fixture regex: " .. tostring(regex))
 end
 
 function tempRegexTrigger(regex, callback)
@@ -62,6 +62,18 @@ function tempRegexTrigger(regex, callback)
     end
     callback()
   end
+  return nextID
+end
+
+function tempLineTrigger(from, howMany, callback)
+  if fail.trigger then error("trigger failure") end
+  nextID = nextID + 1
+  triggers[nextID] = {
+    lineTrigger = true,
+    skip = from - 1,
+    remaining = howMany,
+    callback = callback,
+  }
   return nextID
 end
 
@@ -130,14 +142,31 @@ function incoming(text, colors)
   currentDeleted = false
   local callbacks = {}
   for id, trigger in pairs(triggers) do
-    if matchesTrigger(trigger.regex, text) then
+    if trigger.lineTrigger then
+      if trigger.skip > 0 then
+        trigger.skip = trigger.skip - 1
+      else
+        callbacks[#callbacks + 1] = {
+          id = id,
+          callback = trigger.callback,
+          lineTrigger = true,
+        }
+      end
+    elseif matchesTrigger(trigger.regex, text) then
       callbacks[#callbacks + 1] = {id = id, callback = trigger.callback}
     end
   end
   table.sort(callbacks, function(left, right) return left.id < right.id end)
   processingLine = true
   for _, entry in ipairs(callbacks) do
-    if triggers[entry.id] then entry.callback() end
+    if triggers[entry.id] then
+      entry.callback()
+      local trigger = triggers[entry.id]
+      if trigger and entry.lineTrigger then
+        trigger.remaining = trigger.remaining - 1
+        if trigger.remaining <= 0 then triggers[entry.id] = nil end
+      end
+    end
   end
   processingLine = false
   if not currentDeleted then visible[#visible + 1] = text end
