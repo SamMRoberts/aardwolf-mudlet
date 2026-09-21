@@ -34,7 +34,7 @@ class SpellupTests(unittest.TestCase):
           assert(#visible==2)
         """)
 
-    def test_sequential_sync_tags_defensive_copies_and_display_only_expiry(self):
+    def test_sequential_sync_tags_defensive_copies_and_natural_expiry(self):
         lua = self.runtime()
         lua.execute("""
           assert(#commands==1 and commands[1].text=='slist noprompt')
@@ -52,9 +52,10 @@ class SpellupTests(unittest.TestCase):
           snapshot.catalog[72].name='changed'
           assert(spells:get(72).name=='Shield')
           advance(3)
-          local expired=spells:snapshot().active[1]
-          assert(expired.awaiting and expired.remaining==0)
-          assert(#spells:snapshot().expired==0)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0)
+          assert(#snapshot.expired==1 and snapshot.expired[1].id==72
+            and snapshot.expired[1].elapsed==1)
           assert(spells:isFresh() and commandCount('spellup learned retry')==0
             and commandCount('slist affected noprompt')==2 and #commands==7)
         """)
@@ -180,6 +181,28 @@ class SpellupTests(unittest.TestCase):
           assert(controller:status().unresolvedQueued==0)
           deltaRows({'237,Web,1,30,100,-1,1','72,Shield,2,60,100,-1,1'}, {})
           assert(not controller:status().inflight and not controller:status().paused)
+        """)
+
+    def test_naturally_expired_bad_effect_is_discarded_without_automatic_work(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{'237,Web,1,5,100,-1,1'})
+          recoveryRows({})
+          assert(commandCount('spellup learned retry')==1)
+          feed('No spells or skills cast.')
+
+          advance(5)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==0)
+          advance(30)
+          assert(commandCount('spellup learned retry')==1)
         """)
 
     def test_interleaved_affoff_is_replayed_into_expired_state(self):
@@ -338,18 +361,41 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().pending)
           advance(1)
           assert(controller:status().pending)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==72)
           assert(commandCount('spellup learned retry')==1)
           advance(25)
           assert(commandCount('spellup learned retry')==2)
         """)
 
-    def test_expiry_timer_is_single_rescheduled_and_cancelled_with_automatic_mode(self):
+    def test_late_affoff_after_local_expiry_does_not_queue_duplicate_batch(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          synchronize({'72,Shield,2,5,100,-1,1'}, {})
+          assert(commandCount('spellup learned retry')==1)
+          feed('No spells or skills cast.')
+
+          advance(5)
+          assert(controller:status().pending)
+          advance(25)
+          assert(commandCount('spellup learned retry')==2
+            and controller:status().inflight)
+
+          feed('{affoff}72');advance(0)
+          deltaRows({}, {})
+          feed('{spellup-end}')
+          assert(not controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned retry')==2)
+        """)
+
+    def test_expiry_timer_is_single_rescheduled_and_independent_of_automatic_mode(self):
         lua = self.runtime()
         lua.execute("""
           synchronize()
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
-          assert(count(timers)==0)
+          assert(count(timers)==1)
 
           assert(controller:setAutomatic(true));advance(0)
           synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
@@ -364,9 +410,11 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().pending)
 
           assert(controller:setAutomatic(false))
-          assert(count(timers)==0 and not controller:status().pending)
+          assert(count(timers)==1 and not controller:status().pending)
           advance(20)
           assert(commandCount('spellup learned retry')==1)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==72)
         """)
 
     def test_non_spellup_effect_expiry_does_not_queue_automatic_batch(self):
@@ -390,10 +438,12 @@ class SpellupTests(unittest.TestCase):
           spellRows('affected',{'104,Chameleon power,3,5,100,-1,2'})
           recoveryRows({})
           advance(0);feed('{spellup-end}')
-          assert(count(timers)==0)
+          assert(count(timers)==1)
           advance(30)
           assert(commandCount('spellup learned retry')==1
             and not controller:status().pending)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==104)
         """)
 
     def test_expiry_work_survives_uncertain_batch_until_late_confirmation(self):

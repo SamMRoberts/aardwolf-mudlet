@@ -123,8 +123,8 @@ command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
-bounded `slist` snapshots, and presents active effects, server-confirmed
-beneficial expirations, and recoveries in responsive tables in an “Aardwolf
+bounded `slist` snapshots, and presents active effects, tracked beneficial
+expirations, and recoveries in responsive tables in an “Aardwolf
 Spellups” window. Full synchronization hydrates effects and recoveries that
 were already active before a package reload, before automation can submit its
 first batch. Aardwolf-classified bad effects remain visible while active,
@@ -141,9 +141,10 @@ automatic, and spell-tag visibility actions without consuming table space.
 Automatic maintenance defaults off.
 When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
-commands. A single nearest-expiry timer queues that server-owned batch when an
-eligible spellup reaches its tracked expiration, including granted abilities
-that Aardwolf reports at 0% practice, without polling every effect.
+commands. The spell tracker owns a single nearest-expiry timer that moves a due
+beneficial effect into Expired Effects and emits the event that queues that
+server-owned batch. This includes granted abilities that Aardwolf reports at
+0% practice and does not poll every effect.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 

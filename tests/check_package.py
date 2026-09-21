@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.36")
+        self.assertEqual(metadata["version"], "0.7.37")
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
@@ -19,7 +19,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
-        self.assertIn("fully hydrated", metadata["description"])
+        self.assertIn("expiry-driven", metadata["description"])
         self.assertIn("bad-effect-safe", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
         aliases = json.loads((ROOT / "src/aliases/AardwolfVibe/aliases.json").read_text())

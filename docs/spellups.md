@@ -58,13 +58,16 @@ Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spellup.updated`.
 
 `spells:snapshot()` returns `active`, `expired`, and `recoveries` display
-collections. `expired` contains only non-bad effects whose removal was confirmed
-by an `affoff` record or a valid affected snapshot. Effects classified by
-Aardwolf's `bad` filter remain visible while active but never enter this
-collection. A confirmed reapplication removes the entry, unknown wearoffs are
-ignored for this collection, and the collection is cleared with the rest of the
-session state. Each expired row reports `id`, `name`, `expiredAt`, elapsed
-seconds in `elapsed`, and the current `spellup` and `learned` classifications.
+collections. `expired` contains only non-bad effects whose tracked duration has
+elapsed or whose removal was confirmed by an `affoff` record or a valid affected
+snapshot. The tracker owns one reschedulable timer for the nearest active-effect
+expiration, so the display and automatic controller observe the same state
+transition. Effects classified by Aardwolf's `bad` filter are discarded when
+their duration elapses and never enter this collection. A confirmed
+reapplication removes the entry, unknown wearoffs are ignored for this
+collection, and the collection is cleared with the rest of the session state.
+Each expired row reports `id`, `name`, `expiredAt`, elapsed seconds in `elapsed`,
+and the current `spellup` and `learned` classifications.
 
 ## Casting contract
 
@@ -80,9 +83,10 @@ when a server-eligible spellup reaches its tracked server-reported
 expiration, when `{affoff}` confirms it missing, or when a blocking recovery
 ends. Eligibility includes learned abilities above 1% practice and granted or
 clan abilities that Aardwolf reports at 0% but still queues for
-`spellup learned`. The controller owns one timer for the nearest relevant
-expiration and reschedules it when effect data changes instead of polling every
-effect.
+`spellup learned`. The spell tracker reschedules its single nearest-expiry timer
+when effect data changes instead of polling every effect. Its missing-effect
+event queues maintenance only when the expired effect is eligible for automatic
+spellup.
 Expirations coalesce for two seconds, batches remain at least 30 seconds apart,
 and only one may be outstanding. Unambiguous manual self-spellup commands are
 observed so automatic work cannot collide; previews and forms that might target
@@ -122,11 +126,11 @@ vertical-ellipsis menu contains Sync, Spellup now, automatic, and spell-tag
 visibility actions so the tables keep the remaining window space. Its unique
 user-window name keeps it separate from the map and chat docks. After that
 first successful mount, Mudlet owns visibility,
-docking, floating, size, and tab placement through `restoreLayout`. Countdown
-zero displays “Awaiting server confirmation” and does not add the effect to the
-confirmed-expired collection. With automatic maintenance enabled, that tracked
-expiration queues the server-owned spellup batch, which rechecks the effect on
-the server. Active effects and recoveries use green remaining time above two
+docking, floating, size, and tab placement through `restoreLayout`. When an
+active-effect countdown reaches zero, the effect moves into Expired Effects;
+with automatic maintenance enabled, that same transition queues the server-owned
+spellup batch. Recovery countdowns may still display “Awaiting server
+confirmation.” Active effects and recoveries use green remaining time above two
 minutes, dark yellow from 31 through 120 seconds, and red at 30 seconds or less.
 The server's complete recovery catalog includes inactive rows with duration
 zero; those rows are not tracked or displayed. The table pane starts at the top
@@ -137,8 +141,8 @@ visible; showing the window renders a fresh snapshot before restarting it.
 
 Settings schema v3 retains `mapperEnabled` and `spellupsAutoCast`, and adds
 `spellupsHideTags=true`. Schemas v1 and v2 migrate atomically. Malformed
-settings are preserved and fail closed. Catalogs, active effects, and
-confirmed expirations and recoveries are never persisted, and teardown
+settings are preserved and fail closed. Catalogs, active effects, expirations,
+and recoveries are never persisted, and teardown
 intentionally does not disable spell tags because the server option may be
 shared with another package.
 

@@ -107,14 +107,14 @@ function Spells.new(api, character, settings)
   local catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
   local handlers = {}
   local triggerIDs, captureID = {}, nil
-  local frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
+  local frame, timeout, driveTimer, expiryTimer, hiddenFrame, hiddenFrameTimeout
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
   local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
-  local receive
+  local receive, scheduleExpiry
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -236,6 +236,47 @@ function Spells.new(api, character, settings)
     return true
   end
 
+  scheduleExpiry = function()
+    cancelTimer(expiryTimer)
+    expiryTimer = nil
+    if not self.enabled then return end
+
+    local timestamp = now()
+    local nextExpiry
+    local due = {}
+    for id, effect in pairs(active) do
+      if type(effect.expires) == "number" then
+        if effect.expires <= timestamp then
+          due[#due + 1] = id
+        elseif not nextExpiry or effect.expires < nextExpiry then
+          nextExpiry = effect.expires
+        end
+      end
+    end
+
+    if #due > 0 then
+      for _, id in ipairs(due) do
+        local effect = active[id]
+        active[id] = nil
+        if bad[id] then
+          expired[id] = nil
+        else
+          expired[id] = {id = id, expiredAt = effect.expires}
+          emit("missing", id)
+        end
+      end
+      changed()
+    end
+
+    if nextExpiry then
+      local token = generation
+      expiryTimer = api.tempTimer(math.max(0, nextExpiry - now()), function()
+        expiryTimer = nil
+        if self.enabled and token == generation then scheduleExpiry() end
+      end)
+    end
+  end
+
   local function applyDelta(event)
     if event.kind == "affon" then
       expired[event.id] = nil
@@ -247,8 +288,9 @@ function Spells.new(api, character, settings)
       }
       emit("applied", event.id)
     elseif event.kind == "affoff" then
+      local alreadyExpired = expired[event.id] ~= nil
       local confirmed = confirmExpired(event.id, event.at)
-      if confirmed or (classification[event.id] and not bad[event.id]) then
+      if confirmed or (not alreadyExpired and classification[event.id] and not bad[event.id]) then
         emit("missing", event.id)
       end
     elseif event.kind == "recon" then
@@ -322,6 +364,7 @@ function Spells.new(api, character, settings)
       recoveries = replacement
     end
     for _, event in ipairs(completed.deltas) do applyDelta(event) end
+    scheduleExpiry()
   end
 
   local function completeFrame()
@@ -427,6 +470,7 @@ function Spells.new(api, character, settings)
         else frame.deltas[#frame.deltas + 1] = event end
       else
         applyDelta(event)
+        scheduleExpiry()
       end
       changed()
       return true
@@ -511,7 +555,8 @@ function Spells.new(api, character, settings)
     cancelRequest()
     clearHiddenFrame()
     cancelTimer(driveTimer)
-    driveTimer = nil
+    cancelTimer(expiryTimer)
+    driveTimer, expiryTimer = nil, nil
     catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
@@ -762,7 +807,8 @@ function Spells.new(api, character, settings)
     cancelRequest()
     clearHiddenFrame()
     cancelTimer(driveTimer)
-    driveTimer = nil
+    cancelTimer(expiryTimer)
+    driveTimer, expiryTimer = nil, nil
     removeHandlers()
     cancelLineCapture()
     for _, id in ipairs(triggerIDs) do pcall(api.killTrigger, id) end

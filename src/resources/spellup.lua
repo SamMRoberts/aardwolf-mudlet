@@ -33,7 +33,7 @@ function Spellup.new(api, character, spells, settings)
   local self = {enabled = false, automatic = false, lastError = nil}
   local handlers = {}
   local generation = 0
-  local timer, batchTimer, expiryTimer
+  local timer, batchTimer
   local pendingAt, lastSent
   local inflight, external = false, false
   local paused, blocked
@@ -42,8 +42,7 @@ function Spellup.new(api, character, spells, settings)
   local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
   local failures = {}
-  local signaledExpiries = {}
-  local pump, schedule, watchExpiries
+  local pump, schedule
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -132,47 +131,6 @@ function Spellup.new(api, character, spells, settings)
     if not pendingAt then pendingAt = now() + COALESCE_SECONDS end
     schedule()
     emit()
-  end
-
-  watchExpiries = function(snapshot)
-    cancel(expiryTimer)
-    expiryTimer = nil
-    if not self.enabled or not self.automatic then
-      signaledExpiries = {}
-      return
-    end
-
-    local timestamp = now()
-    local nextExpiry
-    local current = {}
-    local expiredNow = false
-    local effects = type(snapshot) == "table" and snapshot.active
-      or spells:snapshot().active
-    for _, effect in ipairs(type(effects) == "table" and effects or {}) do
-      if spells:isAutomaticSpellup(effect.id) and type(effect.expires) == "number" then
-        current[effect.id] = effect.expires
-        if effect.expires <= timestamp then
-          if signaledExpiries[effect.id] ~= effect.expires then
-            signaledExpiries[effect.id] = effect.expires
-            expiredNow = true
-          end
-        elseif not nextExpiry or effect.expires < nextExpiry then
-          nextExpiry = effect.expires
-        end
-      end
-    end
-    for id, expires in pairs(signaledExpiries) do
-      if current[id] ~= expires then signaledExpiries[id] = nil end
-    end
-
-    if nextExpiry then
-      local token = generation
-      expiryTimer = api.tempTimer(nextExpiry - timestamp, function()
-        expiryTimer = nil
-        if self.enabled and token == generation then watchExpiries() end
-      end)
-    end
-    if expiredNow then queueWork() end
   end
 
   local function beginBatch(isExternal)
@@ -290,10 +248,7 @@ function Spellup.new(api, character, spells, settings)
 
   function self:setAutomatic(value)
     if type(value) ~= "boolean" then return false, "Automatic setting must be boolean" end
-    if value == self.automatic then
-      if value then watchExpiries() end
-      return true
-    end
+    if value == self.automatic then return true end
     if settings and type(settings.setSpellupsAutoCast) == "function" then
       local ok, message = settings.setSpellupsAutoCast(value)
       if not ok then return false, message end
@@ -311,7 +266,6 @@ function Spellup.new(api, character, spells, settings)
     else
       initial, pendingAt = false, nil
     end
-    watchExpiries()
     emit()
     return true
   end
@@ -346,8 +300,6 @@ function Spellup.new(api, character, spells, settings)
       on("status", "aardwolf-vibe.character.updated.status", statusChanged, token)
       on("vitals", "aardwolf-vibe.character.updated.vitals", vitalsChanged, token)
       on("reset", "aardwolf-vibe.spells.reset", function()
-        cancel(expiryTimer); expiryTimer = nil
-        signaledExpiries = {}
         if not connected() then
           cancel(batchTimer); batchTimer = nil
           inflight, external = false, false
@@ -379,9 +331,6 @@ function Spellup.new(api, character, spells, settings)
           if complete then finish("Confirmed by synchronized effects") end
         end
         schedule()
-      end, token)
-      on("effects", "aardwolf-vibe.spells.updated", function(_, snapshot)
-        watchExpiries(snapshot)
       end, token)
       on("missing", "aardwolf-vibe.spells.missing", function(_, id)
         if self.automatic and spells:isAutomaticSpellup(id) then queueWork() end
@@ -469,7 +418,6 @@ function Spellup.new(api, character, spells, settings)
       end, token)
       on("outgoing", "sysDataSendRequest", function(_, command) manualCommand(command) end, token)
       if self.automatic then spells:sync() end
-      watchExpiries()
       schedule()
     end)
     if not ok then
@@ -484,15 +432,14 @@ function Spellup.new(api, character, spells, settings)
     generation = generation + 1
     self.enabled = false
     removeHandlers()
-    cancel(timer); cancel(batchTimer); cancel(expiryTimer)
-    timer, batchTimer, expiryTimer = nil, nil, nil
+    cancel(timer); cancel(batchTimer)
+    timer, batchTimer = nil, nil
     pendingAt, initial = nil, false
     inflight, external = false, false
     paused, blocked = nil, nil
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled, failures = {}, {}, {}
     observed, unresolvedQueued = false, 0
-    signaledExpiries = {}
     return true
   end
 
