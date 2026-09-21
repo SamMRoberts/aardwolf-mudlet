@@ -33,8 +33,10 @@ captured.
 Only a valid closing marker replaces the previous document, scrolls the popup
 to its first line, and shows and raises the window. Foreground and
 background colors, blank lines, Unicode text, and literal spacing are retained.
-The window starts hidden on every session while Mudlet continues to own its
-saved floating or docked geometry.
+The window starts hidden on every session. Its first creation is floating at
+700×460; after that, Mudlet restores the user's saved floating or docked
+geometry. A package-owned persisted marker distinguishes first creation from a
+layout that Mudlet can safely restore.
 
 Captures are limited to 2,048 lines, 2 MiB, and 15 seconds. A nested opener
 restarts capture with the newer frame. A timeout, overflow, mismatched close,

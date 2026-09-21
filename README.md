@@ -95,7 +95,9 @@ responses are captured between their server-owned outer tags,
 removed from the main console, and displayed with their original colors and
 spacing in a transient “Aardwolf Help” window. Each completed response replaces
 the previous one and opens the window; its floating or docked layout remains
-under Mudlet's window-layout ownership. Incomplete or malformed responses leave
+under Mudlet's window-layout ownership. Its first creation is a 700×460 floating
+window; subsequent launches restore the placement chosen by the user. Incomplete
+or malformed responses leave
 the previous document intact and stop capture after a bounded timeout. See
 [`docs/help-window.md`](docs/help-window.md) for its API, limits, and acceptance
 boundary.

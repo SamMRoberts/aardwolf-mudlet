@@ -2,6 +2,8 @@ local HelpWindow = {}
 
 local OWNER = "aardwolf-vibe.help-window"
 local WINDOW_NAME = OWNER .. ".window"
+local LAYOUT_MARKER = "AardwolfVibeHelpWindowLayout"
+local LAYOUT_VERSION = 1
 local OPEN_TRIGGER = [[^\{(?:help|helpsearch)\}$]]
 local MAX_LINES = 2048
 local MAX_BYTES = 2 * 1024 * 1024
@@ -351,6 +353,7 @@ function HelpWindow.new(api, character)
     local ok, message = pcall(function()
       local geyser = assert(api.Geyser, "Geyser is required for the help window")
       assert(type(geyser.UserWindow) == "table", "Geyser.UserWindow is required")
+      local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
       stage = "create floating window"
       window = geyser.UserWindow:new({
         name = WINDOW_NAME,
@@ -359,9 +362,10 @@ function HelpWindow.new(api, character)
         y = 60,
         width = 700,
         height = 460,
-        restoreLayout = true,
+        restoreLayout = restoreLayout,
         autoDock = true,
         docked = false,
+        dockPosition = "floating",
         autoWrap = false,
         wrapAt = MAX_BYTES + 1,
         scrollBar = true,
@@ -427,6 +431,10 @@ function HelpWindow.new(api, character)
       self.enabled, self.visible, self.lastError = true, false, nil
       tagPending = false
       tagState = "not-requested"
+      if not restoreLayout then
+        api[LAYOUT_MARKER] = LAYOUT_VERSION
+        if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
+      end
     end)
     if not ok then
       teardown("Cannot start help window during " .. stage .. ": " .. tostring(message))

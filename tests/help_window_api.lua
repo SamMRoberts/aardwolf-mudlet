@@ -5,6 +5,7 @@ windows = {}
 sent = {}
 visible = {}
 messages = {}
+remembered = {}
 deletedLines = 0
 nextID = 0
 line = ""
@@ -124,6 +125,8 @@ function expire(seconds)
 end
 
 function echo(message) messages[#messages + 1] = message end
+
+function remember(name) remembered[#remembered + 1] = name end
 
 function send(command, echoCommand)
   if fail.send then error("send failure") end
