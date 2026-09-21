@@ -10,9 +10,9 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.28")
+        self.assertEqual(metadata["version"], "0.7.29")
         self.assertIn("character state", metadata["description"])
-        self.assertIn("status bars", metadata["description"])
+        self.assertIn("character sheet", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
@@ -28,6 +28,7 @@ class PackageSourceTests(unittest.TestCase):
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
+                "stats": "^aardwolf-vibe stats(?: (show|hide|status))?$",
                 "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$",
             },
         )
@@ -38,6 +39,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertNotIn("createRoomID", source)
         self.assertIn("AardwolfVibe.plugins.mapper", source)
         self.assertIn("AardwolfVibe.plugins.character", source)
+        self.assertIn("AardwolfVibe.plugins.characterWindow", source)
         self.assertIn("AardwolfVibe.plugins.characterBars", source)
         self.assertIn("AardwolfVibe.plugins.asciiMap", source)
         self.assertIn("AardwolfVibe.plugins.helpWindow", source)
@@ -48,10 +50,16 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("pcall(openMapWidget)", source)
         self.assertIn('send, "protocols gmcp sendchar", false', source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
-        bars = ROOT / "src/resources/character-bars.lua"
-        self.assertTrue(bars.is_file())
-        self.assertNotIn("gmod", bars.read_text())
-        self.assertNotIn("gmcp", bars.read_text())
+        character_window = ROOT / "src/resources/character-window.lua"
+        self.assertTrue(character_window.is_file())
+        self.assertFalse((ROOT / "src/resources/character-bars.lua").exists())
+        character_window_source = character_window.read_text()
+        self.assertIn("geyser.UserWindow:new", character_window_source)
+        self.assertIn("geyser.ScrollBox:new", character_window_source)
+        self.assertIn('dockPosition = "left"', character_window_source)
+        self.assertNotIn("gmod", character_window_source)
+        self.assertNotIn("gmcp", character_window_source)
+        self.assertNotIn("setBorder", character_window_source)
         ascii_map = ROOT / "src/resources/ascii-map.lua"
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())

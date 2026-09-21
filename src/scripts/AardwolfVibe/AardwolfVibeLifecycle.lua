@@ -19,7 +19,7 @@ local Character = resource("character")
 local Spells = resource("spells")
 local Spellup = resource("spellup")
 local BuffsWindow = resource("buffs-window")
-local CharacterBars = resource("character-bars")
+local CharacterWindow = resource("character-window")
 local ASCIIMap = resource("ascii-map")
 local HelpWindow = resource("help-window")
 local ChatModel = resource("chat-model")
@@ -34,8 +34,9 @@ AardwolfVibe.plugins.spellup = Spellup.new(
   AardwolfVibe.settings)
 AardwolfVibe.plugins.buffsWindow = BuffsWindow.new(
   _G, AardwolfVibe.plugins.spells, AardwolfVibe.plugins.spellup)
-AardwolfVibe.plugins.characterBars = CharacterBars.new(
-  _G, AardwolfVibe.plugins.character)
+local characterWindow = CharacterWindow.new(_G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.characterWindow = characterWindow
+AardwolfVibe.plugins.characterBars = characterWindow
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.helpWindow = HelpWindow.new(
@@ -71,9 +72,9 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.buffsWindow:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  local barsOK = AardwolfVibe.plugins.characterBars:start()
-  if not barsOK then
-    local status = AardwolfVibe.plugins.characterBars:status()
+  local characterWindowOK = AardwolfVibe.plugins.characterWindow:start()
+  if not characterWindowOK then
+    local status = AardwolfVibe.plugins.characterWindow:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
   local asciiOK = AardwolfVibe.plugins.asciiMap:start()
@@ -93,11 +94,11 @@ function AardwolfVibe.start()
   end
   if AardwolfVibe.active then
     return characterOK and spellsOK and spellupOK and buffsOK
-      and barsOK and asciiOK and helpOK and chatOK and settingsOK
+      and characterWindowOK and asciiOK and helpOK and chatOK and settingsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
-  return characterOK and spellsOK and spellupOK and buffsOK and barsOK
+  return characterOK and spellsOK and spellupOK and buffsOK and characterWindowOK
     and asciiOK and helpOK and chatOK and settingsOK and mapperOK
 end
 
@@ -112,13 +113,13 @@ function AardwolfVibe.stop()
   local chatOK = stopPlugin(plugins.chat)
   local helpOK = stopPlugin(plugins.helpWindow)
   local asciiOK = stopPlugin(plugins.asciiMap)
-  local barsOK = stopPlugin(plugins.characterBars)
+  local characterWindowOK = stopPlugin(plugins.characterWindow)
   local buffsOK = stopPlugin(plugins.buffsWindow)
   local spellupOK = stopPlugin(plugins.spellup)
   local spellsOK = stopPlugin(plugins.spells)
   local characterOK = stopPlugin(plugins.character)
   AardwolfVibe.active = false
-  return mapperOK and chatOK and helpOK and asciiOK and barsOK and buffsOK
+  return mapperOK and chatOK and helpOK and asciiOK and characterWindowOK and buffsOK
     and spellupOK and spellsOK and characterOK
 end
 
@@ -213,6 +214,28 @@ function AardwolfVibe.handleMinimapCommand(action)
     return status
   end
   echo("Usage: aardwolf-vibe minimap show|hide|status\n")
+  return false
+end
+
+function AardwolfVibe.handleStatsCommand(action)
+  local characterWindow = AardwolfVibe.plugins.characterWindow
+  action = action or "show"
+  if action == "show" then return characterWindow:show() end
+  if action == "hide" then return characterWindow:hide() end
+  if action == "status" then
+    local status = characterWindow:status()
+    local visibility = status.visible and "visible" or "hidden"
+    local ready, total = 0, 0
+    for _, fresh in pairs(status.fresh or {}) do
+      total = total + 1
+      if fresh then ready = ready + 1 end
+    end
+    echo("Aardwolf Vibe: character window " .. status.lifecycle .. ", "
+      .. visibility .. ", " .. tostring(ready) .. "/" .. tostring(total)
+      .. " GMCP groups fresh.\n")
+    return status
+  end
+  echo("Usage: aardwolf-vibe stats show|hide|status\n")
   return false
 end
 

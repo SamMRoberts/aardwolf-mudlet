@@ -2,7 +2,7 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, responsive Geyser status bars, a native dockable ASCII minimap, and a
+handler, a dockable real-time character sheet, a native dockable ASCII minimap, and a
 transient tagged-help popup, plus a configurable GMCP chat window. It also
 includes session-only spell/recovery tracking and explicitly opt-in
 self-spellup maintenance.
@@ -68,13 +68,13 @@ After an install or upgrade, the package requests a fresh character snapshot
 with `protocols gmcp sendchar` after its character consumers are ready. This
 install-only request is sent without local command echo.
 
-The always-visible character strip uses that validated state to show HP, mana,
-moves, level progress, the current enemy, and alignment. A three-cell status row
-above the gauges shows the character's level, position, and friendly state name.
-The gauges occupy one row on normal windows and reflow into two rows below 840
-pixels while the status row remains horizontal. See
-[`docs/character-bars.md`](docs/character-bars.md) for its rendering and layout
-contract.
+The always-active “Aardwolf Character” window renders the validated character
+state as a scrollable identity, gauge, attribute, combat, progression, status,
+and worth sheet. It starts in the left dock on first creation, then lets Mudlet
+restore the user's later docked or floating placement. It reopens visibly on
+each profile launch; hiding it is session-only. See
+[`docs/character-window.md`](docs/character-window.md) for its rendering,
+layout, and lifecycle contract.
 
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
@@ -153,6 +153,10 @@ aardwolf-vibe help
 aardwolf-vibe help show
 aardwolf-vibe help hide
 aardwolf-vibe help status
+aardwolf-vibe stats
+aardwolf-vibe stats show
+aardwolf-vibe stats hide
+aardwolf-vibe stats status
 aardwolf-vibe spellups
 aardwolf-vibe spellups show
 aardwolf-vibe spellups hide
