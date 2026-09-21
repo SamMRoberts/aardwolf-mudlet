@@ -23,6 +23,9 @@ The `aardwolf-vibe stats [show|hide|status]` command delegates to that API; no
 argument defaults to `show`. Lifecycle code starts the character producer before
 the display and stops the display before the producer. A display failure is
 reported without stopping character collection or other package features.
+On an authenticated package replacement, lifecycle requests a complete
+`protocols gmcp sendchar` refresh after the new producer and display are ready,
+so the session-only vitals and maxima repopulate the bottom gauges.
 
 ## Data and rendering
 

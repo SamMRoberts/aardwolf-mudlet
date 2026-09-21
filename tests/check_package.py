@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.33")
+        self.assertEqual(metadata["version"], "0.7.34")
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
         self.assertIn("bottom vitals", metadata["description"])
@@ -51,6 +51,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.buffsWindow", source)
         self.assertIn("pcall(openMapWidget)", source)
         self.assertIn('send, "protocols gmcp sendchar", false', source)
+        self.assertIn("commandCapableStatus(cachedStatus)", source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
         character_window = ROOT / "src/resources/character-window.lua"
         self.assertTrue(character_window.is_file())

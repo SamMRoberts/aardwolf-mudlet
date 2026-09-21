@@ -141,15 +141,38 @@ local function showMaps()
   return asciiCalled and asciiOK ~= false and mapperCalled and mapperOK ~= false
 end
 
+local COMMAND_CAPABLE_STATES = {
+  [3] = true, [4] = true, [8] = true, [9] = true, [11] = true, [12] = true,
+}
+
+local function commandCapableStatus(status)
+  return type(status) == "table" and COMMAND_CAPABLE_STATES[status.state] == true
+end
+
+local function connected()
+  if type(getConnectionInfo) ~= "function" then return false end
+  local ok, _, _, active = pcall(getConnectionInfo)
+  return ok and active == true
+end
+
 function AardwolfVibe.requestCharacterRefresh()
+  if not connected() then
+    return true, "waiting for an active connection"
+  end
   local character = AardwolfVibe.plugins.character
   if type(character) ~= "table" or type(character.getGroup) ~= "function" then
     return true, "waiting for authenticated character status"
   end
   local called, status, _, fresh = pcall(character.getGroup, character, "status")
-  local commandCapable = called and fresh == true and type(status) == "table"
-    and ({[3] = true, [4] = true, [8] = true, [9] = true,
-      [11] = true, [12] = true})[status.state] == true
+  local commandCapable = called and fresh == true and commandCapableStatus(status)
+  if not commandCapable then
+    -- Package replacement clears the new producer before sysInstallPackage.
+    -- Mudlet's current GMCP cache still identifies an authenticated session,
+    -- allowing sendchar to repopulate every group for the replacement UI.
+    local cachedChar = type(gmcp) == "table" and gmcp.char or nil
+    local cachedStatus = type(cachedChar) == "table" and cachedChar.status or nil
+    commandCapable = commandCapableStatus(cachedStatus)
+  end
   if not commandCapable then
     return true, "waiting for authenticated character status"
   end

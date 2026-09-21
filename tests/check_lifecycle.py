@@ -44,6 +44,9 @@ class LifecycleTests(unittest.TestCase):
               chatStarts=chatStarts,
             }
           end
+          connected=true
+          function getConnectionInfo() return "offline.fixture",0,connected end
+          gmcp={char={}}
           function getMudletHomeDir() return "/profile" end
           SettingsFactory={new=function()
             return {
@@ -348,6 +351,23 @@ class LifecycleTests(unittest.TestCase):
           assert(sentCommands[1].echoCommand==false)
           assert(sentCommands[2].command=="protocols gmcp sendchar")
           assert(sentCommands[2].echoCommand==false)
+        ''')
+
+    def test_reinstall_uses_authenticated_gmcp_cache_to_request_fresh_character_data(self):
+        lua = self.runtime(character_ready=False)
+        lua.execute('''
+          gmcp.char.status={state=3,pos="Standing"}
+          AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
+          assert(AardwolfVibe.active)
+          assert(characterStarts==1 and barsStarts==1)
+          assert(helpRequests==1 and #sentCommands==1)
+          assert(sentCommands[1].command=="protocols gmcp sendchar")
+          assert(sentCommands[1].echoCommand==false)
+
+          connected=false
+          sentCommands={}
+          assert(AardwolfVibe.requestCharacterRefresh())
+          assert(#sentCommands==0)
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):

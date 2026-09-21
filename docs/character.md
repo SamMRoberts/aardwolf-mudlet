@@ -67,6 +67,9 @@ separate from synthetic event tests.
 On an exact `aardwolf-vibe` install or upgrade event, the package starts its
 character consumers and then sends `protocols gmcp sendchar` without local echo.
 This repopulates session-only groups that Aardwolf may not otherwise resend after
-a package reinstall. Ordinary profile loads and unrelated package installs do
-not issue the refresh command. A send failure is reported without stopping the
-character handler, UI, chat, minimap, or mapper.
+a package reinstall. Because the replacement producer starts empty, this
+install-only gate may use Mudlet's cached `gmcp.char.status` when the connection
+is active; login and disconnected states still send nothing. Ordinary profile
+loads and unrelated package installs do not issue the refresh command. A send
+failure is reported without stopping the character handler, UI, chat, minimap,
+or mapper.

@@ -66,7 +66,9 @@ the current GMCP session and is never written to disk. See
 [`docs/character.md`](docs/character.md) for the API and event contract.
 After an install or upgrade, the package requests a fresh character snapshot
 with `protocols gmcp sendchar` after its character consumers are ready. This
-install-only request is sent without local command echo.
+install-only request is sent without local command echo. During replacement,
+the new producer starts empty, so the authenticated-state gate also accepts
+Mudlet's current cached `gmcp.char.status` while the connection remains active.
 
 The always-active character status bay renders the character name, current and
 total levels, remorts, tier, and the six primary attributes as one compact row
