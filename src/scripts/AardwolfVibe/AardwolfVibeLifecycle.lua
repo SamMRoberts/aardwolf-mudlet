@@ -38,7 +38,8 @@ AardwolfVibe.plugins.characterBars = CharacterBars.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
   _G, AardwolfVibe.plugins.character)
-AardwolfVibe.plugins.helpWindow = HelpWindow.new(_G)
+AardwolfVibe.plugins.helpWindow = HelpWindow.new(
+  _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.chat = Chat.new(_G, ChatModel, AardwolfVibe.settings)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
@@ -140,6 +141,17 @@ local function showMaps()
 end
 
 function AardwolfVibe.requestCharacterRefresh()
+  local character = AardwolfVibe.plugins.character
+  if type(character) ~= "table" or type(character.getGroup) ~= "function" then
+    return true, "waiting for authenticated character status"
+  end
+  local called, status, _, fresh = pcall(character.getGroup, character, "status")
+  local commandCapable = called and fresh == true and type(status) == "table"
+    and ({[3] = true, [4] = true, [8] = true, [9] = true,
+      [11] = true, [12] = true})[status.state] == true
+  if not commandCapable then
+    return true, "waiting for authenticated character status"
+  end
   local ok, message = pcall(send, "protocols gmcp sendchar", false)
   if not ok then
     echo("Aardwolf Vibe: unable to request fresh character GMCP data: "

@@ -6,10 +6,13 @@ memory for the current profile session.
 
 ## Tag request and capture
 
-The component sends `tags HELPS on` without local command echo when the package
-is installed and on every `sysConnectionEvent`. It deliberately does not send
-the corresponding off command during teardown because another package may also
-consume Aardwolf's help tags.
+The component queues `tags HELPS on` when the package is installed and on every
+`sysConnectionEvent`. It sends the command without local echo only after a fresh
+`aardwolf-vibe.character.updated.status` event reports an in-game,
+command-capable state. This prevents the command from being consumed as a
+username or password while Aardwolf is still authenticating. It deliberately
+does not send the corresponding off command during teardown because another
+package may also consume Aardwolf's help tags.
 
 Both response forms owned by HELPS are supported:
 
@@ -55,9 +58,10 @@ exposes:
 
 - `start()` and `stop()` for owned lifecycle management;
 - `show()` and `hide()` for transient visibility;
-- `requestTags()` to submit the exact HELPS request; and
+- `requestTags()` to queue the exact HELPS request, submitting it immediately
+  only when authenticated character status is already fresh; and
 - `status()` for lifecycle, visibility, active capture type, accepted/rejected
-  response counts, tag-request state, and the last error.
+  response counts, tag-request state and pending flag, and the last error.
 
 ## Acceptance boundary
 

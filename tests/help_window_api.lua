@@ -13,6 +13,25 @@ selectedIndex = 0
 fail = {}
 processingLine = false
 sameLineTriggerActivations = 0
+characterFresh = false
+characterState = nil
+
+character = {}
+
+function character:getGroup(group)
+  if group ~= "status" or not characterFresh then return nil, nil, false end
+  return {state = characterState}, {state = characterState}, true
+end
+
+function setCharacterState(state, fresh)
+  characterState = state
+  characterFresh = fresh == true
+end
+
+function publishCharacterState(state)
+  setCharacterState(state, true)
+  fire("aardwolf-vibe.character.updated.status", {state = state}, {state = state}, 1, 1)
+end
 
 local function count(values)
   local total = 0

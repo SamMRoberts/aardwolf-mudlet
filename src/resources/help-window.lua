@@ -7,6 +7,15 @@ local MAX_LINES = 2048
 local MAX_BYTES = 2 * 1024 * 1024
 local CAPTURE_TIMEOUT = 15
 
+local COMMAND_CAPABLE_STATES = {
+  [3] = true,
+  [4] = true,
+  [8] = true,
+  [9] = true,
+  [11] = true,
+  [12] = true,
+}
+
 local function finite(value)
   return type(value) == "number" and value == value
     and value ~= math.huge and value ~= -math.huge
@@ -59,7 +68,7 @@ local function stripInnerMarker(text)
   return text, 0
 end
 
-function HelpWindow.new(api)
+function HelpWindow.new(api, character)
   local self = {
     enabled = false,
     visible = false,
@@ -72,6 +81,21 @@ function HelpWindow.new(api)
   local generation = 0
   local tagState = "not-requested"
   local tagRequests = 0
+  local tagPending = false
+
+  local function commandCapable(state)
+    return type(state) == "number" and state % 1 == 0
+      and COMMAND_CAPABLE_STATES[state] == true
+  end
+
+  local function currentCharacterState()
+    if type(character) ~= "table" or type(character.getGroup) ~= "function" then
+      return nil
+    end
+    local ok, status, _, fresh = pcall(character.getGroup, character, "status")
+    if not ok or fresh ~= true or type(status) ~= "table" then return nil end
+    return status.state
+  end
 
   local function killTimer(id)
     if not id then return true end
@@ -275,6 +299,25 @@ function HelpWindow.new(api)
     return firstError
   end
 
+  local function submitTagsIfReady(state)
+    if not tagPending then return true end
+    if not commandCapable(state) then
+      tagState = "waiting-for-character"
+      return true, "queued"
+    end
+    tagRequests = tagRequests + 1
+    local ok, message = pcall(api.send, "tags HELPS on", false)
+    if not ok then
+      tagState = "request-failed"
+      self.lastError = "Cannot enable Aardwolf HELPS tags: " .. tostring(message)
+      return false, self.lastError
+    end
+    tagPending = false
+    tagState = "requested"
+    self.lastError = nil
+    return true
+  end
+
   local function teardown(message)
     generation = generation + 1
     self.enabled, self.visible = false, false
@@ -291,6 +334,7 @@ function HelpWindow.new(api)
       if ok then window = nil elseif not cleanupError then cleanupError = tostring(why) end
     end
     lastRows = nil
+    tagPending = false
     tagState = "stopped"
     if message then self.lastError = tostring(message)
     elseif cleanupError then self.lastError = "Cannot fully stop help window: " .. cleanupError
@@ -359,20 +403,29 @@ function HelpWindow.new(api)
       on("connect", "sysConnectionEvent", function()
         if self.enabled and token == generation then
           cancelCapture()
-          tagState = "not-requested"
-          local requested, why = self:requestTags("connection")
-          if not requested then diagnostic(why, token) end
+          tagPending = true
+          tagState = "waiting-for-character"
         end
       end)
+      on("character-status", "aardwolf-vibe.character.updated.status",
+        function(_, normalized)
+          if self.enabled and token == generation and tagPending then
+            local requested, why = submitTagsIfReady(
+              type(normalized) == "table" and normalized.state or nil)
+            if not requested then diagnostic(why, token) end
+          end
+        end)
       on("disconnect", "sysDisconnectionEvent", function()
         if self.enabled and token == generation then
           cancelCapture()
+          tagPending = false
           tagState = "disconnected"
         end
       end)
       stage = "hide transient window"
       window:hide()
       self.enabled, self.visible, self.lastError = true, false, nil
+      tagPending = false
       tagState = "not-requested"
     end)
     if not ok then
@@ -388,16 +441,8 @@ function HelpWindow.new(api)
 
   function self:requestTags()
     if not self.enabled then return false, "Help window is not active" end
-    tagRequests = tagRequests + 1
-    local ok, message = pcall(api.send, "tags HELPS on", false)
-    if not ok then
-      tagState = "request-failed"
-      self.lastError = "Cannot enable Aardwolf HELPS tags: " .. tostring(message)
-      return false, self.lastError
-    end
-    tagState = "requested"
-    self.lastError = nil
-    return true
+    tagPending = true
+    return submitTagsIfReady(currentCharacterState())
   end
 
   function self:show()
@@ -435,6 +480,7 @@ function HelpWindow.new(api)
       responsesRejected = self.responsesRejected,
       tagState = tagState,
       tagRequests = tagRequests,
+      tagPending = tagPending,
       lastError = self.lastError,
     }
   end

@@ -87,9 +87,11 @@ floating, docked, resized, or tabbed layout. See
 The minimap is also reopened automatically on every profile launch; hiding it
 remains effective for the rest of the current session.
 
-The always-active help plugin requests Aardwolf's `HELPS` tags with
-`tags HELPS on` after installation and on every connection. Ordinary help and
-`help search` responses are captured between their server-owned outer tags,
+The always-active help plugin queues Aardwolf's `HELPS` tags after installation
+and on every connection, then sends `tags HELPS on` only after fresh character
+status confirms that the session can accept game commands. It never submits the
+tag command at the username or password prompt. Ordinary help and `help search`
+responses are captured between their server-owned outer tags,
 removed from the main console, and displayed with their original colors and
 spacing in a transient “Aardwolf Help” window. Each completed response replaces
 the previous one and opens the window; its floating or docked layout remains

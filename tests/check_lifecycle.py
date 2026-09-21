@@ -10,7 +10,7 @@ SOURCE = (ROOT / "src/scripts/AardwolfVibe/AardwolfVibeLifecycle.lua").read_text
 
 class LifecycleTests(unittest.TestCase):
     def runtime(self, enabled=True, settings_ok=True, character_ok=True, bars_ok=True,
-                ascii_ok=True, chat_ok=True, help_ok=True):
+                ascii_ok=True, chat_ok=True, help_ok=True, character_ready=False):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.globals().initial_enabled = enabled
         lua.globals().initial_settings_ok = settings_ok
@@ -19,6 +19,7 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_ascii_ok = ascii_ok
         lua.globals().initial_chat_ok = chat_ok
         lua.globals().initial_help_ok = help_ok
+        lua.globals().initial_character_ready = character_ready
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
           barsStarts=0;barsStops=0;asciiStarts=0;asciiStops=0;asciiShows=0
@@ -65,7 +66,7 @@ class LifecycleTests(unittest.TestCase):
             }
           end}
           CharacterFactory={new=function()
-            return {
+            local item={
               start=function()
                 characterStarts=characterStarts+1
                 return initial_character_ok
@@ -77,6 +78,13 @@ class LifecycleTests(unittest.TestCase):
                 return {enabled=initial_character_ok,lastError="character start failure"}
               end,
             }
+            function item:getGroup(group)
+              if group=="status" and initial_character_ready then
+                return {state=3},{state=3},true
+              end
+              return nil,nil,false
+            end
+            return item
           end}
           SpellsFactory={new=function()
             local hideTags=true
@@ -142,7 +150,7 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
-          HelpFactory={new=function()
+          HelpFactory={new=function(_,character)
             return {
               start=function()
                 helpStarts=helpStarts+1
@@ -155,6 +163,8 @@ class LifecycleTests(unittest.TestCase):
               hide=function() helpHides=helpHides+1;return true end,
               requestTags=function()
                 helpRequests=helpRequests+1
+                local _,_,fresh=character:getGroup("status")
+                if not fresh then return true,"queued" end
                 local ok,message=pcall(send,"tags HELPS on",false)
                 if not ok then return false,"Cannot enable Aardwolf HELPS tags: "..tostring(message) end
                 return true
@@ -259,13 +269,7 @@ class LifecycleTests(unittest.TestCase):
           assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1
             and helpStarts==1 and chatStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
-          assert(#sentCommands==2)
-          assert(sentCommands[1].command=="tags HELPS on" and sentCommands[1].echoCommand==false)
-          assert(sentCommands[2].command=="protocols gmcp sendchar")
-          assert(sentCommands[2].echoCommand==false)
-          assert(sentCommands[2].characterStarts==1 and sentCommands[2].barsStarts==1)
-          assert(sentCommands[2].asciiStarts==1 and sentCommands[2].helpStarts==1
-            and sentCommands[2].chatStarts==1)
+          assert(helpRequests==1 and #sentCommands==0)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
@@ -313,7 +317,7 @@ class LifecycleTests(unittest.TestCase):
         ''')
 
     def test_install_refresh_failure_does_not_stop_package(self):
-        lua = self.runtime()
+        lua = self.runtime(character_ready=True)
         lua.execute('''
           function send() error("not connected") end
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
@@ -326,6 +330,17 @@ class LifecycleTests(unittest.TestCase):
           assert(messages[1]:find("not connected",1,true))
           assert(messages[2]:find("unable to request fresh character GMCP data",1,true))
           assert(messages[2]:find("not connected",1,true))
+        ''')
+
+    def test_install_sends_commands_only_when_character_is_authenticated(self):
+        lua = self.runtime(character_ready=True)
+        lua.execute('''
+          AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
+          assert(helpRequests==1 and #sentCommands==2)
+          assert(sentCommands[1].command=="tags HELPS on")
+          assert(sentCommands[1].echoCommand==false)
+          assert(sentCommands[2].command=="protocols gmcp sendchar")
+          assert(sentCommands[2].echoCommand==false)
         ''')
 
     def test_malformed_mapper_settings_do_not_block_character_handler(self):
