@@ -10,9 +10,10 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.29")
+        self.assertEqual(metadata["version"], "0.7.30")
         self.assertIn("character state", metadata["description"])
         self.assertIn("character sheet", metadata["description"])
+        self.assertIn("bottom vitals", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
@@ -59,7 +60,9 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn('dockPosition = "left"', character_window_source)
         self.assertNotIn("gmod", character_window_source)
         self.assertNotIn("gmcp", character_window_source)
-        self.assertNotIn("setBorder", character_window_source)
+        self.assertIn("api.setBorderBottom(panelHeight)", character_window_source)
+        self.assertIn('width = "100%-16px"', character_window_source)
+        self.assertIn("qproperty-wordWrap: true", character_window_source)
         ascii_map = ROOT / "src/resources/ascii-map.lua"
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())

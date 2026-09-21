@@ -34,14 +34,25 @@ class CharacterWindowTests(unittest.TestCase):
           assert(widgets["aardwolf-vibe.character-window.scroll"].height=="100%")
           assert(headerLabel().parent==widgets["aardwolf-vibe.character-window.scroll"])
           assert(detailsLabel().parent==widgets["aardwolf-vibe.character-window.scroll"])
-          assert(headerLabel().width=="100%-12" and detailsLabel().width=="100%-12")
+          assert(headerLabel().width=="100%-16px" and detailsLabel().width=="100%-16px")
+          assert(headerLabel().fontSize==13 and detailsLabel().fontSize==13)
+          assert(headerLabel().styles[1]:find("qproperty-wordWrap: true",1,true))
+          assert(detailsLabel().styles[1]:find("qproperty-wordWrap: true",1,true))
+          assert(detailsLabel().label:find("table-layout:fixed",1,true))
+          local bottom=bottomGaugeRoot()
+          assert(bottom and bottom.parent==nil and bottom.y==-36 and bottom.height==36)
+          assert(bottom.x==10 and bottom.width==1170 and borderBottom==36)
+          assert(gauge("hp").parent==bottom and gauge("hp").fontSize==12 and gauge("hp").bold)
+          assert(gauge("align").x+gauge("align").width<=bottom.width)
           assert(AardwolfVibeCharacterWindowLayout==1)
           assert(#remembered==1 and remembered[1]=="AardwolfVibeCharacterWindowLayout")
           local status=panel:status()
           assert(status.enabled and status.lifecycle=="active" and status.visible)
           assert(panel:hide() and not panel:status().visible and window.hidden)
+          assert(not bottom.hidden and gauge("hp")~=nil)
           assert(panel:show() and panel:status().visible and window.raiseCalls==2)
           assert(panel:stop() and count(handlers)==0 and count(widgets)==0)
+          assert(borderBottom==17)
           assert(panel:start())
           assert(characterWindow().cons.restoreLayout)
           assert(characterWindow().cons.dockPosition=="left")
@@ -76,7 +87,7 @@ class CharacterWindowTests(unittest.TestCase):
           assert(gauge("enemy").label=="Enemy a &lt;wyrm&gt; 40%")
           assert(gauge("align").value==67.5)
           assert(headerLabel().label:find("A &lt;Hero&gt; ☃",1,true))
-          assert(headerLabel().label:find("Pretitle: Sir &amp; ",1,true))
+          assert(headerLabel().label:find("Sir &amp; ",1,true))
           assert(headerLabel().label:find("Warrior, Mage, Cleric",1,true))
           local details=detailsLabel().label
           for _,section in ipairs({"Attributes","Combat","Progression","Status","Worth"}) do
@@ -91,7 +102,7 @@ class CharacterWindowTests(unittest.TestCase):
           for _,group in ipairs({"base","vitals","stats","maxstats","status","worth"}) do
             assert(status.fresh[group])
           end
-          assert(#sent==0 and borderSetCalls==0 and next(modules)==nil)
+          assert(#sent==0 and borderSetCalls==1 and next(modules)==nil)
         ''')
 
     def test_character_events_drive_window_without_second_subscription(self):
@@ -115,7 +126,7 @@ class CharacterWindowTests(unittest.TestCase):
           assert(detailsLabel().label:find("251 / 300",1,true))
           assert(modules["aardwolf-vibe.character:Char"])
           assert(modules["aardwolf-vibe.character-window:Char"]==nil)
-          assert(#sent==0 and borderSetCalls==0)
+          assert(#sent==0 and borderSetCalls==1)
           fire("sysDisconnectionEvent")
           assert(gauge("hp").label=="HP --/--")
           assert(detailsLabel().label:find("Strength",1,true))
@@ -138,9 +149,10 @@ class CharacterWindowTests(unittest.TestCase):
             align=-2500,pos="<Standing>",state=10},1,4)
           assert(gauge("tnl").value==100 and gauge("tnl").label=="TNL -50 / 1,000")
           assert(gauge("enemy").value==100)
-          assert(gauge("enemy").label:find("&lt;very&gt; &amp; &#39;bad&#39;",1,true))
+          assert(gauge("enemy").label:find("&lt;very&gt; &amp;",1,true))
+          assert(gauge("enemy").label:find("…",1,true))
           assert(gauge("enemy").label:find("101%",1,true))
-          assert(gauge("enemy").text.tooltip==gauge("enemy").label)
+          assert(gauge("enemy").text.tooltip:find("&#39;bad&#39; owl",1,true))
           assert(gauge("align").value==0 and gauge("align").label=="Alignment Evil -2,500")
           assert(detailsLabel().label:find("&lt;Standing&gt;",1,true))
           assert(detailsLabel().label:find("Unknown (10)",1,true))
@@ -175,7 +187,7 @@ class CharacterWindowTests(unittest.TestCase):
         lua.execute('''
           update("base",{name="Ayla",tier=4,classes="34"},3,1)
           assert(headerLabel().label:find("Ayla",1,true))
-          assert(detailsLabel().label:find("<td align='right' style='color:#eef5ff;padding:2px;'>4</td>",1,true))
+          assert(detailsLabel().label:find(">4</td>",1,true))
           update("vitals",{hp=75,mana=25,moves=10},3,2)
           assert(gauge("hp").label=="HP 75/--")
           update("stats",{str=250,hr=99},3,3)
@@ -203,9 +215,9 @@ class CharacterWindowTests(unittest.TestCase):
           update("status",{level=200,tnl=500,enemy="dragon",enemypct=20,align=100},2,5)
           update("worth",{gold=1234567},2,6)
           reset("disconnect",2)
-          assert(headerLabel().label:find("Pretitle: --",1,true))
-          assert(headerLabel().label:find("Race: -- · Class: --",1,true))
-          assert(headerLabel().label:find("Subclass: -- · Clan: --",1,true))
+          assert(headerLabel().label:find("Pretitle:</b> --",1,true))
+          assert(headerLabel().label:find("Race:</b> -- · <b>Class:</b> --",1,true))
+          assert(headerLabel().label:find("Subclass:</b> -- · <b>Clan:</b> --",1,true))
           assert(gauge("hp").label=="HP --/--")
           assert(gauge("mana").label=="Mana --/--")
           assert(gauge("moves").label=="Moves --/--")
@@ -245,10 +257,43 @@ class CharacterWindowTests(unittest.TestCase):
           character.stateName=function() error("unknown state") end
           update("base",{name="Ayla",classes="30"},1,1)
           update("status",{state=99},1,2)
-          assert(headerLabel().label:find("Class history: 3, 0",1,true))
+          assert(headerLabel().label:find("Class history:</b> 3, 0",1,true))
           assert(detailsLabel().label:find("Unknown (99)",1,true))
           update("base",{name="Ayla",classes=""},1,3)
-          assert(headerLabel().label:find("Class history: --",1,true))
+          assert(headerLabel().label:find("Class history:</b> --",1,true))
+        ''')
+
+    def test_bottom_gauges_resize_within_main_window_and_preserve_foreign_border(self):
+        lua = self.runtime()
+        lua.execute('''
+          mainWindowWidth=800;borderLeft=25;borderRight=35
+          fire("sysWindowResizeEvent")
+          local bottom=bottomGaugeRoot()
+          assert(panel:status().bottomRows==2 and borderBottom==68)
+          assert(bottom.x==25 and bottom.width==740 and bottom.y==-68 and bottom.height==68)
+          for _,key in ipairs({"hp","mana","moves","tnl","enemy","align"}) do
+            local bar=gauge(key)
+            assert(bar.x>=0 and bar.x+bar.width<=bottom.width)
+          end
+          borderBottom=91
+          fire("sysWindowResizeEvent")
+          assert(not panel:status().enabled)
+          assert(panel:status().lastError:find("changed outside aardwolf-vibe",1,true))
+          assert(borderBottom==91 and count(widgets)==0)
+        ''')
+
+    def test_long_panel_text_gets_safe_wrap_points(self):
+        lua = self.runtime()
+        lua.execute('''
+          local long="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<enemy>"
+          update("base",{name=long,pretitle=long,race=long,["class"]=long,
+            subclass=long,clan=long},1,1)
+          update("status",{enemy=long,pos=long},1,2)
+          assert(headerLabel().label:find("&#8203;",1,true))
+          assert(detailsLabel().label:find("&#8203;",1,true))
+          assert(headerLabel().width=="100%-16px" and detailsLabel().width=="100%-16px")
+          assert(headerLabel().label:find("&lt;enemy&gt;",1,true))
+          assert(detailsLabel().label:find("&lt;enemy&gt;",1,true))
         ''')
 
     def test_idempotent_cleanup_partial_failures_and_render_failure(self):
@@ -257,7 +302,7 @@ class CharacterWindowTests(unittest.TestCase):
           handlers["another:handler"]={event="other",callback=function() end}
           assert(panel:start());local window=characterWindow();local hp=gauge("hp")
           assert(panel:start() and characterWindow()==window and gauge("hp")==hp)
-          assert(count(handlers)==8)
+          assert(count(handlers)==9)
           assert(panel:stop());assert(panel:stop())
           assert(count(widgets)==0 and count(handlers)==1)
           assert(handlers["another:handler"]~=nil)
@@ -283,7 +328,7 @@ class CharacterWindowTests(unittest.TestCase):
           assert(not panel:status().enabled)
           assert(panel:status().lastError:find("echo failure",1,true))
           assert(count(handlers)==0 and count(widgets)==0)
-          assert(#sent==0 and borderSetCalls==0)
+          assert(#sent==0 and borderBottom==17)
         ''')
 
 

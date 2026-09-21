@@ -2,6 +2,8 @@ handlers, widgets, modules, sent = {}, {}, {}, {}
 remembered = {}
 registrationCount, constructionCount, borderSetCalls = 0, 0, 0
 fail = {}
+mainWindowWidth, mainWindowHeight = 1200, 800
+borderLeft, borderRight, borderBottom = 10, 20, 17
 
 function registerNamedEventHandler(owner, name, event, callback)
   registrationCount = registrationCount + 1
@@ -36,8 +38,14 @@ function send(command, echoCommand)
   sent[#sent + 1] = {command = command, echoCommand = echoCommand}
 end
 
-function setBorderBottom()
+function getMainWindowSize() return mainWindowWidth, mainWindowHeight end
+function getBorderLeft() return borderLeft end
+function getBorderRight() return borderRight end
+function getBorderBottom() return borderBottom end
+function setBorderBottom(value)
+  if fail.border then error("border failure") end
   borderSetCalls = borderSetCalls + 1
+  borderBottom = value
 end
 
 function remember(name)
@@ -86,6 +94,11 @@ end
 function Widget:setColor(...) self.color = {...} end
 function Widget:setStyleSheet(...) self.styles = {...} end
 function Widget:setToolTip(value) self.tooltip = value end
+function Widget:setFontSize(value) self.fontSize = value end
+function Widget:setAlignment(value) self.alignment = value end
+function Widget:setBold(value) self.bold = value end
+function Widget:move(x, y) self.x, self.y = x, y end
+function Widget:resize(width, height) self.width, self.height = width, height end
 function Widget:echo(value)
   if fail.echo == "once" then fail.echo = nil; error("echo failure") end
   if fail.echo then error("echo failure") end
@@ -182,6 +195,10 @@ end
 
 function characterWindow()
   return widgets["aardwolf-vibe.character-window.window"]
+end
+
+function bottomGaugeRoot()
+  return widgets["aardwolf-vibe.character-window.bottom"]
 end
 
 function gauge(key)

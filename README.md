@@ -2,10 +2,10 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, a dockable real-time character sheet, a native dockable ASCII minimap, and a
-transient tagged-help popup, plus a configurable GMCP chat window. It also
-includes session-only spell/recovery tracking and explicitly opt-in
-self-spellup maintenance.
+handler, a dockable real-time character sheet with bottom vitals, a native
+dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
+GMCP chat window. It also includes session-only spell/recovery tracking and
+explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
@@ -69,10 +69,13 @@ with `protocols gmcp sendchar` after its character consumers are ready. This
 install-only request is sent without local command echo.
 
 The always-active “Aardwolf Character” window renders the validated character
-state as a scrollable identity, gauge, attribute, combat, progression, status,
-and worth sheet. It starts in the left dock on first creation, then lets Mudlet
+state as a readable, width-constrained identity, attribute, combat,
+progression, status, and worth sheet. HP, mana, moves, TNL, enemy, and alignment
+gauges remain in a responsive strip across the bottom of the main Mudlet
+window. The sheet starts in the left dock on first creation, then lets Mudlet
 restore the user's later docked or floating placement. It reopens visibly on
-each profile launch; hiding it is session-only. See
+each profile launch; hiding the sheet is session-only and leaves the bottom
+gauges visible. See
 [`docs/character-window.md`](docs/character-window.md) for its rendering,
 layout, and lifecycle contract.
 

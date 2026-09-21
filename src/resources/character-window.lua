@@ -4,8 +4,15 @@ local OWNER = "aardwolf-vibe.character-window"
 local WINDOW_NAME = OWNER .. ".window"
 local LAYOUT_MARKER = "AardwolfVibeCharacterWindowLayout"
 local LAYOUT_VERSION = 1
+local BOTTOM_BREAKPOINT = 960
+local BAR_HEIGHT = 26
+local BOTTOM_PADDING = 5
+local BAR_GAP = 6
+local ONE_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT
+local TWO_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT * 2 + BAR_GAP
 
 local GROUPS = {"base", "vitals", "stats", "maxstats", "status", "worth"}
+local GAUGE_KEYS = {"hp", "mana", "moves", "tnl", "enemy", "align"}
 local FIELDS = {
   base = {
     "name", "class", "subclass", "race", "clan", "pretitle", "classes",
@@ -76,6 +83,26 @@ local function escape(value)
     :gsub('"', "&quot;"):gsub("'", "&#39;"))
 end
 
+local function truncate(value, limit)
+  if limit < 1 then return "" end
+  local characters = {}
+  for character in value:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    characters[#characters + 1] = character
+  end
+  if #characters <= limit then return value end
+  return table.concat(characters, "", 1, limit) .. "…"
+end
+
+local function escapeWrapped(value, interval)
+  local characters, count = {}, 0
+  for character in value:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    count = count + 1
+    characters[#characters + 1] = escape(character)
+    if count % interval == 0 then characters[#characters + 1] = "&#8203;" end
+  end
+  return table.concat(characters)
+end
+
 local function clamp(value, minimum, maximum)
   return math.max(minimum, math.min(maximum, value))
 end
@@ -114,23 +141,29 @@ local function normalizeGroup(group, value)
 end
 
 local function row(label, value)
-  return "<tr><td style='color:#aebed1;padding:2px 8px 2px 2px;'>"
-    .. label .. "</td><td align='right' style='color:#eef5ff;padding:2px;'>"
+  return "<tr><td width='52%' style='color:#9fb3c8;padding:4px 8px 4px 2px;"
+    .. "font-size:13px;font-weight:bold;'>" .. label
+    .. "</td><td width='48%' align='right' style='color:#f7fbff;padding:4px 2px;"
+    .. "font-size:13px;font-weight:bold;'>"
     .. value .. "</td></tr>"
 end
 
 local function section(title, rows)
-  return "<div style='color:#8fc8ff;font-weight:bold;margin-top:8px;'>"
-    .. title .. "</div><table width='100%' cellspacing='0' cellpadding='0'>"
+  return "<div style='color:#7dd3fc;font-size:14px;font-weight:bold;"
+    .. "background:#142436;padding:5px;margin-top:10px;'>" .. title
+    .. "</div><table width='100%' cellspacing='0' cellpadding='0' "
+    .. "style='table-layout:fixed;'>"
     .. table.concat(rows) .. "</table>"
 end
 
 function CharacterWindow.new(api, character)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, scroll, header, details
+  local window, root, scroll, header, details, bottomRoot
   local gauges, gaugeColors, handlers = {}, {}, {}
   local groups, fresh = {}, {}
   local generation, session, sequence = 0, 0, 0
+  local borderBefore, borderWritten, bottomRows, lastGaugeWidth = nil, nil, 0, 0
+  local layingOut = false
 
   local function clearReadings()
     groups, fresh = {}, {}
@@ -152,7 +185,7 @@ function CharacterWindow.new(api, character)
 
   local function displayText(group, field)
     local value = textReading(group, field)
-    return value and escape(value) or "--"
+    return value and escapeWrapped(value, 18) or "--"
   end
 
   local function styleGauge(key, color)
@@ -161,7 +194,7 @@ function CharacterWindow.new(api, character)
     gauge:setStyleSheet(
       "background-color: " .. color .. "; border-radius: 3px;",
       "background-color: #202b39; border: 1px solid #405169; border-radius: 3px;",
-      "background-color: transparent; color: white; padding: 0px;")
+      "background-color: transparent; color: #f7fbff; font-weight: bold; padding: 0px;")
     gaugeColors[key] = color
   end
 
@@ -205,9 +238,11 @@ function CharacterWindow.new(api, character)
       return
     end
     local validPercentage = percentage ~= nil
-    local value = "Enemy " .. escape(enemy) .. " "
-      .. (validPercentage and (formatInteger(percentage) .. "%") or "--%")
-    setGauge("enemy", validPercentage and percentage or 0, value, value,
+    local suffix = validPercentage and (formatInteger(percentage) .. "%") or "--%"
+    local full = "Enemy " .. escape(enemy) .. " " .. suffix
+    local limit = math.max(8, math.floor(lastGaugeWidth / 8) - 13)
+    local compact = "Enemy " .. escape(truncate(enemy, limit)) .. " " .. suffix
+    setGauge("enemy", validPercentage and percentage or 0, compact, full,
       validPercentage and COLORS.enemy or COLORS.unavailable)
   end
 
@@ -243,7 +278,7 @@ function CharacterWindow.new(api, character)
     local names = {}
     for id in classes:gmatch(".") do
       local ok, name = pcall(character.className, character, tonumber(id))
-      names[#names + 1] = ok and validText(name) and escape(name) or id
+      names[#names + 1] = ok and validText(name) and escapeWrapped(name, 18) or id
     end
     return #names > 0 and table.concat(names, ", ") or "--"
   end
@@ -255,23 +290,25 @@ function CharacterWindow.new(api, character)
 
   local function renderHeader()
     header:echo("<div style='padding:8px;'>"
-      .. "<div style='font-size:16px;font-weight:bold;color:#eef5ff;'>"
+      .. "<div style='font-size:18px;font-weight:bold;color:#ffffff;'>"
       .. displayText("base", "name") .. "</div>"
-      .. "<div style='color:#aebed1;'>Pretitle: "
+      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Pretitle:</b> "
       .. displayText("base", "pretitle") .. "</div>"
-      .. "<div style='color:#aebed1;'>Race: " .. displayText("base", "race")
-      .. " · Class: " .. displayText("base", "class") .. "</div>"
-      .. "<div style='color:#aebed1;'>Subclass: "
-      .. displayText("base", "subclass") .. " · Clan: "
+      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Race:</b> "
+      .. displayText("base", "race") .. " · <b>Class:</b> "
+      .. displayText("base", "class") .. "</div>"
+      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Subclass:</b> "
+      .. displayText("base", "subclass") .. " · <b>Clan:</b> "
       .. displayText("base", "clan") .. "</div>"
-      .. "<div style='color:#7f91a8;'>Class history: "
+      .. "<div style='font-size:13px;color:#7dd3fc;'><b>Class history:</b> "
       .. classHistory() .. "</div></div>")
   end
 
   local function renderDetails()
     local level = reading("status", "level") or reading("base", "level")
     local enemy = textReading("status", "enemy")
-    local enemyValue = enemy and enemy ~= "" and escape(enemy) or (enemy == "" and "None" or "--")
+    local enemyValue = enemy and enemy ~= "" and escapeWrapped(enemy, 18)
+      or (enemy == "" and "None" or "--")
     local enemyPercentage = reading("status", "enemypct")
     if enemyValue ~= "--" and enemyValue ~= "None" then
       enemyValue = enemyValue .. " ("
@@ -279,7 +316,7 @@ function CharacterWindow.new(api, character)
     end
 
     local html = {
-      "<div style='padding:6px;background:#0b1118;'>",
+      "<div style='font-size:13px;padding:8px;background:#0b1118;color:#f7fbff;'>",
       section("Attributes", {
         row("Strength", attribute("str", "maxstr")),
         row("Intelligence", attribute("int", "maxint")),
@@ -325,16 +362,70 @@ function CharacterWindow.new(api, character)
     details:echo(table.concat(html))
   end
 
-  local function render()
-    if not window then return true end
-    renderHeader()
+  local function renderGauges()
+    if not bottomRoot then return true end
     renderResource("hp", "HP", "maxhp", COLORS.hp)
     renderResource("mana", "Mana", "maxmana", COLORS.mana)
     renderResource("moves", "Moves", "maxmoves", COLORS.moves)
     renderTNL()
     renderEnemy()
     renderAlignment()
+    return true
+  end
+
+  local function render()
+    if not window then return true end
+    renderHeader()
     renderDetails()
+    renderGauges()
+    return true
+  end
+
+  local function layoutBottom()
+    if not self.enabled or not bottomRoot or layingOut then return true end
+    layingOut = true
+    local ok, message = pcall(function()
+      local currentBorder = api.getBorderBottom()
+      if borderWritten ~= nil and currentBorder ~= borderWritten then
+        error("Bottom border changed outside aardwolf-vibe; character gauges stopped to preserve the new layout", 0)
+      end
+      local windowWidth, windowHeight = api.getMainWindowSize()
+      if not finite(windowWidth) or windowWidth <= 0
+          or not finite(windowHeight) or windowHeight <= 0 then
+        error("Cannot determine the Mudlet main window size", 0)
+      end
+      local left, right = api.getBorderLeft(), api.getBorderRight()
+      if not finite(left) or not finite(right) then
+        error("Cannot determine Mudlet side borders", 0)
+      end
+      local usableWidth = math.max(1, windowWidth - left - right)
+      bottomRows = usableWidth >= BOTTOM_BREAKPOINT and 1 or 2
+      local panelHeight = bottomRows == 1 and ONE_ROW_HEIGHT or TWO_ROW_HEIGHT
+      if borderWritten ~= panelHeight then
+        borderWritten = panelHeight
+        api.setBorderBottom(panelHeight)
+        if api.getBorderBottom() ~= panelHeight then
+          error("Cannot reserve bottom space for character gauges", 0)
+        end
+      end
+      bottomRoot:move(left, -panelHeight)
+      bottomRoot:resize(usableWidth, panelHeight)
+      local columns = bottomRows == 1 and 6 or 3
+      local gaugeWidth = math.max(1,
+        (usableWidth - BOTTOM_PADDING * 2 - BAR_GAP * (columns - 1)) / columns)
+      lastGaugeWidth = gaugeWidth
+      for index, key in ipairs(GAUGE_KEYS) do
+        local rowIndex = math.floor((index - 1) / columns)
+        local columnIndex = (index - 1) % columns
+        local gauge = gauges[key]
+        gauge:move(BOTTOM_PADDING + columnIndex * (gaugeWidth + BAR_GAP),
+          BOTTOM_PADDING + rowIndex * (BAR_HEIGHT + BAR_GAP))
+        gauge:resize(gaugeWidth, BAR_HEIGHT)
+      end
+      renderGauges()
+    end)
+    layingOut = false
+    if not ok then error(message, 0) end
     return true
   end
 
@@ -376,8 +467,21 @@ function CharacterWindow.new(api, character)
       local ok, why = pcall(window.delete, window)
       if not ok and not cleanupError then cleanupError = tostring(why) end
     end
-    window, root, scroll, header, details = nil, nil, nil, nil, nil
+    if bottomRoot then
+      local ok, why = pcall(bottomRoot.delete, bottomRoot)
+      if not ok and not cleanupError then cleanupError = tostring(why) end
+    end
+    if borderWritten ~= nil then
+      local ok, current = pcall(api.getBorderBottom)
+      if ok and current == borderWritten then
+        local restored, why = pcall(api.setBorderBottom, borderBefore)
+        if not restored and not cleanupError then cleanupError = tostring(why) end
+      end
+    end
+    window, root, scroll, header, details, bottomRoot = nil, nil, nil, nil, nil, nil
     gauges, gaugeColors = {}, {}
+    borderBefore, borderWritten, bottomRows, lastGaugeWidth = nil, nil, 0, 0
+    layingOut = false
     session = 0
     clearReadings()
     if message then self.lastError = tostring(message)
@@ -433,7 +537,14 @@ function CharacterWindow.new(api, character)
   end
 
   function self:start()
-    if self.enabled then render(); return true end
+    if self.enabled then
+      local ok, message = pcall(function()
+        layoutBottom()
+        render()
+      end)
+      if not ok then return fail(message) end
+      return true
+    end
     if not teardown(nil) then return false, self.lastError end
     generation = generation + 1
     local token = generation
@@ -449,6 +560,15 @@ function CharacterWindow.new(api, character)
       assert(type(geyser.ScrollBox) == "table", "Geyser.ScrollBox is required")
       assert(type(geyser.Label) == "table", "Geyser.Label is required")
       assert(type(geyser.Gauge) == "table", "Geyser.Gauge is required")
+      assert(type(api.getBorderBottom) == "function"
+        and type(api.setBorderBottom) == "function"
+        and type(api.getBorderLeft) == "function"
+        and type(api.getBorderRight) == "function"
+        and type(api.getMainWindowSize) == "function",
+        "Mudlet border geometry is required for character gauges")
+
+      borderBefore = api.getBorderBottom()
+      assert(finite(borderBefore) and borderBefore >= 0, "Invalid Mudlet bottom border")
 
       local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
       stage = "create left dock"
@@ -472,21 +592,31 @@ function CharacterWindow.new(api, character)
         width = "100%", height = "100%"}, window)
       scroll = geyser.ScrollBox:new({name = OWNER .. ".scroll", x = 0, y = 0,
         width = "100%", height = "100%"}, root)
-      header = geyser.Label:new({name = OWNER .. ".header", x = 6, y = 6,
-        width = "100%-12", height = 126}, scroll)
+      header = geyser.Label:new({name = OWNER .. ".header", x = 8, y = 8,
+        width = "100%-16px", height = 160}, scroll)
+      header:setFontSize(13)
       header:setStyleSheet("QLabel { background: #111b27; color: #eef5ff; "
-        .. "border: 1px solid #30445c; border-radius: 4px; }")
+        .. "border: 1px solid #30445c; border-radius: 4px; padding: 2px; "
+        .. "qproperty-wordWrap: true; }")
 
-      local gaugeY = 138
-      for _, key in ipairs({"hp", "mana", "moves", "tnl", "enemy", "align"}) do
+      details = geyser.Label:new({name = OWNER .. ".details", x = 8, y = 176,
+        width = "100%-16px", height = 1100}, scroll)
+      details:setFontSize(13)
+      details:setStyleSheet("QLabel { background: #0b1118; color: #f7fbff; "
+        .. "border: 1px solid #26384d; border-radius: 4px; padding: 0px; "
+        .. "qproperty-wordWrap: true; }")
+
+      stage = "create bottom gauges"
+      bottomRoot = geyser.Container:new({name = OWNER .. ".bottom", x = 0, y = 0,
+        width = 1, height = 1})
+      for _, key in ipairs(GAUGE_KEYS) do
         gauges[key] = geyser.Gauge:new({name = OWNER .. ".gauge." .. key,
-          x = 8, y = gaugeY, width = "100%-16", height = 24}, scroll)
-        gaugeY = gaugeY + 30
+          x = 0, y = 0, width = 1, height = BAR_HEIGHT}, bottomRoot)
+        gauges[key]:setAlignment("center")
+        gauges[key]:setFontSize(12)
+        if type(gauges[key].setBold) == "function" then gauges[key]:setBold(true) end
+        if gauges[key].text then gauges[key].text.fgColor = "nocolor" end
       end
-      details = geyser.Label:new({name = OWNER .. ".details", x = 6, y = gaugeY + 2,
-        width = "100%-12", height = 680}, scroll)
-      details:setStyleSheet("QLabel { background: #0b1118; color: #eef5ff; "
-        .. "border: 1px solid #26384d; border-radius: 4px; }")
 
       stage = "hydrate character state"
       hydrate()
@@ -510,12 +640,15 @@ function CharacterWindow.new(api, character)
       end
       on("reset", "aardwolf-vibe.character.reset",
         function(_, _, incomingSession) acceptReset(incomingSession) end)
+      on("resize", "sysWindowResizeEvent", function() layoutBottom() end)
 
       stage = "render character window"
       self.enabled, self.visible, self.lastError = true, false, nil
       render()
       local shown, why = reveal()
       if not shown then error(why, 0) end
+      stage = "layout bottom gauges"
+      layoutBottom()
       if not restoreLayout then
         api[LAYOUT_MARKER] = LAYOUT_VERSION
         if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
@@ -558,6 +691,7 @@ function CharacterWindow.new(api, character)
       visible = visible,
       session = session,
       sequence = sequence,
+      bottomRows = bottomRows,
       fresh = copyBooleanMap(fresh),
       lastError = self.lastError,
     }

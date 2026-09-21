@@ -3,16 +3,17 @@
 `AardwolfVibe.plugins.characterWindow` is the always-active presentation layer
 for `AardwolfVibe.plugins.character`. The compatibility name
 `AardwolfVibe.plugins.characterBars` references the same object. The window
-never reads `gmcp`, requests the `Char` module, sends a command, polls, or
-changes a Mudlet border.
+never reads `gmcp`, requests the `Char` module, sends a command, or polls. It
+owns both the detailed dockable sheet and the responsive bottom gauge strip.
 
 ## Public API
 
-- `start()` mounts the owned window and event handlers, hydrates from the
-  current character snapshot, renders it, and shows the window.
+- `start()` mounts the owned sheet, bottom gauges, and event handlers, hydrates
+  from the current character snapshot, renders them, and shows the sheet.
 - `stop()` removes handlers before recursively deleting the owned widget tree.
 - `show()` shows and raises the window. If necessary, it starts the component.
-- `hide()` hides the window for the current session only.
+- `hide()` hides the sheet for the current session only. Bottom gauges remain
+  visible while the component is active.
 - `status()` returns `enabled`, `lifecycle`, `visible`, `session`, `sequence`,
   per-group `fresh` flags, and `lastError` without printing output.
 
@@ -44,7 +45,6 @@ The single-column scroll view contains:
 
 - identity: pretitle, name, race, class, subclass, clan, and expanded class
   history;
-- gauges: HP, mana, moves, TNL progress, enemy percentage, and alignment;
 - attributes: STR, INT, WIS, DEX, CON, and luck as current/max pairs;
 - combat: hit roll, damage roll, and saves;
 - progression: level, tier, remorts, redos, pups, total pups, TNL, and the
@@ -54,8 +54,10 @@ The single-column scroll view contains:
 - worth: gold, bank, quest points, trivia points, earned quest points, trains,
   and practices.
 
-Gauge fills are clamped to their visual range. Their labels and tooltips retain
-the actual accepted values, including over-cap and negative readings.
+HP, mana, moves, TNL progress, enemy percentage, and alignment gauges occupy a
+separate strip across the bottom of Mudlet's main window. Gauge fills are
+clamped to their visual range. Labels or tooltips retain the actual accepted
+values, including over-cap and negative readings.
 
 ## Layout and ownership
 
@@ -65,13 +67,28 @@ package-owned `AardwolfVibeCharacterWindowLayout` marker. Later launches enable
 layout restoration so Mudlet owns the user's dock, float, and size choices, but
 the package explicitly shows the window at session start.
 
+The sheet uses 13-point body text, an 18-point identity heading, stronger label
+and value colors, and 14-point section headings. Its content labels are inset
+from the scroll viewport, use fixed-width table columns and word wrapping, and
+insert invisible safe break opportunities into long GMCP text. This keeps the
+content inside narrow docked or floating windows instead of widening beyond the
+viewport.
+
+The bottom strip reserves exactly 36 pixels for one row or 68 pixels for two
+rows below 960 usable pixels. Gauge geometry is calculated from the main window
+minus its current left and right borders, so the rightmost gauge remains inside
+the usable width. The component records the previous bottom border and restores
+it only if the border still has the value it wrote; a newer user or package
+change is preserved.
+
 All widget and handler names are owner-qualified under
 `aardwolf-vibe.character-window`. Partial startup failure follows the same
 handler-before-widget cleanup order as normal stop. Character values remain
 session-only and are not persisted with the layout marker.
 
 Pure-Lua tests establish validation handoff, rendering decisions, event
-fencing, layout arguments, lifecycle order, cleanup, and absence of GMCP or
-border side effects. Native docking, scrolling, layout restoration, and visual
-rendering still require a disposable Mudlet profile. Connected Aardwolf GMCP
-delivery is a separate acceptance layer.
+fencing, width bounds, border ownership, layout arguments, lifecycle order, and
+cleanup without a second GMCP subscription. Native docking, scrolling, layout
+restoration, font rendering, and visual geometry still require a disposable
+Mudlet profile. Connected Aardwolf GMCP delivery is a separate acceptance
+layer.
