@@ -2,6 +2,7 @@ local ASCIIMap = {}
 
 local OWNER = "aardwolf-vibe.ascii-map"
 local WINDOW_NAME = OWNER .. ".window"
+local FRAME_TRIGGER = [[^\s*<(?:MAPSTART|MAPEND)>\s*$]]
 local MAX_LINES = 256
 local MAX_BYTES = 256 * 1024
 local CAPTURE_TIMEOUT = 10
@@ -48,7 +49,7 @@ function ASCIIMap.new(api, character)
     framesRejected = 0,
     lastError = nil,
   }
-  local window, triggerID, captureTimer, diagnosticTimer, frame, lastRows
+  local window, openerID, captureID, captureTimer, diagnosticTimer, frame, lastRows
   local handlers = {}
   local generation, session = 0, 0
   local characterSession, characterSequence = 0, 0
@@ -62,8 +63,9 @@ function ASCIIMap.new(api, character)
   end
 
   local function cancelCapture()
+    if captureID then pcall(api.killTrigger, captureID) end
     if captureTimer then killTimer(captureTimer) end
-    captureTimer, frame = nil, nil
+    captureID, captureTimer, frame = nil, nil, nil
   end
 
   local function diagnostic(message, token)
@@ -132,6 +134,8 @@ function ASCIIMap.new(api, character)
     return runs
   end
 
+  local receive
+
   local function beginCapture(token)
     cancelCapture()
     frame = {rows = {}, bytes = 0}
@@ -139,13 +143,17 @@ function ASCIIMap.new(api, character)
     captureTimer = assert(api.tempTimer(CAPTURE_TIMEOUT, function()
       captureTimer = nil
       if not self.enabled or token ~= generation or frame ~= timerToken then return end
+      if captureID then pcall(api.killTrigger, captureID); captureID = nil end
       frame = nil
       self.framesRejected = self.framesRejected + 1
       diagnostic("Incomplete map timed out; previous map retained", token)
     end), "Cannot schedule map capture timeout")
+    captureID = assert(api.tempLineTrigger(1, MAX_LINES + 1, function()
+      receive(api.line, token)
+    end), "Cannot register ASCII map capture trigger")
   end
 
-  local function receive(text, token)
+  receive = function(text, token)
     if not self.enabled or token ~= generation or type(text) ~= "string" then return false end
     if text:match("^%s*<MAPSTART>%s*$") then
       beginCapture(token)
@@ -284,10 +292,10 @@ function ASCIIMap.new(api, character)
     cancelCapture()
     if diagnosticTimer then killTimer(diagnosticTimer); diagnosticTimer = nil end
     local cleanupError = removeHandlers()
-    if triggerID then
-      local ok, message = pcall(api.killTrigger, triggerID)
+    if openerID then
+      local ok, message = pcall(api.killTrigger, openerID)
       if not ok and not cleanupError then cleanupError = tostring(message) end
-      triggerID = nil
+      openerID = nil
     end
     if window then
       local ok, message = pcall(window.delete, window)
@@ -361,9 +369,9 @@ function ASCIIMap.new(api, character)
       window:setBufferSize(300, 10)
       resetWindow()
 
-      triggerID = assert(api.tempRegexTrigger("^", function()
-        receive(api.line, token)
-      end), "Cannot register ASCII map line trigger")
+      openerID = assert(api.tempRegexTrigger(FRAME_TRIGGER, function()
+        if not frame then receive(api.line, token) end
+      end), "Cannot register ASCII map frame trigger")
 
       local function on(name, event, callback)
         handlers[#handlers + 1] = name

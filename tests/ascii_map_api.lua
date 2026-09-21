@@ -12,6 +12,7 @@ line = ""
 currentColors = {}
 selectedIndex = 0
 fail = {}
+triggerFires = 0
 
 local function count(value)
   local total = 0
@@ -44,6 +45,18 @@ function tempRegexTrigger(regex, callback)
   if fail.trigger then error("trigger failure") end
   nextID = nextID + 1
   triggers[nextID] = {regex = regex, callback = callback}
+  return nextID
+end
+
+function tempLineTrigger(from, howMany, callback)
+  if fail.trigger then error("trigger failure") end
+  nextID = nextID + 1
+  triggers[nextID] = {
+    lineTrigger = true,
+    skip = from - 1,
+    remaining = howMany,
+    callback = callback,
+  }
   return nextID
 end
 
@@ -112,8 +125,36 @@ function incoming(text, colors)
   currentColors = colors or {}
   currentDeleted = false
   local callbacks = {}
-  for _, trigger in pairs(triggers) do callbacks[#callbacks + 1] = trigger.callback end
-  for _, callback in ipairs(callbacks) do callback() end
+  for id, trigger in pairs(triggers) do
+    local matches = false
+    if trigger.lineTrigger then
+      if trigger.skip > 0 then trigger.skip = trigger.skip - 1 else matches = true end
+    elseif trigger.regex == [[^\s*<(?:MAPSTART|MAPEND)>\s*$]] then
+      matches = text:match("^%s*<MAPSTART>%s*$") ~= nil
+        or text:match("^%s*<MAPEND>%s*$") ~= nil
+    else
+      error("unsupported fixture regex: " .. tostring(trigger.regex))
+    end
+    if matches then
+      callbacks[#callbacks + 1] = {
+        id = id,
+        callback = trigger.callback,
+        lineTrigger = trigger.lineTrigger,
+      }
+    end
+  end
+  table.sort(callbacks, function(left, right) return left.id < right.id end)
+  for _, entry in ipairs(callbacks) do
+    if triggers[entry.id] then
+      triggerFires = triggerFires + 1
+      entry.callback()
+      local trigger = triggers[entry.id]
+      if trigger and entry.lineTrigger then
+        trigger.remaining = trigger.remaining - 1
+        if trigger.remaining <= 0 then triggers[entry.id] = nil end
+      end
+    end
+  end
   if not currentDeleted then visible[#visible + 1] = text end
 end
 

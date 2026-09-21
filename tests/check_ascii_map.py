@@ -38,6 +38,10 @@ class ASCIIMapTests(unittest.TestCase):
     def test_complete_frames_hide_main_output_and_preserve_literal_colors(self):
         lua = self.runtime()
         lua.execute(r'''
+          incoming("What be thy name, adventurer?")
+          incoming("Existing profile loaded - please enter your password.")
+          assert(triggerFires==0)
+          visible={}
           incoming("outside")
           incoming("  <MAPSTART> ")
           incoming("A<&")

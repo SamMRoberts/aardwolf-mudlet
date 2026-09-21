@@ -4,6 +4,8 @@ local OWNER = "aardwolf-vibe.spells"
 local MAX_ROWS = 4096
 local MAX_BYTES = 1024 * 1024
 local SNAPSHOT_TIMEOUT = 10
+local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
+local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$|(?i:.*retry.*(?:unknown|invalid|syntax|usage).*))$]]
 
 local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
@@ -98,13 +100,15 @@ function Spells.new(api, character, settings)
   }
   local catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
   local handlers = {}
-  local triggerID, frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
+  local triggerIDs, captureID = {}, nil
+  local frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
   local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
+  local receive
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -143,9 +147,23 @@ function Spells.new(api, character, settings)
     if id then pcall(api.killTimer, id) end
   end
 
+  local function cancelLineCapture()
+    if captureID then pcall(api.killTrigger, captureID); captureID = nil end
+  end
+
+  local function startLineCapture()
+    cancelLineCapture()
+    local token = generation
+    captureID = assert(api.tempLineTrigger(1, MAX_ROWS + 1, function()
+      if self.enabled and token == generation then receive(api.line) end
+    end), "Cannot register spell frame trigger")
+  end
+
   local function clearHiddenFrame()
+    local hadHiddenFrame = hiddenFrame ~= nil
     cancelTimer(hiddenFrameTimeout)
     hiddenFrame, hiddenFrameTimeout = nil, nil
+    if hadHiddenFrame and not frame then cancelLineCapture() end
   end
 
   local function startHiddenFrame(header)
@@ -154,12 +172,17 @@ function Spells.new(api, character, settings)
     local token = generation
     hiddenFrameTimeout = api.tempTimer(SNAPSHOT_TIMEOUT, function()
       hiddenFrameTimeout = nil
-      if self.enabled and token == generation then hiddenFrame = nil end
+      if self.enabled and token == generation then
+        cancelLineCapture()
+        hiddenFrame = nil
+      end
     end)
+    startLineCapture()
   end
 
   local function cancelRequest()
     cancelTimer(timeout)
+    cancelLineCapture()
     timeout, frame, request, busy = nil, nil, nil, false
   end
 
@@ -282,6 +305,7 @@ function Spells.new(api, character, settings)
   local function completeFrame()
     local completed = frame
     frame = nil
+    cancelLineCapture()
     cancelTimer(timeout)
     timeout = nil
     commit(completed)
@@ -348,7 +372,7 @@ function Spells.new(api, character, settings)
     scheduleDrive()
   end
 
-  local function receive(text)
+  receive = function(text)
     if not self.enabled or type(text) ~= "string" then return false end
     local value = trim(text)
     if value == "{spellup-start}" or value == "{spellup-end}" then
@@ -400,6 +424,7 @@ function Spells.new(api, character, settings)
           at = now(),
         }
         armTimeout(request.kind)
+        startLineCapture()
         suppressOwnedLine()
         return true
       end
@@ -656,9 +681,16 @@ function Spells.new(api, character, settings)
     local token = generation
     local ok, message = pcall(function()
       self.enabled = true
-      triggerID = assert(api.tempRegexTrigger("^", function()
-        if self.enabled and token == generation then receive(api.line) end
-      end), "Cannot register spell line trigger")
+      local function registerTrigger(pattern)
+        local id = assert(api.tempRegexTrigger(pattern, function()
+          if self.enabled and token == generation and not frame and not hiddenFrame then
+            receive(api.line)
+          end
+        end), "Cannot register spell signal trigger")
+        triggerIDs[#triggerIDs + 1] = id
+      end
+      registerTrigger(TAG_TRIGGER)
+      registerTrigger(RESPONSE_TRIGGER)
       local function on(name, event, callback)
         handlers[#handlers + 1] = name
         if api.registerNamedEventHandler(OWNER, name, event, function(...)
@@ -701,7 +733,9 @@ function Spells.new(api, character, settings)
     cancelTimer(driveTimer)
     driveTimer = nil
     removeHandlers()
-    if triggerID then pcall(api.killTrigger, triggerID); triggerID = nil end
+    cancelLineCapture()
+    for _, id in ipairs(triggerIDs) do pcall(api.killTrigger, id) end
+    triggerIDs = {}
     catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false

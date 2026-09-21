@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.25")
+        self.assertEqual(metadata["version"], "0.7.26")
         self.assertIn("character state", metadata["description"])
         self.assertIn("status bars", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
@@ -61,6 +61,9 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn('api.send, "tags HELPS on", false', help_window.read_text())
         self.assertNotIn("tags HELPS off", help_window.read_text())
         self.assertIn("{helpsearch}", help_window.read_text())
+        for resource in (ascii_map, help_window, ROOT / "src/resources/spells.lua"):
+            with self.subTest(resource=resource.name):
+                self.assertNotIn('tempRegexTrigger("^"', resource.read_text())
         chat = ROOT / "src/resources/chat.lua"
         model = ROOT / "src/resources/chat-model.lua"
         self.assertTrue(chat.is_file() and model.is_file())
