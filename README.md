@@ -10,9 +10,14 @@ explicitly opt-in self-spellup maintenance.
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
 terrain, creates placeholders for known destinations, and represents unexpected
-non-standard exit keys as Mudlet special exits. Movement is confirmed by a
-change in the validated GMCP room number, so a failed direction command that
-leaves the character in the same room does not advance the mapper. Exact
+non-standard exit keys as Mudlet special exits. Because Aardwolf omits custom
+exits from `room.info`, the mapper also correlates a non-cardinal outbound
+command with the next validated room change and records the observed one-way
+transition as a Mudlet special exit. Learned exits survive ordinary GMCP room
+refreshes, while manual or externally modified special exits are preserved.
+Movement is confirmed by a change in the validated GMCP room number, so a
+failed direction command that leaves the character in the same room does not
+advance the mapper. Exact
 forward-and-return GMCP exit pairs confirm bidirectional topology without
 requiring adjacent grid cells or causing the mapper to invent a reverse exit.
 Cardinal exits may span intentional gaps. When a new edge closes a loop, the

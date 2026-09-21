@@ -1,7 +1,7 @@
 rooms, areas, areaData, hashes = {}, {}, {}, {}
 mapData, environmentColors = {}, {}
 handlers, modules, echoes, backups = {}, {}, {}, {}
-packages, writes, updates, centers = {}, 0, 0, {}
+packages, writes, updates, centers, removedSpecial, clearedSpecial = {}, 0, 0, {}, {}, 0
 playerRoom = 3248
 fail = {}
 
@@ -60,7 +60,8 @@ function getExitStubsNames(id) local result={};for name,value in pairs(rooms[id]
 function setExitStub(id,direction,enabled) rooms[id].stubs[directionLong[direction] or direction]=enabled or nil;writes=writes+1 end
 function getSpecialExitsSwap(id) local result={};for k,v in pairs(rooms[id].special) do result[k]=v end;return result end
 function addSpecialExit(from,to,command) if not rooms[from] or not rooms[to] then return false end;rooms[from].special[command]=to;writes=writes+1;return true end
-function removeSpecialExit(from,command) if rooms[from] then rooms[from].special[command]=nil;writes=writes+1 end end
+function removeSpecialExit(from,command) if rooms[from] then rooms[from].special[command]=nil;writes=writes+1 end;removedSpecial[#removedSpecial+1]={from=from,command=command} end
+function clearSpecialExits(from) if rooms[from] then rooms[from].special={};writes=writes+1 end;clearedSpecial=clearedSpecial+1 end
 function getRoomEnv(id) return rooms[id] and rooms[id].env or nil end
 function setRoomEnv(id,value)
   if fail.setRoomEnv then fail.setRoomEnv=nil;return false end

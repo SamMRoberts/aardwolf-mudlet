@@ -790,6 +790,75 @@ class MapperTests(unittest.TestCase):
           assert(rooms[101].special.manual==102 and mapper.conflicts>=1)
         ''')
 
+    def test_nonstandard_outgoing_command_learns_special_exit_on_transition(self):
+        self.check('''
+          assert(mapper:receive(packet(36703,{})))
+          fire("sysDataSendRequest","enter fishtank")
+          assert(mapper:receive(packet(36775,{})))
+          assert(rooms[36703].special["enter fishtank"]==36775)
+          assert(mapper.specialLearned==1 and clearedSpecial==0)
+          local owned=yajl.to_value(rooms[36703].data["aardwolf-vibe:special-exits"])
+          local learned=yajl.to_value(rooms[36703].data["aardwolf-vibe:learned-special-exits"])
+          assert(owned["enter fishtank"]==36775 and learned["enter fishtank"]==36775)
+
+          -- A normal GMCP refresh omits custom exits. That omission must not
+          -- erase a transition that the mapper observed directly, even after
+          -- the package-owned mapper object is recreated.
+          mapper:stop()
+          mapper=factory.new(_G,settings);assert(mapper:start())
+          assert(mapper:receive(packet(36703,{})))
+          assert(rooms[36703].special["enter fishtank"]==36775)
+          assert(clearedSpecial==0)
+        ''')
+
+    def test_learned_special_exit_retargets_with_per_command_removal(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{})))
+          fire("sysDataSendRequest","open gate")
+          assert(mapper:receive(packet(101,{})))
+          assert(rooms[100].special["open gate"]==101)
+          assert(mapper:receive(packet(100,{})))
+          fire("sysDataSendRequest","open gate")
+          assert(mapper:receive(packet(102,{})))
+          assert(rooms[100].special["open gate"]==102)
+          assert(#removedSpecial==1 and removedSpecial[1].from==100)
+          assert(removedSpecial[1].command=="open gate")
+          assert(mapper.specialLearned==2 and clearedSpecial==0)
+        ''')
+
+    def test_standard_and_stale_outgoing_commands_are_not_special_exits(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101})))
+          fire("sysDataSendRequest","east")
+          assert(mapper:receive(packet(101,{w=100})))
+          assert(next(rooms[100].special)==nil)
+
+          fire("sysDataSendRequest","look statue")
+          assert(mapper:receive(packet(101,{w=100})))
+          assert(mapper:receive(packet(100,{e=101})))
+          assert(next(rooms[101].special)==nil)
+
+          fire("sysDataSendRequest","north")
+          assert(mapper:receive(packet(103,{})))
+          assert(next(rooms[100].special)==nil and mapper.specialLearned==0)
+          assert(clearedSpecial==0)
+        ''')
+
+    def test_learned_special_exit_preserves_foreign_command_and_resets_on_disconnect(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{})))
+          addRoom(101);addSpecialExit(100,101,"enter arch")
+          fire("sysDataSendRequest","enter arch")
+          assert(mapper:receive(packet(102,{})))
+          assert(rooms[100].special["enter arch"]==101 and mapper.conflicts==1)
+
+          fire("sysDataSendRequest","climb rope")
+          fire("sysDisconnectionEvent")
+          assert(mapper:receive(packet(103,{})))
+          assert(rooms[102].special["climb rope"]==nil)
+          assert(clearedSpecial==0)
+        ''')
+
     def test_maze_destination_becomes_stub_and_no_reverse_exit_is_invented(self):
         self.check('''
           assert(mapper:receive(packet(101,{n="?",w=102})))
@@ -832,7 +901,7 @@ class MapperTests(unittest.TestCase):
           fire("sysDisconnectionEvent");fire("gmcp.room.info");assert(writes==before)
           mapper:stop();assert(next(handlers)==nil and next(modules)==nil)
           assert(mapper:start());assert(mapper:start())
-          local count=0;for _ in pairs(handlers) do count=count+1 end;assert(count==4)
+          local count=0;for _ in pairs(handlers) do count=count+1 end;assert(count==5)
         ''')
 
     def test_backup_and_registration_failures_stop_cleanly(self):

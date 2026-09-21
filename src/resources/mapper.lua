@@ -83,6 +83,10 @@ local DIRECTIONS = {
 }
 
 local STANDARD = {n = true, e = true, s = true, w = true, u = true, d = true}
+local STANDARD_COMMAND = {
+  n = true, north = true, e = true, east = true, s = true, south = true,
+  w = true, west = true, u = true, up = true, d = true, down = true,
+}
 local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
 local MAX_LAYOUT_SEARCH_STATES = 200000
 
@@ -199,6 +203,7 @@ function Mapper.new(api, settings)
     promoted = 0,
     linked = 0,
     specialLinked = 0,
+    specialLearned = 0,
     transitions = 0,
     reciprocalTransitions = 0,
     stationary = 0,
@@ -210,7 +215,7 @@ function Mapper.new(api, settings)
     failed = 0,
     last = "Waiting to start",
   }
-  local lastPacket, movementAnchor, applying, queued = nil, nil, false, false
+  local lastPacket, movementAnchor, pendingCommand, applying, queued = nil, nil, nil, false, false
   local reportedLayoutConflicts = {}
   local backupDone = false
   local layoutRoomLists
@@ -1541,13 +1546,40 @@ function Mapper.new(api, settings)
     return result
   end
 
+  local function recordedLearnedSpecial(id)
+    local raw = api.getRoomUserData(id, KEY .. "learned-special-exits")
+    if raw == nil or raw == "" then return {} end
+    local ok, value = pcall(api.yajl.to_value, raw)
+    if not ok or type(value) ~= "table" then error("Invalid learned special-exit metadata", 0) end
+    local result = {}
+    for command, target in pairs(value) do
+      local clean = cleanString(command, 128, false)
+      local numeric = roomID(target)
+      if not clean or clean ~= command or not numeric then
+        error("Invalid learned special-exit record", 0)
+      end
+      result[command] = numeric
+    end
+    return result
+  end
+
+  local function storeSpecialRecord(id, name, value)
+    required(api.setRoomUserData(id, KEY .. name, api.yajl.to_string(value)),
+      "Cannot record special exits")
+  end
+
   local function reconcileSpecial(id, area, room)
     local recorded = recordedSpecial(id)
+    local learned = recordedLearnedSpecial(id)
     local actual = specialExits(id)
+    for command, target in pairs(learned) do
+      if room.special[command] == nil then room.special[command] = target end
+    end
     local commands = {}
     for command in pairs(recorded) do commands[command] = true end
     for command in pairs(room.special) do commands[command] = true end
     local nextRecord = {}
+    local nextLearned = {}
     for command in pairs(commands) do
       local old = recorded[command]
       local current = actual[command]
@@ -1562,6 +1594,7 @@ function Mapper.new(api, settings)
         if current ~= desired then api.addSpecialExit(id, desired, command) end
         if specialExits(id)[command] ~= desired then error("Special-exit readback failed", 0) end
         nextRecord[command] = desired
+        if learned[command] then nextLearned[command] = desired end
         self.specialLinked = self.specialLinked + 1
       else
         if old and current == old then
@@ -1571,11 +1604,40 @@ function Mapper.new(api, settings)
         if desired == false then conflict("Skipped special exit without a valid destination: " .. command) end
       end
     end
-    required(api.setRoomUserData(id, KEY .. "special-exits", api.yajl.to_string(nextRecord)),
-      "Cannot record special exits")
+    storeSpecialRecord(id, "special-exits", nextRecord)
+    storeSpecialRecord(id, "learned-special-exits", nextLearned)
+  end
+
+  local function learnSpecialExit(from, to, command)
+    if from == to or not managed(from) then return end
+    local recorded = recordedSpecial(from)
+    local learned = recordedLearnedSpecial(from)
+    local actual = specialExits(from)
+    local old, current = recorded[command], actual[command]
+    if (old and current ~= old) or (not old and current) then
+      recorded[command] = nil
+      learned[command] = nil
+      storeSpecialRecord(from, "special-exits", recorded)
+      storeSpecialRecord(from, "learned-special-exits", learned)
+      conflict("Preserved modified or foreign special exit '" .. command .. "' in room " .. from)
+      return
+    end
+    if current ~= to then
+      if current then api.removeSpecialExit(from, command) end
+      api.addSpecialExit(from, to, command)
+      if specialExits(from)[command] ~= to then error("Special-exit readback failed", 0) end
+    end
+    recorded[command] = to
+    learned[command] = to
+    storeSpecialRecord(from, "special-exits", recorded)
+    storeSpecialRecord(from, "learned-special-exits", learned)
+    self.specialLinked = self.specialLinked + 1
+    self.specialLearned = self.specialLearned + 1
   end
 
   local function apply(room)
+    local command = pendingCommand
+    pendingCommand = nil
     backup()
     local id, area, finalAuthority = ensureCurrent(room)
     retryDisplacement(id, area, room)
@@ -1586,6 +1648,10 @@ function Mapper.new(api, settings)
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
     if not managed(id) then error("Room construction readback failed: " .. id, 0) end
+    if command and movementAnchor and command.from == movementAnchor.id
+        and movementAnchor.id ~= id and not directionTo(movementAnchor.room, id) then
+      learnSpecialExit(movementAnchor.id, id, command.value)
+    end
     if not movementAnchor then
       movementAnchor = {id = id, room = room}
     elseif movementAnchor.id ~= id then
@@ -1611,9 +1677,19 @@ function Mapper.new(api, settings)
   end
 
   function self:resetFreshness()
-    movementAnchor, self.current = nil, nil
+    movementAnchor, pendingCommand, self.current = nil, nil, nil
     local gmcp = api.gmcp
     lastPacket = type(gmcp) == "table" and type(gmcp.room) == "table" and gmcp.room.info or nil
+  end
+
+  function self:sent(command)
+    pendingCommand = nil
+    if not self.enabled or not self.current or not movementAnchor
+        or movementAnchor.id ~= self.current then return false end
+    local value = cleanString(command, 128, false)
+    if not value or STANDARD_COMMAND[value:lower()] then return false end
+    pendingCommand = {from = self.current, value = value}
+    return true
   end
 
   function self:receive(packet)
@@ -1628,7 +1704,7 @@ function Mapper.new(api, settings)
     end
     local room, message = normalize(data)
     if not room then
-      movementAnchor, self.current = nil, nil
+      movementAnchor, pendingCommand, self.current = nil, nil, nil
       self.skipped = self.skipped + 1
       note(message, false)
       return false
@@ -1656,7 +1732,7 @@ function Mapper.new(api, settings)
   function self:stop()
     self.enabled = false
     self:resetFreshness()
-    for _, name in ipairs({"room", "disconnect", "connect", "protocol"}) do
+    for _, name in ipairs({"room", "outgoing", "disconnect", "connect", "protocol"}) do
       api.deleteNamedEventHandler(OWNER, name)
     end
     if self.subscribed then
@@ -1679,6 +1755,8 @@ function Mapper.new(api, settings)
     local ok, message = pcall(function()
       required(api.registerNamedEventHandler(OWNER, "room", "gmcp.room.info",
         function() self:receive() end), "Cannot register room.info handler")
+      required(api.registerNamedEventHandler(OWNER, "outgoing", "sysDataSendRequest",
+        function(_, command) self:sent(command) end), "Cannot register outgoing-command handler")
       required(api.registerNamedEventHandler(OWNER, "disconnect", "sysDisconnectionEvent",
         function() self:resetFreshness() end), "Cannot register disconnect handler")
       required(api.registerNamedEventHandler(OWNER, "connect", "sysConnectionEvent",
@@ -1703,12 +1781,12 @@ function Mapper.new(api, settings)
 
   function self:status()
     api.echo(string.format(
-      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s reflowed=%d layout-conflicts=%d added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
+      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s reflowed=%d layout-conflicts=%d added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d learned-special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
       self.enabled and "on" or "off", self.current and tostring(self.current) or "none",
       self.transitions, self.reciprocalTransitions, self.stationary, self.lastMovement,
       self.reflowedRooms, self.layoutConflicts,
       self.added, self.reused, self.placeholders, self.promoted, self.linked,
-      self.specialLinked, self.skipped, self.conflicts, self.failed, self.last))
+      self.specialLinked, self.specialLearned, self.skipped, self.conflicts, self.failed, self.last))
     if self.backup then api.echo("Backup: " .. self.backup .. "\n") end
     return self.enabled
   end
