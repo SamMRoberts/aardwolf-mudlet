@@ -172,6 +172,10 @@ function Widget:new(cons, parent)
     cons = cons,
     parent = parent,
     children = {},
+    x = cons.x,
+    y = cons.y,
+    width = cons.width,
+    height = cons.height,
     text = "",
     runs = {},
     hidden = false,
@@ -187,6 +191,8 @@ end
 function Widget:show() self.hidden = false end
 function Widget:hide() self.hidden = true end
 function Widget:setColor(...) self.color = {...} end
+function Widget:move(x, y) self.x, self.y = x, y end
+function Widget:resize(width, height) self.width, self.height = width, height end
 function Widget:changeContainer(parent)
   self.parent = parent
   parent.children[#parent.children + 1] = self

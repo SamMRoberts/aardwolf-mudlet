@@ -36,6 +36,7 @@ function Chat.new(api, model, settings, workspace)
   local config = model.defaultConfig()
   local configLocked, configSource = false, "defaults"
   local window, root, tabBar, content, gear, indicator, editorRoot, workspaceHandle
+  local viewParent
   local tabLabels, panes, unread = {}, {}, {}
   local handlers, messages = {}, {}
   local generation, session, sequence, bytes = 0, 0, 0, 0
@@ -115,8 +116,7 @@ function Chat.new(api, model, settings, workspace)
   end
 
   local function windowSize()
-    local workspaceHosted = workspaceHandle
-      and workspaceHandle:status().host == "workspace"
+    local workspaceHosted = workspace and root and viewParent and viewParent ~= window
     if workspaceHosted and root and type(root.get_width) == "function"
         and type(root.get_height) == "function" then
       local width, height = root:get_width(), root:get_height()
@@ -486,8 +486,13 @@ function Chat.new(api, model, settings, workspace)
 
   layout = function()
     if not window or not root then return false end
+    local workspaceHosted = workspace and viewParent and viewParent ~= window
+    if workspaceHosted then
+      root:move(0, 0)
+      root:resize("100%", "100%")
+    end
     local width, height = windowSize()
-    root:move(0, 0); root:resize(width, height)
+    if not workspaceHosted then root:move(0, 0); root:resize(width, height) end
     tabBar:move(0, 0); tabBar:resize(width, TAB_HEIGHT)
     content:move(0, TAB_HEIGHT); content:resize(width, math.max(1, height - TAB_HEIGHT))
     gear:move(width - 32, 0); gear:resize(32, TAB_HEIGHT)
@@ -597,6 +602,7 @@ function Chat.new(api, model, settings, workspace)
     deleteWidget(editorRoot); editorRoot = nil
     deleteWidget(root); root = nil
     deleteWidget(window); window = nil
+    viewParent = nil
     tabBar, content, gear, indicator = nil, nil, nil, nil
     tabLabels, panes, unread, messages = {}, {}, {}, {}
     bytes, sequence, activeTab, tabFirst = 0, 0, nil, 1
@@ -644,6 +650,7 @@ function Chat.new(api, model, settings, workspace)
       window:setColor(11, 17, 24, 255)
       root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,
         width = "100%", height = "100%"}, window)
+      viewParent = window
       tabBar = geyser.Container:new({name = OWNER .. ".tabs", x = 0, y = 0,
         width = "100%", height = TAB_HEIGHT}, root)
       content = geyser.Container:new({name = OWNER .. ".content", x = 0, y = TAB_HEIGHT,
@@ -690,7 +697,6 @@ function Chat.new(api, model, settings, workspace)
       layout()
       requestTakeover()
       if workspace then
-        local viewParent = window
         local handle, why = workspace:registerPanel({
           id = OWNER,
           title = "Chat",

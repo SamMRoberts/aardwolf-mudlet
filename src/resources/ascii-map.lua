@@ -433,6 +433,8 @@ function ASCIIMap.new(api, character, workspace)
               root:changeContainer(parent)
               viewParent = parent
             end
+            root:move(0, 0)
+            root:resize("100%", "100%")
             root:show()
             return root
           end,

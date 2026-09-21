@@ -128,6 +128,8 @@ class WorkspaceTests(unittest.TestCase):
             {"aardwolf-vibe.buffs-window","Spellups"},
           }) do local panel=makePanel(entry[1],entry[2]);assert(workspace:registerPanel(panel:spec())) end
           assert(workspace:setEnabled(true))
+          assert(widgets["aardwolf-vibe.workspace.tabs.root.second"].width=="100%-28")
+          assert(widgets["aardwolf-vibe.workspace.tab.root-second.aardwolf-vibe.chat"].width:match("%%$"))
           for _,zone in ipairs({"center","left","right","top","bottom"}) do
             assert(widgets["aardwolf-vibe.workspace.drop.root-first."..zone])
           end
@@ -139,6 +141,7 @@ class WorkspaceTests(unittest.TestCase):
           local tree=workspace:status().tree
           assert(tree.first.type=="stack" and tree.first.active=="aardwolf-vibe.chat")
           assert(countPanel(tree,"aardwolf-vibe.chat")==1 and encodeCount==before+1)
+          assert(widgets["aardwolf-vibe.workspace.tab.root-first.aardwolf-vibe.chat"].width=="50%")
 
           local menu=widgets["aardwolf-vibe.workspace.menu.root-first"]
           assert(menu and menu.clickCallback);menu.clickCallback({})

@@ -629,20 +629,20 @@ function Workspace.new(api, settings)
     local frame = api.Geyser.Container:new({name = OWNER .. ".stack." .. path,
       x = 0, y = 0, width = "100%", height = "100%"}, parent)
     local tabs = api.Geyser.Container:new({name = OWNER .. ".tabs." .. path,
-      x = 0, y = 0, width = "100%", height = TAB_HEIGHT}, frame)
+      x = 0, y = 0, width = "100%-28", height = TAB_HEIGHT}, frame)
     local slot = api.Geyser.Container:new({name = OWNER .. ".slot." .. path,
       x = 0, y = TAB_HEIGHT, width = "100%", height = "100%-" .. TAB_HEIGHT}, frame)
     stackViews[path] = {node = node, frame = frame, tabs = tabs, slot = slot}
     stackOrder[#stackOrder + 1] = path
     local visibleIDs = {}
     for _, id in ipairs(node.tabs) do if records[id] then visibleIDs[#visibleIDs + 1] = id end end
-    local availableWidth = math.max(72, math.floor(360 / math.max(1, #visibleIDs)))
+    local tabWidth = 100 / math.max(1, #visibleIDs)
     for index, id in ipairs(visibleIDs) do
       local record = records[id]
       local item = label(tabs, OWNER .. ".tab." .. path:gsub("%.", "-") .. "." .. id,
         escape(record.spec.title), "")
-      item:move((index - 1) * availableWidth, 0)
-      item:resize(availableWidth, TAB_HEIGHT)
+      item:move(tostring((index - 1) * tabWidth) .. "%", 0)
+      item:resize(tostring(tabWidth) .. "%", TAB_HEIGHT)
       setTabStyle(item, node.active == id)
       item:setClickCallback(function(event)
         if type(event) ~= "table" or event.button ~= "RightButton" then showDropTargets(id) end
@@ -659,7 +659,7 @@ function Workspace.new(api, settings)
       end
       if type(item.setToolTip) == "function" then item:setToolTip("Drag to move or split this panel") end
     end
-    local menu = label(tabs, OWNER .. ".menu." .. path:gsub("%.", "-"),
+    local menu = label(frame, OWNER .. ".menu." .. path:gsub("%.", "-"),
       '<div align="center">&#8942;</div>',
       "QLabel { background:#24364a; color:white; border:1px solid #526d8c; }")
     menu:move("100%-28", 0); menu:resize(28, TAB_HEIGHT)
