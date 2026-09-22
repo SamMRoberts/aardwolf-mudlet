@@ -16,6 +16,7 @@ function advance(seconds)
   end
   error("Timer loop")
 end
+function jump(seconds) clock=clock+seconds end
 function getEpoch() return clock end
 function registerNamedEventHandler(owner,name,event,callback)
   if handlerFailure then return false end

@@ -15,9 +15,13 @@ slist recoveries noprompt
 
 The affected and recovery frames hydrate buffs and recoveries that were already
 active when the package started or was reloaded. They are requested again after
-a valid `{affon}` or `{affoff}` record, but are not used as periodic
-batch-completion probes. Live `{recon}` and `{recoff}` records still update
-recovery state immediately.
+a valid `{affon}` or `{affoff}` record. After a spellup batch's observed queue
+output has been quiet for two seconds, an affected/recovery snapshot is also
+requested as completion evidence. Aardwolf creates its command queue before
+those commands finish executing, so each later apply/failure tag rearms one
+final quiet confirmation pass. This is event-driven batch confirmation, not
+continuous polling. Live `{recon}` and `{recoff}` records still update recovery
+state immediately.
 
 Each frame is bounded and committed atomically. A malformed, duplicate,
 interrupted, oversized, or timed-out frame leaves the last valid data intact
@@ -51,8 +55,12 @@ The defensive-copy APIs are:
 
 `spellup:status().unresolvedQueued` reports how many observed server queue
 entries still await an ability ID from a tag or synchronized affected snapshot.
-`spells:sync()` refreshes all five spell datasets; `spells:confirm()` refreshes
-only active effects and recoveries.
+Its `confirmationPending`, `confirmationRequested`, `confirmationAttempts`,
+and `lastConfirmation` fields report the debounced confirmation state without
+exposing spell data.
+`spells:status()` also reports active/expired counts, the next wall-clock expiry,
+heartbeat state, and the last expiry check. `spells:sync()` refreshes all five
+spell datasets; `spells:confirm()` refreshes only active effects and recoveries.
 
 Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spells.reset`, `aardwolf-vibe.spells.synced`, and
@@ -61,10 +69,13 @@ Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `spells:snapshot()` returns `active`, `expired`, and `recoveries` display
 collections. `expired` contains only non-bad effects whose tracked duration has
 elapsed or whose removal was confirmed by an `affoff` record or a valid affected
-snapshot. The tracker owns one reschedulable timer for the nearest active-effect
-expiration, so the display and automatic controller observe the same state
-transition. Effects classified by Aardwolf's `bad` filter are discarded when
-their duration elapses and never enter this collection. A confirmed
+snapshot. While active effects exist, the tracker owns one one-second heartbeat
+that reconciles wall-clock deadlines. Effect updates, synchronized snapshots,
+and public snapshot reads run the same idempotent reconciliation, so sleep,
+delayed callbacks, event-loop stalls, and package replacement cannot strand a
+zero-duration effect after the next wake or read. Effects classified by
+Aardwolf's `bad` filter are discarded when their duration elapses and never
+enter this collection. A confirmed
 reapplication removes the entry, unknown wearoffs are ignored for this
 collection, and the collection is cleared with the rest of the session state.
 Each expired row reports `id`, `name`, `expiredAt`, elapsed seconds in `elapsed`,
@@ -85,17 +96,24 @@ expiration, when `{affoff}` confirms it missing, or when a blocking recovery
 ends. Eligibility includes learned abilities above 1% practice, granted or clan
 abilities reported at 0%, and active spellup-classified racial abilities that
 Aardwolf may queue while reporting 1% practice. The spell tracker reschedules
-its single nearest-expiry timer when effect data changes instead of polling
-every effect. Its missing-effect event queues maintenance only for non-bad
+its single local heartbeat while effects are active. The heartbeat performs no
+server polling. Its missing-effect event queues maintenance only for non-bad
 effects in Aardwolf's spellup classification.
 Expirations coalesce for two seconds, batches remain at least 30 seconds apart,
 and only one may be outstanding. Unambiguous manual self-spellup commands are
 observed so automatic work cannot collide; previews and forms that might target
 another player are ignored.
 
-`{spellup-end}` is authoritative completion. In its absence, an
-affon/affoff-triggered affected snapshot can confirm all observed queued
-abilities and terminal failures. Queue aliases such as a skill command whose
+`{spellup-end}` is authoritative completion and cancels pending confirmation.
+In its absence, every observed Queueing line rearms a two-second quiet timer.
+When the queue settles, the controller requests an affected/recovery snapshot,
+or reuses one already in progress, to confirm all observed queued abilities and
+terminal failures. Since the queued commands execute after their queue messages
+are printed, a later apply/failure tag rearms a final confirmation pass; this
+prevents an early partial snapshot from permanently holding the lock. A partial,
+malformed, timed-out, or failed confirmation still preserves the outstanding
+lock and cannot submit a duplicate batch without new server progress. Queue
+aliases such as a skill command whose
 name differs from its catalog name are reconciled by their confirmed affon or
 affected-snapshot result. Server-queued targets count as completion evidence
 even when local practice metadata is 0% or 1%, so granted abilities such as
@@ -104,7 +122,7 @@ Only non-bad abilities in the server's spellup classification may resolve an
 unknown queue alias; a mob-applied bad effect cannot be mistaken for that
 queued target. Pre-existing effects are not attributed
 to the new batch, so an unrelated wearoff cannot keep that batch locked. The
-controller never polls for completion. If a tracked effect wears off while a
+controller never continuously polls for completion. If a tracked effect wears off while a
 batch is still running, that pending work is rescheduled as soon as the current
 batch is confirmed complete and still observes the 30-second minimum interval.
 After 120 seconds without confirmation, automation pauses and keeps the

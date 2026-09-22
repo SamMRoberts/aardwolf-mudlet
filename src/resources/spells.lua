@@ -4,6 +4,7 @@ local OWNER = "aardwolf-vibe.spells"
 local MAX_ROWS = 4096
 local MAX_BYTES = 1024 * 1024
 local SNAPSHOT_TIMEOUT = 10
+local EXPIRY_HEARTBEAT = 1
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
 local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$)$]]
 
@@ -114,7 +115,8 @@ function Spells.new(api, character, settings)
   local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
-  local receive, scheduleExpiry
+  local nextExpiry, lastExpiryCheck, lastExpiryReason
+  local receive, snapshotAt, reconcileExpirations, armExpiryHeartbeat
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -142,7 +144,7 @@ function Spells.new(api, character, settings)
   end
 
   local function changed()
-    emit("updated", self:snapshot())
+    emit("updated", snapshotAt(now()))
   end
 
   local function suppressOwnedLine()
@@ -236,13 +238,10 @@ function Spells.new(api, character, settings)
     return true
   end
 
-  scheduleExpiry = function()
-    cancelTimer(expiryTimer)
-    expiryTimer = nil
-    if not self.enabled then return end
-
-    local timestamp = now()
-    local nextExpiry
+  reconcileExpirations = function(timestamp, reason)
+    timestamp = timestamp or now()
+    lastExpiryCheck, lastExpiryReason = timestamp, reason
+    nextExpiry = nil
     local due = {}
     for id, effect in pairs(active) do
       if type(effect.expires) == "number" then
@@ -253,7 +252,7 @@ function Spells.new(api, character, settings)
         end
       end
     end
-
+    table.sort(due)
     if #due > 0 then
       for _, id in ipairs(due) do
         local effect = active[id]
@@ -265,16 +264,21 @@ function Spells.new(api, character, settings)
           emit("missing", id)
         end
       end
-      changed()
     end
+    return #due > 0
+  end
 
-    if nextExpiry then
-      local token = generation
-      expiryTimer = api.tempTimer(math.max(0, nextExpiry - now()), function()
-        expiryTimer = nil
-        if self.enabled and token == generation then scheduleExpiry() end
-      end)
-    end
+  armExpiryHeartbeat = function()
+    cancelTimer(expiryTimer)
+    expiryTimer = nil
+    if not self.enabled or not nextExpiry then return end
+    local token = generation
+    expiryTimer = api.tempTimer(EXPIRY_HEARTBEAT, function()
+      expiryTimer = nil
+      if not self.enabled or token ~= generation then return end
+      if reconcileExpirations(now(), "heartbeat") then changed() end
+      armExpiryHeartbeat()
+    end)
   end
 
   local function applyDelta(event)
@@ -364,7 +368,8 @@ function Spells.new(api, character, settings)
       recoveries = replacement
     end
     for _, event in ipairs(completed.deltas) do applyDelta(event) end
-    scheduleExpiry()
+    reconcileExpirations(now(), "snapshot")
+    armExpiryHeartbeat()
   end
 
   local function completeFrame()
@@ -462,7 +467,8 @@ function Spells.new(api, character, settings)
         else frame.deltas[#frame.deltas + 1] = event end
       else
         applyDelta(event)
-        scheduleExpiry()
+        reconcileExpirations(now(), "effect-update")
+        armExpiryHeartbeat()
       end
       changed()
       return true
@@ -555,6 +561,7 @@ function Spells.new(api, character, settings)
     resyncAfter = false
     deltaRefreshPending = false
     lastBaseSignature = nil
+    nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     session = session + 1
     self.lastError = nil
     emit("reset", reason, session)
@@ -665,8 +672,7 @@ function Spells.new(api, character, settings)
     return self.enabled and connected() and fresh and monitoring
   end
 
-  function self:snapshot()
-    local timestamp = now()
+  snapshotAt = function(timestamp)
     local effects = {}
     for id, effect in pairs(active) do
       local row = copy(effect)
@@ -727,6 +733,21 @@ function Spells.new(api, character, settings)
     }
   end
 
+  function self:snapshot()
+    local timestamp = now()
+    local changedState = reconcileExpirations(timestamp, "snapshot-read")
+    armExpiryHeartbeat()
+    local result = snapshotAt(timestamp)
+    if changedState then emit("updated", copy(result)) end
+    return result
+  end
+
+  local function tableCount(values)
+    local result = 0
+    for _ in pairs(values) do result = result + 1 end
+    return result
+  end
+
   function self:status()
     return {
       enabled = self.enabled,
@@ -740,6 +761,13 @@ function Spells.new(api, character, settings)
       rejected = self.rejected,
       lastError = self.lastError,
       hideTags = self.hideTags,
+      activeCount = tableCount(active),
+      expiredCount = tableCount(expired),
+      nextExpiry = nextExpiry,
+      heartbeatActive = expiryTimer ~= nil,
+      expiryHeartbeatSeconds = EXPIRY_HEARTBEAT,
+      lastExpiryCheck = lastExpiryCheck,
+      lastExpiryReason = lastExpiryReason,
     }
   end
 
@@ -817,6 +845,7 @@ function Spells.new(api, character, settings)
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
     deltaRefreshPending = false
+    nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     return true
   end
 

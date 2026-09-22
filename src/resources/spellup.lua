@@ -5,6 +5,7 @@ local Spellup = {}
 local OWNER = "aardwolf-vibe.spellup"
 local COMMAND = "spellup learned"
 local COALESCE_SECONDS = 2
+local CONFIRMATION_DELAY = 2
 local MIN_INTERVAL = 30
 local BATCH_TIMEOUT = 120
 
@@ -33,16 +34,18 @@ function Spellup.new(api, character, spells, settings)
   local self = {enabled = false, automatic = false, lastError = nil}
   local handlers = {}
   local generation = 0
-  local timer, batchTimer
+  local timer, batchTimer, confirmationTimer
   local pendingAt, lastSent
   local inflight, external = false, false
   local paused, blocked
   local initial = false
   local observed, unresolvedQueued = false, 0
+  local confirmationRequested, lastConfirmation = false, nil
+  local confirmationAttempts = 0
   local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
   local failures = {}
-  local pump, schedule
+  local pump, schedule, scheduleConfirmation
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -93,11 +96,14 @@ function Spellup.new(api, character, spells, settings)
 
   local function finish(reason)
     cancel(batchTimer)
-    batchTimer = nil
+    cancel(confirmationTimer)
+    batchTimer, confirmationTimer = nil, nil
     inflight, external = false, false
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled = {}, {}
     observed, unresolvedQueued = false, 0
+    confirmationRequested = false
+    lastConfirmation = reason or "Spellup complete"
     if paused == "Batch completion unconfirmed" then paused = nil end
     self.lastError = nil
     if self.enabled and self.automatic and pendingAt then schedule() end
@@ -115,6 +121,37 @@ function Spellup.new(api, character, spells, settings)
       self.lastError = paused
       emit()
     end)
+  end
+
+  scheduleConfirmation = function()
+    if not self.enabled or not inflight or not observed or confirmationRequested then return end
+    cancel(confirmationTimer)
+    local token = generation
+    confirmationTimer = api.tempTimer(CONFIRMATION_DELAY, function()
+      confirmationTimer = nil
+      if not self.enabled or token ~= generation or not inflight or confirmationRequested then return end
+      local status = spells:status()
+      confirmationRequested = true
+      confirmationAttempts = confirmationAttempts + 1
+      if status.busy or status.pending then
+        lastConfirmation = "Using in-progress spell synchronization"
+        emit()
+        return
+      end
+      local ok, message = spells:confirm()
+      if ok then
+        lastConfirmation = "Confirmation snapshot requested"
+      else
+        lastConfirmation = "Confirmation request failed: " .. tostring(message)
+      end
+      emit()
+    end)
+  end
+
+  local function rearmConfirmation()
+    if not self.enabled or not inflight or not observed then return end
+    confirmationRequested = false
+    scheduleConfirmation()
   end
 
   schedule = function(delay)
@@ -148,6 +185,10 @@ function Spellup.new(api, character, spells, settings)
     baseline, namedTargets, resolvedUnknown = activeSet(), {}, {}
     targets, settled = {}, {}
     observed, unresolvedQueued = false, 0
+    cancel(confirmationTimer)
+    confirmationTimer = nil
+    confirmationRequested, lastConfirmation = false, nil
+    confirmationAttempts = 0
     failures, blocked = {}, nil
     pendingAt, initial = nil, false
     lastSent = now()
@@ -236,6 +277,10 @@ function Spellup.new(api, character, spells, settings)
       external = external,
       pending = pendingAt ~= nil or initial,
       unresolvedQueued = unresolvedQueued,
+      confirmationPending = confirmationTimer ~= nil,
+      confirmationRequested = confirmationRequested,
+      confirmationAttempts = confirmationAttempts,
+      lastConfirmation = lastConfirmation,
       paused = paused,
       blocked = copy(blocked),
       blockingReason = reason,
@@ -299,6 +344,10 @@ function Spellup.new(api, character, spells, settings)
       on("status", "aardwolf-vibe.character.updated.status", statusChanged, token)
       on("vitals", "aardwolf-vibe.character.updated.vitals", vitalsChanged, token)
       on("reset", "aardwolf-vibe.spells.reset", function()
+        cancel(confirmationTimer); confirmationTimer = nil
+        confirmationRequested = false
+        confirmationAttempts = 0
+        lastConfirmation = "Cancelled by spell state reset"
         if not connected() then
           cancel(batchTimer); batchTimer = nil
           inflight, external = false, false
@@ -327,7 +376,12 @@ function Spellup.new(api, character, spells, settings)
           for id in pairs(targets) do
             if not active[id] and not settled[id] then complete = false end
           end
-          if complete then finish("Confirmed by synchronized effects") end
+          if complete then
+            finish("Confirmed by synchronized effects")
+          elseif confirmationRequested then
+            lastConfirmation = "Confirmation snapshot incomplete"
+            emit()
+          end
         end
         schedule()
       end, token)
@@ -350,6 +404,7 @@ function Spellup.new(api, character, spells, settings)
         else
           unresolvedQueued = unresolvedQueued + 1
         end
+        rearmConfirmation()
         emit()
       end, token)
       on("no-work", "aardwolf-vibe.spells.noWork", function()
@@ -360,13 +415,21 @@ function Spellup.new(api, character, spells, settings)
       on("complete", "aardwolf-vibe.spells.complete", function()
         if inflight then finish("Confirmed by spellup-end") end
       end, token)
+      on("invalid", "aardwolf-vibe.spells.invalid", function(_, reason)
+        if inflight and confirmationRequested then
+          lastConfirmation = "Confirmation snapshot failed: " .. tostring(reason)
+          emit()
+        end
+      end, token)
       on("external", "aardwolf-vibe.spells.batchStarted", function()
         if not inflight then beginBatch(true) end
       end, token)
       on("applied", "aardwolf-vibe.spells.applied", function(_, id)
         -- Queue prose sometimes uses a command alias rather than the catalog
         -- name (for example, "chameleon" versus "chameleon power").
-        if not inflight or unresolvedQueued == 0 or namedTargets[id]
+        if not inflight then return end
+        rearmConfirmation()
+        if unresolvedQueued == 0 or namedTargets[id]
             or resolvedUnknown[id] or not spells:isTrackedSpellup(id) then return end
         resolvedUnknown[id] = true
         targets[id] = true
@@ -375,6 +438,7 @@ function Spellup.new(api, character, spells, settings)
       end, token)
       on("failure", "aardwolf-vibe.spells.failure", function(_, event)
         if not inflight or type(event) ~= "table" or event.target ~= 0 then return end
+        rearmConfirmation()
         local reason = event.reason
         if reason == 1 then
           if self.automatic then queueWork() end
@@ -428,14 +492,16 @@ function Spellup.new(api, character, spells, settings)
     generation = generation + 1
     self.enabled = false
     removeHandlers()
-    cancel(timer); cancel(batchTimer)
-    timer, batchTimer = nil, nil
+    cancel(timer); cancel(batchTimer); cancel(confirmationTimer)
+    timer, batchTimer, confirmationTimer = nil, nil, nil
     pendingAt, initial = nil, false
     inflight, external = false, false
     paused, blocked = nil, nil
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled, failures = {}, {}, {}
     observed, unresolvedQueued = false, 0
+    confirmationRequested, lastConfirmation = false, nil
+    confirmationAttempts = 0
     return true
   end
 

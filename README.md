@@ -147,11 +147,17 @@ automatic, and spell-tag visibility actions without consuming table space.
 Automatic maintenance defaults off.
 When enabled it submits only `spellup learned`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
-commands. The spell tracker owns a single nearest-expiry timer that moves a due
-beneficial effect into Expired Effects and emits the event that queues that
-server-owned batch. This includes granted, clan, and racial abilities that
-Aardwolf queues while reporting 0% or 1% practice, and does not poll every
-effect.
+commands. While active effects exist, the spell tracker owns one one-second
+local heartbeat and reconciles their wall-clock deadlines on every wake and
+snapshot read. Due beneficial effects move into Expired Effects and emit the
+event that queues the server-owned batch; due bad effects are discarded. This
+includes granted, clan, and racial abilities that Aardwolf queues while
+reporting 0% or 1% practice. After observed queue output becomes quiet for two
+seconds, an affected/recovery snapshot confirms the batch when the final
+spellup-end tag or effect delta is absent. Because Aardwolf prints queue entries
+before their commands finish executing, each later apply/failure tag rearms one
+final quiet confirmation pass. This is event-driven rather than continuous
+polling, and uncertain confirmation never submits a duplicate batch.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 

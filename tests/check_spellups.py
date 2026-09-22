@@ -205,6 +205,50 @@ class SpellupTests(unittest.TestCase):
           assert(commandCount('spellup learned')==1)
         """)
 
+    def test_snapshot_read_reconciles_missed_heartbeat_and_queues_only_beneficial_work(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{
+            '72,Shield,2,5,100,-1,1',
+            '237,Web,1,5,100,-1,1',
+          })
+          recoveryRows({})
+          feed('No spells or skills cast.')
+          local status=spells:status()
+          assert(status.activeCount==2 and status.expiredCount==0
+            and status.heartbeatActive and status.nextExpiry==clock+5)
+
+          jump(6)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==72)
+          status=spells:status()
+          assert(status.activeCount==0 and status.expiredCount==1
+            and not status.heartbeatActive and status.nextExpiry==nil
+            and status.lastExpiryCheck==clock
+            and status.lastExpiryReason=='snapshot-read')
+          local missing=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' then missing=missing+1 end
+          end
+          assert(missing==1)
+          spells:snapshot()
+          missing=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' then missing=missing+1 end
+          end
+          assert(missing==1 and controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
+        """)
+
     def test_interleaved_affoff_is_replayed_into_expired_state(self):
         lua = self.runtime()
         lua.execute("""
@@ -488,20 +532,161 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().inflight)
         """)
 
-    def test_affon_refresh_can_confirm_batch_without_background_polling(self):
+    def test_quiet_queue_requests_one_confirmation_snapshot_and_releases_batch(self):
         lua = self.runtime()
         lua.execute("""
           synchronize();assert(controller:runOnce())
           feed('Queueing spell : Shield.')
-          advance(20)
-          assert(controller:status().inflight)
+          assert(controller:status().confirmationPending)
+          advance(1)
+          feed('Queueing spell : Detect magic.')
+          advance(1)
           assert(commandCount('slist affected noprompt')==1)
-          feed('{affon}72,120');advance(0)
+          advance(1)
+          local status=controller:status()
+          assert(status.inflight and not status.confirmationPending
+            and status.confirmationRequested
+            and status.confirmationAttempts==1
+            and status.lastConfirmation=='Confirmation snapshot requested')
           assert(commandCount('slist affected noprompt')==2)
-          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
-          assert(not controller:status().inflight)
+          deltaRows({
+            '72,Shield,2,120,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          status=controller:status()
+          assert(not status.inflight and not status.confirmationPending
+            and status.lastConfirmation=='Confirmed by synchronized effects')
           advance(120)
           assert(commandCount('slist affected noprompt')==2)
+        """)
+
+    def test_existing_sync_supplies_confirmation_without_duplicate_request(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          assert(spells:confirm());advance(0)
+          assert(commandCount('slist affected noprompt')==2 and spells:status().busy)
+          advance(2)
+          local status=controller:status()
+          assert(status.confirmationRequested and not status.confirmationPending
+            and status.lastConfirmation=='Using in-progress spell synchronization')
+          assert(commandCount('slist affected noprompt')==2)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(not controller:status().inflight
+            and controller:status().lastConfirmation=='Confirmed by synchronized effects')
+        """)
+
+    def test_late_batch_progress_rearms_confirmation_until_queue_drains(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('Queueing spell : Detect magic.')
+          advance(1)
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(controller:status().inflight)
+
+          advance(1)
+          assert(commandCount('slist affected noprompt')==2)
+          advance(1)
+          assert(commandCount('slist affected noprompt')==3)
+          deltaRows({
+            '72,Shield,2,118,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          local status=controller:status()
+          assert(not status.inflight
+            and status.lastConfirmation=='Confirmed by synchronized effects')
+        """)
+
+    def test_progress_after_early_confirmation_arms_a_final_pass(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('Queueing spell : Detect magic.')
+          advance(2)
+          deltaRows({}, {})
+          assert(controller:status().inflight
+            and controller:status().confirmationAttempts==1)
+
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          local status=controller:status()
+          assert(status.inflight and status.confirmationPending
+            and not status.confirmationRequested)
+          advance(2)
+          assert(commandCount('slist affected noprompt')==4)
+          deltaRows({
+            '72,Shield,2,118,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          status=controller:status()
+          assert(not status.inflight and status.confirmationAttempts==2
+            and status.lastConfirmation=='Confirmed by synchronized effects')
+          assert(commandCount('spellup learned')==1)
+        """)
+
+    def test_incomplete_or_failed_confirmation_keeps_outstanding_lock(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          advance(2)
+          deltaRows({}, {})
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation=='Confirmation snapshot incomplete')
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          advance(2)
+          feed('{spellheaders affected noprompt}')
+          feed('malformed confirmation row')
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          sendFailure=true
+          advance(2)
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
+          sendFailure=false
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+    def test_authoritative_completion_cancels_pending_confirmation(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          assert(controller:status().confirmationPending)
+          feed('{spellup-end}')
+          local status=controller:status()
+          assert(not status.inflight and not status.confirmationPending
+            and not status.confirmationRequested
+            and status.lastConfirmation=='Confirmed by spellup-end')
+          advance(2)
+          assert(commandCount('slist affected noprompt')==1)
         """)
 
     def test_queue_alias_is_reconciled_by_affected_snapshot(self):
