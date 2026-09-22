@@ -227,10 +227,17 @@ function Spells.new(api, character, settings)
     return catalog[id] and catalog[id].name or "Spell #" .. tostring(id)
   end
 
+  local function isBadEffect(id)
+    -- Aardwolf can return the same ability from both `slist spellup` and
+    -- `slist bad`. A server-owned self-spellup is beneficial for this
+    -- tracker, so the explicit spellup classification wins the overlap.
+    return bad[id] == true and classification[id] ~= true
+  end
+
   local function confirmExpired(id, at)
     if not active[id] then return false end
     active[id] = nil
-    if bad[id] then
+    if isBadEffect(id) then
       expired[id] = nil
       return false
     end
@@ -257,7 +264,7 @@ function Spells.new(api, character, settings)
       for _, id in ipairs(due) do
         local effect = active[id]
         active[id] = nil
-        if bad[id] then
+        if isBadEffect(id) then
           expired[id] = nil
         else
           expired[id] = {id = id, expiredAt = effect.expires}
@@ -294,7 +301,8 @@ function Spells.new(api, character, settings)
     elseif event.kind == "affoff" then
       local alreadyExpired = expired[event.id] ~= nil
       local confirmed = confirmExpired(event.id, event.at)
-      if confirmed or (not alreadyExpired and classification[event.id] and not bad[event.id]) then
+      if confirmed or (not alreadyExpired and classification[event.id]
+          and not isBadEffect(event.id)) then
         emit("missing", event.id)
       end
     elseif event.kind == "recon" then
@@ -324,7 +332,7 @@ function Spells.new(api, character, settings)
       bad = {}
       for id in pairs(completed.rows) do
         bad[id] = true
-        expired[id] = nil
+        if isBadEffect(id) then expired[id] = nil end
       end
     elseif completed.kind == "active" then
       local previous = active
@@ -343,7 +351,7 @@ function Spells.new(api, character, settings)
       end
       for id in pairs(previous) do
         if not replacement[id] then
-          if bad[id] then
+          if isBadEffect(id) then
             expired[id] = nil
           else
             expired[id] = {id = id, expiredAt = completed.at}
@@ -626,7 +634,7 @@ function Spells.new(api, character, settings)
     if not id or not (catalog[id] or active[id]) then return nil end
     local result = copy(catalog[id] or {id = id, name = effectName(id)})
     result.spellup = classification[id] == true
-    result.bad = bad[id] == true
+    result.bad = isBadEffect(id)
     result.learned = type(result.practice) == "number" and result.practice > 1
     result.active = copy(active[id])
     return result
@@ -645,7 +653,7 @@ function Spells.new(api, character, settings)
 
   function self:isLearnedSpellup(id)
     local row = catalog[id]
-    return classification[id] == true and bad[id] ~= true
+    return classification[id] == true and not isBadEffect(id)
       and row ~= nil and row.practice > 1
   end
 
@@ -653,7 +661,7 @@ function Spells.new(api, character, settings)
     local row = catalog[id]
     -- Aardwolf's "spellup learned" includes granted/clan abilities reported
     -- at 0% practice, while excluding ordinary 1% unlearned abilities.
-    return classification[id] == true and bad[id] ~= true
+    return classification[id] == true and not isBadEffect(id)
       and row ~= nil and row.practice ~= 1
   end
 
@@ -661,11 +669,11 @@ function Spells.new(api, character, settings)
     -- An active effect or a target named by the server's spellup queue is
     -- stronger evidence than catalog practice.  Aardwolf may queue racial
     -- abilities that are reported at 1% even though they are unpracticed.
-    return classification[id] == true and bad[id] ~= true and catalog[id] ~= nil
+    return classification[id] == true and not isBadEffect(id) and catalog[id] ~= nil
   end
 
   function self:isBadEffect(id)
-    return bad[id] == true
+    return isBadEffect(id)
   end
 
   function self:isFresh()
@@ -678,7 +686,7 @@ function Spells.new(api, character, settings)
       local row = copy(effect)
       row.name = effectName(id)
       row.spellup = classification[id] == true
-      row.bad = bad[id] == true
+      row.bad = isBadEffect(id)
       row.learned = catalog[id] ~= nil and catalog[id].practice > 1
       row.remaining = math.max(0, math.ceil(effect.expires - timestamp))
       row.awaiting = row.remaining == 0

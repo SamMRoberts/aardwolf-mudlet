@@ -157,7 +157,9 @@ seconds, an affected/recovery snapshot confirms the batch when the final
 spellup-end tag or effect delta is absent. Because Aardwolf prints queue entries
 before their commands finish executing, each later apply/failure tag rearms one
 final quiet confirmation pass. This is event-driven rather than continuous
-polling, and uncertain confirmation never submits a duplicate batch.
+polling, and uncertain confirmation never submits a duplicate batch. When an
+ability appears in both Aardwolf's spellup and bad filters, the spellup
+classification wins; genuinely bad non-spellup effects remain excluded.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 

@@ -183,6 +183,44 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().inflight and not controller:status().paused)
         """)
 
+    def test_spellup_classification_wins_bad_filter_overlap(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',rows)
+          spellRows('affected',{
+            '72,Shield,2,5,100,-1,1',
+            '237,Web,1,5,100,-1,1',
+          })
+          recoveryRows({})
+
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==2)
+          assert(not spells:isBadEffect(72) and spells:isTrackedSpellup(72))
+          assert(not spells:get(72).bad and spells:isAutomaticSpellup(72))
+          assert(spells:isBadEffect(237) and spells:get(237).bad)
+
+          assert(commandCount('spellup learned')==1)
+          feed('No spells or skills cast.')
+          advance(5)
+          snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==72)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
+
+          feed('Queueing spell : Shield.')
+          feed('{affon}72,60');advance(0)
+          deltaRows({'72,Shield,2,60,100,-1,1'}, {})
+          assert(not controller:status().inflight
+            and not controller:status().paused)
+        """)
+
     def test_naturally_expired_bad_effect_is_discarded_without_automatic_work(self):
         lua = self.runtime(automatic=True)
         lua.execute("""

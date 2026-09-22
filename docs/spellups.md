@@ -73,9 +73,11 @@ snapshot. While active effects exist, the tracker owns one one-second heartbeat
 that reconciles wall-clock deadlines. Effect updates, synchronized snapshots,
 and public snapshot reads run the same idempotent reconciliation, so sleep,
 delayed callbacks, event-loop stalls, and package replacement cannot strand a
-zero-duration effect after the next wake or read. Effects classified by
+zero-duration effect after the next wake or read. Effects classified only by
 Aardwolf's `bad` filter are discarded when their duration elapses and never
-enter this collection. A confirmed
+enter this collection. If Aardwolf returns an ability from both `slist spellup`
+and `slist bad`, the explicit spellup classification wins so beneficial
+self-spellups remain eligible for expiry maintenance. A confirmed
 reapplication removes the entry, unknown wearoffs are ignored for this
 collection, and the collection is cleared with the rest of the session state.
 Each expired row reports `id`, `name`, `expiredAt`, elapsed seconds in `elapsed`,
