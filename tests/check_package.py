@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.37")
+        self.assertEqual(metadata["version"], "0.7.38")
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
@@ -79,6 +79,8 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn('api.send, "tags HELPS on", false', help_window.read_text())
         self.assertNotIn("tags HELPS off", help_window.read_text())
         self.assertIn("{helpsearch}", help_window.read_text())
+        self.assertIn('window:setDockPosition("floating")', help_window.read_text())
+        self.assertIn("reportedVisible() == false", help_window.read_text())
         for resource in (ascii_map, help_window, ROOT / "src/resources/spells.lua"):
             with self.subTest(resource=resource.name):
                 self.assertNotIn('tempRegexTrigger("^"', resource.read_text())

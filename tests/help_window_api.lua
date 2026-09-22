@@ -209,6 +209,7 @@ function Geyser.UserWindow:new(cons)
     text = "",
     runs = {},
     hidden = false,
+    nativeVisible = true,
     deleted = false,
     fg = {255, 255, 255},
     bg = {0, 0, 0},
@@ -230,9 +231,28 @@ function Geyser.UserWindow:new(cons)
   function item:enableScrollBar() self.scrollBar = true end
   function item:enableHorizontalScrollBar() self.horizontalScrollBar = true end
   function item:setBufferSize(lines, batch) self.buffer = {lines, batch} end
-  function item:show() windowMethod("show"); self.hidden = false; self.showCalls = (self.showCalls or 0) + 1 end
-  function item:hide() windowMethod("hide"); self.hidden = true end
+  function item:show()
+    windowMethod("show")
+    self.hidden = false
+    if not fail.showOffscreen then self.nativeVisible = true end
+    self.showCalls = (self.showCalls or 0) + 1
+  end
+  function item:hide() windowMethod("hide"); self.hidden = true; self.nativeVisible = false end
   function item:raise() windowMethod("raise"); self.raiseCalls = (self.raiseCalls or 0) + 1 end
+  function item:setDockPosition(position)
+    windowMethod("setDockPosition")
+    self.dockPosition = position
+    self.nativeVisible = true
+    self.dockCalls = (self.dockCalls or 0) + 1
+  end
+  function item:move(x, y)
+    windowMethod("move")
+    self.moved = {x, y}
+  end
+  function item:resize(width, height)
+    windowMethod("resize")
+    self.resized = {width, height}
+  end
   function item:delete() self.deleted = true; windows[self.name] = nil end
   windows[item.name] = item
   return item
@@ -249,7 +269,7 @@ function setBgColor(name, r, g, b)
 end
 
 function windowVisible(name)
-  return windows[name] ~= nil and not windows[name].hidden
+  return windows[name] ~= nil and windows[name].nativeVisible == true
 end
 
 function helpWindow()

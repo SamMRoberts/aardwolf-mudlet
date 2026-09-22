@@ -64,6 +64,26 @@ class HelpWindowTests(unittest.TestCase):
           assert(help:status().tagState=="disconnected")
         ''')
 
+    def test_manual_show_recovers_hidden_or_offscreen_native_window(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          local window=helpWindow()
+          fail.showOffscreen=true
+          assert(help:show())
+          assert(window.dockPosition=="floating" and window.dockCalls==1)
+          assert(window.moved[1]==120 and window.moved[2]==60)
+          assert(window.resized[1]==700 and window.resized[2]==460)
+          assert(window.nativeVisible and help:status().visible)
+
+          assert(help:hide())
+          fail.setDockPosition=true
+          local ok,message=help:show()
+          assert(not ok and message:find("Cannot recover help window geometry",1,true))
+          assert(help:status().lastError==message)
+          fail.setDockPosition=nil;fail.showOffscreen=nil
+          assert(help:show() and help:status().visible)
+        ''')
+
     def test_complete_help_hides_console_preserves_colors_and_strips_markers(self):
         lua = self.runtime()
         lua.execute(r'''

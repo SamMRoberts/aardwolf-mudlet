@@ -8,6 +8,10 @@ local OPEN_TRIGGER = [[^\{(?:help|helpsearch)\}$]]
 local MAX_LINES = 2048
 local MAX_BYTES = 2 * 1024 * 1024
 local CAPTURE_TIMEOUT = 15
+local WINDOW_X = 120
+local WINDOW_Y = 60
+local WINDOW_WIDTH = 700
+local WINDOW_HEIGHT = 460
 
 local COMMAND_CAPABLE_STATES = {
   [3] = true,
@@ -181,12 +185,48 @@ function HelpWindow.new(api, character)
     return runs
   end
 
-  local function reveal()
+  local function recoverWindowGeometry()
+    local ok, message = pcall(function()
+      assert(type(window.setDockPosition) == "function", "UserWindow docking is unavailable")
+      assert(type(window.move) == "function", "UserWindow movement is unavailable")
+      assert(type(window.resize) == "function", "UserWindow resizing is unavailable")
+      window:setDockPosition("floating")
+      window:move(WINDOW_X, WINDOW_Y)
+      window:resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+    end)
+    if not ok then
+      self.lastError = "Cannot recover help window geometry: " .. tostring(message)
+      return false, self.lastError
+    end
+    return true
+  end
+
+  local function reportedVisible()
+    if type(api.windowVisible) ~= "function" then return nil end
+    local ok, visible = pcall(api.windowVisible, WINDOW_NAME)
+    if ok and type(visible) == "boolean" then return visible end
+    return nil
+  end
+
+  local function reveal(recoverGeometry)
     if not window then return false, "Help window is not available" end
+    if recoverGeometry then
+      local recovered, why = recoverWindowGeometry()
+      if not recovered then return false, why end
+    end
     local ok, message = pcall(window.show, window)
     if not ok then
       self.lastError = "Cannot show help window: " .. tostring(message)
       return false, self.lastError
+    end
+    if reportedVisible() == false and not recoverGeometry then
+      local recovered, why = recoverWindowGeometry()
+      if not recovered then return false, why end
+      ok, message = pcall(window.show, window)
+      if not ok then
+        self.lastError = "Cannot show recovered help window: " .. tostring(message)
+        return false, self.lastError
+      end
     end
     if type(window.raise) == "function" then
       ok, message = pcall(window.raise, window)
@@ -195,6 +235,10 @@ function HelpWindow.new(api, character)
     end
     if not ok then
       self.lastError = "Cannot bring help window forward: " .. tostring(message)
+      return false, self.lastError
+    end
+    if reportedVisible() == false then
+      self.lastError = "Mudlet reports that the help window is still hidden"
       return false, self.lastError
     end
     self.visible, self.lastError = true, nil
@@ -358,10 +402,10 @@ function HelpWindow.new(api, character)
       window = geyser.UserWindow:new({
         name = WINDOW_NAME,
         titleText = "Aardwolf Help",
-        x = 120,
-        y = 60,
-        width = 700,
-        height = 460,
+        x = WINDOW_X,
+        y = WINDOW_Y,
+        width = WINDOW_WIDTH,
+        height = WINDOW_HEIGHT,
         restoreLayout = restoreLayout,
         autoDock = true,
         docked = false,
@@ -458,7 +502,7 @@ function HelpWindow.new(api, character)
       local ok = self:start()
       if not ok then return false, self.lastError end
     end
-    return reveal()
+    return reveal(true)
   end
 
   function self:hide()

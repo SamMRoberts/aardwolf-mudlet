@@ -36,7 +36,12 @@ background colors, blank lines, Unicode text, and literal spacing are retained.
 The window starts hidden on every session. Its first creation is floating at
 700×460; after that, Mudlet restores the user's saved floating or docked
 geometry. A package-owned persisted marker distinguishes first creation from a
-layout that Mudlet can safely restore.
+layout that Mudlet can safely restore. Automatic display preserves that layout
+when Mudlet reports the window visible and falls back to the default floating
+geometry if the restored native window remains hidden. The explicit
+`aardwolf-vibe help show` command is also the recovery route: it floats the
+window at 120×60, restores its 700×460 size, shows it, raises it, and verifies
+native visibility.
 
 Captures are limited to 2,048 lines, 2 MiB, and 15 seconds. A nested opener
 restarts capture with the newer frame. A timeout, overflow, mismatched close,
