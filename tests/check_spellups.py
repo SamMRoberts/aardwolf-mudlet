@@ -592,6 +592,30 @@ class SpellupTests(unittest.TestCase):
           assert(commandCount('spellup learned retry')==2)
         """)
 
+    def test_server_queued_one_practice_spellup_completes_and_refreshes(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '910,Sneak,3,0,1,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
+          assert(commandCount('spellup learned retry')==1)
+
+          feed('Queueing skill : Sneak.')
+          feed('{affon}910,60');advance(0)
+          deltaRows({'910,Sneak,3,60,1,-1,2'}, {})
+          assert(not controller:status().inflight and not controller:status().paused)
+
+          advance(60)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==910)
+          advance(2)
+          assert(commandCount('spellup learned retry')==2)
+        """)
+
     def test_preexisting_wearoff_does_not_hold_new_batch_open(self):
         lua = self.runtime()
         lua.execute("""

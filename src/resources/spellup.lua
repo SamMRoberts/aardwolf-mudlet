@@ -81,11 +81,10 @@ function Spellup.new(api, character, spells, settings)
   local function activeSet()
     local result = {}
     for _, effect in ipairs(spells:snapshot().active) do
-      -- The server's "learned" filter can still queue granted/clan abilities
-      -- whose catalog practice is 0% (for example, Catalysis).  Once the
-      -- server names an ability in this batch, its active effect must count
-      -- as completion evidence regardless of local practice metadata.
-      if spells:isAutomaticSpellup(effect.id) and not effect.awaiting then
+      -- Active, non-bad spellup effects are authoritative completion evidence.
+      -- Aardwolf can queue granted, clan, and racial abilities even when their
+      -- catalog practice is 0% or 1%.
+      if spells:isTrackedSpellup(effect.id) and not effect.awaiting then
         result[effect.id] = true
       end
     end
@@ -333,7 +332,7 @@ function Spellup.new(api, character, spells, settings)
         schedule()
       end, token)
       on("missing", "aardwolf-vibe.spells.missing", function(_, id)
-        if self.automatic and spells:isAutomaticSpellup(id) then queueWork() end
+        if self.automatic and spells:isTrackedSpellup(id) then queueWork() end
       end, token)
       on("recovered", "aardwolf-vibe.spells.recovered", function(_, id)
         if blocked and blocked.code == 3 and blocked.recovery == id then
@@ -368,7 +367,7 @@ function Spellup.new(api, character, spells, settings)
         -- Queue prose sometimes uses a command alias rather than the catalog
         -- name (for example, "chameleon" versus "chameleon power").
         if not inflight or unresolvedQueued == 0 or namedTargets[id]
-            or resolvedUnknown[id] or not spells:isAutomaticSpellup(id) then return end
+            or resolvedUnknown[id] or not spells:isTrackedSpellup(id) then return end
         resolvedUnknown[id] = true
         targets[id] = true
         unresolvedQueued = unresolvedQueued - 1

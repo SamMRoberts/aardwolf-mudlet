@@ -143,8 +143,9 @@ When enabled it submits only `spellup learned retry`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. The spell tracker owns a single nearest-expiry timer that moves a due
 beneficial effect into Expired Effects and emits the event that queues that
-server-owned batch. This includes granted abilities that Aardwolf reports at
-0% practice and does not poll every effect.
+server-owned batch. This includes granted, clan, and racial abilities that
+Aardwolf queues while reporting 0% or 1% practice, and does not poll every
+effect.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 

@@ -44,7 +44,8 @@ all readiness, interval, and outstanding-batch gates.
 The defensive-copy APIs are:
 
 - `AardwolfVibe.plugins.spells:snapshot()`, `get(id)`, `sync()`, `confirm()`,
-  `status()`, `isBadEffect(id)`, and `setHideTags(bool)`
+  `status()`, `isBadEffect(id)`, `isTrackedSpellup(id)`, and
+  `setHideTags(bool)`
 - `AardwolfVibe.plugins.spellup:status()`, `setAutomatic(bool)`, and `runOnce()`
 - `AardwolfVibe.plugins.buffsWindow:show()`, `hide()`, and `status()`
 
@@ -81,12 +82,12 @@ On opt-in, the tracker synchronizes the catalog, classifications, existing
 active effects, and recoveries before the initial batch. Later batches react
 when a server-eligible spellup reaches its tracked server-reported
 expiration, when `{affoff}` confirms it missing, or when a blocking recovery
-ends. Eligibility includes learned abilities above 1% practice and granted or
-clan abilities that Aardwolf reports at 0% but still queues for
-`spellup learned`. The spell tracker reschedules its single nearest-expiry timer
-when effect data changes instead of polling every effect. Its missing-effect
-event queues maintenance only when the expired effect is eligible for automatic
-spellup.
+ends. Eligibility includes learned abilities above 1% practice, granted or clan
+abilities reported at 0%, and active spellup-classified racial abilities that
+Aardwolf may queue while reporting 1% practice. The spell tracker reschedules
+its single nearest-expiry timer when effect data changes instead of polling
+every effect. Its missing-effect event queues maintenance only for non-bad
+effects in Aardwolf's spellup classification.
 Expirations coalesce for two seconds, batches remain at least 30 seconds apart,
 and only one may be outstanding. Unambiguous manual self-spellup commands are
 observed so automatic work cannot collide; previews and forms that might target
@@ -97,10 +98,11 @@ affon/affoff-triggered affected snapshot can confirm all observed queued
 abilities and terminal failures. Queue aliases such as a skill command whose
 name differs from its catalog name are reconciled by their confirmed affon or
 affected-snapshot result. Server-queued targets count as completion evidence
-even when local practice metadata is 0%, so granted abilities such as Catalysis
-cannot hold a successful batch open. Only automatic-spellup-eligible effects
-may resolve an unknown queue alias; a mob-applied bad effect cannot be mistaken
-for that queued target. Pre-existing effects are not attributed
+even when local practice metadata is 0% or 1%, so granted abilities such as
+Catalysis and unpracticed racial abilities cannot hold a successful batch open.
+Only non-bad abilities in the server's spellup classification may resolve an
+unknown queue alias; a mob-applied bad effect cannot be mistaken for that
+queued target. Pre-existing effects are not attributed
 to the new batch, so an unrelated wearoff cannot keep that batch locked. The
 controller never polls for completion. If a tracked effect wears off while a
 batch is still running, that pending work is rescheduled as soon as the current

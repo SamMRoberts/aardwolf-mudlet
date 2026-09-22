@@ -658,6 +658,13 @@ function Spells.new(api, character, settings)
       and row ~= nil and row.practice ~= 1
   end
 
+  function self:isTrackedSpellup(id)
+    -- An active effect or a target named by the server's spellup queue is
+    -- stronger evidence than catalog practice.  Aardwolf may queue racial
+    -- abilities that are reported at 1% even though they are unpracticed.
+    return classification[id] == true and bad[id] ~= true and catalog[id] ~= nil
+  end
+
   function self:isBadEffect(id)
     return bad[id] == true
   end
