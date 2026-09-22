@@ -10,7 +10,8 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.40")
+        self.assertEqual(metadata["version"], "0.7.41")
+        self.assertIn("room-name search", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
@@ -29,6 +30,9 @@ class PackageSourceTests(unittest.TestCase):
             {item["name"]: item["regex"] for item in aliases},
             {
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
+                "mapper-search-world": "^aardwolf-vibe mapper search world (.+)$",
+                "mapper-search-area": "^aardwolf-vibe mapper search area (.+?) :: (.+)$",
+                "mapper-locate": "^aardwolf-vibe mapper locate ([0-9]+)$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
@@ -106,6 +110,10 @@ class PackageSourceTests(unittest.TestCase):
         self.assertNotIn("tags off", spells.read_text())
         self.assertIn("geyser.ScrollBox:new", buffs.read_text())
         self.assertNotIn("geyser.MiniConsole:new", buffs.read_text())
+        mapper = ROOT / "src/resources/mapper.lua"
+        mapper_source = mapper.read_text()
+        self.assertIn("function self:searchRooms(query, areaName)", mapper_source)
+        self.assertIn("function self:locateRoom(value)", mapper_source)
 
 
 if __name__ == "__main__":

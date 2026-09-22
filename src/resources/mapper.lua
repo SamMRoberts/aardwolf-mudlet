@@ -89,6 +89,7 @@ local STANDARD_COMMAND = {
 }
 local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
 local MAX_LAYOUT_SEARCH_STATES = 200000
+local MAX_SEARCH_QUERY = 256
 
 local function integer(value, minimum, maximum)
   if type(value) ~= "number" and type(value) ~= "string" then return nil end
@@ -227,6 +228,169 @@ function Mapper.new(api, settings)
   local function note(message, display)
     self.last = message
     if display then api.echo("Aardwolf Vibe mapper: " .. message .. "\n") end
+  end
+
+  local function mapAreas()
+    if type(api.getAreaTable) ~= "function" then
+      return nil, "Map area data is unavailable"
+    end
+    local ok, areas = pcall(api.getAreaTable)
+    if not ok then return nil, "Cannot read map areas: " .. tostring(areas) end
+    if type(areas) ~= "table" then return nil, "Map area data is unavailable" end
+    local entries, byID = {}, {}
+    for name, id in pairs(areas) do
+      local safeName = cleanString(name, MAX_SEARCH_QUERY, false)
+      local safeID = integer(id, 1, 2147483647)
+      if safeName and safeID then
+        entries[#entries + 1] = {id = safeID, name = safeName, lower = safeName:lower()}
+        byID[safeID] = safeName
+      end
+    end
+    table.sort(entries, function(left, right)
+      if left.lower ~= right.lower then return left.lower < right.lower end
+      if left.name ~= right.name then return left.name < right.name end
+      return left.id < right.id
+    end)
+    return entries, byID
+  end
+
+  local function resolveArea(wanted, entries)
+    local lower = wanted:lower()
+    local partial = {}
+    for _, area in ipairs(entries) do
+      if area.lower == lower then return area end
+      if area.lower:find(lower, 1, true) then partial[#partial + 1] = area end
+    end
+    if #partial == 1 then return partial[1] end
+    if #partial == 0 then return nil, "No mapped area matches '" .. wanted .. "'" end
+    local names = {}
+    for _, area in ipairs(partial) do names[#names + 1] = area.name end
+    return nil, "Area '" .. wanted .. "' is ambiguous: "
+      .. table.concat(names, ", ")
+  end
+
+  local function roomArea(id, areaNames)
+    if type(api.getRoomArea) ~= "function" then
+      return nil, nil, "Map room area data is unavailable"
+    end
+    local ok, areaID = pcall(api.getRoomArea, id)
+    if not ok then
+      return nil, nil, "Cannot read mapped room " .. tostring(id) .. " area: " .. tostring(areaID)
+    end
+    if type(areaID) ~= "number" or areaID % 1 ~= 0 then
+      return nil, nil, "Mapped room " .. tostring(id) .. " has no valid area"
+    end
+    return areaID, areaNames[areaID] or ("Area #" .. tostring(areaID))
+  end
+
+  local function sortSearchResults(results)
+    table.sort(results, function(left, right)
+      if left.exact ~= right.exact then return left.exact end
+      local leftArea, rightArea = left.areaName:lower(), right.areaName:lower()
+      if leftArea ~= rightArea then return leftArea < rightArea end
+      if left.areaName ~= right.areaName then return left.areaName < right.areaName end
+      local leftName, rightName = left.name:lower(), right.name:lower()
+      if leftName ~= rightName then return leftName < rightName end
+      if left.name ~= right.name then return left.name < right.name end
+      return left.id < right.id
+    end)
+  end
+
+  function self:searchRooms(query, areaName)
+    query = cleanString(query, MAX_SEARCH_QUERY, false)
+    if not query then return nil, "Room search text must be 1-256 printable characters" end
+    if areaName ~= nil then
+      areaName = cleanString(areaName, MAX_SEARCH_QUERY, false)
+      if not areaName then return nil, "Area search text must be 1-256 printable characters" end
+    end
+
+    local entries, areaNames = mapAreas()
+    if not entries then return nil, areaNames end
+    local wanted = query:lower()
+    local results, seen = {}, {}
+    local scope = {query = query, world = areaName == nil}
+
+    local function add(id, name, fixedArea)
+      id = roomID(id)
+      name = cleanString(name, 4096, false)
+      if not id or not name or seen[id] or not name:lower():find(wanted, 1, true) then return true end
+      seen[id] = true
+      local areaID, canonicalArea, areaError
+      if fixedArea then areaID, canonicalArea = fixedArea.id, fixedArea.name
+      else areaID, canonicalArea, areaError = roomArea(id, areaNames) end
+      if areaError then return nil, areaError end
+      results[#results + 1] = {
+        id = id,
+        name = name,
+        areaID = areaID,
+        areaName = canonicalArea,
+        exact = name:lower() == wanted,
+      }
+      return true
+    end
+
+    if areaName then
+      local area, message = resolveArea(areaName, entries)
+      if not area then return nil, message end
+      scope.areaID, scope.areaName = area.id, area.name
+      if type(api.getAreaRooms) ~= "function" or type(api.getRoomName) ~= "function" then
+        return nil, "Map room data is unavailable"
+      end
+      local ok, ids = pcall(api.getAreaRooms, area.id)
+      if not ok then return nil, "Cannot read rooms in " .. area.name .. ": " .. tostring(ids) end
+      if type(ids) ~= "table" then return nil, "Map room data is unavailable for " .. area.name end
+      for _, id in pairs(ids) do
+        local validID = roomID(id)
+        if validID then
+          local read, name = pcall(api.getRoomName, validID)
+          if not read then
+            return nil, "Cannot read mapped room " .. tostring(validID) .. ": " .. tostring(name)
+          end
+          local added, addError = add(validID, name, area)
+          if not added then return nil, addError end
+        end
+      end
+    else
+      if type(api.getRooms) ~= "function" then return nil, "Map room data is unavailable" end
+      local ok, rooms = pcall(api.getRooms)
+      if not ok then return nil, "Cannot read map rooms: " .. tostring(rooms) end
+      if type(rooms) ~= "table" then return nil, "Map room data is unavailable" end
+      for id, name in pairs(rooms) do
+        local added, addError = add(id, name)
+        if not added then return nil, addError end
+      end
+    end
+
+    sortSearchResults(results)
+    return results, scope
+  end
+
+  function self:locateRoom(value)
+    local id = roomID(value)
+    if not id then return false, "Room ID must be a positive integer" end
+    if type(api.getRoomName) ~= "function" then return false, "Map room data is unavailable" end
+    local ok, name = pcall(api.getRoomName, id)
+    if not ok then return false, "Cannot read room " .. tostring(id) .. ": " .. tostring(name) end
+    if name == nil then return false, "Mapped room " .. tostring(id) .. " does not exist" end
+    local safeName = cleanString(name, 4096, false) or ("Room #" .. tostring(id))
+    local areaEntries, areaNames = mapAreas()
+    if not areaEntries then return false, areaNames end
+    local areaID, areaName, areaError = roomArea(id, areaNames)
+    if areaError then return false, areaError end
+    if type(api.openMapWidget) ~= "function" or type(api.centerview) ~= "function" then
+      return false, "Native mapper controls are unavailable"
+    end
+    local opened, openResult, openMessage = pcall(api.openMapWidget)
+    if not opened or not openResult then
+      return false, "Cannot open native mapper: "
+        .. tostring(opened and openMessage or openResult)
+    end
+    local centered, centerResult, centerMessage = pcall(api.centerview, id)
+    if not centered or not centerResult then
+      return false, "Cannot center native mapper on room " .. tostring(id) .. ": "
+        .. tostring(centered and centerMessage or centerResult)
+    end
+    return true, {id = id, name = safeName, areaID = areaID, areaName = areaName}
   end
 
   local function conflict(message)

@@ -1,7 +1,7 @@
 {
   "package": "aardwolf-vibe",
   "title": "Aardwolf Vibe",
-  "description": "Defensive Aardwolf GMCP mapping with learned special exits, character state, top character status bay and bottom vitals, ASCII minimap, tagged help popup, configurable chat, and expiry-driven bad-effect-safe opt-in spellup maintenance for Mudlet 5.0.1.",
-  "version": "0.7.40",
+  "description": "Defensive Aardwolf GMCP mapping with room-name search and learned special exits, character state, top character status bay and bottom vitals, ASCII minimap, tagged help popup, configurable chat, and expiry-driven bad-effect-safe opt-in spellup maintenance for Mudlet 5.0.1.",
+  "version": "0.7.41",
   "author": "SamMRoberts"
 }

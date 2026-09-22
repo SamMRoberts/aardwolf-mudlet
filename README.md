@@ -63,6 +63,12 @@ Terrain names follow Aardwolf's complete terrain catalog (including roads,
 weather, water, ice, hell, structures, and dead-land variants) and use the
 catalog's supplied ANSI color index. Unknown terrain remains visible in gray.
 
+Mapped rooms can be searched by a case-insensitive literal name fragment across
+the world or within one explicitly named area. Results include room ID, room
+name, and area; a separate locate command opens and centers the native mapper
+without sending movement, changing Aardwolf Vibe's GMCP-tracked current room,
+or modifying map data.
+
 The always-active character plugin consumes `char.base`, `char.vitals`,
 `char.stats`, `char.maxstats`, `char.status`, and `char.worth`. It exposes
 validated defensive-copy snapshots through `AardwolfVibe.plugins.character`
@@ -155,6 +161,9 @@ public APIs, and acceptance boundaries.
 aardwolf-vibe mapper on
 aardwolf-vibe mapper off
 aardwolf-vibe mapper status
+aardwolf-vibe mapper search world <room name>
+aardwolf-vibe mapper search area <area name> :: <room name>
+aardwolf-vibe mapper locate <room id>
 aardwolf-vibe minimap
 aardwolf-vibe minimap show
 aardwolf-vibe minimap hide

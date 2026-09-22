@@ -1,7 +1,7 @@
 rooms, areas, areaData, hashes = {}, {}, {}, {}
 mapData, environmentColors = {}, {}
 handlers, modules, echoes, backups = {}, {}, {}, {}
-packages, writes, updates, centers, removedSpecial, clearedSpecial = {}, 0, 0, {}, {}, 0
+packages, writes, updates, centers, mapOpens, removedSpecial, clearedSpecial = {}, 0, 0, {}, 0, {}, 0
 playerRoom = 3248
 fail = {}
 
@@ -42,6 +42,14 @@ end
 function getRoomUserData(id,key) return rooms[id] and (rooms[id].data[key] or "") or "" end
 function setRoomUserData(id,key,value) if not rooms[id] then return nil end;rooms[id].data[key]=value;writes=writes+1;return true end
 function getAreaTable() local result={};for name,id in pairs(areas) do result[name]=id end;return result end
+function getAreaRooms(id)
+  if not areaData[id] then return nil end
+  local result={};local index=0
+  for roomID,room in pairs(rooms) do
+    if room.area==id then result[index]=roomID;index=index+1 end
+  end
+  return result
+end
 function addAreaName(name)
   if areas[name] then return nil end
   local id=1;while areaData[id] do id=id+1 end
@@ -76,6 +84,7 @@ function setMapUserData(key,value) mapData[key]=value;writes=writes+1;return tru
 function saveMap(path) if fail.saveMap then fail.saveMap=nil;return false end;backups[path]=true;return true end
 function updateMap() updates=updates+1 end
 function centerview(id) centers[#centers+1]=id;playerRoom=id;return true end
+function openMapWidget() mapOpens=mapOpens+1;return true end
 function getPlayerRoom() return playerRoom end
 function registerNamedEventHandler(owner,name,event,fn)
   if fail.register then fail.register=nil;error("registration failed") end

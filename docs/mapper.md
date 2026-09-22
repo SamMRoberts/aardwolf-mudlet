@@ -53,6 +53,34 @@ Areas are named exactly from `room.info.zone`. A same-name area is reusable only
 when it already carries the mapper's owner metadata. The package never renames
 or takes ownership of a foreign area.
 
+## Room search
+
+Room search is a read-only view of the map currently loaded in Mudlet. It does
+not require automatic mapping to be enabled and includes package-owned,
+user-authored, and imported rooms. Queries are case-insensitive literal
+substrings; punctuation is not interpreted as a Lua pattern or regular
+expression.
+
+```text
+aardwolf-vibe mapper search world <room name>
+aardwolf-vibe mapper search area <area name> :: <room name>
+aardwolf-vibe mapper locate <room id>
+```
+
+An area query prefers a case-insensitive exact name, otherwise it must identify
+one unique partial name. Ambiguous matches report sorted candidate areas. Room
+results put exact names first and then sort by area, room name, and numeric room
+ID. The public `mapper:searchRooms(query, areaName)` API returns the complete
+sorted result set and canonical scope; console output displays at most the first
+50 entries and reports truncation.
+
+`mapper:locateRoom(roomID)` validates an existing mapped room, opens the native
+mapper, and centers its view. It does not update Aardwolf Vibe's GMCP-tracked
+player room, create or edit rooms, change coordinates, or invoke pathfinding or
+movement. Mudlet's `centerview` function updates its native mapper marker as
+part of centering the view; the next room GMCP update restores that marker to
+the character's actual room.
+
 ## Placement
 
 For continent rooms (`coord.cont = 1`), GMCP x and inverted y are authoritative.

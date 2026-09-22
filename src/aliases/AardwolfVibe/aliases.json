@@ -5,6 +5,21 @@
     "regex": "^aardwolf-vibe mapper(?: (on|off|status))?$"
   },
   {
+    "name": "mapper-search-world",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe mapper search world (.+)$"
+  },
+  {
+    "name": "mapper-search-area",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe mapper search area (.+?) :: (.+)$"
+  },
+  {
+    "name": "mapper-locate",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe mapper locate ([0-9]+)$"
+  },
+  {
     "name": "minimap",
     "isActive": "yes",
     "regex": "^aardwolf-vibe minimap(?: (show|hide|status))?$"

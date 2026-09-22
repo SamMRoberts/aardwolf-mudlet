@@ -220,8 +220,44 @@ function AardwolfVibe.handleMapperCommand(action)
     AardwolfVibe.active = true
     return mapper:start()
   end
-  echo("Usage: aardwolf-vibe mapper on|off|status\n")
+  echo("Usage: aardwolf-vibe mapper on|off|status; "
+    .. "aardwolf-vibe mapper search world <room name>; "
+    .. "aardwolf-vibe mapper search area <area name> :: <room name>; "
+    .. "aardwolf-vibe mapper locate <room id>\n")
   return false
+end
+
+local MAX_ROOM_SEARCH_OUTPUT = 50
+
+function AardwolfVibe.handleMapperSearch(query, areaName)
+  local results, scope = AardwolfVibe.plugins.mapper:searchRooms(query, areaName)
+  if not results then
+    echo("Aardwolf Vibe mapper search: " .. tostring(scope) .. ".\n")
+    return false, scope
+  end
+  local location = scope.areaName and (" in " .. scope.areaName) or " across the world map"
+  echo(string.format("Aardwolf Vibe mapper: found %d room%s matching '%s'%s.\n",
+    #results, #results == 1 and "" or "s", scope.query, location))
+  for index = 1, math.min(MAX_ROOM_SEARCH_OUTPUT, #results) do
+    local result = results[index]
+    echo(string.format("[%d] %s — %s\n", result.id, result.name, result.areaName))
+  end
+  if #results > MAX_ROOM_SEARCH_OUTPUT then
+    echo(string.format("Showing the first %d of %d rooms; refine your search.\n",
+      MAX_ROOM_SEARCH_OUTPUT, #results))
+  end
+  return results, scope
+end
+
+function AardwolfVibe.handleMapperLocate(roomID)
+  local ok, result = AardwolfVibe.plugins.mapper:locateRoom(roomID)
+  if not ok then
+    echo("Aardwolf Vibe mapper locate: " .. tostring(result) .. ".\n")
+    return false, result
+  end
+  echo(string.format("Aardwolf Vibe mapper: centered on [%d] %s — %s.\n",
+    result.id, result.name, result.areaName))
+  return true, result
 end
 
 function AardwolfVibe.handleMinimapCommand(action)
