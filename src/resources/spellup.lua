@@ -3,13 +3,13 @@
 local Spellup = {}
 
 local OWNER = "aardwolf-vibe.spellup"
-local COMMAND = "spellup learned retry"
+local COMMAND = "spellup learned"
 local COALESCE_SECONDS = 2
 local MIN_INTERVAL = 30
 local BATCH_TIMEOUT = 120
 
 local FAILURE_TEXT = {
-  [1] = "Lost concentration (server retry owns this)",
+  [1] = "Lost concentration; retrying in a later batch",
   [2] = "Already affected",
   [3] = "Waiting for recovery",
   [4] = "Waiting for mana",
@@ -206,7 +206,7 @@ function Spellup.new(api, character, spells, settings)
     local words = {}
     for word in command:lower():gmatch("%S+") do words[#words + 1] = word end
     if words[1] ~= "spellup" then return end
-    local allowed = {learned = true, retry = true, all = true, silent = true, quick = true}
+    local allowed = {learned = true, all = true, silent = true, quick = true}
     for index = 2, #words do
       if not allowed[words[index]] then return end
     end
@@ -376,7 +376,11 @@ function Spellup.new(api, character, spells, settings)
       on("failure", "aardwolf-vibe.spells.failure", function(_, event)
         if not inflight or type(event) ~= "table" or event.target ~= 0 then return end
         local reason = event.reason
-        if reason == 1 then emit(); return end
+        if reason == 1 then
+          if self.automatic then queueWork() end
+          emit()
+          return
+        end
         if unresolvedQueued > 0 and not namedTargets[event.id]
             and not resolvedUnknown[event.id] then
           resolvedUnknown[event.id] = true
@@ -398,13 +402,6 @@ function Spellup.new(api, character, spells, settings)
             or failures[key] >= 2 then
           paused, self.lastError = text, text
         end
-        emit()
-      end, token)
-      on("unsupported", "aardwolf-vibe.spells.unsupported", function(_, line)
-        if not inflight then return end
-        paused = "Server did not accept the retry spellup form"
-        self.lastError = tostring(line)
-        pendingAt = nil
         emit()
       end, token)
       on("room", "gmcp.room.info", function()

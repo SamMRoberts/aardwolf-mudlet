@@ -139,7 +139,7 @@ disabling their parsing. A compact header shows only the current automation
 status, while a small vertical-ellipsis menu provides Sync, Spellup now,
 automatic, and spell-tag visibility actions without consuming table space.
 Automatic maintenance defaults off.
-When enabled it submits only `spellup learned retry`, only while fresh GMCP
+When enabled it submits only `spellup learned`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
 commands. The spell tracker owns a single nearest-expiry timer that moves a due
 beneficial effect into Expired Effects and emits the event that queues that

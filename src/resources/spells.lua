@@ -5,7 +5,7 @@ local MAX_ROWS = 4096
 local MAX_BYTES = 1024 * 1024
 local SNAPSHOT_TIMEOUT = 10
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
-local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$|(?i:.*retry.*(?:unknown|invalid|syntax|usage).*))$]]
+local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$)$]]
 
 local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
 local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
@@ -450,14 +450,6 @@ function Spells.new(api, character, settings)
       or value:match("^Queueing skill : (.+)%.$"))
     if queued then emit("queued", queued); return false end
     if not frame and value == "No spells or skills cast." then emit("noWork"); return false end
-    local lower = value:lower()
-    if not frame and lower:find("retry", 1, true)
-        and (lower:find("unknown", 1, true) or lower:find("invalid", 1, true)
-          or lower:find("syntax", 1, true) or lower:find("usage", 1, true)) then
-      emit("unsupported", value)
-      return false
-    end
-
     local tag, payload = value:match("^{([%a]+)}(.*)$")
     if tag == "affon" or tag == "affoff" or tag == "recon"
         or tag == "recoff" or tag == "sfail" then

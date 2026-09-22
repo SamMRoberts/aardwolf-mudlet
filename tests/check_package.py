@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.39")
+        self.assertEqual(metadata["version"], "0.7.40")
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
@@ -101,7 +101,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn('{kind = "bad", command = "slist bad noprompt"}', spells.read_text())
         self.assertIn("function self:isBadEffect(id)", spells.read_text())
         self.assertIn("function self:isTrackedSpellup(id)", spells.read_text())
-        self.assertIn('local COMMAND = "spellup learned retry"', spellup.read_text())
+        self.assertIn('local COMMAND = "spellup learned"', spellup.read_text())
         self.assertIn("not spells:isTrackedSpellup(id)", spellup.read_text())
         self.assertNotIn("tags off", spells.read_text())
         self.assertIn("geyser.ScrollBox:new", buffs.read_text())

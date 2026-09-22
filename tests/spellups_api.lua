@@ -59,12 +59,7 @@ local function responseSignal(text)
   if text:match("^Queueing spell : .+%.$")
       or text:match("^Queueing skill : .+%.$")
       or text=="No spells or skills cast." then return true end
-  local lower=text:lower()
-  return lower:find("retry",1,true) ~= nil
-    and (lower:find("unknown",1,true) ~= nil
-      or lower:find("invalid",1,true) ~= nil
-      or lower:find("syntax",1,true) ~= nil
-      or lower:find("usage",1,true) ~= nil)
+  return false
 end
 local function regexMatches(regex,text)
   if regex:find("spellup-",1,true) then return tagSignal(text) end

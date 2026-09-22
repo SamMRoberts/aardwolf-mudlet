@@ -72,7 +72,7 @@ and the current `spellup` and `learned` classifications.
 
 ## Casting contract
 
-The controller sends exactly `spellup learned retry`. It never selects or casts
+The controller sends exactly `spellup learned`. It never selects or casts
 individual abilities. A batch can begin only with an active connection, fresh
 spell data, fresh `char.status`, state `3`, and position `Standing`. AFK,
 combat, sleeping, resting, running, paging, editing, disconnection, or stale
@@ -113,11 +113,12 @@ batch until late completion evidence releases that lock. Resume waits for
 server tags instead of assuming the old batch ended. A disconnect may release
 that lock because the old server queue can no longer execute.
 
-Failure codes are conservative: concentration failures remain owned by the
-server's `retry`; already-affected is satisfied; recoveries, resources, room
-changes, and fresh standing status are awaited where applicable. Unknown,
-disabled, unknown-spell, invalid-target, repeated unresolved failures, or a
-server response rejecting `retry` pauses automation until Resume.
+Failure codes are conservative: a concentration failure queues another
+documented `spellup learned` batch after the current batch completes and the
+minimum interval passes; already-affected is satisfied; recoveries, resources,
+room changes, and fresh standing status are awaited where applicable. Unknown,
+disabled, unknown-spell, invalid-target, or repeated unresolved failures pause
+automation until Resume.
 
 ## Window, persistence, and boundaries
 
