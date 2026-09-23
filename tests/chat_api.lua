@@ -48,6 +48,9 @@ function sendGMCP(value)
 end
 
 function getConnectionInfo() return "aardwolf", 4000, connected end
+function getAvailableFonts()
+  return {Menlo = true, ["DejaVu Sans Mono"] = true, ["Fira Code"] = true}
+end
 
 local mainFg, mainBg = {224, 230, 236}, {0, 0, 0}
 function echo(text)
@@ -98,6 +101,7 @@ function MiniConsole:new(cons, parent)
   local item = Widget.new(self, cons, parent)
   item.output, item.runs = "", {}
   item.fg, item.bg = {224, 230, 236}, {0, 0, 0}
+  item.font, item.fontSize = cons.font, cons.fontSize
   return item
 end
 function MiniConsole:echo(text)
@@ -109,6 +113,8 @@ function MiniConsole:clear() self.output, self.runs = "", {} end
 function MiniConsole:scrollTo() self.scrolled = true end
 function MiniConsole:setBufferSize(lines, batch) self.buffer = {lines, batch} end
 function MiniConsole:setColor(...) self.color = {...} end
+function MiniConsole:setFont(value) self.font = value end
+function MiniConsole:setFontSize(value) self.fontSize = value end
 
 local UserWindow = setmetatable({}, {__index = MiniConsole})
 UserWindow.__index = UserWindow

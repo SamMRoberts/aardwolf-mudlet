@@ -42,7 +42,7 @@ function Chat.new(api, model, settings)
   local connected, gmcpEnabled, moduleRequested, supportsSession, takeoverSession =
     false, false, false, nil, nil
   local activeTab, tabFirst, editorVisible, editorDraft, editorTab = nil, 1, false, nil, nil
-  local editorNameInput, editorCustomInput, editorStatus
+  local editorNameInput, editorFontInput, editorSizeInput, editorCustomInput, editorStatus
   local renderFailed = false
 
   local function diagnostic(message)
@@ -260,11 +260,15 @@ function Chat.new(api, model, settings)
       if not panes[tab.id] then
         local pane = api.Geyser.MiniConsole:new({name = OWNER .. ".pane." .. tab.id,
           x = 0, y = 0, width = "100%", height = "100%", autoWrap = true,
-          scrollBar = true, font = "Menlo", fontSize = 11}, content)
+          scrollBar = true, font = config.font, fontSize = config.fontSize}, content)
         pane:setBufferSize(MAX_MESSAGES, 250)
         pane:setColor(11, 17, 24, 255)
         panes[tab.id] = pane
         unread[tab.id] = unread[tab.id] or 0
+      else
+        local pane = panes[tab.id]
+        if pane.font ~= config.font then pane:setFont(config.font) end
+        if pane.fontSize ~= config.fontSize then pane:setFontSize(config.fontSize) end
       end
       if not tabLabels[tab.id] then
         local id = tab.id
@@ -294,6 +298,8 @@ function Chat.new(api, model, settings)
 
   local function captureEditorInputs()
     if not editorDraft or not editorTab then return end
+    if editorFontInput then editorDraft.font = editorFontInput:getText() end
+    if editorSizeInput then editorDraft.fontSize = tonumber(editorSizeInput:getText()) end
     local selected
     for _, tab in ipairs(editorDraft.tabs) do if tab.id == editorTab then selected = tab end end
     if selected and editorNameInput and type(editorNameInput.getText) == "function" then
@@ -303,7 +309,8 @@ function Chat.new(api, model, settings)
 
   local function closeEditor()
     editorVisible, editorDraft, editorTab = false, nil, nil
-    editorNameInput, editorCustomInput, editorStatus = nil, nil, nil
+    editorNameInput, editorFontInput, editorSizeInput, editorCustomInput, editorStatus =
+      nil, nil, nil, nil, nil
     deleteWidget(editorRoot); editorRoot = nil
     if content then content:show() end
     selectTab(activeTab)
@@ -403,6 +410,30 @@ function Chat.new(api, model, settings)
     editorNameInput:print(selected.label)
     editorNameInput:setAction(function(value) selected.label = value; buildEditor() end)
 
+    local fontLabel = label(editorRoot, "editor.font-label", "Font", nil)
+    fontLabel:move(tabWidth + 4, 72); fontLabel:resize(48, 28)
+    editorFontInput = api.Geyser.CommandLine:new({name = OWNER .. ".editor.font",
+      x = tabWidth + 54, y = 72, width = math.max(80, width - tabWidth - 58),
+      height = 28}, editorRoot)
+    editorFontInput:print(editorDraft.font)
+    editorFontInput:setAction(function(value)
+      editorDraft.font = value
+      editorFontInput = nil
+      buildEditor()
+    end)
+
+    local sizeLabel = label(editorRoot, "editor.size-label", "Size (pt)", nil)
+    sizeLabel:move(tabWidth + 4, 106); sizeLabel:resize(76, 28)
+    editorSizeInput = api.Geyser.CommandLine:new({name = OWNER .. ".editor.size",
+      x = tabWidth + 82, y = 106, width = math.max(80, width - tabWidth - 86),
+      height = 28}, editorRoot)
+    editorSizeInput:print(tostring(editorDraft.fontSize))
+    editorSizeInput:setAction(function(value)
+      editorDraft.fontSize = tonumber(value)
+      editorSizeInput = nil
+      buildEditor()
+    end)
+
     local channelSet, channelList = {}, {"*"}
     for _, channel in ipairs(model.knownChannels()) do channelList[#channelList + 1] = channel end
     for _, tab in ipairs(editorDraft.tabs) do
@@ -431,12 +462,12 @@ function Chat.new(api, model, settings)
           buildEditor()
         end)
       local row, column = math.floor((index - 1) / columns), (index - 1) % columns
-      item:move(tabWidth + 4 + column * channelWidth, 72 + row * 28)
+      item:move(tabWidth + 4 + column * channelWidth, 144 + row * 28)
       item:resize(channelWidth - 4, 26)
       setLabelStyle(item, channelSet[current])
     end
     local channelRows = math.ceil(#channelList / columns)
-    local customY = 76 + channelRows * 28
+    local customY = 148 + channelRows * 28
     editorCustomInput = api.Geyser.CommandLine:new({name = OWNER .. ".editor.custom",
       x = tabWidth + 4, y = customY, width = math.max(80, areaWidth - 116), height = 28}, editorRoot)
     editorCustomInput:print("")
@@ -456,7 +487,7 @@ function Chat.new(api, model, settings)
     editorCustomInput:setAction(addCustomChannel)
     editorStatus = label(editorRoot, "editor.status",
       configLocked and "Configuration is malformed. Reset preserves it before saving defaults."
-        or "Select channels for the highlighted tab; changes are saved only by Apply.", nil)
+        or "Font and size apply to every chat tab; changes are saved only by Apply.", nil)
     editorStatus:move(tabWidth + 4, customY + 34); editorStatus:resize(areaWidth, 40)
   end
 
@@ -637,7 +668,7 @@ function Chat.new(api, model, settings)
       content = geyser.Container:new({name = OWNER .. ".content", x = 0, y = TAB_HEIGHT,
         width = "100%", height = "100%-" .. TAB_HEIGHT}, root)
       gear = label(tabBar, "configure", "⚙", function() self:openConfig() end)
-      gear:setToolTip("Configure chat tabs and colors")
+      gear:setToolTip("Configure chat tabs, colors, and font")
       indicator = label(tabBar, "more", "→", nil)
       indicator:setToolTip("Scroll to reveal more chat tabs")
       if type(indicator.setWheelCallback) == "function" then indicator:setWheelCallback(wheelTabs) end
@@ -712,7 +743,21 @@ function Chat.new(api, model, settings)
 
   function self:applyConfig(value)
     if configLocked then return false, "Reset is required before replacing the preserved malformed configuration" end
-    local ok, message = writeConfig(value)
+    local valid, message = model.validateConfig(value)
+    if not valid then self.lastError = message; return false, message end
+    if valid.font ~= config.font and type(api.getAvailableFonts) == "function" then
+      local available, fonts = pcall(api.getAvailableFonts)
+      if not available or type(fonts) ~= "table" then
+        self.lastError = "Cannot check installed chat fonts"
+        return false, self.lastError
+      end
+      if not fonts[valid.font] then
+        self.lastError = "Chat font is not installed: " .. valid.font
+        return false, self.lastError
+      end
+    end
+    local ok
+    ok, message = writeConfig(valid)
     if not ok then self.lastError = message; return false, message end
     if root then
       syncTabs()

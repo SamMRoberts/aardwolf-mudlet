@@ -4,8 +4,8 @@
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
 handler, a top character status bay with bottom vitals, a native
 dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
-GMCP chat window. It also includes session-only spell/recovery tracking and
-explicitly opt-in self-spellup maintenance.
+GMCP chat window with configurable transcript font and size. It also includes
+session-only spell/recovery tracking and explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by

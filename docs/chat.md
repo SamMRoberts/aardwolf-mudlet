@@ -38,15 +38,22 @@ The initial routes are:
 
 The gear button opens an in-window editor. It can add, rename, reorder, and
 delete tabs; assign known or custom channel identifiers; and select ANSI or
-Aardwolf Raw color interpretation. At least one and at most 24 tabs are
-allowed. A message may be routed to several tabs. Each accepted GMCP event is
-kept as a distinct message.
+Aardwolf Raw color interpretation. It also sets one font family and point size
+for every chat transcript pane. The default is Menlo at 11 points; sizes from
+6 to 32 points are accepted. Use a font installed on the local system,
+preferably monospaced for consistent console alignment. Changes take effect
+when Apply is pressed, including in already open tabs. At least one and at most
+24 tabs are allowed. A message may be routed to several tabs. Each accepted
+GMCP event is kept as a distinct message.
 
 Tab configuration is stored atomically in
 `aardwolf-vibe-data/chat.json`. This file has its own schema version and does
-not change `settings.json`, whose schema version 2 contains `mapperEnabled` and
-the independent `spellupsAutoCast` opt-in. A malformed chat file is preserved while built-in defaults
-run in memory. Apply remains disabled until the user explicitly chooses Reset;
+not require a migration for older files without font fields; those load with
+the previous Menlo 11-point appearance. Apply writes the explicit font fields.
+It does not change `settings.json`, whose schema version 2 contains
+`mapperEnabled` and the independent `spellupsAutoCast` opt-in. A malformed chat
+file is preserved while built-in defaults run in memory. Apply remains disabled
+until the user explicitly chooses Reset;
 Reset renames the malformed file before writing defaults.
 
 Message history, unread counts, and session state are never persisted. The
