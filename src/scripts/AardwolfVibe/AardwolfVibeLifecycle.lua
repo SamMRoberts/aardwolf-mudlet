@@ -24,6 +24,7 @@ local ASCIIMap = resource("ascii-map")
 local HelpWindow = resource("help-window")
 local ChatModel = resource("chat-model")
 local Chat = resource("chat")
+local CommandQueue = resource("command-queue")
 local Mapper = resource("mapper")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.character = Character.new(_G)
@@ -42,6 +43,8 @@ AardwolfVibe.plugins.asciiMap = ASCIIMap.new(
 AardwolfVibe.plugins.helpWindow = HelpWindow.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.chat = Chat.new(_G, ChatModel, AardwolfVibe.settings)
+AardwolfVibe.plugins.commandQueue = CommandQueue.new(
+  _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(_G, AardwolfVibe.settings)
 
 function AardwolfVibe.start()
@@ -92,14 +95,19 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.chat:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local queueOK = AardwolfVibe.plugins.commandQueue:start()
+  if not queueOK then
+    local status = AardwolfVibe.plugins.commandQueue:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   if AardwolfVibe.active then
     return characterOK and spellsOK and spellupOK and buffsOK
-      and characterWindowOK and asciiOK and helpOK and chatOK and settingsOK
+      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and settingsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and spellsOK and spellupOK and buffsOK and characterWindowOK
-    and asciiOK and helpOK and chatOK and settingsOK and mapperOK
+    and asciiOK and helpOK and chatOK and queueOK and settingsOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -110,6 +118,7 @@ function AardwolfVibe.stop()
   end
   local plugins = AardwolfVibe.plugins or {}
   local mapperOK = stopPlugin(plugins.mapper)
+  local queueOK = stopPlugin(plugins.commandQueue)
   local chatOK = stopPlugin(plugins.chat)
   local helpOK = stopPlugin(plugins.helpWindow)
   local asciiOK = stopPlugin(plugins.asciiMap)
@@ -119,7 +128,7 @@ function AardwolfVibe.stop()
   local spellsOK = stopPlugin(plugins.spells)
   local characterOK = stopPlugin(plugins.character)
   AardwolfVibe.active = false
-  return mapperOK and chatOK and helpOK and asciiOK and characterWindowOK and buffsOK
+  return mapperOK and queueOK and chatOK and helpOK and asciiOK and characterWindowOK and buffsOK
     and spellupOK and spellsOK and characterOK
 end
 
@@ -200,6 +209,24 @@ function AardwolfVibe.handleChatCommand(action)
     return status
   end
   echo("Usage: aardwolf-vibe chat show|hide|status|config\n")
+  return false
+end
+
+function AardwolfVibe.handleQueueCommand(action)
+  local queue = AardwolfVibe.plugins.commandQueue
+  action = action or "show"
+  if action == "show" then return queue:show() end
+  if action == "hide" then return queue:hide() end
+  if action == "status" then
+    local status = queue:status()
+    echo("Aardwolf Vibe: command queue " .. status.lifecycle .. ", "
+      .. (status.visible and "visible" or "hidden") .. ", "
+      .. tostring(status.pending) .. " pending; command echoes "
+      .. (status.echoRequested and "requested" or "waiting")
+      .. (status.lastError and (" (" .. status.lastError .. ")") or "") .. ".\n")
+    return status
+  end
+  echo("Usage: aardwolf-vibe queue show|hide|status\n")
   return false
 end
 

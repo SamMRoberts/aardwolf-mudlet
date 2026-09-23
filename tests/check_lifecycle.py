@@ -27,6 +27,7 @@ class LifecycleTests(unittest.TestCase):
           asciiStarts=0;asciiStops=0;asciiShows=0
           helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
           chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil;spellTagsSaved=nil
+          queueStarts=0;queueStops=0;queueShows=0;queueHides=0
           spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
           buffsStarts=0;buffsStops=0;buffsShows=0;buffsHides=0
           function echo(message) messages[#messages+1]=message end
@@ -214,6 +215,18 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
+          QueueFactory={new=function()
+            return {
+              start=function() queueStarts=queueStarts+1;return true end,
+              stop=function() queueStops=queueStops+1;stopOrder[#stopOrder+1]="queue";return true end,
+              show=function() queueShows=queueShows+1;return true end,
+              hide=function() queueHides=queueHides+1;return true end,
+              status=function()
+                return {enabled=true,lifecycle="active",visible=true,pending=2,
+                  echoRequested=true,lastError=nil}
+              end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/buffs%-window.lua$") then return BuffsFactory end
@@ -224,6 +237,7 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/help%-window.lua$") then return HelpFactory end
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
             if string.match(path,"/chat.lua$") then return ChatFactory end
+            if string.match(path,"/command%-queue.lua$") then return QueueFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
             error("unexpected resource: "..path)
@@ -267,7 +281,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1
-            and helpStarts==1 and chatStarts==1)
+            and helpStarts==1 and chatStarts==1 and queueStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
@@ -344,7 +358,7 @@ class LifecycleTests(unittest.TestCase):
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
             and helpStops==1 and chatStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
-          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
@@ -353,7 +367,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute("assert(AardwolfVibe.start())")
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="mapper,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
             and characterStops==1 and mapperStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
@@ -492,6 +506,20 @@ class LifecycleTests(unittest.TestCase):
           local status=AardwolfVibe.handleMinimapCommand("status")
           assert(status.tagState=="requested" and messages[#messages]:find("minimap",1,true))
           assert(saved==nil)
+        ''')
+
+    def test_queue_commands_delegate(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(AardwolfVibe.start() and queueStarts==1)
+          assert(AardwolfVibe.handleQueueCommand() and queueShows==1)
+          assert(AardwolfVibe.handleQueueCommand("hide") and queueHides==1)
+          local status=AardwolfVibe.handleQueueCommand("status")
+          assert(status.pending==2 and status.echoRequested)
+          assert(messages[#messages]:find("2 pending",1,true))
+          assert(not AardwolfVibe.handleQueueCommand("unknown"))
+          assert(messages[#messages]:find("Usage: aardwolf-vibe queue",1,true))
+          assert(AardwolfVibe.stop() and queueStops==1)
         ''')
 
     def test_stats_commands_delegate_through_character_window_alias(self):

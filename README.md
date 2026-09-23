@@ -128,6 +128,14 @@ details. Each GMCP session advertises Aardwolf Vibe's `char`, `comm`, and
 command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
+The always-active command queue window starts docked on the left and lists
+commands sent to Aardwolf by the command line or scripts. Once authenticated,
+the package sends `config echocommands on`. Each exact `You entered: <command>`
+server echo removes the oldest matching pending command. Hiding the window does
+not pause tracking; pending commands clear on disconnect. See
+[`docs/command-queue.md`](docs/command-queue.md) for the matching and lifecycle
+contract.
+
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
 bounded `slist` snapshots, and presents active effects, tracked beneficial
 expirations, and recoveries in responsive tables in an “Aardwolf
@@ -181,6 +189,10 @@ aardwolf-vibe chat show
 aardwolf-vibe chat hide
 aardwolf-vibe chat status
 aardwolf-vibe chat config
+aardwolf-vibe queue
+aardwolf-vibe queue show
+aardwolf-vibe queue hide
+aardwolf-vibe queue status
 aardwolf-vibe help
 aardwolf-vibe help show
 aardwolf-vibe help hide

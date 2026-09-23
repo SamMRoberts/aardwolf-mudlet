@@ -30,6 +30,11 @@
     "regex": "^aardwolf-vibe chat(?: (show|hide|status|config))?$"
   },
   {
+    "name": "queue",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe queue(?: (show|hide|status))?$"
+  },
+  {
     "name": "help",
     "isActive": "yes",
     "regex": "^aardwolf-vibe help(?: (show|hide|status))?$"

@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.45")
+        self.assertEqual(metadata["version"], "0.7.46")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
@@ -20,6 +20,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
         self.assertIn("font and size settings", metadata["description"])
+        self.assertIn("command queue dock", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         self.assertIn("heartbeat-reconciled", metadata["description"])
         self.assertIn("batch-confirmed", metadata["description"])
@@ -37,6 +38,7 @@ class PackageSourceTests(unittest.TestCase):
                 "mapper-locate": "^aardwolf-vibe mapper locate ([0-9]+)$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
+                "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
                 "stats": "^aardwolf-vibe stats(?: (show|hide|status))?$",
                 "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$",
@@ -54,6 +56,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.asciiMap", source)
         self.assertIn("AardwolfVibe.plugins.helpWindow", source)
         self.assertIn("AardwolfVibe.plugins.chat", source)
+        self.assertIn("AardwolfVibe.plugins.commandQueue", source)
         self.assertIn("AardwolfVibe.plugins.spells", source)
         self.assertIn("AardwolfVibe.plugins.spellup", source)
         self.assertIn("AardwolfVibe.plugins.buffsWindow", source)
@@ -99,6 +102,10 @@ class PackageSourceTests(unittest.TestCase):
             chat.read_text(),
         )
         self.assertNotIn("AardwolfToolbox", chat.read_text() + model.read_text())
+        queue = ROOT / "src/resources/command-queue.lua"
+        self.assertTrue(queue.is_file())
+        self.assertIn("sysDataSendRequest", queue.read_text())
+        self.assertIn("config echocommands on", queue.read_text())
         spells = ROOT / "src/resources/spells.lua"
         spellup = ROOT / "src/resources/spellup.lua"
         buffs = ROOT / "src/resources/buffs-window.lua"
