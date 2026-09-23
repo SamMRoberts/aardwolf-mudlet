@@ -104,6 +104,13 @@ the ASCII minimap side by side at the top, the graphical map in the middle,
 and Chat below. Saved layouts in existing profiles remain in effect. See
 [`docs/workspace.md`](docs/workspace.md) for layout controls and persistence.
 
+The Quest Tracker shares a workspace tab with Chat, or uses its own restored
+right dock when the workspace is off. Quest details come from `Comm.Quest`;
+campaign and global quest tasks come from rate-limited, read-only `check`
+commands after login and relevant quest changes. The tracker displays only
+server-provided mob and location names. Use `aardwolf-vibe quests
+show|hide|refresh|status`; see [`docs/quest-tracker.md`](docs/quest-tracker.md).
+
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
 complete `<MAPSTART>` / `<MAPEND>` frames and displays

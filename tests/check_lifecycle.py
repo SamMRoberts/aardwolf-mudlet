@@ -240,6 +240,16 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
+          QuestTrackerFactory={new=function()
+            return {
+              start=function() return true end,
+              stop=function() return true end,
+              show=function() return true end,
+              hide=function() return true end,
+              refresh=function() return true end,
+              status=function() return {quest="unknown",campaign="unknown",globalQuest="unknown"} end,
+            }
+          end}
           QueueFactory={new=function()
             return {
               start=function() queueStarts=queueStarts+1;return true end,
@@ -273,6 +283,7 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/help%-window.lua$") then return HelpFactory end
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
             if string.match(path,"/chat.lua$") then return ChatFactory end
+            if string.match(path,"/quest%-tracker.lua$") then return QuestTrackerFactory end
             if string.match(path,"/command%-queue.lua$") then return QueueFactory end
             if string.match(path,"/map%-navigation.lua$") then return NavigationFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
