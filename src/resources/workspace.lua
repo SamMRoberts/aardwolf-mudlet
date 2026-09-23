@@ -54,7 +54,7 @@ local function defaultTree()
       ratio = 0.57,
       first = {type = "stack", tabs = {"aardwolf-vibe.mapper-display"},
         active = "aardwolf-vibe.mapper-display"},
-      second = {type = "stack", tabs = {"aardwolf-vibe.chat"},
+      second = {type = "stack", tabs = {"aardwolf-vibe.chat", "aardwolf-vibe.quest-tracker"},
         active = "aardwolf-vibe.chat"},
     },
   }
@@ -931,6 +931,9 @@ function Workspace.new(api, settings)
     if type(spec.mount) ~= "function" or type(spec.unmount) ~= "function" then
       return nil, "Panel mount and unmount callbacks are required"
     end
+    if spec.preferredStackWith ~= nil and not validID(spec.preferredStackWith) then
+      return nil, "Preferred panel id is invalid"
+    end
     for _, field in ipairs({"minimumWidth", "minimumHeight"}) do
       local value = spec[field]
       if value ~= nil and (not finite(value) or value < 1 or value > 10000) then
@@ -943,7 +946,8 @@ function Workspace.new(api, settings)
     local stack = findPanel(state.tree, spec.id)
     local added = false
     if not stack then
-      local target = firstStack(state.tree)
+      local target = (spec.preferredStackWith and findPanel(state.tree, spec.preferredStackWith))
+        or firstStack(state.tree)
       target.tabs[#target.tabs + 1] = spec.id
       added = true
     end

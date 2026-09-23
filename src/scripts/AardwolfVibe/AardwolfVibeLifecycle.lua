@@ -26,6 +26,7 @@ local ASCIIMap = resource("ascii-map")
 local HelpWindow = resource("help-window")
 local ChatModel = resource("chat-model")
 local Chat = resource("chat")
+local QuestTracker = resource("quest-tracker")
 local CommandQueue = resource("command-queue")
 local Mapper = resource("mapper")
 local MapNavigation = resource("map-navigation")
@@ -50,6 +51,8 @@ AardwolfVibe.plugins.helpWindow = HelpWindow.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.chat = Chat.new(
   _G, ChatModel, AardwolfVibe.settings, AardwolfVibe.plugins.workspace)
+AardwolfVibe.plugins.questTracker = QuestTracker.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace)
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(
@@ -109,6 +112,11 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.chat:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local questsOK = AardwolfVibe.plugins.questTracker:start()
+  if not questsOK then
+    local status = AardwolfVibe.plugins.questTracker:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   if workspaceOK and AardwolfVibe.plugins.workspace:status().enabled
       and type(closeMapWidget) == "function" then pcall(closeMapWidget) end
   local mapDisplayOK = AardwolfVibe.plugins.mapperDisplay:start()
@@ -129,11 +137,13 @@ function AardwolfVibe.start()
   if AardwolfVibe.active then
     return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK
       and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK
+      and questsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK and characterWindowOK
     and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK and mapperOK
+    and questsOK
 end
 
 function AardwolfVibe.stop()
@@ -147,6 +157,7 @@ function AardwolfVibe.stop()
   local mapperOK = stopPlugin(plugins.mapper)
   local mapDisplayOK = stopPlugin(plugins.mapperDisplay)
   local queueOK = stopPlugin(plugins.commandQueue)
+  local questsOK = stopPlugin(plugins.questTracker)
   local chatOK = stopPlugin(plugins.chat)
   local helpOK = stopPlugin(plugins.helpWindow)
   local asciiOK = stopPlugin(plugins.asciiMap)
@@ -159,6 +170,34 @@ function AardwolfVibe.stop()
   AardwolfVibe.active = false
   return navigationOK and mapperOK and mapDisplayOK and queueOK and chatOK and helpOK and asciiOK
     and characterWindowOK and buffsOK and spellupOK and spellsOK and characterOK and workspaceOK
+    and questsOK
+end
+
+function AardwolfVibe.handleQuestsCommand(action)
+  local tracker = AardwolfVibe.plugins.questTracker
+  action = action or "show"
+  if action == "status" then
+    local status = tracker:status()
+    echo("Aardwolf Vibe: quests " .. tostring(status.quest)
+      .. ", campaign " .. tostring(status.campaign)
+      .. ", global quest " .. tostring(status.globalQuest)
+      .. ((status.campaignStale or status.globalQuestStale) and ", stale" or "") .. ".\n")
+    return status
+  end
+  local ok, message
+  if action == "show" then ok, message = tracker:show()
+  elseif action == "hide" then ok, message = tracker:hide()
+  elseif action == "refresh" then ok, message = tracker:refresh()
+  else
+    echo("Usage: aardwolf-vibe quests show|hide|refresh|status\n")
+    return false
+  end
+  if not ok then
+    echo("Aardwolf Vibe: quests " .. action .. " failed: " .. tostring(message) .. "\n")
+    return false, message
+  end
+  echo("Aardwolf Vibe: quests " .. action .. ".\n")
+  return true
 end
 
 function AardwolfVibe.handleWorkspaceCommand(action)

@@ -6,7 +6,8 @@ minimap share the upper 30 percent, the graphical map occupies the middle, and
 Chat occupies the bottom. The upper split gives Spellups 53 percent of the
 width; the middle takes 57 percent of the remaining height. The command queue
 stays in its own left dock, and the character status and vitals stay on the
-main console.
+main console. Quest Tracker is a second tab alongside Chat, with Chat selected
+initially.
 
 The workspace owns split nodes and tab stacks. Registered panels contribute
 ordinary Geyser content roots; native Mudlet docks are not nested. An existing
@@ -29,7 +30,7 @@ aardwolf-vibe workspace status
 aardwolf-vibe workspace reset
 ```
 
-`on` and `off` move Spellups, the ASCII map, and Chat without restarting their
+`on` and `off` move Spellups, the ASCII map, Chat, and Quest Tracker without restarting their
 protocol handlers or replacing retained models. The embedded graphical mapper
 is created while the workspace is on. Turning it off returns those panels to
 their standalone `UserWindow`s and opens Mudlet's native map dock. Mudlet can

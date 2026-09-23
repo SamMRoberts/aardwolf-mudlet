@@ -43,6 +43,7 @@ class WorkspaceTests(unittest.TestCase):
           assert(valid.tree.second.ratio==0.57)
           assert(valid.tree.second.first.active=="aardwolf-vibe.mapper-display")
           assert(valid.tree.second.second.active=="aardwolf-vibe.chat")
+          assert(valid.tree.second.second.tabs[2]=="aardwolf-vibe.quest-tracker")
           local moved=assert(Factory.movePanel(valid,"aardwolf-vibe.chat","root.first.second","center",1))
           assert(moved.tree.first.second.tabs[1]=="aardwolf-vibe.chat"
             and moved.tree.first.second.active=="aardwolf-vibe.chat")
@@ -112,6 +113,24 @@ class WorkspaceTests(unittest.TestCase):
           assert(workspace:registerPanel(external:spec()))
           assert(workspace:reset())
           assert(countPanel(workspace:status().tree,"external.panel")==1)
+          assert(workspace:stop())
+        ''')
+
+    def test_new_quest_panel_joins_chat_in_saved_layout(self):
+        lua = self.runtime(legacy=True)
+        lua.execute(r'''
+          local workspace=Factory.new(_G,settings)
+          assert(workspace:start())
+          local chat=makePanel('aardwolf-vibe.chat','Chat')
+          assert(workspace:registerPanel(chat:spec()))
+          local quest=makePanel('aardwolf-vibe.quest-tracker','Quest Tracker')
+          local spec=quest:spec()
+          spec.preferredStackWith='aardwolf-vibe.chat'
+          assert(workspace:registerPanel(spec))
+          local tree=workspace:status().tree
+          assert(tree.second.active=='aardwolf-vibe.chat')
+          assert(tree.second.tabs[#tree.second.tabs]=='aardwolf-vibe.quest-tracker')
+          assert(tree.first.tabs[1]=='aardwolf-vibe.ascii-map')
           assert(workspace:stop())
         ''')
 
