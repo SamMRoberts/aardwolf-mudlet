@@ -67,6 +67,30 @@ class CommandQueueTests(unittest.TestCase):
           assert(#visible==1 and deletedLines==5)
         ''')
 
+    def test_server_echo_trims_surrounding_command_whitespace(self):
+        lua = self.runtime()
+        lua.execute('''
+          publishStatus(3)
+          fire("sysDataSendRequest", " c 'cure p")
+          fire("sysDataSendRequest", "c 'cure p")
+          fire("sysDataSendRequest", "c 'cure p  ")
+          fire("sysDataSendRequest", " \\t ")
+          assert(queue:status().pending==3)
+          assert(queueWindow().text=="1.  c 'cure p\\n2. c 'cure p\\n3. c 'cure p  \\n")
+          incoming("You entered: c 'cure p")
+          assert(queueWindow().text=="1. c 'cure p\\n2. c 'cure p  \\n")
+          incoming("You entered: c 'cure p")
+          assert(queueWindow().text=="1. c 'cure p  \\n")
+          incoming("You entered: c 'cure p")
+          assert(queueWindow().text=="No commands queued\\n")
+          fire("sysDataSendRequest", "c 'cure  p")
+          incoming("You entered: c 'cure p")
+          assert(queueWindow().text=="1. c 'cure  p\\n")
+          incoming("You entered: c 'cure  p")
+          assert(queueWindow().text=="No commands queued\\n")
+          assert(#visible==0 and deletedLines==5)
+        ''')
+
     def test_hide_reconnect_and_repeated_lifecycle(self):
         lua = self.runtime()
         lua.execute('''

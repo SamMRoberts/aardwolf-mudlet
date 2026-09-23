@@ -23,6 +23,10 @@ local function display(command)
   end)
 end
 
+local function comparableCommand(command)
+  return (command:gsub("^[ \t]+", ""):gsub("[ \t]+$", ""))
+end
+
 function CommandQueue.new(api, character)
   local self = {enabled = false, visible = false, lastError = nil}
   local window, triggerID, generation = nil, nil, 0
@@ -69,15 +73,16 @@ function CommandQueue.new(api, character)
 
   local function sent(command)
     if not connected or not authenticated or not echoRequested or requestingEcho
-        or type(command) ~= "string" or command == "" then return end
+        or type(command) ~= "string" or comparableCommand(command) == "" then return end
     pending[#pending + 1] = command
     render()
   end
 
   local function executed(command)
     if type(command) ~= "string" then return end
+    local echoed = comparableCommand(command)
     for index, queued in ipairs(pending) do
-      if queued == command then
+      if comparableCommand(queued) == echoed then
         table.remove(pending, index)
         render()
         return
