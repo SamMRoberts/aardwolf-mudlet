@@ -69,6 +69,13 @@ name, and area; a separate locate command opens and centers the native mapper
 without sending movement, changing Aardwolf Vibe's GMCP-tracked current room,
 or modifying map data.
 
+Double-click a room in the graphical map to travel there; `gotoRoom(roomID)`
+uses the same handler. Consecutive basic directions are sent with Aardwolf's
+`run` command, while mapped special exits are sent separately after the prior
+segment reaches its expected room. Travel also works with automatic mapping
+off, once a fresh room number arrives from GMCP. Unexpected movement, a failed
+send, or a timeout stops the remaining route. See [map travel](docs/mapper.md#map-travel).
+
 The always-active character plugin consumes `char.base`, `char.vitals`,
 `char.stats`, `char.maxstats`, `char.status`, and `char.worth`. It exposes
 validated defensive-copy snapshots through `AardwolfVibe.plugins.character`

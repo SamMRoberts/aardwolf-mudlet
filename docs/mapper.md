@@ -82,6 +82,31 @@ movement. Mudlet's `centerview` function updates its native mapper marker as
 part of centering the view; the next room GMCP update restores that marker to
 the character's actual room.
 
+## Map travel
+
+Double-clicking a room in either the embedded or native graphical map starts a
+route to it. Mudlet scripts calling `gotoRoom(roomID)` use the same route handler.
+Navigation remains available with `aardwolf-vibe mapper off`, provided the
+current connection has supplied a fresh `gmcp.room.info.num`. The displayed
+map marker is not used as the route origin, so locating another room does not
+change the starting point.
+
+The handler uses Mudlet's mapped path. Consecutive north, east, south, west, up,
+and down steps become Aardwolf `run` commands of at most 200 characters,
+compressing repeats such as `run 3n2e`. Mapped special exits are sent as their
+recorded commands between run segments. It waits for `room.info` to confirm the
+destination of each segment before sending the next one. An unexpected room,
+send failure, or timeout stops the remaining route and reports the reason in
+the main console. Segment timeouts are 30 seconds plus 2 seconds per movement.
+Other commands do not cancel travel; another map travel request during an
+active route is ignored. No `stop` command is sent when a route is abandoned.
+
+Disconnecting, reconnecting, or disabling GMCP clears the current-room snapshot
+and any active route. Navigation waits for a new room packet before it can start
+again. The package owns Mudlet's `doSpeedWalk` callback while active, restores
+the previous callback and custom-speedwalk setting on teardown, and reports a
+conflict instead of replacing another script's callback.
+
 ## Placement
 
 For continent rooms (`coord.cont = 1`), GMCP x and inverted y are authoritative.

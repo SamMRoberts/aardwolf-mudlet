@@ -29,6 +29,7 @@ class LifecycleTests(unittest.TestCase):
           chatStarts=0;chatStops=0;mapWidgetOpens=0;mapWidgetCloses=0
           saved=nil;spellupSaved=nil;spellTagsSaved=nil
           queueStarts=0;queueStops=0;queueShows=0;queueHides=0
+          navigationStarts=0;navigationStops=0
           workspaceStarts=0;workspaceStops=0;workspaceEnabled=false
           mapDisplayStarts=0;mapDisplayStops=0
           spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
@@ -251,6 +252,15 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
+          NavigationFactory={new=function()
+            return {
+              start=function() navigationStarts=navigationStarts+1;return true end,
+              stop=function()
+                navigationStops=navigationStops+1;stopOrder[#stopOrder+1]="navigation";return true
+              end,
+              status=function() return {enabled=true,lastError=nil} end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/workspace.lua$") then return WorkspaceFactory end
@@ -264,6 +274,7 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
             if string.match(path,"/chat.lua$") then return ChatFactory end
             if string.match(path,"/command%-queue.lua$") then return QueueFactory end
+            if string.match(path,"/map%-navigation.lua$") then return NavigationFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
             error("unexpected resource: "..path)
@@ -297,7 +308,7 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibe.active=true
           assert(not AardwolfVibe.stop())
           assert(characterStops==1 and barsStops==1 and asciiStops==1 and helpStops==1
-            and chatStops==1 and mapperStops==1)
+            and chatStops==1 and mapperStops==1 and navigationStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
         ''')
@@ -307,13 +318,15 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1
-            and helpStarts==1 and chatStarts==1 and queueStarts==1)
+            and helpStarts==1 and chatStarts==1 and queueStarts==1 and navigationStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
           assert(AardwolfVibe.active)
           assert(AardwolfVibe.handleMapperCommand("off"));assert(saved==false and mapperStops==1)
+          assert(navigationStarts==1 and navigationStops==0)
           assert(AardwolfVibe.handleMapperCommand("on"));assert(saved==true and mapperStarts==2)
+          assert(navigationStarts==1)
         ''')
 
     def test_mapper_search_formats_bounded_results_and_locates_rooms(self):
@@ -375,16 +388,16 @@ class LifecycleTests(unittest.TestCase):
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
           assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1
-            and helpStarts==1 and chatStarts==1)
+            and helpStarts==1 and chatStarts==1 and navigationStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(helpRequests==1 and #sentCommands==0)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
-            and helpStops==1 and chatStops==1)
+            and helpStops==1 and chatStops==1 and navigationStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
-          assert(table.concat(stopOrder,",")=="mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
         ''')
 
@@ -393,7 +406,7 @@ class LifecycleTests(unittest.TestCase):
         lua.execute("assert(AardwolfVibe.start())")
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         lua.execute('''
-          assert(table.concat(stopOrder,",")=="mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
+          assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
             and characterStops==1 and mapperStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)

@@ -28,6 +28,7 @@ local ChatModel = resource("chat-model")
 local Chat = resource("chat")
 local CommandQueue = resource("command-queue")
 local Mapper = resource("mapper")
+local MapNavigation = resource("map-navigation")
 AardwolfVibe.settings = Settings.new(_G)
 AardwolfVibe.plugins.workspace = Workspace.new(_G, AardwolfVibe.settings)
 AardwolfVibe.plugins.mapperDisplay = MapperDisplay.new(_G, AardwolfVibe.plugins.workspace)
@@ -54,6 +55,7 @@ AardwolfVibe.plugins.commandQueue = CommandQueue.new(
 AardwolfVibe.plugins.mapper = Mapper.new(
   _G, AardwolfVibe.settings, AardwolfVibe.plugins.workspace,
   AardwolfVibe.plugins.mapperDisplay)
+AardwolfVibe.plugins.mapNavigation = MapNavigation.new(_G)
 
 function AardwolfVibe.start()
   local characterOK = AardwolfVibe.plugins.character:start()
@@ -119,14 +121,19 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.commandQueue:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local navigationOK = AardwolfVibe.plugins.mapNavigation:start()
+  if not navigationOK then
+    local status = AardwolfVibe.plugins.mapNavigation:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   if AardwolfVibe.active then
     return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK
-      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and settingsOK
+      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK and characterWindowOK
-    and asciiOK and helpOK and chatOK and queueOK and settingsOK and mapperOK
+    and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK and mapperOK
 end
 
 function AardwolfVibe.stop()
@@ -136,6 +143,7 @@ function AardwolfVibe.stop()
     return called and stopped ~= false
   end
   local plugins = AardwolfVibe.plugins or {}
+  local navigationOK = stopPlugin(plugins.mapNavigation)
   local mapperOK = stopPlugin(plugins.mapper)
   local mapDisplayOK = stopPlugin(plugins.mapperDisplay)
   local queueOK = stopPlugin(plugins.commandQueue)
@@ -149,7 +157,7 @@ function AardwolfVibe.stop()
   local characterOK = stopPlugin(plugins.character)
   local workspaceOK = stopPlugin(plugins.workspace)
   AardwolfVibe.active = false
-  return mapperOK and mapDisplayOK and queueOK and chatOK and helpOK and asciiOK
+  return navigationOK and mapperOK and mapDisplayOK and queueOK and chatOK and helpOK and asciiOK
     and characterWindowOK and buffsOK and spellupOK and spellsOK and characterOK and workspaceOK
 end
 

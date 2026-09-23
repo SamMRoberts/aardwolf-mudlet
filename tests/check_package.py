@@ -10,8 +10,9 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.51")
+        self.assertEqual(metadata["version"], "0.7.52")
         self.assertIn("room-name search", metadata["description"])
+        self.assertIn("map run navigation", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
         self.assertIn("character status bay", metadata["description"])
@@ -52,6 +53,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertNotIn("AardwolfToolbox.", source)
         self.assertNotIn("createRoomID", source)
         self.assertIn("AardwolfVibe.plugins.mapper", source)
+        self.assertIn("AardwolfVibe.plugins.mapNavigation", source)
         self.assertIn("AardwolfVibe.plugins.character", source)
         self.assertIn("AardwolfVibe.plugins.characterWindow", source)
         self.assertIn("AardwolfVibe.plugins.characterBars", source)
@@ -110,6 +112,9 @@ class PackageSourceTests(unittest.TestCase):
         self.assertTrue(queue.is_file())
         self.assertIn("sysDataSendRequest", queue.read_text())
         self.assertIn("config echocommands on", queue.read_text())
+        navigation = ROOT / "src/resources/map-navigation.lua"
+        self.assertTrue(navigation.is_file())
+        self.assertIn("mudlet.custom_speedwalk = true", navigation.read_text())
         spells = ROOT / "src/resources/spells.lua"
         spellup = ROOT / "src/resources/spellup.lua"
         buffs = ROOT / "src/resources/buffs-window.lua"
