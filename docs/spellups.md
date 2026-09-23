@@ -145,14 +145,13 @@ automation until Resume.
 
 ## Window, persistence, and boundaries
 
-“Aardwolf Spellups” initially opens as its own right-side dock. Its compact
+“Aardwolf Spellups” opens in the upper left of the right workspace on a new
+profile, and retains its standalone right-side dock when workspace mode is off. Its compact
 header shows only the current automation state, such as Off, Ready, Work
 queued, Batch outstanding, or an actionable blocking reason. A small
 vertical-ellipsis menu contains Sync, Spellup now, automatic, and spell-tag
-visibility actions so the tables keep the remaining window space. Its unique
-user-window name keeps it separate from the map and chat docks. After that
-first successful mount, Mudlet owns visibility,
-docking, floating, size, and tab placement through `restoreLayout`. When an
+visibility actions so the tables keep the remaining window space. The
+standalone window keeps its own name and saved Mudlet placement. When an
 active-effect countdown reaches zero, the effect moves into Expired Effects;
 with automatic maintenance enabled, that same transition queues the server-owned
 spellup batch. Recovery countdowns may still display “Awaiting server

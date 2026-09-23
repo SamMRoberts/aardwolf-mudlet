@@ -216,5 +216,34 @@ class BuffsWindowTests(unittest.TestCase):
         """)
 
 
+    def test_workspace_remount_preserves_widgets_and_spell_state(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          workspace={visible=true}
+          function workspace:registerPanel(spec)
+            self.spec=spec
+            local handle={}
+            function handle:show() workspace.visible=true;spec.onVisibilityChanged(true);return true end
+            function handle:hide() workspace.visible=false;spec.onVisibilityChanged(false);return true end
+            function handle:status() return {visible=workspace.visible,host="workspace"} end
+            return handle
+          end
+          function workspace:unregisterPanel() self.spec=nil;return true end
+          window=Factory.new(_G,spells,spellup,workspace)
+          assert(window:start() and workspace.spec)
+          local root=widgets["aardwolf-vibe.buffs-window.root"]
+          local content=widgets["aardwolf-vibe.buffs-window.content"]
+          spellup.automatic=true
+          local target=Geyser.Container:new({name="workspace.slot",x=0,y=0,width=400,height=400})
+          assert(workspace.spec.unmount(root))
+          assert(workspace.spec.mount(target)==root and root.parent==target)
+          assert(widgets["aardwolf-vibe.buffs-window.content"]==content)
+          assert(content.text:find("Shield",1,true) and spellup.automatic)
+          assert(count(handlers)==2)
+          assert(window:hide() and not window:status().visible and count(timers)==0)
+          assert(window:show() and window:status().visible and count(timers)==1)
+        ''')
+
+
 if __name__ == "__main__":
     unittest.main()

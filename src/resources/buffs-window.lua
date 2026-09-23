@@ -92,9 +92,9 @@ local function tableHeight(snapshot)
   return math.max(260, 190 + rows * 25)
 end
 
-function BuffsWindow.new(api, spells, spellup)
+function BuffsWindow.new(api, spells, spellup, workspace)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, header, body, content
+  local window, root, header, body, content, workspaceHandle
   local menuButton, automaticMenuItem, tagsMenuItem
   local menuItems, menuOpen = {}, false
   local timer, contentHeight, generation = nil, nil, 0
@@ -199,6 +199,9 @@ function BuffsWindow.new(api, spells, spellup)
     self.enabled, self.visible = false, false
     cancelTimer()
     removeHandlers()
+    if workspaceHandle and workspace then pcall(workspace.unregisterPanel, workspace, OWNER) end
+    workspaceHandle = nil
+    if workspace and root and type(root.delete) == "function" then pcall(root.delete, root) end
     if window and type(window.delete) == "function" then pcall(window.delete, window) end
     window, root, header, body, content = nil, nil, nil, nil, nil
     contentHeight = nil
@@ -316,6 +319,43 @@ function BuffsWindow.new(api, spells, spellup)
         api[LAYOUT_MARKER] = LAYOUT_VERSION
         if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
       end
+      if workspace then
+        local viewParent = window
+        local handle, why = workspace:registerPanel({
+          id = OWNER,
+          title = "Spellups",
+          root = root,
+          parent = window,
+          minimumWidth = 280,
+          minimumHeight = 220,
+          standalone = {host = function() return window end},
+          mount = function(parent)
+            if viewParent ~= parent then
+              assert(type(root.changeContainer) == "function", "Spellups root cannot be reparented")
+              root:changeContainer(parent)
+              viewParent = parent
+            end
+            root:move(0, 0)
+            root:resize("100%", "100%")
+            root:show()
+            render()
+            return root
+          end,
+          unmount = function(mounted)
+            closeMenu()
+            if viewParent ~= window then mounted:changeContainer(window); viewParent = window end
+            mounted:hide()
+            return true
+          end,
+          onVisibilityChanged = function(visible)
+            self.visible = visible
+            if visible then render(); scheduleTick() else cancelTimer(); closeMenu() end
+          end,
+          onResize = function() render() end,
+        })
+        if not handle then error(why, 0) end
+        workspaceHandle = handle
+      end
     end)
     if not ok then
       teardown("Cannot start spellup window during " .. stage .. ": " .. tostring(message))
@@ -328,6 +368,7 @@ function BuffsWindow.new(api, spells, spellup)
 
   function self:show()
     if not self.enabled then return self:start() end
+    if workspaceHandle then return workspaceHandle:show() end
     local ok, message = reveal()
     if not ok then return false, message end
     render()
@@ -336,6 +377,7 @@ function BuffsWindow.new(api, spells, spellup)
   end
 
   function self:hide()
+    if workspaceHandle then return workspaceHandle:hide() end
     if not window then self.visible = false; return true end
     closeMenu()
     local ok, message = pcall(window.hide, window)
@@ -351,7 +393,9 @@ function BuffsWindow.new(api, spells, spellup)
 
   function self:status()
     local visible = self.visible
-    if window and type(api.windowVisible) == "function" then
+    if workspaceHandle then
+      visible = workspaceHandle:status().visible
+    elseif window and type(api.windowVisible) == "function" then
       local ok, value = pcall(api.windowVisible, WINDOW_NAME)
       if ok and type(value) == "boolean" then visible = value end
     end

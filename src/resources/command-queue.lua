@@ -135,7 +135,7 @@ function CommandQueue.new(api, character)
       local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
       window = geyser.UserWindow:new({
         name = WINDOW_NAME, titleText = "Aardwolf Command Queue",
-        x = 40, y = 100, width = 320, height = 360,
+        x = 40, y = 100, width = 190, height = 360,
         restoreLayout = restoreLayout, autoDock = true, docked = true,
         dockPosition = "left", font = "Menlo", fontSize = 11,
         autoWrap = true, scrollBar = true,

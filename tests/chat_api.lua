@@ -70,8 +70,20 @@ function Widget:new(cons, parent)
 end
 function Widget:move(x, y) self.x, self.y = x, y end
 function Widget:resize(width, height) self.width, self.height = width, height end
-function Widget:get_width() return type(self.width) == "number" and self.width or 900 end
-function Widget:get_height() return type(self.height) == "number" and self.height or 260 end
+function Widget:changeContainer(parent)
+  self.parent = parent
+  parent.children[#parent.children + 1] = self
+end
+function Widget:get_width()
+  if type(self.width) == "number" then return self.width end
+  if self.width == "100%" and self.parent then return self.parent:get_width() end
+  return 900
+end
+function Widget:get_height()
+  if type(self.height) == "number" then return self.height end
+  if self.height == "100%" and self.parent then return self.parent:get_height() end
+  return 260
+end
 function Widget:show() self.hidden = false end
 function Widget:hide() self.hidden = true end
 function Widget:setStyleSheet(value) self.style = value end

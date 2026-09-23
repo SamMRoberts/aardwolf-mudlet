@@ -35,6 +35,11 @@
     "regex": "^aardwolf-vibe queue(?: (show|hide|status))?$"
   },
   {
+    "name": "workspace",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$"
+  },
+  {
     "name": "help",
     "isActive": "yes",
     "regex": "^aardwolf-vibe help(?: (show|hide|status))?$"

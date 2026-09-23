@@ -1,10 +1,10 @@
 # Chat and communications
 
 `AardwolfVibe.plugins.chat` is an always-active, read-only consumer of
-`gmcp.comm.channel`. It owns a native Mudlet user window named
-`aardwolf-vibe.chat.window`. On first use that window is docked at the top;
-Mudlet restores later floating, docked, resized, moved, or tabbed placement.
-Closing or hiding it does not stop reception.
+`gmcp.comm.channel`. It starts in the lower right workspace on a new profile.
+Its standalone Mudlet user window, `aardwolf-vibe.chat.window`, remains
+available when workspace mode is off. Mudlet restores saved standalone
+placement. Closing or hiding Chat does not stop reception.
 
 ## Commands and API
 

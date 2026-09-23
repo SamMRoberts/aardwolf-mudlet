@@ -34,9 +34,10 @@ room 101, but the rooms may have unused grid cells between them. A one-way GMCP
 exit remains a directed exit and its initial placeholder remains provisional;
 the mapper does not invent the missing return exit.
 
-The package lifecycle calls Mudlet's `openMapWidget()` after profile load and
-package installation so the native graphical mapper is visible. This does not
-replace or clear map data and does not change the mapper's saved layout.
+The graphical mapper appears in the right workspace on a new profile. Profiles
+using standalone docks continue to call Mudlet's `openMapWidget()` after load
+and package installation. Switching the workspace off opens the native map
+dock. These presentation changes do not replace or clear map data.
 
 ## Identity and ownership
 

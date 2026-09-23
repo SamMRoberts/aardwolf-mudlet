@@ -195,7 +195,7 @@ local function normalize(data)
   return result
 end
 
-function Mapper.new(api, settings)
+function Mapper.new(api, settings, workspace, mapperDisplay)
   local self = {
     enabled = false,
     added = 0,
@@ -377,13 +377,22 @@ function Mapper.new(api, settings)
     if not areaEntries then return false, areaNames end
     local areaID, areaName, areaError = roomArea(id, areaNames)
     if areaError then return false, areaError end
-    if type(api.openMapWidget) ~= "function" or type(api.centerview) ~= "function" then
+    if type(api.centerview) ~= "function" then
       return false, "Native mapper controls are unavailable"
     end
-    local opened, openResult, openMessage = pcall(api.openMapWidget)
-    if not opened or not openResult then
-      return false, "Cannot open native mapper: "
-        .. tostring(opened and openMessage or openResult)
+    local workspaceEnabled = workspace and workspace:status().enabled
+    if workspaceEnabled then
+      local shown, showMessage = mapperDisplay:show()
+      if not shown then return false, "Cannot show embedded mapper: " .. tostring(showMessage) end
+    else
+      if type(api.openMapWidget) ~= "function" then
+        return false, "Native mapper controls are unavailable"
+      end
+      local opened, openResult, openMessage = pcall(api.openMapWidget)
+      if not opened or not openResult then
+        return false, "Cannot open native mapper: "
+          .. tostring(opened and openMessage or openResult)
+      end
     end
     local centered, centerResult, centerMessage = pcall(api.centerview, id)
     if not centered or not centerResult then

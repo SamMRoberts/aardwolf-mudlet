@@ -126,6 +126,20 @@ class MapperTests(unittest.TestCase):
           centerview=originalCenter
         ''')
 
+    def test_locate_reveals_embedded_workspace_map(self):
+        self.check('''
+          mapper:stop()
+          local workspace={status=function() return {enabled=true} end}
+          local shown=0
+          local display={show=function() shown=shown+1;return true end}
+          mapper=factory.new(_G,settings,workspace,display)
+          assert(mapper:start())
+          addRoom(41);setRoomArea(41,areas.test);setRoomName(41,"Destination")
+          local ok,result=mapper:locateRoom(41)
+          assert(ok and result.id==41 and shown==1 and mapOpens==0)
+          assert(centers[#centers]==41)
+        ''')
+
     def test_grid_refresh_detects_external_changes_between_identical_packets(self):
         self.check((ROOT / "tests/mapper_grid.lua").read_text() + '''
           local fresh=seedMapperGrid(5,0)

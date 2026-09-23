@@ -1,11 +1,10 @@
 # ASCII minimap
 
-`AardwolfVibe.plugins.asciiMap` displays Aardwolf's tagged ASCII map in an
-owned native Mudlet user window. The map canvas is borderless and black; the
-native title frame remains available so the user can move, resize, float,
-dock, or tab the window. On first use it opens in the right dock. Mudlet owns
-subsequent layout restoration, while Aardwolf Vibe overrides a restored hidden
-state and shows the minimap on every profile launch.
+`AardwolfVibe.plugins.asciiMap` displays Aardwolf's tagged ASCII map in the
+right workspace on a new profile. Its standalone native user window remains
+available when workspace mode is off. The map canvas is borderless and black.
+Mudlet owns saved standalone placement. The minimap reopens on each launch in
+standalone mode; workspace mode restores its saved visibility.
 
 ## Public API and commands
 

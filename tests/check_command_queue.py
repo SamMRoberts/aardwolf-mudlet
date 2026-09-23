@@ -25,6 +25,7 @@ class CommandQueueTests(unittest.TestCase):
         lua.execute('''
           local window=queueWindow()
           assert(window.options.dockPosition=="left" and window.options.docked)
+          assert(window.options.width==190)
           assert(window.options.autoDock and not window.options.restoreLayout)
           assert(#remembered==1 and AardwolfVibeCommandQueueLayout==1)
           assert(window.text=="No commands queued\\n" and #sent==0)

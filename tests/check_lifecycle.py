@@ -26,8 +26,11 @@ class LifecycleTests(unittest.TestCase):
           barsStarts=0;barsStops=0;barsShows=0;barsHides=0
           asciiStarts=0;asciiStops=0;asciiShows=0
           helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
-          chatStarts=0;chatStops=0;mapWidgetOpens=0;saved=nil;spellupSaved=nil;spellTagsSaved=nil
+          chatStarts=0;chatStops=0;mapWidgetOpens=0;mapWidgetCloses=0
+          saved=nil;spellupSaved=nil;spellTagsSaved=nil
           queueStarts=0;queueStops=0;queueShows=0;queueHides=0
+          workspaceStarts=0;workspaceStops=0;workspaceEnabled=false
+          mapDisplayStarts=0;mapDisplayStops=0
           spellsStarts=0;spellsStops=0;spellupStarts=0;spellupStops=0
           buffsStarts=0;buffsStops=0;buffsShows=0;buffsHides=0
           function echo(message) messages[#messages+1]=message end
@@ -35,6 +38,7 @@ class LifecycleTests(unittest.TestCase):
             mapWidgetOpens=mapWidgetOpens+1
             return true
           end
+          function closeMapWidget() mapWidgetCloses=mapWidgetCloses+1;return true end
           function send(command, echoCommand)
             sentCommands[#sentCommands+1]={
               command=command,
@@ -60,6 +64,26 @@ class LifecycleTests(unittest.TestCase):
               setEnabled=function(value) saved=value;return true end,
               setSpellupsAutoCast=function(value) spellupSaved=value;return true end,
               setSpellupsHideTags=function(value) spellTagsSaved=value;return true end,
+            }
+          end}
+          WorkspaceFactory={new=function()
+            return {
+              start=function() workspaceStarts=workspaceStarts+1;return true end,
+              stop=function() workspaceStops=workspaceStops+1;return true end,
+              setEnabled=function(_,value) workspaceEnabled=value;return true end,
+              show=function() return true end,
+              hide=function() return true end,
+              reset=function() return true end,
+              status=function() return {enabled=workspaceEnabled,
+                mode=workspaceEnabled and "on" or "off",visible=true,
+                registered=4,placeholders=0,locked=false} end,
+            }
+          end}
+          MapDisplayFactory={new=function()
+            return {
+              start=function() mapDisplayStarts=mapDisplayStarts+1;return true end,
+              stop=function() mapDisplayStops=mapDisplayStops+1;return true end,
+              status=function() return {enabled=true,lastError=nil} end,
             }
           end}
           MapperFactory={new=function()
@@ -229,6 +253,8 @@ class LifecycleTests(unittest.TestCase):
           end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
+            if string.match(path,"/workspace.lua$") then return WorkspaceFactory end
+            if string.match(path,"/mapper%-display.lua$") then return MapDisplayFactory end
             if string.match(path,"/buffs%-window.lua$") then return BuffsFactory end
             if string.match(path,"/spellup.lua$") then return SpellupFactory end
             if string.match(path,"/spells.lua$") then return SpellsFactory end
@@ -586,6 +612,21 @@ class LifecycleTests(unittest.TestCase):
           assert(not ok and message:find("create right dock",1,true))
           assert(messages[#messages]:find("spellups show failed",1,true))
           assert(messages[#messages]:find("native failure",1,true))
+        ''')
+
+    def test_workspace_layout_uses_embedded_map_and_restores_native_map_on_off(self):
+        lua = self.runtime()
+        lua.execute('''
+          workspaceEnabled=true
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(workspaceStarts==1 and mapDisplayStarts==1)
+          assert(asciiShows==0 and mapWidgetOpens==0 and mapWidgetCloses==1)
+          assert(AardwolfVibe.handleWorkspaceCommand("off"))
+          assert(not workspaceEnabled and mapWidgetOpens==1)
+          assert(AardwolfVibe.handleWorkspaceCommand("on"))
+          assert(workspaceEnabled and mapWidgetCloses==2)
+          assert(AardwolfVibe.plugins.workspace:status().enabled)
+          assert(AardwolfVibe.stop() and workspaceStops==1 and mapDisplayStops==1)
         ''')
 
 

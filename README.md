@@ -2,8 +2,8 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, a top character status bay with bottom vitals, a native
-dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
+handler, a top character status bay with bottom vitals, a docked workspace
+with an ASCII minimap and graphical map, and a transient tagged-help popup, plus a configurable
 GMCP chat window with configurable transcript font and size. It also includes
 session-only spell/recovery tracking and explicitly opt-in self-spellup maintenance.
 
@@ -91,16 +91,21 @@ leaves the bottom gauges visible. See
 [`docs/character-window.md`](docs/character-window.md) for its rendering,
 layout, and lifecycle contract.
 
+The default layout on a new profile keeps the command queue in a narrow left
+dock and the game console in the center. A right workspace places Spellups and
+the ASCII minimap side by side at the top, the graphical map in the middle,
+and Chat below. Saved layouts in existing profiles remain in effect. See
+[`docs/workspace.md`](docs/workspace.md) for layout controls and persistence.
+
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
 complete `<MAPSTART>` / `<MAPEND>` frames and displays
-them in a movable, resizable native Mudlet dock window. The map canvas preserves
+them in the workspace or its standalone Mudlet dock window. The map canvas preserves
 literal spacing and server colors while suppressing the duplicate frame in the
-main console. It starts in the right dock and Mudlet restores the user's later
-floating, docked, resized, or tabbed layout. See
+main console. Mudlet restores the player's standalone window layout. See
 [`docs/ascii-map.md`](docs/ascii-map.md) for its API and capture contract.
-The minimap is also reopened automatically on every profile launch; hiding it
-remains effective for the rest of the current session.
+In standalone mode the minimap reopens on each profile launch. Workspace mode
+restores the player's saved visibility.
 
 The always-active help plugin queues Aardwolf's `HELPS` tags after installation
 and on every connection, then sends `tags HELPS on` only after fresh character
@@ -117,8 +122,8 @@ the previous document intact and stop capture after a bounded timeout. See
 [`docs/help-window.md`](docs/help-window.md) for its API, limits, and acceptance
 boundary.
 
-The always-active chat plugin consumes `gmcp.comm.channel` into a movable,
-resizable native window that starts docked across the top. Its initial All,
+The always-active chat plugin consumes `gmcp.comm.channel` into the workspace
+or its movable standalone window. Its initial All,
 Tell, Group, Clan, Newbie, and Gossip tabs can be renamed, reordered, removed,
 or supplemented through the built-in visual editor. Aardwolf channel text is
 requested over GMCP only; `say` and `mobsay` remain mirrored into the gameplay
@@ -146,9 +151,8 @@ were already active before a package reload, before automation can submit its
 first batch. Aardwolf-classified bad effects remain visible while active,
 but are excluded from expired-effect and automatic batch-completion tracking so
 mob debuffs cannot hold a spellup batch open. Remaining time changes from green
-to dark yellow to red as expiry approaches. Its first successful mount creates
-a distinct right-side dock; Mudlet restores the user's later placement without
-reusing the map or chat window. Its scroll area starts at the top, retains the user's
+to dark yellow to red as expiry approaches. Its standalone mount creates
+a distinct right-side dock; Mudlet restores the player's later placement. Its scroll area starts at the top, retains the user's
 position across refreshes, and does not use Mudlet's split console scrollback.
 Spell machine tags are hidden by default and can be made visible without
 disabling their parsing. A compact header shows only the current automation

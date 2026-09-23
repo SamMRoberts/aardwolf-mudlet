@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.48")
+        self.assertEqual(metadata["version"], "0.7.49")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
@@ -21,6 +21,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("configurable chat", metadata["description"])
         self.assertIn("font and size settings", metadata["description"])
         self.assertIn("command queue dock", metadata["description"])
+        self.assertIn("default docked workspace", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         self.assertIn("heartbeat-reconciled", metadata["description"])
         self.assertIn("batch-confirmed", metadata["description"])
@@ -39,6 +40,7 @@ class PackageSourceTests(unittest.TestCase):
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
+                "workspace": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
                 "stats": "^aardwolf-vibe stats(?: (show|hide|status))?$",
                 "spellups": "^aardwolf-vibe spellups(?: (show|hide|status|sync|on|off|now)| tags (show|hide|status))?$",
@@ -57,6 +59,8 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.helpWindow", source)
         self.assertIn("AardwolfVibe.plugins.chat", source)
         self.assertIn("AardwolfVibe.plugins.commandQueue", source)
+        self.assertIn("AardwolfVibe.plugins.workspace", source)
+        self.assertIn("AardwolfVibe.plugins.mapperDisplay", source)
         self.assertIn("AardwolfVibe.plugins.spells", source)
         self.assertIn("AardwolfVibe.plugins.spellup", source)
         self.assertIn("AardwolfVibe.plugins.buffsWindow", source)
