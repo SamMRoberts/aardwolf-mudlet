@@ -4,15 +4,19 @@ local OWNER = "aardwolf-vibe.spells"
 local MAX_ROWS = 4096
 local MAX_BYTES = 1024 * 1024
 local SNAPSHOT_TIMEOUT = 10
+local EXPIRY_HEARTBEAT = 1
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
-local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$|(?i:.*retry.*(?:unknown|invalid|syntax|usage).*))$]]
+local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$)$]]
 
+local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
+local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
 local REQUESTS = {
   {kind = "catalog", command = "slist noprompt"},
   {kind = "classification", command = "slist spellup noprompt"},
+  {kind = "bad", command = "slist bad noprompt"},
+  ACTIVE_REQUEST,
+  RECOVERY_REQUEST,
 }
-local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
-local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
 local DELTA_REQUESTS = {ACTIVE_REQUEST, RECOVERY_REQUEST}
 
 local function copy(value)
@@ -49,6 +53,9 @@ local function expectedHeader(request, header, arguments)
   elseif request.kind == "classification" then
     return header == "spellheaders"
       and (arguments == "spellup" or arguments == "spellup noprompt")
+  elseif request.kind == "bad" then
+    return header == "spellheaders"
+      and (arguments == "bad" or arguments == "bad noprompt")
   elseif request.kind == "active" then
     return header == "spellheaders"
       and (arguments == "affected" or arguments == "affected noprompt")
@@ -98,17 +105,18 @@ function Spells.new(api, character, settings)
     lastError = nil,
     hideTags = true,
   }
-  local catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+  local catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
   local handlers = {}
   local triggerIDs, captureID = {}, nil
-  local frame, timeout, driveTimer, hiddenFrame, hiddenFrameTimeout
+  local frame, timeout, driveTimer, expiryTimer, hiddenFrame, hiddenFrameTimeout
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
   local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
-  local receive
+  local nextExpiry, lastExpiryCheck, lastExpiryReason
+  local receive, snapshotAt, reconcileExpirations, armExpiryHeartbeat
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -136,7 +144,7 @@ function Spells.new(api, character, settings)
   end
 
   local function changed()
-    emit("updated", self:snapshot())
+    emit("updated", snapshotAt(now()))
   end
 
   local function suppressOwnedLine()
@@ -219,11 +227,65 @@ function Spells.new(api, character, settings)
     return catalog[id] and catalog[id].name or "Spell #" .. tostring(id)
   end
 
+  local function isBadEffect(id)
+    -- Aardwolf can return the same ability from both `slist spellup` and
+    -- `slist bad`. A server-owned self-spellup is beneficial for this
+    -- tracker, so the explicit spellup classification wins the overlap.
+    return bad[id] == true and classification[id] ~= true
+  end
+
   local function confirmExpired(id, at)
     if not active[id] then return false end
-    expired[id] = {id = id, expiredAt = at}
     active[id] = nil
+    if isBadEffect(id) then
+      expired[id] = nil
+      return false
+    end
+    expired[id] = {id = id, expiredAt = at}
     return true
+  end
+
+  reconcileExpirations = function(timestamp, reason)
+    timestamp = timestamp or now()
+    lastExpiryCheck, lastExpiryReason = timestamp, reason
+    nextExpiry = nil
+    local due = {}
+    for id, effect in pairs(active) do
+      if type(effect.expires) == "number" then
+        if effect.expires <= timestamp then
+          due[#due + 1] = id
+        elseif not nextExpiry or effect.expires < nextExpiry then
+          nextExpiry = effect.expires
+        end
+      end
+    end
+    table.sort(due)
+    if #due > 0 then
+      for _, id in ipairs(due) do
+        local effect = active[id]
+        active[id] = nil
+        if isBadEffect(id) then
+          expired[id] = nil
+        else
+          expired[id] = {id = id, expiredAt = effect.expires}
+          emit("missing", id)
+        end
+      end
+    end
+    return #due > 0
+  end
+
+  armExpiryHeartbeat = function()
+    cancelTimer(expiryTimer)
+    expiryTimer = nil
+    if not self.enabled or not nextExpiry then return end
+    local token = generation
+    expiryTimer = api.tempTimer(EXPIRY_HEARTBEAT, function()
+      expiryTimer = nil
+      if not self.enabled or token ~= generation then return end
+      if reconcileExpirations(now(), "heartbeat") then changed() end
+      armExpiryHeartbeat()
+    end)
   end
 
   local function applyDelta(event)
@@ -237,8 +299,12 @@ function Spells.new(api, character, settings)
       }
       emit("applied", event.id)
     elseif event.kind == "affoff" then
-      confirmExpired(event.id, event.at)
-      emit("missing", event.id)
+      local alreadyExpired = expired[event.id] ~= nil
+      local confirmed = confirmExpired(event.id, event.at)
+      if confirmed or (not alreadyExpired and classification[event.id]
+          and not isBadEffect(event.id)) then
+        emit("missing", event.id)
+      end
     elseif event.kind == "recon" then
       local old = recoveries[event.id]
       recoveries[event.id] = {
@@ -262,6 +328,12 @@ function Spells.new(api, character, settings)
     elseif completed.kind == "classification" then
       classification = {}
       for id in pairs(completed.rows) do classification[id] = true end
+    elseif completed.kind == "bad" then
+      bad = {}
+      for id in pairs(completed.rows) do
+        bad[id] = true
+        if isBadEffect(id) then expired[id] = nil end
+      end
     elseif completed.kind == "active" then
       local previous = active
       local replacement = {}
@@ -279,8 +351,12 @@ function Spells.new(api, character, settings)
       end
       for id in pairs(previous) do
         if not replacement[id] then
-          expired[id] = {id = id, expiredAt = completed.at}
-          emit("missing", id)
+          if isBadEffect(id) then
+            expired[id] = nil
+          else
+            expired[id] = {id = id, expiredAt = completed.at}
+            emit("missing", id)
+          end
         end
       end
       active = replacement
@@ -300,6 +376,8 @@ function Spells.new(api, character, settings)
       recoveries = replacement
     end
     for _, event in ipairs(completed.deltas) do applyDelta(event) end
+    reconcileExpirations(now(), "snapshot")
+    armExpiryHeartbeat()
   end
 
   local function completeFrame()
@@ -385,14 +463,6 @@ function Spells.new(api, character, settings)
       or value:match("^Queueing skill : (.+)%.$"))
     if queued then emit("queued", queued); return false end
     if not frame and value == "No spells or skills cast." then emit("noWork"); return false end
-    local lower = value:lower()
-    if not frame and lower:find("retry", 1, true)
-        and (lower:find("unknown", 1, true) or lower:find("invalid", 1, true)
-          or lower:find("syntax", 1, true) or lower:find("usage", 1, true)) then
-      emit("unsupported", value)
-      return false
-    end
-
     local tag, payload = value:match("^{([%a]+)}(.*)$")
     if tag == "affon" or tag == "affoff" or tag == "recon"
         or tag == "recoff" or tag == "sfail" then
@@ -405,6 +475,8 @@ function Spells.new(api, character, settings)
         else frame.deltas[#frame.deltas + 1] = event end
       else
         applyDelta(event)
+        reconcileExpirations(now(), "effect-update")
+        armExpiryHeartbeat()
       end
       changed()
       return true
@@ -489,13 +561,15 @@ function Spells.new(api, character, settings)
     cancelRequest()
     clearHiddenFrame()
     cancelTimer(driveTimer)
-    driveTimer = nil
-    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+    cancelTimer(expiryTimer)
+    driveTimer, expiryTimer = nil, nil
+    catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
     deltaRefreshPending = false
     lastBaseSignature = nil
+    nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     session = session + 1
     self.lastError = nil
     emit("reset", reason, session)
@@ -540,7 +614,7 @@ function Spells.new(api, character, settings)
   end
 
   function self:confirm()
-    return false, "Affected synchronization waits for affon or affoff"
+    return queue(DELTA_REQUESTS)
   end
 
   function self:setHideTags(value)
@@ -560,6 +634,7 @@ function Spells.new(api, character, settings)
     if not id or not (catalog[id] or active[id]) then return nil end
     local result = copy(catalog[id] or {id = id, name = effectName(id)})
     result.spellup = classification[id] == true
+    result.bad = isBadEffect(id)
     result.learned = type(result.practice) == "number" and result.practice > 1
     result.active = copy(active[id])
     return result
@@ -578,27 +653,40 @@ function Spells.new(api, character, settings)
 
   function self:isLearnedSpellup(id)
     local row = catalog[id]
-    return classification[id] == true and row ~= nil and row.practice > 1
+    return classification[id] == true and not isBadEffect(id)
+      and row ~= nil and row.practice > 1
   end
 
   function self:isAutomaticSpellup(id)
     local row = catalog[id]
     -- Aardwolf's "spellup learned" includes granted/clan abilities reported
     -- at 0% practice, while excluding ordinary 1% unlearned abilities.
-    return classification[id] == true and row ~= nil and row.practice ~= 1
+    return classification[id] == true and not isBadEffect(id)
+      and row ~= nil and row.practice ~= 1
+  end
+
+  function self:isTrackedSpellup(id)
+    -- An active effect or a target named by the server's spellup queue is
+    -- stronger evidence than catalog practice.  Aardwolf may queue racial
+    -- abilities that are reported at 1% even though they are unpracticed.
+    return classification[id] == true and not isBadEffect(id) and catalog[id] ~= nil
+  end
+
+  function self:isBadEffect(id)
+    return isBadEffect(id)
   end
 
   function self:isFresh()
     return self.enabled and connected() and fresh and monitoring
   end
 
-  function self:snapshot()
-    local timestamp = now()
+  snapshotAt = function(timestamp)
     local effects = {}
     for id, effect in pairs(active) do
       local row = copy(effect)
       row.name = effectName(id)
       row.spellup = classification[id] == true
+      row.bad = isBadEffect(id)
       row.learned = catalog[id] ~= nil and catalog[id].practice > 1
       row.remaining = math.max(0, math.ceil(effect.expires - timestamp))
       row.awaiting = row.remaining == 0
@@ -644,12 +732,28 @@ function Spells.new(api, character, settings)
       pending = pending,
       catalog = copy(catalog),
       classification = copy(classification),
+      bad = copy(bad),
       active = effects,
       expired = expiredRows,
       recoveries = recoveryRows,
       lastError = self.lastError,
       hideTags = self.hideTags,
     }
+  end
+
+  function self:snapshot()
+    local timestamp = now()
+    local changedState = reconcileExpirations(timestamp, "snapshot-read")
+    armExpiryHeartbeat()
+    local result = snapshotAt(timestamp)
+    if changedState then emit("updated", copy(result)) end
+    return result
+  end
+
+  local function tableCount(values)
+    local result = 0
+    for _ in pairs(values) do result = result + 1 end
+    return result
   end
 
   function self:status()
@@ -665,6 +769,13 @@ function Spells.new(api, character, settings)
       rejected = self.rejected,
       lastError = self.lastError,
       hideTags = self.hideTags,
+      activeCount = tableCount(active),
+      expiredCount = tableCount(expired),
+      nextExpiry = nextExpiry,
+      heartbeatActive = expiryTimer ~= nil,
+      expiryHeartbeatSeconds = EXPIRY_HEARTBEAT,
+      lastExpiryCheck = lastExpiryCheck,
+      lastExpiryReason = lastExpiryReason,
     }
   end
 
@@ -731,16 +842,18 @@ function Spells.new(api, character, settings)
     cancelRequest()
     clearHiddenFrame()
     cancelTimer(driveTimer)
-    driveTimer = nil
+    cancelTimer(expiryTimer)
+    driveTimer, expiryTimer = nil, nil
     removeHandlers()
     cancelLineCapture()
     for _, id in ipairs(triggerIDs) do pcall(api.killTrigger, id) end
     triggerIDs = {}
-    catalog, classification, active, expired, recoveries = {}, {}, {}, {}, {}
+    catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
     deltaRefreshPending = false
+    nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     return true
   end
 

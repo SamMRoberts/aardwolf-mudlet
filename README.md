@@ -2,17 +2,22 @@
 
 `aardwolf-vibe` is a source-controlled Mudlet package for Aardwolf on Mudlet
 5.0.1. It provides a defensive GMCP auto-mapper, an in-memory character state
-handler, a dockable real-time character sheet with bottom vitals, a native
+handler, a top character status bay with bottom vitals, a native
 dockable ASCII minimap, and a transient tagged-help popup, plus a configurable
-GMCP chat window. It also includes session-only spell/recovery tracking and
-explicitly opt-in self-spellup maintenance.
+GMCP chat window with configurable transcript font and size. It also includes
+session-only spell/recovery tracking and explicitly opt-in self-spellup maintenance.
 
 The mapper consumes `gmcp.room.info`, uses Aardwolf room numbers as native
 Mudlet room IDs, names areas exactly from `room.info.zone`, colors rooms by
 terrain, creates placeholders for known destinations, and represents unexpected
-non-standard exit keys as Mudlet special exits. Movement is confirmed by a
-change in the validated GMCP room number, so a failed direction command that
-leaves the character in the same room does not advance the mapper. Exact
+non-standard exit keys as Mudlet special exits. Because Aardwolf omits custom
+exits from `room.info`, the mapper also correlates a non-cardinal outbound
+command with the next validated room change and records the observed one-way
+transition as a Mudlet special exit. Learned exits survive ordinary GMCP room
+refreshes, while manual or externally modified special exits are preserved.
+Movement is confirmed by a change in the validated GMCP room number, so a
+failed direction command that leaves the character in the same room does not
+advance the mapper. Exact
 forward-and-return GMCP exit pairs confirm bidirectional topology without
 requiring adjacent grid cells or causing the mapper to invent a reverse exit.
 Cardinal exits may span intentional gaps. When a new edge closes a loop, the
@@ -58,6 +63,12 @@ Terrain names follow Aardwolf's complete terrain catalog (including roads,
 weather, water, ice, hell, structures, and dead-land variants) and use the
 catalog's supplied ANSI color index. Unknown terrain remains visible in gray.
 
+Mapped rooms can be searched by a case-insensitive literal name fragment across
+the world or within one explicitly named area. Results include room ID, room
+name, and area; a separate locate command opens and centers the native mapper
+without sending movement, changing Aardwolf Vibe's GMCP-tracked current room,
+or modifying map data.
+
 The always-active character plugin consumes `char.base`, `char.vitals`,
 `char.stats`, `char.maxstats`, `char.status`, and `char.worth`. It exposes
 validated defensive-copy snapshots through `AardwolfVibe.plugins.character`
@@ -66,17 +77,17 @@ the current GMCP session and is never written to disk. See
 [`docs/character.md`](docs/character.md) for the API and event contract.
 After an install or upgrade, the package requests a fresh character snapshot
 with `protocols gmcp sendchar` after its character consumers are ready. This
-install-only request is sent without local command echo.
+install-only request is sent without local command echo. During replacement,
+the new producer starts empty, so the authenticated-state gate also accepts
+Mudlet's current cached `gmcp.char.status` while the connection remains active.
 
-The always-active “Aardwolf Character” window renders the validated character
-state as a compact, width-constrained identity, attribute, combat,
-progression, status, and worth sheet without horizontal scrolling. HP, mana,
-moves, TNL, enemy, and alignment
-gauges remain in a responsive strip across the bottom of the main Mudlet
-window. The sheet starts in the left dock on first creation, then lets Mudlet
-restore the user's later docked or floating placement. It reopens visibly on
-each profile launch; hiding the sheet is session-only and leaves the bottom
-gauges visible. See
+The always-active character status bay renders the character name, current and
+total levels, remorts, tier, and the six primary attributes as one compact row
+across the top of the main Mudlet window. It switches to smaller text at narrow
+widths without wrapping. HP, mana, moves, TNL, enemy, and alignment gauges
+remain in a responsive strip across the bottom. The bay opens visibly on each
+profile launch; hiding it releases the top space for the current session and
+leaves the bottom gauges visible. See
 [`docs/character-window.md`](docs/character-window.md) for its rendering,
 layout, and lifecycle contract.
 
@@ -118,23 +129,37 @@ command, explicitly disables GMCP debugging, and only then requests GMCP-only
 channel output.
 
 The spellup tracker enables only Aardwolf's spell tag option, synchronizes
-bounded `slist` snapshots, and presents active effects, server-confirmed
-expirations, and recoveries in responsive tables in an “Aardwolf Spellups”
-window. Remaining time changes from green to dark yellow to red as expiry
-approaches. Its first successful mount creates a distinct
-right-side dock; Mudlet restores the user's later placement without reusing the
-map or chat window. Its scroll area starts at the top, retains the user's
+bounded `slist` snapshots, and presents active effects, tracked beneficial
+expirations, and recoveries in responsive tables in an “Aardwolf
+Spellups” window. Full synchronization hydrates effects and recoveries that
+were already active before a package reload, before automation can submit its
+first batch. Aardwolf-classified bad effects remain visible while active,
+but are excluded from expired-effect and automatic batch-completion tracking so
+mob debuffs cannot hold a spellup batch open. Remaining time changes from green
+to dark yellow to red as expiry approaches. Its first successful mount creates
+a distinct right-side dock; Mudlet restores the user's later placement without
+reusing the map or chat window. Its scroll area starts at the top, retains the user's
 position across refreshes, and does not use Mudlet's split console scrollback.
 Spell machine tags are hidden by default and can be made visible without
 disabling their parsing. A compact header shows only the current automation
 status, while a small vertical-ellipsis menu provides Sync, Spellup now,
 automatic, and spell-tag visibility actions without consuming table space.
 Automatic maintenance defaults off.
-When enabled it submits only `spellup learned retry`, only while fresh GMCP
+When enabled it submits only `spellup learned`, only while fresh GMCP
 reports an active, standing character, and never constructs individual cast
-commands. A single nearest-expiry timer queues that server-owned batch when an
-eligible spellup reaches its tracked expiration, including granted abilities
-that Aardwolf reports at 0% practice, without polling every effect.
+commands. While active effects exist, the spell tracker owns one one-second
+local heartbeat and reconciles their wall-clock deadlines on every wake and
+snapshot read. Due beneficial effects move into Expired Effects and emit the
+event that queues the server-owned batch; due bad effects are discarded. This
+includes granted, clan, and racial abilities that Aardwolf queues while
+reporting 0% or 1% practice. After observed queue output becomes quiet for two
+seconds, an affected/recovery snapshot confirms the batch when the final
+spellup-end tag or effect delta is absent. Because Aardwolf prints queue entries
+before their commands finish executing, each later apply/failure tag rearms one
+final quiet confirmation pass. This is event-driven rather than continuous
+polling, and uncertain confirmation never submits a duplicate batch. When an
+ability appears in both Aardwolf's spellup and bad filters, the spellup
+classification wins; genuinely bad non-spellup effects remain excluded.
 See [`docs/spellups.md`](docs/spellups.md) for readiness gates, failure handling,
 public APIs, and acceptance boundaries.
 
@@ -144,6 +169,9 @@ public APIs, and acceptance boundaries.
 aardwolf-vibe mapper on
 aardwolf-vibe mapper off
 aardwolf-vibe mapper status
+aardwolf-vibe mapper search world <room name>
+aardwolf-vibe mapper search area <area name> :: <room name>
+aardwolf-vibe mapper locate <room id>
 aardwolf-vibe minimap
 aardwolf-vibe minimap show
 aardwolf-vibe minimap hide

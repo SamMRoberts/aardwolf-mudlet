@@ -1,9 +1,9 @@
 # GMCP auto-mapper contract
 
 `aardwolf-vibe` listens to `gmcp.room.info` and treats each accepted packet as a
-fresh snapshot of the current room's six standard exits and any extra exit keys.
-The event callback reads the current global GMCP table; callback arguments are
-not treated as payload data.
+fresh snapshot of the current room's six standard exits. Aardwolf does not put
+custom exits in this payload. The event callback reads the current global GMCP
+table; callback arguments are not treated as payload data.
 
 Aardwolf ANSI CSI formatting in `room.info.name` is removed before the visible
 room name is validated and stored. Any remaining control character still
@@ -21,6 +21,12 @@ destination number reported for one unique `n`, `e`, `s`, `w`, `u`, or `d`
 exit in that origin snapshot. A changed room number with no such match is still
 accepted as the current room, but is placed as an unanchored or special
 transition; the mapper never guesses a cardinal direction from command text.
+When the immediately preceding outbound command is not one of the six short or
+long cardinal commands, that observed transition is also stored from the prior
+room with `addSpecialExit(source, destination, command)`. A same-room refresh,
+another outbound command, disconnection, reconnection, disabled GMCP, or mapper
+restart invalidates the pending command before it can be attributed to a later
+movement.
 When the destination snapshot also maps the opposite direction back to the
 origin room number, the placement is marked `gmcp-reciprocal`. For example,
 `100.s = 101` together with `101.n = 100` confirms that room 100 is north of
@@ -46,6 +52,34 @@ mapper does not re-adopt or automatically move that room.
 Areas are named exactly from `room.info.zone`. A same-name area is reusable only
 when it already carries the mapper's owner metadata. The package never renames
 or takes ownership of a foreign area.
+
+## Room search
+
+Room search is a read-only view of the map currently loaded in Mudlet. It does
+not require automatic mapping to be enabled and includes package-owned,
+user-authored, and imported rooms. Queries are case-insensitive literal
+substrings; punctuation is not interpreted as a Lua pattern or regular
+expression.
+
+```text
+aardwolf-vibe mapper search world <room name>
+aardwolf-vibe mapper search area <area name> :: <room name>
+aardwolf-vibe mapper locate <room id>
+```
+
+An area query prefers a case-insensitive exact name, otherwise it must identify
+one unique partial name. Ambiguous matches report sorted candidate areas. Room
+results put exact names first and then sort by area, room name, and numeric room
+ID. The public `mapper:searchRooms(query, areaName)` API returns the complete
+sorted result set and canonical scope; console output displays at most the first
+50 entries and reports truncation.
+
+`mapper:locateRoom(roomID)` validates an existing mapped room, opens the native
+mapper, and centers its view. It does not update Aardwolf Vibe's GMCP-tracked
+player room, create or edit rooms, change coordinates, or invoke pathfinding or
+movement. Mudlet's `centerview` function updates its native mapper marker as
+part of centering the view; the next room GMCP update restores that marker to
+the character's actual room.
 
 ## Placement
 
@@ -158,8 +192,13 @@ conflict is reported.
 Standard exits are one-way and reverse exits are never inferred. A direction
 whose destination is withheld, as in a maze, becomes an exit stub. Extra keys
 with numeric destinations become one-way special exits using the key literally
-as the movement command. Only unchanged mapper-owned links are reconciled;
-manual changes are preserved and relinquished by the package.
+as the movement command for compatibility with richer room producers. Normal
+Aardwolf `room.info` does not include those keys, so successfully observed
+non-cardinal command transitions are retained separately and merged back into
+the package-owned special-exit set on later room refreshes. Retargeting removes
+only that owned command before adding its new destination. The mapper never
+uses `clearSpecialExits`, never infers a reverse special exit, and preserves and
+relinquishes manual or externally modified links.
 
 The terrain catalog mirrors all 100 supplied Aardwolf entries (IDs 0 through 88
 except 9, plus 100 through 111) and their ANSI color indices, including weather,

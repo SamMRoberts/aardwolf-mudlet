@@ -3,13 +3,14 @@
 local Spellup = {}
 
 local OWNER = "aardwolf-vibe.spellup"
-local COMMAND = "spellup learned retry"
+local COMMAND = "spellup learned"
 local COALESCE_SECONDS = 2
+local CONFIRMATION_DELAY = 2
 local MIN_INTERVAL = 30
 local BATCH_TIMEOUT = 120
 
 local FAILURE_TEXT = {
-  [1] = "Lost concentration (server retry owns this)",
+  [1] = "Lost concentration; retrying in a later batch",
   [2] = "Already affected",
   [3] = "Waiting for recovery",
   [4] = "Waiting for mana",
@@ -33,17 +34,18 @@ function Spellup.new(api, character, spells, settings)
   local self = {enabled = false, automatic = false, lastError = nil}
   local handlers = {}
   local generation = 0
-  local timer, batchTimer, expiryTimer
+  local timer, batchTimer, confirmationTimer
   local pendingAt, lastSent
   local inflight, external = false, false
   local paused, blocked
   local initial = false
   local observed, unresolvedQueued = false, 0
+  local confirmationRequested, lastConfirmation = false, nil
+  local confirmationAttempts = 0
   local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
   local failures = {}
-  local signaledExpiries = {}
-  local pump, schedule, watchExpiries
+  local pump, schedule, scheduleConfirmation
 
   local function now()
     if type(api.getEpoch) == "function" then return api.getEpoch() end
@@ -82,22 +84,26 @@ function Spellup.new(api, character, spells, settings)
   local function activeSet()
     local result = {}
     for _, effect in ipairs(spells:snapshot().active) do
-      -- The server's "learned" filter can still queue granted/clan abilities
-      -- whose catalog practice is 0% (for example, Catalysis).  Once the
-      -- server names an ability in this batch, its active effect must count
-      -- as completion evidence regardless of local practice metadata.
-      if effect.spellup and not effect.awaiting then result[effect.id] = true end
+      -- Active, non-bad spellup effects are authoritative completion evidence.
+      -- Aardwolf can queue granted, clan, and racial abilities even when their
+      -- catalog practice is 0% or 1%.
+      if spells:isTrackedSpellup(effect.id) and not effect.awaiting then
+        result[effect.id] = true
+      end
     end
     return result
   end
 
   local function finish(reason)
     cancel(batchTimer)
-    batchTimer = nil
+    cancel(confirmationTimer)
+    batchTimer, confirmationTimer = nil, nil
     inflight, external = false, false
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled = {}, {}
     observed, unresolvedQueued = false, 0
+    confirmationRequested = false
+    lastConfirmation = reason or "Spellup complete"
     if paused == "Batch completion unconfirmed" then paused = nil end
     self.lastError = nil
     if self.enabled and self.automatic and pendingAt then schedule() end
@@ -117,6 +123,37 @@ function Spellup.new(api, character, spells, settings)
     end)
   end
 
+  scheduleConfirmation = function()
+    if not self.enabled or not inflight or not observed or confirmationRequested then return end
+    cancel(confirmationTimer)
+    local token = generation
+    confirmationTimer = api.tempTimer(CONFIRMATION_DELAY, function()
+      confirmationTimer = nil
+      if not self.enabled or token ~= generation or not inflight or confirmationRequested then return end
+      local status = spells:status()
+      confirmationRequested = true
+      confirmationAttempts = confirmationAttempts + 1
+      if status.busy or status.pending then
+        lastConfirmation = "Using in-progress spell synchronization"
+        emit()
+        return
+      end
+      local ok, message = spells:confirm()
+      if ok then
+        lastConfirmation = "Confirmation snapshot requested"
+      else
+        lastConfirmation = "Confirmation request failed: " .. tostring(message)
+      end
+      emit()
+    end)
+  end
+
+  local function rearmConfirmation()
+    if not self.enabled or not inflight or not observed then return end
+    confirmationRequested = false
+    scheduleConfirmation()
+  end
+
   schedule = function(delay)
     if not self.enabled or timer then return end
     local token = generation
@@ -130,47 +167,6 @@ function Spellup.new(api, character, spells, settings)
     if not pendingAt then pendingAt = now() + COALESCE_SECONDS end
     schedule()
     emit()
-  end
-
-  watchExpiries = function(snapshot)
-    cancel(expiryTimer)
-    expiryTimer = nil
-    if not self.enabled or not self.automatic then
-      signaledExpiries = {}
-      return
-    end
-
-    local timestamp = now()
-    local nextExpiry
-    local current = {}
-    local expiredNow = false
-    local effects = type(snapshot) == "table" and snapshot.active
-      or spells:snapshot().active
-    for _, effect in ipairs(type(effects) == "table" and effects or {}) do
-      if spells:isAutomaticSpellup(effect.id) and type(effect.expires) == "number" then
-        current[effect.id] = effect.expires
-        if effect.expires <= timestamp then
-          if signaledExpiries[effect.id] ~= effect.expires then
-            signaledExpiries[effect.id] = effect.expires
-            expiredNow = true
-          end
-        elseif not nextExpiry or effect.expires < nextExpiry then
-          nextExpiry = effect.expires
-        end
-      end
-    end
-    for id, expires in pairs(signaledExpiries) do
-      if current[id] ~= expires then signaledExpiries[id] = nil end
-    end
-
-    if nextExpiry then
-      local token = generation
-      expiryTimer = api.tempTimer(nextExpiry - timestamp, function()
-        expiryTimer = nil
-        if self.enabled and token == generation then watchExpiries() end
-      end)
-    end
-    if expiredNow then queueWork() end
   end
 
   local function beginBatch(isExternal)
@@ -189,6 +185,10 @@ function Spellup.new(api, character, spells, settings)
     baseline, namedTargets, resolvedUnknown = activeSet(), {}, {}
     targets, settled = {}, {}
     observed, unresolvedQueued = false, 0
+    cancel(confirmationTimer)
+    confirmationTimer = nil
+    confirmationRequested, lastConfirmation = false, nil
+    confirmationAttempts = 0
     failures, blocked = {}, nil
     pendingAt, initial = nil, false
     lastSent = now()
@@ -247,7 +247,7 @@ function Spellup.new(api, character, spells, settings)
     local words = {}
     for word in command:lower():gmatch("%S+") do words[#words + 1] = word end
     if words[1] ~= "spellup" then return end
-    local allowed = {learned = true, retry = true, all = true, silent = true, quick = true}
+    local allowed = {learned = true, all = true, silent = true, quick = true}
     for index = 2, #words do
       if not allowed[words[index]] then return end
     end
@@ -277,6 +277,10 @@ function Spellup.new(api, character, spells, settings)
       external = external,
       pending = pendingAt ~= nil or initial,
       unresolvedQueued = unresolvedQueued,
+      confirmationPending = confirmationTimer ~= nil,
+      confirmationRequested = confirmationRequested,
+      confirmationAttempts = confirmationAttempts,
+      lastConfirmation = lastConfirmation,
       paused = paused,
       blocked = copy(blocked),
       blockingReason = reason,
@@ -288,10 +292,7 @@ function Spellup.new(api, character, spells, settings)
 
   function self:setAutomatic(value)
     if type(value) ~= "boolean" then return false, "Automatic setting must be boolean" end
-    if value == self.automatic then
-      if value then watchExpiries() end
-      return true
-    end
+    if value == self.automatic then return true end
     if settings and type(settings.setSpellupsAutoCast) == "function" then
       local ok, message = settings.setSpellupsAutoCast(value)
       if not ok then return false, message end
@@ -309,7 +310,6 @@ function Spellup.new(api, character, spells, settings)
     else
       initial, pendingAt = false, nil
     end
-    watchExpiries()
     emit()
     return true
   end
@@ -344,8 +344,10 @@ function Spellup.new(api, character, spells, settings)
       on("status", "aardwolf-vibe.character.updated.status", statusChanged, token)
       on("vitals", "aardwolf-vibe.character.updated.vitals", vitalsChanged, token)
       on("reset", "aardwolf-vibe.spells.reset", function()
-        cancel(expiryTimer); expiryTimer = nil
-        signaledExpiries = {}
+        cancel(confirmationTimer); confirmationTimer = nil
+        confirmationRequested = false
+        confirmationAttempts = 0
+        lastConfirmation = "Cancelled by spell state reset"
         if not connected() then
           cancel(batchTimer); batchTimer = nil
           inflight, external = false, false
@@ -374,15 +376,17 @@ function Spellup.new(api, character, spells, settings)
           for id in pairs(targets) do
             if not active[id] and not settled[id] then complete = false end
           end
-          if complete then finish("Confirmed by synchronized effects") end
+          if complete then
+            finish("Confirmed by synchronized effects")
+          elseif confirmationRequested then
+            lastConfirmation = "Confirmation snapshot incomplete"
+            emit()
+          end
         end
         schedule()
       end, token)
-      on("effects", "aardwolf-vibe.spells.updated", function(_, snapshot)
-        watchExpiries(snapshot)
-      end, token)
       on("missing", "aardwolf-vibe.spells.missing", function(_, id)
-        if self.automatic and spells:isAutomaticSpellup(id) then queueWork() end
+        if self.automatic and spells:isTrackedSpellup(id) then queueWork() end
       end, token)
       on("recovered", "aardwolf-vibe.spells.recovered", function(_, id)
         if blocked and blocked.code == 3 and blocked.recovery == id then
@@ -400,6 +404,7 @@ function Spellup.new(api, character, spells, settings)
         else
           unresolvedQueued = unresolvedQueued + 1
         end
+        rearmConfirmation()
         emit()
       end, token)
       on("no-work", "aardwolf-vibe.spells.noWork", function()
@@ -410,14 +415,22 @@ function Spellup.new(api, character, spells, settings)
       on("complete", "aardwolf-vibe.spells.complete", function()
         if inflight then finish("Confirmed by spellup-end") end
       end, token)
+      on("invalid", "aardwolf-vibe.spells.invalid", function(_, reason)
+        if inflight and confirmationRequested then
+          lastConfirmation = "Confirmation snapshot failed: " .. tostring(reason)
+          emit()
+        end
+      end, token)
       on("external", "aardwolf-vibe.spells.batchStarted", function()
         if not inflight then beginBatch(true) end
       end, token)
       on("applied", "aardwolf-vibe.spells.applied", function(_, id)
         -- Queue prose sometimes uses a command alias rather than the catalog
         -- name (for example, "chameleon" versus "chameleon power").
-        if not inflight or unresolvedQueued == 0 or namedTargets[id]
-            or resolvedUnknown[id] then return end
+        if not inflight then return end
+        rearmConfirmation()
+        if unresolvedQueued == 0 or namedTargets[id]
+            or resolvedUnknown[id] or not spells:isTrackedSpellup(id) then return end
         resolvedUnknown[id] = true
         targets[id] = true
         unresolvedQueued = unresolvedQueued - 1
@@ -425,8 +438,13 @@ function Spellup.new(api, character, spells, settings)
       end, token)
       on("failure", "aardwolf-vibe.spells.failure", function(_, event)
         if not inflight or type(event) ~= "table" or event.target ~= 0 then return end
+        rearmConfirmation()
         local reason = event.reason
-        if reason == 1 then emit(); return end
+        if reason == 1 then
+          if self.automatic then queueWork() end
+          emit()
+          return
+        end
         if unresolvedQueued > 0 and not namedTargets[event.id]
             and not resolvedUnknown[event.id] then
           resolvedUnknown[event.id] = true
@@ -450,13 +468,6 @@ function Spellup.new(api, character, spells, settings)
         end
         emit()
       end, token)
-      on("unsupported", "aardwolf-vibe.spells.unsupported", function(_, line)
-        if not inflight then return end
-        paused = "Server did not accept the retry spellup form"
-        self.lastError = tostring(line)
-        pendingAt = nil
-        emit()
-      end, token)
       on("room", "gmcp.room.info", function()
         if blocked and blocked.code == 5 then
           local room = type(api.gmcp) == "table" and api.gmcp.room
@@ -467,7 +478,6 @@ function Spellup.new(api, character, spells, settings)
       end, token)
       on("outgoing", "sysDataSendRequest", function(_, command) manualCommand(command) end, token)
       if self.automatic then spells:sync() end
-      watchExpiries()
       schedule()
     end)
     if not ok then
@@ -482,15 +492,16 @@ function Spellup.new(api, character, spells, settings)
     generation = generation + 1
     self.enabled = false
     removeHandlers()
-    cancel(timer); cancel(batchTimer); cancel(expiryTimer)
-    timer, batchTimer, expiryTimer = nil, nil, nil
+    cancel(timer); cancel(batchTimer); cancel(confirmationTimer)
+    timer, batchTimer, confirmationTimer = nil, nil, nil
     pendingAt, initial = nil, false
     inflight, external = false, false
     paused, blocked = nil, nil
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled, failures = {}, {}, {}
     observed, unresolvedQueued = false, 0
-    signaledExpiries = {}
+    confirmationRequested, lastConfirmation = false, nil
+    confirmationAttempts = 0
     return true
   end
 

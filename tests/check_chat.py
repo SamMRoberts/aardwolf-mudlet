@@ -28,6 +28,7 @@ class ChatTests(unittest.TestCase):
         lua.execute(r'''
           local value=model.defaultConfig()
           assert(value.schemaVersion==1 and value.colorMode=="ansi" and #value.tabs==6)
+          assert(value.font=="Menlo" and value.fontSize==11)
           assert(value.tabs[1].label=="All" and value.tabs[4].label=="Clan")
           local expected="answer auction barter cant chant claninfo clantalk commune curse debate ftalk gametalk gclan gossip grapevine gratz gsocial gtell helper immtalk inform ltalk market mobsay music newbie nobletalk pokerinfo question quote racetalk restores rp say spouse tech telepathy tell tiertalk wangrp wardrums yell"
           local known={};for _,channel in ipairs(model.knownChannels()) do known[channel]=true end
@@ -52,6 +53,18 @@ class ChatTests(unittest.TestCase):
           assert(model.defaultConfig().tabs[1].label=="All")
           local valid=assert(model.validateConfig(value));valid.tabs[1].label="Other"
           assert(value.tabs[1].label=="All")
+          local old=model.copy(value);old.font=nil;old.fontSize=nil
+          local upgraded=assert(model.validateConfig(old))
+          assert(upgraded.font=="Menlo" and upgraded.fontSize==11)
+          assert(old.font==nil and old.fontSize==nil)
+          value.font="DejaVu Sans Mono";value.fontSize=14
+          assert(model.validateConfig(value))
+          value.font="bad\nfont";assert(not model.validateConfig(value))
+          value.font="DejaVu Sans Mono";value.fontSize=5
+          assert(not model.validateConfig(value))
+          value.fontSize=33;assert(not model.validateConfig(value))
+          value.fontSize=12.5;assert(not model.validateConfig(value))
+          value.fontSize=14
           value.tabs={};assert(not model.validateConfig(value))
         ''')
 
@@ -136,6 +149,59 @@ class ChatTests(unittest.TestCase):
           assert(saved.tabs[7].id=="social")
           value.tabs[7].label="Changed after save"
           assert(chat:getConfig().tabs[7].label=="Social")
+        ''')
+
+    def test_font_settings_apply_to_existing_and_new_tabs_and_reload(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          receive("gossip","retained","Friend")
+          local existing=pane("gossip")
+          assert(existing.font=="Menlo" and existing.fontSize==11)
+          local value=chat:getConfig()
+          value.font="DejaVu Sans Mono";value.fontSize=16
+          value.tabs[#value.tabs+1]={id="social",label="Social",channels={"gossip"}}
+          assert(chat:applyConfig(value))
+          assert(pane("gossip")==existing and existing.output=="retained\n")
+          assert(existing.font=="DejaVu Sans Mono" and existing.fontSize==16)
+          assert(pane("social").font=="DejaVu Sans Mono")
+          assert(pane("social").fontSize==16 and pane("social").output=="retained\n")
+          local saved=encoded[files["/profile/aardwolf-vibe-data/chat.json"]]
+          assert(saved.font=="DejaVu Sans Mono" and saved.fontSize==16)
+          value.font="Changed by caller"
+          assert(chat:getConfig().font=="DejaVu Sans Mono")
+          assert(chat:stop() and chat:start())
+          assert(chat:getConfig().font=="DejaVu Sans Mono")
+          assert(pane("gossip").fontSize==16 and pane("social").fontSize==16)
+        ''')
+
+    def test_font_editor_validates_before_saving_and_preserves_legacy_config(self):
+        lua = self.runtime(False)
+        lua.execute(r'''
+          local old=model.defaultConfig();old.font=nil;old.fontSize=nil
+          local key=yajl.to_string(old)
+          files["/profile/aardwolf-vibe-data/chat.json"]=key
+          assert(chat:start())
+          assert(chat:getConfig().font=="Menlo" and chat:getConfig().fontSize==11)
+          click("aardwolf-vibe.chat.configure")
+          widgets["aardwolf-vibe.chat.editor.font"].action("Fira Code")
+          widgets["aardwolf-vibe.chat.editor.size"].action("15")
+          click("aardwolf-vibe.chat.editor.apply")
+          assert(chat:getConfig().font=="Fira Code" and chat:getConfig().fontSize==15)
+          assert(pane("all").font=="Fira Code" and pane("all").fontSize==15)
+          local saved=files["/profile/aardwolf-vibe-data/chat.json"]
+          click("aardwolf-vibe.chat.configure")
+          widgets["aardwolf-vibe.chat.editor.font"]:print("No Such Font")
+          click("aardwolf-vibe.chat.editor.apply")
+          assert(chat:getConfig().font=="Fira Code" and files["/profile/aardwolf-vibe-data/chat.json"]==saved)
+          assert(widgets["aardwolf-vibe.chat.editor.status"].text:find("not installed",1,true))
+          widgets["aardwolf-vibe.chat.editor.font"]:print("Fira Code")
+          widgets["aardwolf-vibe.chat.editor.size"]:print("0")
+          click("aardwolf-vibe.chat.editor.apply")
+          assert(chat:getConfig().fontSize==15 and files["/profile/aardwolf-vibe-data/chat.json"]==saved)
+          assert(widgets["aardwolf-vibe.chat.editor.status"].text:find("6-32",1,true))
+          click("aardwolf-vibe.chat.editor.cancel")
+          assert(chat:resetConfig())
+          assert(pane("all").font=="Menlo" and pane("all").fontSize==11)
         ''')
 
     def test_shared_session_store_is_bounded_by_messages_and_bytes(self):

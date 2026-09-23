@@ -141,15 +141,38 @@ local function showMaps()
   return asciiCalled and asciiOK ~= false and mapperCalled and mapperOK ~= false
 end
 
+local COMMAND_CAPABLE_STATES = {
+  [3] = true, [4] = true, [8] = true, [9] = true, [11] = true, [12] = true,
+}
+
+local function commandCapableStatus(status)
+  return type(status) == "table" and COMMAND_CAPABLE_STATES[status.state] == true
+end
+
+local function connected()
+  if type(getConnectionInfo) ~= "function" then return false end
+  local ok, _, _, active = pcall(getConnectionInfo)
+  return ok and active == true
+end
+
 function AardwolfVibe.requestCharacterRefresh()
+  if not connected() then
+    return true, "waiting for an active connection"
+  end
   local character = AardwolfVibe.plugins.character
   if type(character) ~= "table" or type(character.getGroup) ~= "function" then
     return true, "waiting for authenticated character status"
   end
   local called, status, _, fresh = pcall(character.getGroup, character, "status")
-  local commandCapable = called and fresh == true and type(status) == "table"
-    and ({[3] = true, [4] = true, [8] = true, [9] = true,
-      [11] = true, [12] = true})[status.state] == true
+  local commandCapable = called and fresh == true and commandCapableStatus(status)
+  if not commandCapable then
+    -- Package replacement clears the new producer before sysInstallPackage.
+    -- Mudlet's current GMCP cache still identifies an authenticated session,
+    -- allowing sendchar to repopulate every group for the replacement UI.
+    local cachedChar = type(gmcp) == "table" and gmcp.char or nil
+    local cachedStatus = type(cachedChar) == "table" and cachedChar.status or nil
+    commandCapable = commandCapableStatus(cachedStatus)
+  end
   if not commandCapable then
     return true, "waiting for authenticated character status"
   end
@@ -197,8 +220,44 @@ function AardwolfVibe.handleMapperCommand(action)
     AardwolfVibe.active = true
     return mapper:start()
   end
-  echo("Usage: aardwolf-vibe mapper on|off|status\n")
+  echo("Usage: aardwolf-vibe mapper on|off|status; "
+    .. "aardwolf-vibe mapper search world <room name>; "
+    .. "aardwolf-vibe mapper search area <area name> :: <room name>; "
+    .. "aardwolf-vibe mapper locate <room id>\n")
   return false
+end
+
+local MAX_ROOM_SEARCH_OUTPUT = 50
+
+function AardwolfVibe.handleMapperSearch(query, areaName)
+  local results, scope = AardwolfVibe.plugins.mapper:searchRooms(query, areaName)
+  if not results then
+    echo("Aardwolf Vibe mapper search: " .. tostring(scope) .. ".\n")
+    return false, scope
+  end
+  local location = scope.areaName and (" in " .. scope.areaName) or " across the world map"
+  echo(string.format("Aardwolf Vibe mapper: found %d room%s matching '%s'%s.\n",
+    #results, #results == 1 and "" or "s", scope.query, location))
+  for index = 1, math.min(MAX_ROOM_SEARCH_OUTPUT, #results) do
+    local result = results[index]
+    echo(string.format("[%d] %s — %s\n", result.id, result.name, result.areaName))
+  end
+  if #results > MAX_ROOM_SEARCH_OUTPUT then
+    echo(string.format("Showing the first %d of %d rooms; refine your search.\n",
+      MAX_ROOM_SEARCH_OUTPUT, #results))
+  end
+  return results, scope
+end
+
+function AardwolfVibe.handleMapperLocate(roomID)
+  local ok, result = AardwolfVibe.plugins.mapper:locateRoom(roomID)
+  if not ok then
+    echo("Aardwolf Vibe mapper locate: " .. tostring(result) .. ".\n")
+    return false, result
+  end
+  echo(string.format("Aardwolf Vibe mapper: centered on [%d] %s — %s.\n",
+    result.id, result.name, result.areaName))
+  return true, result
 end
 
 function AardwolfVibe.handleMinimapCommand(action)
@@ -230,7 +289,7 @@ function AardwolfVibe.handleStatsCommand(action)
       total = total + 1
       if fresh then ready = ready + 1 end
     end
-    echo("Aardwolf Vibe: character window " .. status.lifecycle .. ", "
+    echo("Aardwolf Vibe: character status bay " .. status.lifecycle .. ", "
       .. visibility .. ", " .. tostring(ready) .. "/" .. tostring(total)
       .. " GMCP groups fresh.\n")
     return status

@@ -22,6 +22,7 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_character_ready = character_ready
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
+          mapperSearchQuery=nil;mapperSearchArea=nil;mapperLocateID=nil
           barsStarts=0;barsStops=0;barsShows=0;barsHides=0
           asciiStarts=0;asciiStops=0;asciiShows=0
           helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
@@ -44,6 +45,9 @@ class LifecycleTests(unittest.TestCase):
               chatStarts=chatStarts,
             }
           end
+          connected=true
+          function getConnectionInfo() return "offline.fixture",0,connected end
+          gmcp={char={}}
           function getMudletHomeDir() return "/profile" end
           SettingsFactory={new=function()
             return {
@@ -64,6 +68,15 @@ class LifecycleTests(unittest.TestCase):
                 mapperStops=mapperStops+1;stopOrder[#stopOrder+1]="mapper";return true
               end,
               status=function() return mapperStarts>mapperStops end,
+              searchRooms=function(_,query,areaName)
+                mapperSearchQuery=query;mapperSearchArea=areaName
+                return {{id=10,name="Gate",areaName="Alpha"}},
+                  {query=query,world=areaName==nil,areaName=areaName}
+              end,
+              locateRoom=function(_,roomID)
+                mapperLocateID=roomID
+                return true,{id=tonumber(roomID),name="Gate",areaName="Alpha"}
+              end,
             }
           end}
           CharacterFactory={new=function()
@@ -135,7 +148,7 @@ class LifecycleTests(unittest.TestCase):
                 return {enabled=initial_bars_ok,
                   lifecycle=initial_bars_ok and "active" or "stopped",visible=true,
                   fresh={base=true,vitals=true,stats=true,maxstats=true,status=true,worth=true},
-                  lastError="character window start failure"}
+                  lastError="character status bay start failure"}
               end,
             }
           end}
@@ -263,6 +276,54 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleMapperCommand("on"));assert(saved==true and mapperStarts==2)
         ''')
 
+    def test_mapper_search_formats_bounded_results_and_locates_rooms(self):
+        lua = self.runtime()
+        lua.execute('''
+          local results,scope=AardwolfVibe.handleMapperSearch("gate")
+          assert(#results==1 and scope.world and mapperSearchQuery=="gate")
+          assert(mapperSearchArea==nil and #messages==2)
+          assert(messages[1]:find("found 1 room matching 'gate' across the world map",1,true))
+          assert(messages[2]=="[10] Gate — Alpha\\n")
+
+          messages={}
+          AardwolfVibe.plugins.mapper.searchRooms=function(_,query,areaName)
+            local many={}
+            for id=1,55 do many[id]={id=id,name="Room "..id,areaName="Beta"} end
+            return many,{query=query,world=false,areaName="Beta"}
+          end
+          results,scope=AardwolfVibe.handleMapperSearch("room","Beta")
+          assert(#results==55 and scope.areaName=="Beta" and #messages==52)
+          assert(messages[1]:find("found 55 rooms",1,true))
+          assert(messages[51]=="[50] Room 50 — Beta\\n")
+          assert(messages[52]:find("first 50 of 55",1,true))
+
+          messages={}
+          AardwolfVibe.plugins.mapper.searchRooms=function(_,query)
+            return {},{query=query,world=true}
+          end
+          results,scope=AardwolfVibe.handleMapperSearch("absent")
+          assert(#results==0 and scope.world and #messages==1)
+          assert(messages[1]:find("found 0 rooms matching 'absent'",1,true))
+
+          messages={}
+          local ok,result=AardwolfVibe.handleMapperLocate("10")
+          assert(ok and result.id==10 and mapperLocateID=="10")
+          assert(messages[1]:find("centered on [10] Gate — Alpha",1,true))
+        ''')
+
+    def test_mapper_search_and_locate_report_api_failures(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibe.plugins.mapper.searchRooms=function() return nil,"map unavailable" end
+          local ok,message=AardwolfVibe.handleMapperSearch("gate")
+          assert(not ok and message=="map unavailable")
+          assert(messages[#messages]:find("mapper search: map unavailable",1,true))
+          AardwolfVibe.plugins.mapper.locateRoom=function() return false,"missing room" end
+          ok,message=AardwolfVibe.handleMapperLocate("999")
+          assert(not ok and message=="missing room")
+          assert(messages[#messages]:find("mapper locate: missing room",1,true))
+        ''')
+
     def test_disabled_setting_does_not_start_and_uninstall_releases_runtime(self):
         lua = self.runtime(False)
         lua.execute('''
@@ -350,6 +411,23 @@ class LifecycleTests(unittest.TestCase):
           assert(sentCommands[2].echoCommand==false)
         ''')
 
+    def test_reinstall_uses_authenticated_gmcp_cache_to_request_fresh_character_data(self):
+        lua = self.runtime(character_ready=False)
+        lua.execute('''
+          gmcp.char.status={state=3,pos="Standing"}
+          AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
+          assert(AardwolfVibe.active)
+          assert(characterStarts==1 and barsStarts==1)
+          assert(helpRequests==1 and #sentCommands==1)
+          assert(sentCommands[1].command=="protocols gmcp sendchar")
+          assert(sentCommands[1].echoCommand==false)
+
+          connected=false
+          sentCommands={}
+          assert(AardwolfVibe.requestCharacterRefresh())
+          assert(#sentCommands==0)
+        ''')
+
     def test_malformed_mapper_settings_do_not_block_character_handler(self):
         lua = self.runtime(settings_ok=False)
         lua.execute('''
@@ -374,7 +452,7 @@ class LifecycleTests(unittest.TestCase):
           assert(not AardwolfVibe.start())
           assert(characterStarts==1 and barsStarts==1 and asciiStarts==1 and chatStarts==1 and mapperStarts==1)
           assert(AardwolfVibe.active)
-          assert(#messages==1 and string.find(messages[1],"character window start failure",1,true))
+          assert(#messages==1 and string.find(messages[1],"character status bay start failure",1,true))
         ''')
 
     def test_ascii_failure_does_not_block_other_components(self):
@@ -425,6 +503,7 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleStatsCommand("hide"));assert(barsHides==1)
           local status=AardwolfVibe.handleStatsCommand("status")
           assert(status.lifecycle=="active" and status.visible)
+          assert(messages[#messages]:find("character status bay",1,true))
           assert(messages[#messages]:find("6/6 GMCP groups fresh",1,true))
           assert(not AardwolfVibe.handleStatsCommand("unknown"))
           assert(messages[#messages]:find("Usage: aardwolf-vibe stats",1,true))

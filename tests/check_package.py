@@ -10,14 +10,20 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.31")
+        self.assertEqual(metadata["version"], "0.7.45")
+        self.assertIn("room-name search", metadata["description"])
+        self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
-        self.assertIn("character sheet", metadata["description"])
+        self.assertIn("character status bay", metadata["description"])
         self.assertIn("bottom vitals", metadata["description"])
         self.assertIn("ASCII minimap", metadata["description"])
         self.assertIn("tagged help popup", metadata["description"])
         self.assertIn("configurable chat", metadata["description"])
+        self.assertIn("font and size settings", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
+        self.assertIn("heartbeat-reconciled", metadata["description"])
+        self.assertIn("batch-confirmed", metadata["description"])
+        self.assertIn("overlap-safe", metadata["description"])
         scripts = json.loads((ROOT / "src/scripts/AardwolfVibe/scripts.json").read_text())
         aliases = json.loads((ROOT / "src/aliases/AardwolfVibe/aliases.json").read_text())
         self.assertEqual(scripts[0]["eventHandlerList"],
@@ -26,6 +32,9 @@ class PackageSourceTests(unittest.TestCase):
             {item["name"]: item["regex"] for item in aliases},
             {
                 "mapper": "^aardwolf-vibe mapper(?: (on|off|status))?$",
+                "mapper-search-world": "^aardwolf-vibe mapper search world (.+)$",
+                "mapper-search-area": "^aardwolf-vibe mapper search area (.+?) :: (.+)$",
+                "mapper-locate": "^aardwolf-vibe mapper locate ([0-9]+)$",
                 "minimap": "^aardwolf-vibe minimap(?: (show|hide|status))?$",
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
@@ -50,20 +59,23 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.buffsWindow", source)
         self.assertIn("pcall(openMapWidget)", source)
         self.assertIn('send, "protocols gmcp sendchar", false', source)
+        self.assertIn("commandCapableStatus(cachedStatus)", source)
         self.assertTrue((ROOT / "src/resources/character.lua").is_file())
         character_window = ROOT / "src/resources/character-window.lua"
         self.assertTrue(character_window.is_file())
         self.assertFalse((ROOT / "src/resources/character-bars.lua").exists())
         character_window_source = character_window.read_text()
-        self.assertIn("geyser.UserWindow:new", character_window_source)
-        self.assertIn("geyser.ScrollBox:new", character_window_source)
-        self.assertIn('dockPosition = "left"', character_window_source)
+        self.assertIn("geyser.HBox:new", character_window_source)
+        self.assertNotIn("geyser.UserWindow:new", character_window_source)
+        self.assertNotIn("geyser.ScrollBox:new", character_window_source)
         self.assertNotIn("gmod", character_window_source)
         self.assertNotIn("gmcp", character_window_source)
+        self.assertIn("api.setBorderTop(BAY_HEIGHT)", character_window_source)
         self.assertIn("api.setBorderBottom(panelHeight)", character_window_source)
-        self.assertIn('SHEET_CONTENT_WIDTH = "100%-44px"', character_window_source)
-        self.assertIn("qproperty-wordWrap: true", character_window_source)
-        self.assertIn("AlignLeft | AlignTop", character_window_source)
+        self.assertIn("local BAY_HEIGHT = 42", character_window_source)
+        self.assertIn("local COMPACT_BREAKPOINT = 1100", character_window_source)
+        self.assertIn("qproperty-wordWrap: false", character_window_source)
+        self.assertIn("level + 201 * remorts + 1407 * redos", character_window_source)
         ascii_map = ROOT / "src/resources/ascii-map.lua"
         self.assertTrue(ascii_map.is_file())
         self.assertNotIn("gmod", ascii_map.read_text())
@@ -73,6 +85,8 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn('api.send, "tags HELPS on", false', help_window.read_text())
         self.assertNotIn("tags HELPS off", help_window.read_text())
         self.assertIn("{helpsearch}", help_window.read_text())
+        self.assertIn('window:setDockPosition("floating")', help_window.read_text())
+        self.assertIn("reportedVisible() == false", help_window.read_text())
         for resource in (ascii_map, help_window, ROOT / "src/resources/spells.lua"):
             with self.subTest(resource=resource.name):
                 self.assertNotIn('tempRegexTrigger("^"', resource.read_text())
@@ -90,10 +104,23 @@ class PackageSourceTests(unittest.TestCase):
         buffs = ROOT / "src/resources/buffs-window.lua"
         self.assertTrue(spells.is_file() and spellup.is_file() and buffs.is_file())
         self.assertIn("sendTelnetChannel102, string.char(7, 1)", spells.read_text())
-        self.assertIn('local COMMAND = "spellup learned retry"', spellup.read_text())
+        self.assertIn('{kind = "bad", command = "slist bad noprompt"}', spells.read_text())
+        self.assertIn("function self:isBadEffect(id)", spells.read_text())
+        self.assertIn("function self:isTrackedSpellup(id)", spells.read_text())
+        self.assertIn("local EXPIRY_HEARTBEAT = 1", spells.read_text())
+        self.assertIn('reconcileExpirations(now(), "heartbeat")', spells.read_text())
+        self.assertIn('local COMMAND = "spellup learned"', spellup.read_text())
+        self.assertIn("local CONFIRMATION_DELAY = 2", spellup.read_text())
+        self.assertIn("local ok, message = spells:confirm()", spellup.read_text())
+        self.assertIn("local function rearmConfirmation()", spellup.read_text())
+        self.assertIn("not spells:isTrackedSpellup(id)", spellup.read_text())
         self.assertNotIn("tags off", spells.read_text())
         self.assertIn("geyser.ScrollBox:new", buffs.read_text())
         self.assertNotIn("geyser.MiniConsole:new", buffs.read_text())
+        mapper = ROOT / "src/resources/mapper.lua"
+        mapper_source = mapper.read_text()
+        self.assertIn("function self:searchRooms(query, areaName)", mapper_source)
+        self.assertIn("function self:locateRoom(value)", mapper_source)
 
 
 if __name__ == "__main__":

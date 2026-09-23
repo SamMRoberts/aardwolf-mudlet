@@ -33,6 +33,99 @@ class MapperTests(unittest.TestCase):
           assert(apiCounts.updateMap==1 and apiCounts.centerview==1)
         ''')
 
+    def test_world_room_search_is_literal_sorted_complete_and_read_only(self):
+        self.check('''
+          mapper:stop()
+          local alpha=addAreaName("Alpha Woods")
+          local beta=addAreaName("Beta Keep")
+          addRoom(10);setRoomArea(10,beta);setRoomName(10,"Gate")
+          addRoom(11);setRoomArea(11,alpha);setRoomName(11,"Gatehouse")
+          addRoom(12);setRoomArea(12,alpha);setRoomName(12,"North Gate")
+          addRoom(13);setRoomArea(13,alpha);setRoomName(13,"G.te Annex")
+          local before=writes
+          local results,scope=mapper:searchRooms("g.te")
+          assert(scope.world and scope.query=="g.te" and #results==1)
+          assert(results[1].id==13 and results[1].name=="G.te Annex")
+          results,scope=mapper:searchRooms("GATE")
+          assert(#results==3 and results[1].id==10 and results[1].exact)
+          assert(results[2].id==11 and results[2].areaName=="Alpha Woods")
+          assert(results[3].id==12 and not results[3].exact)
+          assert(writes==before and not mapper.enabled and next(handlers)==nil)
+        ''')
+
+    def test_named_area_search_resolves_exact_unique_ambiguous_and_missing(self):
+        self.check('''
+          mapper:stop()
+          local woods=addAreaName("Alpha Woods")
+          local warrens=addAreaName("Alpha Warrens")
+          addRoom(20);setRoomArea(20,woods);setRoomName(20,"Silver Gate")
+          addRoom(21);setRoomArea(21,warrens);setRoomName(21,"Golden Gate")
+          local results,scope=mapper:searchRooms("gate","ALPHA WOODS")
+          assert(#results==1 and results[1].id==20)
+          assert(scope.areaID==woods and scope.areaName=="Alpha Woods" and not scope.world)
+          results,scope=mapper:searchRooms("gate","warr")
+          assert(#results==1 and results[1].id==21 and scope.areaName=="Alpha Warrens")
+          local missing,message=mapper:searchRooms("gate","alpha")
+          assert(not missing and message=="Area 'alpha' is ambiguous: Alpha Warrens, Alpha Woods")
+          missing,message=mapper:searchRooms("gate","nowhere")
+          assert(not missing and message=="No mapped area matches 'nowhere'")
+        ''')
+
+    def test_room_search_validates_input_map_data_and_foreign_strings(self):
+        self.check('''
+          mapper:stop()
+          local area=addAreaName("Search Area")
+          addRoom(30);setRoomArea(30,area);setRoomName(30,"Safe Room")
+          addRoom(31);setRoomArea(31,area);setRoomName(31,"Unsafe\\nRoom")
+          local results=assert(mapper:searchRooms("room"))
+          assert(#results==1 and results[1].id==30)
+          local invalid,message=mapper:searchRooms(" ")
+          assert(not invalid and message:find("1-256",1,true))
+          invalid,message=mapper:searchRooms("bad\\nquery")
+          assert(not invalid and message:find("printable",1,true))
+          invalid,message=mapper:searchRooms(string.rep("x",257))
+          assert(not invalid and message:find("1-256",1,true))
+          local original=getRooms
+          getRooms=function() error("map closed") end
+          invalid,message=mapper:searchRooms("room")
+          assert(not invalid and message:find("map closed",1,true))
+          getRooms=function() return nil end
+          invalid,message=mapper:searchRooms("room")
+          assert(not invalid and message=="Map room data is unavailable")
+          getRooms=original
+          local originalArea=getRoomArea
+          getRoomArea=function() error("area failure") end
+          invalid,message=mapper:searchRooms("room")
+          assert(not invalid and message:find("area failure",1,true))
+          getRoomArea=originalArea
+        ''')
+
+    def test_locate_opens_and_centers_without_changing_mapper_tracking(self):
+        self.check('''
+          assert(mapper:receive(packet(40,{})))
+          local current=mapper.current
+          addRoom(41);setRoomArea(41,areas.test);setRoomName(41,"Destination")
+          local before=writes
+          local ok,result=mapper:locateRoom("41")
+          assert(ok and result.id==41 and result.name=="Destination")
+          assert(result.areaName=="test" and mapOpens==1 and centers[#centers]==41)
+          assert(mapper.current==current and writes==before)
+          ok,result=mapper:locateRoom("0")
+          assert(not ok and result:find("positive integer",1,true) and mapOpens==1)
+          ok,result=mapper:locateRoom(999)
+          assert(not ok and result:find("does not exist",1,true) and mapOpens==1)
+          local original=openMapWidget
+          openMapWidget=function() error("widget failure") end
+          ok,result=mapper:locateRoom(41)
+          assert(not ok and result:find("widget failure",1,true))
+          openMapWidget=original
+          local originalCenter=centerview
+          centerview=function() return nil,"center failure" end
+          ok,result=mapper:locateRoom(41)
+          assert(not ok and result:find("center failure",1,true))
+          centerview=originalCenter
+        ''')
+
     def test_grid_refresh_detects_external_changes_between_identical_packets(self):
         self.check((ROOT / "tests/mapper_grid.lua").read_text() + '''
           local fresh=seedMapperGrid(5,0)
@@ -790,6 +883,75 @@ class MapperTests(unittest.TestCase):
           assert(rooms[101].special.manual==102 and mapper.conflicts>=1)
         ''')
 
+    def test_nonstandard_outgoing_command_learns_special_exit_on_transition(self):
+        self.check('''
+          assert(mapper:receive(packet(36703,{})))
+          fire("sysDataSendRequest","enter fishtank")
+          assert(mapper:receive(packet(36775,{})))
+          assert(rooms[36703].special["enter fishtank"]==36775)
+          assert(mapper.specialLearned==1 and clearedSpecial==0)
+          local owned=yajl.to_value(rooms[36703].data["aardwolf-vibe:special-exits"])
+          local learned=yajl.to_value(rooms[36703].data["aardwolf-vibe:learned-special-exits"])
+          assert(owned["enter fishtank"]==36775 and learned["enter fishtank"]==36775)
+
+          -- A normal GMCP refresh omits custom exits. That omission must not
+          -- erase a transition that the mapper observed directly, even after
+          -- the package-owned mapper object is recreated.
+          mapper:stop()
+          mapper=factory.new(_G,settings);assert(mapper:start())
+          assert(mapper:receive(packet(36703,{})))
+          assert(rooms[36703].special["enter fishtank"]==36775)
+          assert(clearedSpecial==0)
+        ''')
+
+    def test_learned_special_exit_retargets_with_per_command_removal(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{})))
+          fire("sysDataSendRequest","open gate")
+          assert(mapper:receive(packet(101,{})))
+          assert(rooms[100].special["open gate"]==101)
+          assert(mapper:receive(packet(100,{})))
+          fire("sysDataSendRequest","open gate")
+          assert(mapper:receive(packet(102,{})))
+          assert(rooms[100].special["open gate"]==102)
+          assert(#removedSpecial==1 and removedSpecial[1].from==100)
+          assert(removedSpecial[1].command=="open gate")
+          assert(mapper.specialLearned==2 and clearedSpecial==0)
+        ''')
+
+    def test_standard_and_stale_outgoing_commands_are_not_special_exits(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101})))
+          fire("sysDataSendRequest","east")
+          assert(mapper:receive(packet(101,{w=100})))
+          assert(next(rooms[100].special)==nil)
+
+          fire("sysDataSendRequest","look statue")
+          assert(mapper:receive(packet(101,{w=100})))
+          assert(mapper:receive(packet(100,{e=101})))
+          assert(next(rooms[101].special)==nil)
+
+          fire("sysDataSendRequest","north")
+          assert(mapper:receive(packet(103,{})))
+          assert(next(rooms[100].special)==nil and mapper.specialLearned==0)
+          assert(clearedSpecial==0)
+        ''')
+
+    def test_learned_special_exit_preserves_foreign_command_and_resets_on_disconnect(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{})))
+          addRoom(101);addSpecialExit(100,101,"enter arch")
+          fire("sysDataSendRequest","enter arch")
+          assert(mapper:receive(packet(102,{})))
+          assert(rooms[100].special["enter arch"]==101 and mapper.conflicts==1)
+
+          fire("sysDataSendRequest","climb rope")
+          fire("sysDisconnectionEvent")
+          assert(mapper:receive(packet(103,{})))
+          assert(rooms[102].special["climb rope"]==nil)
+          assert(clearedSpecial==0)
+        ''')
+
     def test_maze_destination_becomes_stub_and_no_reverse_exit_is_invented(self):
         self.check('''
           assert(mapper:receive(packet(101,{n="?",w=102})))
@@ -832,7 +994,7 @@ class MapperTests(unittest.TestCase):
           fire("sysDisconnectionEvent");fire("gmcp.room.info");assert(writes==before)
           mapper:stop();assert(next(handlers)==nil and next(modules)==nil)
           assert(mapper:start());assert(mapper:start())
-          local count=0;for _ in pairs(handlers) do count=count+1 end;assert(count==4)
+          local count=0;for _ in pairs(handlers) do count=count+1 end;assert(count==5)
         ''')
 
     def test_backup_and_registration_failures_stop_cleanly(self):

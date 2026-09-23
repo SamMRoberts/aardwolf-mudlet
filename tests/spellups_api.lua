@@ -16,6 +16,7 @@ function advance(seconds)
   end
   error("Timer loop")
 end
+function jump(seconds) clock=clock+seconds end
 function getEpoch() return clock end
 function registerNamedEventHandler(owner,name,event,callback)
   if handlerFailure then return false end
@@ -59,12 +60,7 @@ local function responseSignal(text)
   if text:match("^Queueing spell : .+%.$")
       or text:match("^Queueing skill : .+%.$")
       or text=="No spells or skills cast." then return true end
-  local lower=text:lower()
-  return lower:find("retry",1,true) ~= nil
-    and (lower:find("unknown",1,true) ~= nil
-      or lower:find("invalid",1,true) ~= nil
-      or lower:find("syntax",1,true) ~= nil
-      or lower:find("usage",1,true) ~= nil)
+  return false
 end
 local function regexMatches(regex,text)
   if regex:find("spellup-",1,true) then return tagSignal(text) end
@@ -139,9 +135,12 @@ function spellRows(kind,rows)
   for _,row in ipairs(rows or {}) do feed(row) end
   feed("{/spellheaders}")
 end
-function synchronize(duration)
+function synchronize(affectedRows,recoveryRowsList)
   spellRows("",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
   spellRows("spellup",{"72,Shield,2,0,100,-1,1","35,Detect magic,2,0,100,15,1"})
+  spellRows("bad",{})
+  spellRows("affected",affectedRows or {})
+  recoveryRows(recoveryRowsList or {})
   advance(0)
 end
 function recoveryRows(rows)

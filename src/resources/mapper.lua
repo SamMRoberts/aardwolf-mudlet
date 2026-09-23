@@ -83,8 +83,13 @@ local DIRECTIONS = {
 }
 
 local STANDARD = {n = true, e = true, s = true, w = true, u = true, d = true}
+local STANDARD_COMMAND = {
+  n = true, north = true, e = true, east = true, s = true, south = true,
+  w = true, west = true, u = true, up = true, d = true, down = true,
+}
 local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
 local MAX_LAYOUT_SEARCH_STATES = 200000
+local MAX_SEARCH_QUERY = 256
 
 local function integer(value, minimum, maximum)
   if type(value) ~= "number" and type(value) ~= "string" then return nil end
@@ -199,6 +204,7 @@ function Mapper.new(api, settings)
     promoted = 0,
     linked = 0,
     specialLinked = 0,
+    specialLearned = 0,
     transitions = 0,
     reciprocalTransitions = 0,
     stationary = 0,
@@ -210,7 +216,7 @@ function Mapper.new(api, settings)
     failed = 0,
     last = "Waiting to start",
   }
-  local lastPacket, movementAnchor, applying, queued = nil, nil, false, false
+  local lastPacket, movementAnchor, pendingCommand, applying, queued = nil, nil, nil, false, false
   local reportedLayoutConflicts = {}
   local backupDone = false
   local layoutRoomLists
@@ -222,6 +228,169 @@ function Mapper.new(api, settings)
   local function note(message, display)
     self.last = message
     if display then api.echo("Aardwolf Vibe mapper: " .. message .. "\n") end
+  end
+
+  local function mapAreas()
+    if type(api.getAreaTable) ~= "function" then
+      return nil, "Map area data is unavailable"
+    end
+    local ok, areas = pcall(api.getAreaTable)
+    if not ok then return nil, "Cannot read map areas: " .. tostring(areas) end
+    if type(areas) ~= "table" then return nil, "Map area data is unavailable" end
+    local entries, byID = {}, {}
+    for name, id in pairs(areas) do
+      local safeName = cleanString(name, MAX_SEARCH_QUERY, false)
+      local safeID = integer(id, 1, 2147483647)
+      if safeName and safeID then
+        entries[#entries + 1] = {id = safeID, name = safeName, lower = safeName:lower()}
+        byID[safeID] = safeName
+      end
+    end
+    table.sort(entries, function(left, right)
+      if left.lower ~= right.lower then return left.lower < right.lower end
+      if left.name ~= right.name then return left.name < right.name end
+      return left.id < right.id
+    end)
+    return entries, byID
+  end
+
+  local function resolveArea(wanted, entries)
+    local lower = wanted:lower()
+    local partial = {}
+    for _, area in ipairs(entries) do
+      if area.lower == lower then return area end
+      if area.lower:find(lower, 1, true) then partial[#partial + 1] = area end
+    end
+    if #partial == 1 then return partial[1] end
+    if #partial == 0 then return nil, "No mapped area matches '" .. wanted .. "'" end
+    local names = {}
+    for _, area in ipairs(partial) do names[#names + 1] = area.name end
+    return nil, "Area '" .. wanted .. "' is ambiguous: "
+      .. table.concat(names, ", ")
+  end
+
+  local function roomArea(id, areaNames)
+    if type(api.getRoomArea) ~= "function" then
+      return nil, nil, "Map room area data is unavailable"
+    end
+    local ok, areaID = pcall(api.getRoomArea, id)
+    if not ok then
+      return nil, nil, "Cannot read mapped room " .. tostring(id) .. " area: " .. tostring(areaID)
+    end
+    if type(areaID) ~= "number" or areaID % 1 ~= 0 then
+      return nil, nil, "Mapped room " .. tostring(id) .. " has no valid area"
+    end
+    return areaID, areaNames[areaID] or ("Area #" .. tostring(areaID))
+  end
+
+  local function sortSearchResults(results)
+    table.sort(results, function(left, right)
+      if left.exact ~= right.exact then return left.exact end
+      local leftArea, rightArea = left.areaName:lower(), right.areaName:lower()
+      if leftArea ~= rightArea then return leftArea < rightArea end
+      if left.areaName ~= right.areaName then return left.areaName < right.areaName end
+      local leftName, rightName = left.name:lower(), right.name:lower()
+      if leftName ~= rightName then return leftName < rightName end
+      if left.name ~= right.name then return left.name < right.name end
+      return left.id < right.id
+    end)
+  end
+
+  function self:searchRooms(query, areaName)
+    query = cleanString(query, MAX_SEARCH_QUERY, false)
+    if not query then return nil, "Room search text must be 1-256 printable characters" end
+    if areaName ~= nil then
+      areaName = cleanString(areaName, MAX_SEARCH_QUERY, false)
+      if not areaName then return nil, "Area search text must be 1-256 printable characters" end
+    end
+
+    local entries, areaNames = mapAreas()
+    if not entries then return nil, areaNames end
+    local wanted = query:lower()
+    local results, seen = {}, {}
+    local scope = {query = query, world = areaName == nil}
+
+    local function add(id, name, fixedArea)
+      id = roomID(id)
+      name = cleanString(name, 4096, false)
+      if not id or not name or seen[id] or not name:lower():find(wanted, 1, true) then return true end
+      seen[id] = true
+      local areaID, canonicalArea, areaError
+      if fixedArea then areaID, canonicalArea = fixedArea.id, fixedArea.name
+      else areaID, canonicalArea, areaError = roomArea(id, areaNames) end
+      if areaError then return nil, areaError end
+      results[#results + 1] = {
+        id = id,
+        name = name,
+        areaID = areaID,
+        areaName = canonicalArea,
+        exact = name:lower() == wanted,
+      }
+      return true
+    end
+
+    if areaName then
+      local area, message = resolveArea(areaName, entries)
+      if not area then return nil, message end
+      scope.areaID, scope.areaName = area.id, area.name
+      if type(api.getAreaRooms) ~= "function" or type(api.getRoomName) ~= "function" then
+        return nil, "Map room data is unavailable"
+      end
+      local ok, ids = pcall(api.getAreaRooms, area.id)
+      if not ok then return nil, "Cannot read rooms in " .. area.name .. ": " .. tostring(ids) end
+      if type(ids) ~= "table" then return nil, "Map room data is unavailable for " .. area.name end
+      for _, id in pairs(ids) do
+        local validID = roomID(id)
+        if validID then
+          local read, name = pcall(api.getRoomName, validID)
+          if not read then
+            return nil, "Cannot read mapped room " .. tostring(validID) .. ": " .. tostring(name)
+          end
+          local added, addError = add(validID, name, area)
+          if not added then return nil, addError end
+        end
+      end
+    else
+      if type(api.getRooms) ~= "function" then return nil, "Map room data is unavailable" end
+      local ok, rooms = pcall(api.getRooms)
+      if not ok then return nil, "Cannot read map rooms: " .. tostring(rooms) end
+      if type(rooms) ~= "table" then return nil, "Map room data is unavailable" end
+      for id, name in pairs(rooms) do
+        local added, addError = add(id, name)
+        if not added then return nil, addError end
+      end
+    end
+
+    sortSearchResults(results)
+    return results, scope
+  end
+
+  function self:locateRoom(value)
+    local id = roomID(value)
+    if not id then return false, "Room ID must be a positive integer" end
+    if type(api.getRoomName) ~= "function" then return false, "Map room data is unavailable" end
+    local ok, name = pcall(api.getRoomName, id)
+    if not ok then return false, "Cannot read room " .. tostring(id) .. ": " .. tostring(name) end
+    if name == nil then return false, "Mapped room " .. tostring(id) .. " does not exist" end
+    local safeName = cleanString(name, 4096, false) or ("Room #" .. tostring(id))
+    local areaEntries, areaNames = mapAreas()
+    if not areaEntries then return false, areaNames end
+    local areaID, areaName, areaError = roomArea(id, areaNames)
+    if areaError then return false, areaError end
+    if type(api.openMapWidget) ~= "function" or type(api.centerview) ~= "function" then
+      return false, "Native mapper controls are unavailable"
+    end
+    local opened, openResult, openMessage = pcall(api.openMapWidget)
+    if not opened or not openResult then
+      return false, "Cannot open native mapper: "
+        .. tostring(opened and openMessage or openResult)
+    end
+    local centered, centerResult, centerMessage = pcall(api.centerview, id)
+    if not centered or not centerResult then
+      return false, "Cannot center native mapper on room " .. tostring(id) .. ": "
+        .. tostring(centered and centerMessage or centerResult)
+    end
+    return true, {id = id, name = safeName, areaID = areaID, areaName = areaName}
   end
 
   local function conflict(message)
@@ -1541,13 +1710,40 @@ function Mapper.new(api, settings)
     return result
   end
 
+  local function recordedLearnedSpecial(id)
+    local raw = api.getRoomUserData(id, KEY .. "learned-special-exits")
+    if raw == nil or raw == "" then return {} end
+    local ok, value = pcall(api.yajl.to_value, raw)
+    if not ok or type(value) ~= "table" then error("Invalid learned special-exit metadata", 0) end
+    local result = {}
+    for command, target in pairs(value) do
+      local clean = cleanString(command, 128, false)
+      local numeric = roomID(target)
+      if not clean or clean ~= command or not numeric then
+        error("Invalid learned special-exit record", 0)
+      end
+      result[command] = numeric
+    end
+    return result
+  end
+
+  local function storeSpecialRecord(id, name, value)
+    required(api.setRoomUserData(id, KEY .. name, api.yajl.to_string(value)),
+      "Cannot record special exits")
+  end
+
   local function reconcileSpecial(id, area, room)
     local recorded = recordedSpecial(id)
+    local learned = recordedLearnedSpecial(id)
     local actual = specialExits(id)
+    for command, target in pairs(learned) do
+      if room.special[command] == nil then room.special[command] = target end
+    end
     local commands = {}
     for command in pairs(recorded) do commands[command] = true end
     for command in pairs(room.special) do commands[command] = true end
     local nextRecord = {}
+    local nextLearned = {}
     for command in pairs(commands) do
       local old = recorded[command]
       local current = actual[command]
@@ -1562,6 +1758,7 @@ function Mapper.new(api, settings)
         if current ~= desired then api.addSpecialExit(id, desired, command) end
         if specialExits(id)[command] ~= desired then error("Special-exit readback failed", 0) end
         nextRecord[command] = desired
+        if learned[command] then nextLearned[command] = desired end
         self.specialLinked = self.specialLinked + 1
       else
         if old and current == old then
@@ -1571,11 +1768,40 @@ function Mapper.new(api, settings)
         if desired == false then conflict("Skipped special exit without a valid destination: " .. command) end
       end
     end
-    required(api.setRoomUserData(id, KEY .. "special-exits", api.yajl.to_string(nextRecord)),
-      "Cannot record special exits")
+    storeSpecialRecord(id, "special-exits", nextRecord)
+    storeSpecialRecord(id, "learned-special-exits", nextLearned)
+  end
+
+  local function learnSpecialExit(from, to, command)
+    if from == to or not managed(from) then return end
+    local recorded = recordedSpecial(from)
+    local learned = recordedLearnedSpecial(from)
+    local actual = specialExits(from)
+    local old, current = recorded[command], actual[command]
+    if (old and current ~= old) or (not old and current) then
+      recorded[command] = nil
+      learned[command] = nil
+      storeSpecialRecord(from, "special-exits", recorded)
+      storeSpecialRecord(from, "learned-special-exits", learned)
+      conflict("Preserved modified or foreign special exit '" .. command .. "' in room " .. from)
+      return
+    end
+    if current ~= to then
+      if current then api.removeSpecialExit(from, command) end
+      api.addSpecialExit(from, to, command)
+      if specialExits(from)[command] ~= to then error("Special-exit readback failed", 0) end
+    end
+    recorded[command] = to
+    learned[command] = to
+    storeSpecialRecord(from, "special-exits", recorded)
+    storeSpecialRecord(from, "learned-special-exits", learned)
+    self.specialLinked = self.specialLinked + 1
+    self.specialLearned = self.specialLearned + 1
   end
 
   local function apply(room)
+    local command = pendingCommand
+    pendingCommand = nil
     backup()
     local id, area, finalAuthority = ensureCurrent(room)
     retryDisplacement(id, area, room)
@@ -1586,6 +1812,10 @@ function Mapper.new(api, settings)
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
     if not managed(id) then error("Room construction readback failed: " .. id, 0) end
+    if command and movementAnchor and command.from == movementAnchor.id
+        and movementAnchor.id ~= id and not directionTo(movementAnchor.room, id) then
+      learnSpecialExit(movementAnchor.id, id, command.value)
+    end
     if not movementAnchor then
       movementAnchor = {id = id, room = room}
     elseif movementAnchor.id ~= id then
@@ -1611,9 +1841,19 @@ function Mapper.new(api, settings)
   end
 
   function self:resetFreshness()
-    movementAnchor, self.current = nil, nil
+    movementAnchor, pendingCommand, self.current = nil, nil, nil
     local gmcp = api.gmcp
     lastPacket = type(gmcp) == "table" and type(gmcp.room) == "table" and gmcp.room.info or nil
+  end
+
+  function self:sent(command)
+    pendingCommand = nil
+    if not self.enabled or not self.current or not movementAnchor
+        or movementAnchor.id ~= self.current then return false end
+    local value = cleanString(command, 128, false)
+    if not value or STANDARD_COMMAND[value:lower()] then return false end
+    pendingCommand = {from = self.current, value = value}
+    return true
   end
 
   function self:receive(packet)
@@ -1628,7 +1868,7 @@ function Mapper.new(api, settings)
     end
     local room, message = normalize(data)
     if not room then
-      movementAnchor, self.current = nil, nil
+      movementAnchor, pendingCommand, self.current = nil, nil, nil
       self.skipped = self.skipped + 1
       note(message, false)
       return false
@@ -1656,7 +1896,7 @@ function Mapper.new(api, settings)
   function self:stop()
     self.enabled = false
     self:resetFreshness()
-    for _, name in ipairs({"room", "disconnect", "connect", "protocol"}) do
+    for _, name in ipairs({"room", "outgoing", "disconnect", "connect", "protocol"}) do
       api.deleteNamedEventHandler(OWNER, name)
     end
     if self.subscribed then
@@ -1679,6 +1919,8 @@ function Mapper.new(api, settings)
     local ok, message = pcall(function()
       required(api.registerNamedEventHandler(OWNER, "room", "gmcp.room.info",
         function() self:receive() end), "Cannot register room.info handler")
+      required(api.registerNamedEventHandler(OWNER, "outgoing", "sysDataSendRequest",
+        function(_, command) self:sent(command) end), "Cannot register outgoing-command handler")
       required(api.registerNamedEventHandler(OWNER, "disconnect", "sysDisconnectionEvent",
         function() self:resetFreshness() end), "Cannot register disconnect handler")
       required(api.registerNamedEventHandler(OWNER, "connect", "sysConnectionEvent",
@@ -1703,12 +1945,12 @@ function Mapper.new(api, settings)
 
   function self:status()
     api.echo(string.format(
-      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s reflowed=%d layout-conflicts=%d added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
+      "Aardwolf Vibe mapper: %s; current=%s transitions=%d reciprocal=%d stationary=%d last-move=%s reflowed=%d layout-conflicts=%d added=%d reused=%d placeholders=%d promoted=%d linked=%d special=%d learned-special=%d skipped=%d conflicts=%d failed=%d\n%s\n",
       self.enabled and "on" or "off", self.current and tostring(self.current) or "none",
       self.transitions, self.reciprocalTransitions, self.stationary, self.lastMovement,
       self.reflowedRooms, self.layoutConflicts,
       self.added, self.reused, self.placeholders, self.promoted, self.linked,
-      self.specialLinked, self.skipped, self.conflicts, self.failed, self.last))
+      self.specialLinked, self.specialLearned, self.skipped, self.conflicts, self.failed, self.last))
     if self.backup then api.echo("Backup: " .. self.backup .. "\n") end
     return self.enabled
   end

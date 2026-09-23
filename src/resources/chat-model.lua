@@ -3,6 +3,8 @@ local ChatModel = {}
 local MAX_TABS = 24
 local MAX_CHANNELS_PER_TAB = 64
 local MAX_MESSAGE_BYTES = 65536
+local DEFAULT_FONT = "Menlo"
+local DEFAULT_FONT_SIZE = 11
 
 local KNOWN_CHANNELS = {
   "answer", "auction", "barter", "cant", "chant", "claninfo", "clantalk",
@@ -86,7 +88,8 @@ function ChatModel.knownChannels()
 end
 
 function ChatModel.defaultConfig()
-  return {schemaVersion = 1, colorMode = "ansi", tabs = copy(DEFAULT_TABS)}
+  return {schemaVersion = 1, colorMode = "ansi", font = DEFAULT_FONT,
+    fontSize = DEFAULT_FONT_SIZE, tabs = copy(DEFAULT_TABS)}
 end
 
 function ChatModel.validateConfig(value)
@@ -94,6 +97,17 @@ function ChatModel.validateConfig(value)
       or (value.colorMode ~= "ansi" and value.colorMode ~= "raw")
       or not dense(value.tabs) or #value.tabs < 1 or #value.tabs > MAX_TABS then
     return nil, "Chat configuration must contain schemaVersion 1, a color mode, and 1-24 tabs"
+  end
+  -- Older chat.json files predate typography settings. Keep their appearance
+  -- when they are loaded, then persist explicit values on the next Apply.
+  local font, fontSize = value.font, value.fontSize
+  if font == nil and fontSize == nil then
+    font, fontSize = DEFAULT_FONT, DEFAULT_FONT_SIZE
+  end
+  if not validString(font, 80, false) or font:match("^%s") or font:match("%s$")
+      or type(fontSize) ~= "number" or fontSize % 1 ~= 0
+      or fontSize < 6 or fontSize > 32 then
+    return nil, "Chat font must be a name of 1-80 characters and size must be 6-32 points"
   end
   local ids = {}
   for index, tab in ipairs(value.tabs) do
@@ -115,7 +129,9 @@ function ChatModel.validateConfig(value)
       channels[normalized] = true
     end
   end
-  return copy(value)
+  local result = copy(value)
+  result.font, result.fontSize = font, fontSize
+  return result
 end
 
 function ChatModel.normalize(raw)

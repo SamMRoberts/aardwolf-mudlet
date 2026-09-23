@@ -1,9 +1,9 @@
 handlers, widgets, modules, sent = {}, {}, {}, {}
 remembered = {}
-registrationCount, constructionCount, borderSetCalls = 0, 0, 0
+registrationCount, constructionCount, borderSetCalls, topBorderSetCalls = 0, 0, 0, 0
 fail = {}
 mainWindowWidth, mainWindowHeight = 1200, 800
-borderLeft, borderRight, borderBottom = 10, 20, 17
+borderLeft, borderRight, borderTop, borderBottom = 10, 20, 13, 17
 
 function registerNamedEventHandler(owner, name, event, callback)
   registrationCount = registrationCount + 1
@@ -41,7 +41,13 @@ end
 function getMainWindowSize() return mainWindowWidth, mainWindowHeight end
 function getBorderLeft() return borderLeft end
 function getBorderRight() return borderRight end
+function getBorderTop() return borderTop end
 function getBorderBottom() return borderBottom end
+function setBorderTop(value)
+  if fail.topBorder then error("top border failure") end
+  topBorderSetCalls = topBorderSetCalls + 1
+  borderTop = value
+end
 function setBorderBottom(value)
   if fail.border then error("border failure") end
   borderSetCalls = borderSetCalls + 1
@@ -123,6 +129,12 @@ function Container:new(constraints, parent)
   return Widget.new(self, constraints, parent)
 end
 
+local HBox = setmetatable({}, {__index = Widget})
+HBox.__index = HBox
+function HBox:new(constraints, parent)
+  return Widget.new(self, constraints, parent)
+end
+
 local ScrollBox = setmetatable({}, {__index = Widget})
 ScrollBox.__index = ScrollBox
 function ScrollBox:new(constraints, parent)
@@ -151,6 +163,7 @@ end
 Geyser = {
   UserWindow = UserWindow,
   Container = Container,
+  HBox = HBox,
   ScrollBox = ScrollBox,
   Label = Label,
   Gauge = Gauge,
@@ -197,20 +210,24 @@ function characterWindow()
   return widgets["aardwolf-vibe.character-window.window"]
 end
 
+function statusBay()
+  return widgets["aardwolf-vibe.character-window.top"]
+end
+
+function statusRow()
+  return widgets["aardwolf-vibe.character-window.row"]
+end
+
+function statusField(key)
+  return widgets["aardwolf-vibe.character-window.field." .. key]
+end
+
 function bottomGaugeRoot()
   return widgets["aardwolf-vibe.character-window.bottom"]
 end
 
 function gauge(key)
   return widgets["aardwolf-vibe.character-window.gauge." .. key]
-end
-
-function headerLabel()
-  return widgets["aardwolf-vibe.character-window.header"]
-end
-
-function detailsLabel()
-  return widgets["aardwolf-vibe.character-window.details"]
 end
 
 function count(values)

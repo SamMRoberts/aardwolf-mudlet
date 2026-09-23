@@ -2,7 +2,7 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.19", "Aardwolf Vibe 0.7.19 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.45", "Aardwolf Vibe 0.7.45 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
@@ -83,6 +83,7 @@ end
 local recoveriesStage
 local activeStage
 local classificationStage
+local badStage
 local catalogStage
 local expiryStartStage
 local expiryActiveStage
@@ -155,17 +156,20 @@ end, expiryStartStage) end) end
 
 activeStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist affected noprompt")
+  feedTriggers("NATIVE_SPELL_BEFORE\n")
   rows("affected", affectedRows(true))
+  feedTriggers("NATIVE_SPELL_AFTER\n")
 end, recoveriesStage) end
+
+badStage = function() stage(function()
+  assert(test.commands[#test.commands].command == "slist bad noprompt")
+  rows("bad", {})
+end, activeStage) end
 
 classificationStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist spellup noprompt")
   rows("spellup", catalogRows)
-  assert(AardwolfVibe.plugins.spells:isFresh())
-  feedTriggers("NATIVE_SPELL_BEFORE\n")
-  feedTriggers("{affon}35,55\n")
-  feedTriggers("NATIVE_SPELL_AFTER\n")
-end, activeStage) end
+end, badStage) end
 
 catalogStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist noprompt")

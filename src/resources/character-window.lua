@@ -1,24 +1,27 @@
 local CharacterWindow = {}
 
 local OWNER = "aardwolf-vibe.character-window"
-local WINDOW_NAME = OWNER .. ".window"
-local LAYOUT_MARKER = "AardwolfVibeCharacterWindowLayout"
-local LAYOUT_VERSION = 1
+local BAY_HEIGHT = 42
+local COMPACT_BREAKPOINT = 1100
+local NORMAL_NAME_LIMIT = 24
+local COMPACT_NAME_LIMIT = 14
 local BOTTOM_BREAKPOINT = 960
 local BAR_HEIGHT = 26
 local BOTTOM_PADDING = 5
 local BAR_GAP = 6
 local ONE_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT
 local TWO_ROW_HEIGHT = BOTTOM_PADDING * 2 + BAR_HEIGHT * 2 + BAR_GAP
--- Geyser calculates percentage child widths before Qt subtracts the native
--- vertical scrollbar, so leave enough room for that scrollbar and an inset.
-local SHEET_CONTENT_WIDTH = "100%-44px"
-local HEADER_HEIGHT = 116
-local DETAILS_TOP = 132
-local DETAILS_HEIGHT = 960
 
 local GROUPS = {"base", "vitals", "stats", "maxstats", "status", "worth"}
 local GAUGE_KEYS = {"hp", "mana", "moves", "tnl", "enemy", "align"}
+local BAY_KEYS = {
+  "name", "level", "total", "remorts", "tier",
+  "str", "int", "wis", "dex", "con", "luck",
+}
+local ATTRIBUTE_MAXIMUMS = {
+  str = "maxstr", int = "maxint", wis = "maxwis", dex = "maxdex",
+  con = "maxcon", luck = "maxluck",
+}
 local FIELDS = {
   base = {
     "name", "class", "subclass", "race", "clan", "pretitle", "classes",
@@ -99,16 +102,6 @@ local function truncate(value, limit)
   return table.concat(characters, "", 1, limit) .. "…"
 end
 
-local function escapeWrapped(value, interval)
-  local characters, count = {}, 0
-  for character in value:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
-    count = count + 1
-    characters[#characters + 1] = escape(character)
-    if count % interval == 0 then characters[#characters + 1] = "&#8203;" end
-  end
-  return table.concat(characters)
-end
-
 local function clamp(value, minimum, maximum)
   return math.max(minimum, math.min(maximum, value))
 end
@@ -146,31 +139,15 @@ local function normalizeGroup(group, value)
   return result
 end
 
-local function row(label, value)
-  return "<tr><td width='52%' style='color:#9fb3c8;padding:4px 8px 4px 2px;"
-    .. "font-size:13px;font-weight:bold;'>" .. label
-    .. "</td><td width='48%' align='right' style='color:#f7fbff;padding:4px 2px;"
-    .. "font-size:13px;font-weight:bold;'>"
-    .. value .. "</td></tr>"
-end
-
-local function section(title, rows, first)
-  return "<div style='color:#7dd3fc;font-size:14px;font-weight:bold;"
-    .. "background:#142436;padding:5px;margin-top:"
-    .. (first and "0" or "10px") .. ";'>" .. title
-    .. "</div><table width='100%' cellspacing='0' cellpadding='0' "
-    .. "style='table-layout:fixed;'>"
-    .. table.concat(rows) .. "</table>"
-end
-
 function CharacterWindow.new(api, character)
   local self = {enabled = false, visible = false, lastError = nil}
-  local window, root, scroll, header, details, bottomRoot
-  local gauges, gaugeColors, handlers = {}, {}, {}
+  local topRoot, topBox, bottomRoot
+  local bayLabels, gauges, gaugeColors, handlers = {}, {}, {}, {}
   local groups, fresh = {}, {}
   local generation, session, sequence = 0, 0, 0
-  local borderBefore, borderWritten, bottomRows, lastGaugeWidth = nil, nil, 0, 0
-  local layingOut = false
+  local topBefore, topWritten, bottomBefore, bottomWritten = nil, nil, nil, nil
+  local bottomRows, lastGaugeWidth, usableWidth = 0, 0, 0
+  local compact, layingOut = false, false
 
   local function clearReadings()
     groups, fresh = {}, {}
@@ -190,9 +167,18 @@ function CharacterWindow.new(api, character)
     return validText(value) and value or nil
   end
 
-  local function displayText(group, field)
-    local value = textReading(group, field)
-    return value and escapeWrapped(value, 18) or "--"
+  local function currentLevel()
+    return reading("status", "level") or reading("base", "level")
+  end
+
+  local function totalLevels()
+    local level = currentLevel()
+    local remorts = reading("base", "remorts")
+    local redos = reading("base", "redos")
+    if level == nil or remorts == nil or redos == nil
+        or level < 0 or remorts < 0 or redos < 0 then return nil end
+    local total = level + 201 * remorts + 1407 * redos
+    return exactInteger(total) and total or nil
   end
 
   local function styleGauge(key, color)
@@ -248,8 +234,8 @@ function CharacterWindow.new(api, character)
     local suffix = validPercentage and (formatInteger(percentage) .. "%") or "--%"
     local full = "Enemy " .. escape(enemy) .. " " .. suffix
     local limit = math.max(8, math.floor(lastGaugeWidth / 8) - 13)
-    local compact = "Enemy " .. escape(truncate(enemy, limit)) .. " " .. suffix
-    setGauge("enemy", validPercentage and percentage or 0, compact, full,
+    local short = "Enemy " .. escape(truncate(enemy, limit)) .. " " .. suffix
+    setGauge("enemy", validPercentage and percentage or 0, short, full,
       validPercentage and COLORS.enemy or COLORS.unavailable)
   end
 
@@ -271,104 +257,6 @@ function CharacterWindow.new(api, character)
     setGauge("align", 100 * (alignment + 2500) / 5000, value, value, color)
   end
 
-  local function stateDescription()
-    local state = reading("status", "state")
-    if state == nil then return "--" end
-    local ok, value = pcall(character.stateName, character, state)
-    if ok and validText(value) then return escape(value) end
-    return "Unknown (" .. formatInteger(state) .. ")"
-  end
-
-  local function classHistory()
-    local classes = textReading("base", "classes")
-    if not classes then return "--" end
-    local names = {}
-    for id in classes:gmatch(".") do
-      local ok, name = pcall(character.className, character, tonumber(id))
-      names[#names + 1] = ok and validText(name) and escapeWrapped(name, 18) or id
-    end
-    return #names > 0 and table.concat(names, ", ") or "--"
-  end
-
-  local function attribute(field, maximum)
-    return formatInteger(reading("stats", field)) .. " / "
-      .. formatInteger(reading("maxstats", maximum))
-  end
-
-  local function renderHeader()
-    header:echo("<div style='padding:8px;'>"
-      .. "<div style='font-size:18px;font-weight:bold;color:#ffffff;'>"
-      .. displayText("base", "name") .. "</div>"
-      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Pretitle:</b> "
-      .. displayText("base", "pretitle") .. "</div>"
-      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Race:</b> "
-      .. displayText("base", "race") .. " · <b>Class:</b> "
-      .. displayText("base", "class") .. "</div>"
-      .. "<div style='font-size:13px;color:#9fb3c8;'><b>Subclass:</b> "
-      .. displayText("base", "subclass") .. " · <b>Clan:</b> "
-      .. displayText("base", "clan") .. "</div>"
-      .. "<div style='font-size:13px;color:#7dd3fc;'><b>Class history:</b> "
-      .. classHistory() .. "</div></div>")
-  end
-
-  local function renderDetails()
-    local level = reading("status", "level") or reading("base", "level")
-    local enemy = textReading("status", "enemy")
-    local enemyValue = enemy and enemy ~= "" and escapeWrapped(enemy, 18)
-      or (enemy == "" and "None" or "--")
-    local enemyPercentage = reading("status", "enemypct")
-    if enemyValue ~= "--" and enemyValue ~= "None" then
-      enemyValue = enemyValue .. " ("
-        .. (enemyPercentage and (formatInteger(enemyPercentage) .. "%") or "--%") .. ")"
-    end
-
-    local html = {
-      "<div style='font-size:13px;padding:8px;background:#0b1118;color:#f7fbff;'>",
-      section("Attributes", {
-        row("Strength", attribute("str", "maxstr")),
-        row("Intelligence", attribute("int", "maxint")),
-        row("Wisdom", attribute("wis", "maxwis")),
-        row("Dexterity", attribute("dex", "maxdex")),
-        row("Constitution", attribute("con", "maxcon")),
-        row("Luck", attribute("luck", "maxluck")),
-      }, true),
-      section("Combat", {
-        row("Hit roll", formatInteger(reading("stats", "hr"))),
-        row("Damage roll", formatInteger(reading("stats", "dr"))),
-        row("Saves", formatInteger(reading("stats", "saves"))),
-      }),
-      section("Progression", {
-        row("Level", formatInteger(level)),
-        row("Tier", formatInteger(reading("base", "tier"))),
-        row("Remorts", formatInteger(reading("base", "remorts"))),
-        row("Redos", formatInteger(reading("base", "redos"))),
-        row("Pups", formatInteger(reading("base", "pups"))),
-        row("Total pups", formatInteger(reading("base", "totpups"))),
-        row("To next level", formatInteger(reading("status", "tnl"))),
-        row("Per-level requirement", formatInteger(reading("base", "perlevel"))),
-      }),
-      section("Status", {
-        row("Position", displayText("status", "pos")),
-        row("State", stateDescription()),
-        row("Hunger", formatInteger(reading("status", "hunger"))),
-        row("Thirst", formatInteger(reading("status", "thirst"))),
-        row("Alignment", formatInteger(reading("status", "align"))),
-        row("Enemy", enemyValue),
-      }),
-      section("Worth", {
-        row("Gold", formatInteger(reading("worth", "gold"))),
-        row("Bank", formatInteger(reading("worth", "bank"))),
-        row("Quest points", formatInteger(reading("worth", "qp"))),
-        row("Triv points", formatInteger(reading("worth", "tp"))),
-        row("QP earned", formatInteger(reading("worth", "qpearned"))),
-        row("Trains", formatInteger(reading("worth", "trains"))),
-        row("Practices", formatInteger(reading("worth", "pracs"))),
-      }),
-      "</div>",
-    }
-    details:echo(table.concat(html))
-  end
-
   local function renderGauges()
     if not bottomRoot then return true end
     renderResource("hp", "HP", "maxhp", COLORS.hp)
@@ -380,22 +268,115 @@ function CharacterWindow.new(api, character)
     return true
   end
 
+  local function fieldMarkup(label, value)
+    return "<span style='color:#7dd3fc;font-weight:bold;'>" .. label
+      .. "</span> <span style='color:#f7fbff;font-weight:bold;'>" .. value .. "</span>"
+  end
+
+  local function attributeValue(key)
+    return formatInteger(reading("stats", key)) .. "/"
+      .. formatInteger(reading("maxstats", ATTRIBUTE_MAXIMUMS[key]))
+  end
+
+  local function renderBay()
+    if not topRoot then return true end
+    local fullName = textReading("base", "name") or "--"
+    local nameLimit = compact and COMPACT_NAME_LIMIT or NORMAL_NAME_LIMIT
+    bayLabels.name:echo("<span style='color:#ffffff;font-weight:bold;'>"
+      .. escape(truncate(fullName, nameLimit)) .. "</span>")
+    bayLabels.name:setToolTip("Character: " .. escape(fullName))
+
+    local level = formatInteger(currentLevel())
+    local total = formatInteger(totalLevels())
+    local remorts = formatInteger(reading("base", "remorts"))
+    local tier = formatInteger(reading("base", "tier"))
+    local progression = {
+      level = {"LVL", level, "Current level: " .. level},
+      total = {"TOTAL", total, "Total levels: " .. total},
+      remorts = {"REM", remorts, "Remorts: " .. remorts},
+      tier = {"TIER", tier, "Tier: " .. tier},
+    }
+    for _, key in ipairs({"level", "total", "remorts", "tier"}) do
+      local item = progression[key]
+      bayLabels[key]:echo(fieldMarkup(item[1], item[2]))
+      bayLabels[key]:setToolTip(item[3])
+    end
+
+    for _, key in ipairs({"str", "int", "wis", "dex", "con", "luck"}) do
+      local value = attributeValue(key)
+      local label = key:upper()
+      bayLabels[key]:echo(fieldMarkup(label, value))
+      bayLabels[key]:setToolTip(label .. " current/max: " .. value)
+    end
+    return true
+  end
+
   local function render()
-    if not window then return true end
-    renderHeader()
-    renderDetails()
+    renderBay()
     renderGauges()
     return true
   end
 
-  local function layoutBottom()
-    if not self.enabled or not bottomRoot or layingOut then return true end
+  local function applyDensity(width)
+    local nextCompact = width < COMPACT_BREAKPOINT
+    local changed = compact ~= nextCompact
+    compact = nextCompact
+    for _, key in ipairs(BAY_KEYS) do
+      local size
+      if key == "name" then size = compact and 13 or 16
+      else size = compact and 10 or 12 end
+      bayLabels[key]:setFontSize(size)
+    end
+    if changed then renderBay() end
+  end
+
+  local function restoreBorder(getter, setter, written, before)
+    if written == nil then return true end
+    local ok, current = pcall(getter)
+    if not ok then return false, tostring(current) end
+    if current ~= written then return true end
+    return pcall(setter, before)
+  end
+
+  local function reserveTop()
+    if topWritten ~= nil then
+      if api.getBorderTop() ~= topWritten then
+        error("Top border changed outside aardwolf-vibe; character status bay stopped to preserve the new layout", 0)
+      end
+      return true
+    end
+    topBefore = api.getBorderTop()
+    if not finite(topBefore) or topBefore < 0 then error("Invalid Mudlet top border", 0) end
+    topWritten = BAY_HEIGHT
+    api.setBorderTop(BAY_HEIGHT)
+    if api.getBorderTop() ~= BAY_HEIGHT then
+      error("Cannot reserve top space for character status bay", 0)
+    end
+    return true
+  end
+
+  local function releaseTop()
+    if topWritten == nil then topBefore = nil; return true end
+    local ok, current = pcall(api.getBorderTop)
+    if not ok then return false, tostring(current) end
+    if current == topWritten then
+      local restored, why = pcall(api.setBorderTop, topBefore)
+      if not restored then return false, tostring(why) end
+    end
+    topBefore, topWritten = nil, nil
+    return true
+  end
+
+  local function layout()
+    if not self.enabled or not bottomRoot or not topRoot or layingOut then return true end
     layingOut = true
     local ok, message = pcall(function()
-      local currentBorder = api.getBorderBottom()
-      if borderWritten ~= nil and currentBorder ~= borderWritten then
+      local currentBottom = api.getBorderBottom()
+      if bottomWritten ~= nil and currentBottom ~= bottomWritten then
         error("Bottom border changed outside aardwolf-vibe; character gauges stopped to preserve the new layout", 0)
       end
+      if self.visible then reserveTop() end
+
       local windowWidth, windowHeight = api.getMainWindowSize()
       if not finite(windowWidth) or windowWidth <= 0
           or not finite(windowHeight) or windowHeight <= 0 then
@@ -405,11 +386,16 @@ function CharacterWindow.new(api, character)
       if not finite(left) or not finite(right) then
         error("Cannot determine Mudlet side borders", 0)
       end
-      local usableWidth = math.max(1, windowWidth - left - right)
+      usableWidth = math.max(1, windowWidth - left - right)
+
+      topRoot:move(left, 0)
+      topRoot:resize(usableWidth, BAY_HEIGHT)
+      applyDensity(usableWidth)
+
       bottomRows = usableWidth >= BOTTOM_BREAKPOINT and 1 or 2
       local panelHeight = bottomRows == 1 and ONE_ROW_HEIGHT or TWO_ROW_HEIGHT
-      if borderWritten ~= panelHeight then
-        borderWritten = panelHeight
+      if bottomWritten ~= panelHeight then
+        bottomWritten = panelHeight
         api.setBorderBottom(panelHeight)
         if api.getBorderBottom() ~= panelHeight then
           error("Cannot reserve bottom space for character gauges", 0)
@@ -437,22 +423,25 @@ function CharacterWindow.new(api, character)
   end
 
   local function reveal()
-    if not window then return false, "Character window is not available" end
-    local ok, message = pcall(window.show, window)
+    if not topRoot then return false, "Character status bay is not available" end
+    local ok, message = pcall(function()
+      reserveTop()
+      topRoot:show()
+      self.visible = true
+      layout()
+    end)
     if not ok then
-      self.lastError = "Cannot show character window: " .. tostring(message)
+      self.visible = false
+      pcall(topRoot.hide, topRoot)
+      local released, releaseError = releaseTop()
+      self.lastError = "Cannot show character status bay: " .. tostring(message)
+      if not released then
+        self.lastError = self.lastError .. "; cannot release top border: "
+          .. tostring(releaseError)
+      end
       return false, self.lastError
     end
-    if type(window.raise) == "function" then
-      ok, message = pcall(window.raise, window)
-    elseif type(api.raiseWindow) == "function" then
-      ok, message = pcall(api.raiseWindow, window.name)
-    end
-    if not ok then
-      self.lastError = "Cannot bring character window forward: " .. tostring(message)
-      return false, self.lastError
-    end
-    self.visible, self.lastError = true, nil
+    self.lastError = nil
     return true
   end
 
@@ -470,29 +459,29 @@ function CharacterWindow.new(api, character)
     generation = generation + 1
     self.enabled, self.visible = false, false
     local cleanupError = removeHandlers()
-    if window then
-      local ok, why = pcall(window.delete, window)
+    if topRoot then
+      local ok, why = pcall(topRoot.delete, topRoot)
       if not ok and not cleanupError then cleanupError = tostring(why) end
     end
     if bottomRoot then
       local ok, why = pcall(bottomRoot.delete, bottomRoot)
       if not ok and not cleanupError then cleanupError = tostring(why) end
     end
-    if borderWritten ~= nil then
-      local ok, current = pcall(api.getBorderBottom)
-      if ok and current == borderWritten then
-        local restored, why = pcall(api.setBorderBottom, borderBefore)
-        if not restored and not cleanupError then cleanupError = tostring(why) end
-      end
-    end
-    window, root, scroll, header, details, bottomRoot = nil, nil, nil, nil, nil, nil
-    gauges, gaugeColors = {}, {}
-    borderBefore, borderWritten, bottomRows, lastGaugeWidth = nil, nil, 0, 0
-    layingOut = false
+    local topOK, topError = restoreBorder(
+      api.getBorderTop, api.setBorderTop, topWritten, topBefore)
+    if not topOK and not cleanupError then cleanupError = tostring(topError) end
+    local bottomOK, bottomError = restoreBorder(
+      api.getBorderBottom, api.setBorderBottom, bottomWritten, bottomBefore)
+    if not bottomOK and not cleanupError then cleanupError = tostring(bottomError) end
+    topRoot, topBox, bottomRoot = nil, nil, nil
+    bayLabels, gauges, gaugeColors = {}, {}, {}
+    topBefore, topWritten, bottomBefore, bottomWritten = nil, nil, nil, nil
+    bottomRows, lastGaugeWidth, usableWidth = 0, 0, 0
+    compact, layingOut = false, false
     session = 0
     clearReadings()
     if message then self.lastError = tostring(message)
-    elseif cleanupError then self.lastError = "Cannot fully stop character window: " .. cleanupError
+    elseif cleanupError then self.lastError = "Cannot fully stop character status bay: " .. cleanupError
     else self.lastError = nil end
     return cleanupError == nil
   end
@@ -546,7 +535,7 @@ function CharacterWindow.new(api, character)
   function self:start()
     if self.enabled then
       local ok, message = pcall(function()
-        layoutBottom()
+        layout()
         render()
       end)
       if not ok then return fail(message) end
@@ -559,61 +548,40 @@ function CharacterWindow.new(api, character)
     local ok, message = pcall(function()
       assert(type(character) == "table" and type(character.snapshot) == "function",
         "Aardwolf Vibe character handler is required")
-      assert(type(character.stateName) == "function" and type(character.className) == "function",
-        "Aardwolf Vibe character labels are required")
-      local geyser = assert(api.Geyser, "Geyser is required for the character window")
-      assert(type(geyser.UserWindow) == "table", "Geyser.UserWindow is required")
+      local geyser = assert(api.Geyser, "Geyser is required for the character status bay")
       assert(type(geyser.Container) == "table", "Geyser.Container is required")
-      assert(type(geyser.ScrollBox) == "table", "Geyser.ScrollBox is required")
+      assert(type(geyser.HBox) == "table", "Geyser.HBox is required")
       assert(type(geyser.Label) == "table", "Geyser.Label is required")
       assert(type(geyser.Gauge) == "table", "Geyser.Gauge is required")
-      assert(type(api.getBorderBottom) == "function"
+      assert(type(api.getBorderTop) == "function"
+        and type(api.setBorderTop) == "function"
+        and type(api.getBorderBottom) == "function"
         and type(api.setBorderBottom) == "function"
         and type(api.getBorderLeft) == "function"
         and type(api.getBorderRight) == "function"
         and type(api.getMainWindowSize) == "function",
-        "Mudlet border geometry is required for character gauges")
+        "Mudlet border geometry is required for character displays")
 
-      borderBefore = api.getBorderBottom()
-      assert(finite(borderBefore) and borderBefore >= 0, "Invalid Mudlet bottom border")
+      bottomBefore = api.getBorderBottom()
+      assert(finite(bottomBefore) and bottomBefore >= 0, "Invalid Mudlet bottom border")
 
-      local restoreLayout = api[LAYOUT_MARKER] == LAYOUT_VERSION
-      stage = "create left dock"
-      window = geyser.UserWindow:new({
-        name = WINDOW_NAME,
-        titleText = "Aardwolf Character",
-        x = 40,
-        y = 40,
-        width = 380,
-        height = 720,
-        restoreLayout = restoreLayout,
-        autoDock = true,
-        docked = true,
-        dockPosition = "left",
-      })
-      assert(type(window.delete) == "function", "Geyser.UserWindow deletion is required")
-      window:setColor(11, 17, 24, 255)
-
-      stage = "create window contents"
-      root = geyser.Container:new({name = OWNER .. ".root", x = 0, y = 0,
-        width = "100%", height = "100%"}, window)
-      scroll = geyser.ScrollBox:new({name = OWNER .. ".scroll", x = 0, y = 0,
-        width = "100%", height = "100%"}, root)
-      header = geyser.Label:new({name = OWNER .. ".header", x = 8, y = 8,
-        width = SHEET_CONTENT_WIDTH, height = HEADER_HEIGHT}, scroll)
-      header:setFontSize(13)
-      header:setStyleSheet("QLabel { background: #111b27; color: #eef5ff; "
-        .. "border: 1px solid #30445c; border-radius: 4px; padding: 2px; "
-        .. "qproperty-wordWrap: true; "
-        .. "qproperty-alignment: 'AlignLeft | AlignTop'; }")
-
-      details = geyser.Label:new({name = OWNER .. ".details", x = 8, y = DETAILS_TOP,
-        width = SHEET_CONTENT_WIDTH, height = DETAILS_HEIGHT}, scroll)
-      details:setFontSize(13)
-      details:setStyleSheet("QLabel { background: #0b1118; color: #f7fbff; "
-        .. "border: 1px solid #26384d; border-radius: 4px; padding: 0px; "
-        .. "qproperty-wordWrap: true; "
-        .. "qproperty-alignment: 'AlignLeft | AlignTop'; }")
+      stage = "create top status bay"
+      topRoot = geyser.Container:new({name = OWNER .. ".top", x = 0, y = 0,
+        width = 1, height = BAY_HEIGHT})
+      assert(type(topRoot.delete) == "function", "Geyser.Container deletion is required")
+      topRoot:hide()
+      topBox = geyser.HBox:new({name = OWNER .. ".row", x = 0, y = 0,
+        width = "100%", height = "100%"}, topRoot)
+      for _, key in ipairs(BAY_KEYS) do
+        local stretch = key == "name" and 2 or (key == "total" and 1.25 or 1)
+        bayLabels[key] = geyser.Label:new({name = OWNER .. ".field." .. key,
+          h_stretch_factor = stretch}, topBox)
+        local alignment = key == "name" and "AlignVCenter | AlignLeft"
+          or "AlignVCenter | AlignHCenter"
+        bayLabels[key]:setStyleSheet("QLabel { background-color: #111b27; "
+          .. "color: #f7fbff; border: 1px solid #30445c; padding: 0px 5px; "
+          .. "qproperty-wordWrap: false; qproperty-alignment: '" .. alignment .. "'; }")
+      end
 
       stage = "create bottom gauges"
       bottomRoot = geyser.Container:new({name = OWNER .. ".bottom", x = 0, y = 0,
@@ -649,21 +617,15 @@ function CharacterWindow.new(api, character)
       end
       on("reset", "aardwolf-vibe.character.reset",
         function(_, _, incomingSession) acceptReset(incomingSession) end)
-      on("resize", "sysWindowResizeEvent", function() layoutBottom() end)
+      on("resize", "sysWindowResizeEvent", function() layout() end)
 
-      stage = "render character window"
+      stage = "render character displays"
       self.enabled, self.visible, self.lastError = true, false, nil
       render()
       local shown, why = reveal()
       if not shown then error(why, 0) end
-      stage = "layout bottom gauges"
-      layoutBottom()
-      if not restoreLayout then
-        api[LAYOUT_MARKER] = LAYOUT_VERSION
-        if type(api.remember) == "function" then pcall(api.remember, LAYOUT_MARKER) end
-      end
     end)
-    if not ok then return fail("Cannot start character window during " .. stage .. ": "
+    if not ok then return fail("Cannot start character status bay during " .. stage .. ": "
       .. tostring(message)) end
     return true
   end
@@ -674,33 +636,40 @@ function CharacterWindow.new(api, character)
 
   function self:show()
     if not self.enabled then return self:start() end
+    if self.visible then
+      local ok, message = pcall(layout)
+      if not ok then return fail(message) end
+      return true
+    end
     return reveal()
   end
 
   function self:hide()
-    if not window then self.visible = false; return true end
-    local ok, message = pcall(window.hide, window)
+    if not topRoot or not self.visible then self.visible = false; return true end
+    local ok, message = pcall(topRoot.hide, topRoot)
     if not ok then
-      self.lastError = "Cannot hide character window: " .. tostring(message)
+      self.lastError = "Cannot hide character status bay: " .. tostring(message)
       return false, self.lastError
     end
-    self.visible, self.lastError = false, nil
+    self.visible = false
+    local released, why = releaseTop()
+    if not released then
+      self.lastError = "Cannot release character status bay: " .. tostring(why)
+      return false, self.lastError
+    end
+    self.lastError = nil
     return true
   end
 
   function self:status()
-    local visible = self.visible
-    if window and type(api.windowVisible) == "function" then
-      local ok, result = pcall(api.windowVisible, WINDOW_NAME)
-      if ok and type(result) == "boolean" then visible = result end
-    end
     return {
       enabled = self.enabled,
       lifecycle = self.enabled and "active" or "stopped",
-      visible = visible,
+      visible = self.visible,
       session = session,
       sequence = sequence,
       bottomRows = bottomRows,
+      compact = compact,
       fresh = copyBooleanMap(fresh),
       lastError = self.lastError,
     }

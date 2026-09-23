@@ -34,29 +34,76 @@ class SpellupTests(unittest.TestCase):
           assert(#visible==2)
         """)
 
-    def test_sequential_sync_tags_defensive_copies_and_display_only_expiry(self):
+    def test_sequential_sync_tags_defensive_copies_and_natural_expiry(self):
         lua = self.runtime()
         lua.execute("""
           assert(#commands==1 and commands[1].text=='slist noprompt')
           assert(#packets==1 and packets[1]==string.char(7,1))
           synchronize()
-          assert(spells:isFresh() and #commands==2)
-          assert(gags==8 and #visible==0 and #spells:snapshot().active==0)
+          assert(spells:isFresh() and #commands==5)
+          assert(gags==14 and #visible==0 and #spells:snapshot().active==0)
           advance(60)
-          assert(commandCount('slist affected noprompt')==0)
-          feed('{affon}72,2');advance(0)
           assert(commandCount('slist affected noprompt')==1)
+          feed('{affon}72,2');advance(0)
+          assert(commandCount('slist affected noprompt')==2)
           deltaRows({'72,Shield,2,2,100,-1,1'}, {})
           local snapshot=spells:snapshot()
           assert(snapshot.active[1].name=='Shield' and snapshot.active[1].remaining==2)
           snapshot.catalog[72].name='changed'
           assert(spells:get(72).name=='Shield')
           advance(3)
-          local expired=spells:snapshot().active[1]
-          assert(expired.awaiting and expired.remaining==0)
-          assert(#spells:snapshot().expired==0)
-          assert(spells:isFresh() and commandCount('spellup learned retry')==0
-            and commandCount('slist affected noprompt')==1 and #commands==4)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0)
+          assert(#snapshot.expired==1 and snapshot.expired[1].id==72
+            and snapshot.expired[1].elapsed==1)
+          assert(spells:isFresh() and commandCount('spellup learned')==0
+            and commandCount('slist affected noprompt')==2 and #commands==7)
+        """)
+
+    def test_full_sync_hydrates_preexisting_buffs_and_recoveries(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize({
+            '72,Shield,2,120,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {'15,Detect magic recovery,20'})
+          local snapshot=spells:snapshot()
+          assert(snapshot.fresh and #snapshot.active==2)
+          assert(snapshot.active[1].id==35 and snapshot.active[1].remaining==90)
+          assert(snapshot.active[2].id==72 and snapshot.active[2].remaining==120)
+          assert(#snapshot.recoveries==1 and snapshot.recoveries[1].id==15)
+          assert(commandCount('slist affected noprompt')==1)
+          assert(commandCount('slist recoveries noprompt')==1)
+        """)
+
+    def test_initial_automatic_batch_waits_for_existing_buff_hydration(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          spellRows('',{'72,Shield,2,0,100,-1,1'})
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
+          assert(commandCount('spellup learned')==0)
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          assert(commandCount('spellup learned')==0)
+          recoveryRows({'15,Detect magic recovery,20'})
+          assert(spells:isFresh() and #spells:snapshot().active==1)
+          assert(commandCount('spellup learned')==1)
+          assert(controller:status().inflight)
+        """)
+
+    def test_manual_confirm_refreshes_active_state_without_full_catalog_sync(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize({'72,Shield,2,120,100,-1,1'}, {})
+          local catalogRequests=commandCount('slist noprompt')
+          assert(spells:confirm());advance(0)
+          deltaRows({
+            '72,Shield,2,119,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {'15,Detect magic recovery,20'})
+          local snapshot=spells:snapshot()
+          assert(snapshot.fresh and #snapshot.active==2 and #snapshot.recoveries==1)
+          assert(commandCount('slist noprompt')==catalogRequests)
         """)
 
     def test_confirmed_expirations_are_current_ordered_and_defensive(self):
@@ -98,6 +145,146 @@ class SpellupTests(unittest.TestCase):
           feed('{affoff}999');advance(0)
           deltaRows({'72,Shield,2,60,100,-1,1','35,Detect magic,2,40,100,15,1'}, {})
           assert(#spells:snapshot().expired==0)
+        """)
+
+    def test_bad_effects_are_not_expired_or_claimed_as_spellup_targets(self):
+        lua = self.runtime()
+        lua.execute("""
+          local catalog={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',catalog)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{});recoveryRows({})
+          assert(spells:isFresh() and spells:isBadEffect(237))
+          assert(spells:get(237).bad and not spells:isAutomaticSpellup(237))
+
+          feed('{affon}237,30');advance(0)
+          deltaRows({'237,Web,1,30,100,-1,1'}, {})
+          feed('{affoff}237');advance(0)
+          assert(#spells:snapshot().active==0 and #spells:snapshot().expired==0)
+          deltaRows({}, {})
+          assert(#spells:snapshot().expired==0)
+
+          assert(controller:runOnce())
+          feed('Queueing spell : unknown alias.')
+          assert(controller:status().unresolvedQueued==1)
+          feed('{affon}237,30');advance(0)
+          assert(controller:status().unresolvedQueued==1)
+          deltaRows({'237,Web,1,30,100,-1,1'}, {})
+          assert(controller:status().inflight
+            and controller:status().unresolvedQueued==1)
+
+          feed('{affon}72,60');advance(0)
+          assert(controller:status().unresolvedQueued==0)
+          deltaRows({'237,Web,1,30,100,-1,1','72,Shield,2,60,100,-1,1'}, {})
+          assert(not controller:status().inflight and not controller:status().paused)
+        """)
+
+    def test_spellup_classification_wins_bad_filter_overlap(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',rows)
+          spellRows('affected',{
+            '72,Shield,2,5,100,-1,1',
+            '237,Web,1,5,100,-1,1',
+          })
+          recoveryRows({})
+
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==2)
+          assert(not spells:isBadEffect(72) and spells:isTrackedSpellup(72))
+          assert(not spells:get(72).bad and spells:isAutomaticSpellup(72))
+          assert(spells:isBadEffect(237) and spells:get(237).bad)
+
+          assert(commandCount('spellup learned')==1)
+          feed('No spells or skills cast.')
+          advance(5)
+          snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==72)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
+
+          feed('Queueing spell : Shield.')
+          feed('{affon}72,60');advance(0)
+          deltaRows({'72,Shield,2,60,100,-1,1'}, {})
+          assert(not controller:status().inflight
+            and not controller:status().paused)
+        """)
+
+    def test_naturally_expired_bad_effect_is_discarded_without_automatic_work(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{'237,Web,1,5,100,-1,1'})
+          recoveryRows({})
+          assert(commandCount('spellup learned')==1)
+          feed('No spells or skills cast.')
+
+          advance(5)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==0)
+          advance(30)
+          assert(commandCount('spellup learned')==1)
+        """)
+
+    def test_snapshot_read_reconciles_missed_heartbeat_and_queues_only_beneficial_work(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '237,Web,1,0,100,-1,1',
+          }
+          spellRows('',rows)
+          spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{'237,Web,1,0,100,-1,1'})
+          spellRows('affected',{
+            '72,Shield,2,5,100,-1,1',
+            '237,Web,1,5,100,-1,1',
+          })
+          recoveryRows({})
+          feed('No spells or skills cast.')
+          local status=spells:status()
+          assert(status.activeCount==2 and status.expiredCount==0
+            and status.heartbeatActive and status.nextExpiry==clock+5)
+
+          jump(6)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==72)
+          status=spells:status()
+          assert(status.activeCount==0 and status.expiredCount==1
+            and not status.heartbeatActive and status.nextExpiry==nil
+            and status.lastExpiryCheck==clock
+            and status.lastExpiryReason=='snapshot-read')
+          local missing=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' then missing=missing+1 end
+          end
+          assert(missing==1)
+          spells:snapshot()
+          missing=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.missing' then missing=missing+1 end
+          end
+          assert(missing==1 and controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
         """)
 
     def test_interleaved_affoff_is_replayed_into_expired_state(self):
@@ -174,17 +361,17 @@ class SpellupTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute("""
           synchronize()
-          assert(commandCount('slist affected noprompt')==0
-            and commandCount('slist recoveries noprompt')==0)
+          assert(commandCount('slist affected noprompt')==1
+            and commandCount('slist recoveries noprompt')==1)
           feed('{affon}35,50');assert(spells:get(35).active.duration==50);advance(0)
-          assert(commandCount('slist affected noprompt')==1)
+          assert(commandCount('slist affected noprompt')==2)
           deltaRows({'35,Detect magic,2,50,100,15,1'},
             {'15,Detect magic recovery,20'})
-          assert(commandCount('slist recoveries noprompt')==1)
-          feed('{affoff}35');assert(not spells:get(35).active);advance(0)
-          assert(commandCount('slist affected noprompt')==2)
-          deltaRows({}, {'15,Detect magic recovery,20'})
           assert(commandCount('slist recoveries noprompt')==2)
+          feed('{affoff}35');assert(not spells:get(35).active);advance(0)
+          assert(commandCount('slist affected noprompt')==3)
+          deltaRows({}, {'15,Detect magic recovery,20'})
+          assert(commandCount('slist recoveries noprompt')==3)
           feed('{recon}9,40');assert(#spells:snapshot().recoveries==2)
           feed('{recoff}9');assert(#spells:snapshot().recoveries==1)
           connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
@@ -199,8 +386,9 @@ class SpellupTests(unittest.TestCase):
         lua.execute("""
           spellRows('',{'72,Shield,2,0,100,-1,1'})
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
-          feed('{affon}72,120');advance(0)
-          deltaRows({'72,Shield,2,120,100,-1,1'},
+          spellRows('bad',{})
+          spellRows('affected',{'72,Shield,2,120,100,-1,1'})
+          recoveryRows(
             {'0,Augmentation,0','15,Detect magic recovery,20',
               '99,Unknown recovery,0'})
           local snapshot=spells:snapshot()
@@ -214,14 +402,14 @@ class SpellupTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute("""
           synchronize();advance(60)
-          assert(not controller:status().automatic and commandCount('spellup learned retry')==0)
+          assert(not controller:status().automatic and commandCount('spellup learned')==0)
           for _,row in ipairs({{4,'Standing'},{8,'Standing'},{9,'Sleeping'},{10,'Resting'},
             {11,'Standing'},{12,'Standing'},{5,'Standing'},{3,'Sleeping'},{3,'Resting'}}) do
             updateStatus(row[1],row[2]);assert(not controller:runOnce())
           end
           character.fresh.status=false;assert(not controller:runOnce())
           connected=false;assert(not controller:runOnce())
-          assert(commandCount('spellup learned retry')==0)
+          assert(commandCount('spellup learned')==0)
         """)
 
     def test_opt_in_initial_batch_coalescing_throttle_and_outstanding_lock(self):
@@ -230,14 +418,14 @@ class SpellupTests(unittest.TestCase):
           synchronize()
           assert(controller:setAutomatic(true));advance(0)
           synchronize();advance(0)
-          assert(commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
           assert(controller:status().inflight and not controller:runOnce())
           feed('{spellup-end}');advance(0)
           feed('{affoff}72');feed('{affoff}35');advance(2)
           deltaRows({}, {'15,Detect magic recovery,20'})
           deltaRows({}, {'15,Detect magic recovery,20'})
-          assert(commandCount('spellup learned retry')==1)
-          advance(28);assert(commandCount('spellup learned retry')==2)
+          assert(commandCount('spellup learned')==1)
+          advance(28);assert(commandCount('spellup learned')==2)
         """)
 
     def test_automatic_batch_is_queued_when_tracked_effect_reaches_expiry(self):
@@ -247,29 +435,52 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
-          assert(commandCount('spellup learned retry')==1)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
+          assert(commandCount('spellup learned')==1)
           feed('{spellup-end}')
 
           advance(4)
           assert(not controller:status().pending)
           advance(1)
           assert(controller:status().pending)
-          assert(commandCount('spellup learned retry')==1)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==72)
+          assert(commandCount('spellup learned')==1)
           advance(25)
-          assert(commandCount('spellup learned retry')==2)
+          assert(commandCount('spellup learned')==2)
         """)
 
-    def test_expiry_timer_is_single_rescheduled_and_cancelled_with_automatic_mode(self):
+    def test_late_affoff_after_local_expiry_does_not_queue_duplicate_batch(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          synchronize({'72,Shield,2,5,100,-1,1'}, {})
+          assert(commandCount('spellup learned')==1)
+          feed('No spells or skills cast.')
+
+          advance(5)
+          assert(controller:status().pending)
+          advance(25)
+          assert(commandCount('spellup learned')==2
+            and controller:status().inflight)
+
+          feed('{affoff}72');advance(0)
+          deltaRows({}, {})
+          feed('{spellup-end}')
+          assert(not controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
+        """)
+
+    def test_expiry_timer_is_single_rescheduled_and_independent_of_automatic_mode(self):
         lua = self.runtime()
         lua.execute("""
           synchronize()
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
-          assert(count(timers)==0)
+          assert(count(timers)==1)
 
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
           feed('{spellup-end}')
           assert(count(timers)==1)
 
@@ -281,9 +492,11 @@ class SpellupTests(unittest.TestCase):
           assert(not controller:status().pending)
 
           assert(controller:setAutomatic(false))
-          assert(count(timers)==0 and not controller:status().pending)
+          assert(count(timers)==1 and not controller:status().pending)
           advance(20)
-          assert(commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==72)
         """)
 
     def test_non_spellup_effect_expiry_does_not_queue_automatic_batch(self):
@@ -295,17 +508,24 @@ class SpellupTests(unittest.TestCase):
           }
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
           feed('{affon}104,5');advance(0)
           deltaRows({'104,Chameleon power,3,5,100,-1,2'}, {})
 
           assert(controller:setAutomatic(true));advance(0)
           spellRows('',rows)
           spellRows('spellup',{'72,Shield,2,0,100,-1,1'})
+          spellRows('bad',{})
+          spellRows('affected',{'104,Chameleon power,3,5,100,-1,2'})
+          recoveryRows({})
           advance(0);feed('{spellup-end}')
-          assert(count(timers)==0)
+          assert(count(timers)==1)
           advance(30)
-          assert(commandCount('spellup learned retry')==1
+          assert(commandCount('spellup learned')==1
             and not controller:status().pending)
+          assert(#spells:snapshot().active==0
+            and spells:snapshot().expired[1].id==104)
         """)
 
     def test_expiry_work_survives_uncertain_batch_until_late_confirmation(self):
@@ -315,18 +535,18 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,5');advance(0)
           deltaRows({'72,Shield,2,5,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
-          assert(commandCount('spellup learned retry')==1)
+          synchronize({'72,Shield,2,5,100,-1,1'}, {});advance(0)
+          assert(commandCount('spellup learned')==1)
 
           advance(5)
           assert(controller:status().pending and controller:status().inflight)
           advance(115)
           assert(controller:status().paused and controller:status().inflight
             and controller:status().pending)
-          assert(commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
 
           feed('{spellup-end}');advance(0)
-          assert(commandCount('spellup learned retry')==2)
+          assert(commandCount('spellup learned')==2)
         """)
 
     def test_failure_waits_manual_collision_and_uncertain_completion(self):
@@ -336,33 +556,174 @@ class SpellupTests(unittest.TestCase):
           feed('{sfail}35,0,3,15');feed('{spellup-end}')
           assert(controller:status().blocked.code==3)
           feed('{recoff}15');advance(30)
-          assert(commandCount('spellup learned retry')==1)
-          raiseEvent('sysDataSendRequest','spellup learned retry');advance(0)
-          assert(controller:status().inflight and commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
+          raiseEvent('sysDataSendRequest','spellup learned');advance(0)
+          assert(controller:status().inflight and commandCount('spellup learned')==1)
           advance(119)
-          assert(commandCount('slist affected noprompt')==0)
+          assert(commandCount('slist affected noprompt')==1)
           advance(1)
           assert(controller:status().paused and controller:status().inflight)
           assert(not controller:runOnce())
           controller:resume();advance(0)
-          assert(controller:status().inflight and commandCount('spellup learned retry')==1)
+          assert(controller:status().inflight and commandCount('spellup learned')==1)
           connected=false;raiseEvent('sysDisconnectionEvent');advance(0)
           assert(not controller:status().inflight)
         """)
 
-    def test_affon_refresh_can_confirm_batch_without_background_polling(self):
+    def test_quiet_queue_requests_one_confirmation_snapshot_and_releases_batch(self):
         lua = self.runtime()
         lua.execute("""
           synchronize();assert(controller:runOnce())
           feed('Queueing spell : Shield.')
-          advance(20)
-          assert(controller:status().inflight)
-          assert(commandCount('slist affected noprompt')==0)
-          feed('{affon}72,120');advance(0)
+          assert(controller:status().confirmationPending)
+          advance(1)
+          feed('Queueing spell : Detect magic.')
+          advance(1)
           assert(commandCount('slist affected noprompt')==1)
-          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
-          assert(not controller:status().inflight)
+          advance(1)
+          local status=controller:status()
+          assert(status.inflight and not status.confirmationPending
+            and status.confirmationRequested
+            and status.confirmationAttempts==1
+            and status.lastConfirmation=='Confirmation snapshot requested')
+          assert(commandCount('slist affected noprompt')==2)
+          deltaRows({
+            '72,Shield,2,120,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          status=controller:status()
+          assert(not status.inflight and not status.confirmationPending
+            and status.lastConfirmation=='Confirmed by synchronized effects')
           advance(120)
+          assert(commandCount('slist affected noprompt')==2)
+        """)
+
+    def test_existing_sync_supplies_confirmation_without_duplicate_request(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          assert(spells:confirm());advance(0)
+          assert(commandCount('slist affected noprompt')==2 and spells:status().busy)
+          advance(2)
+          local status=controller:status()
+          assert(status.confirmationRequested and not status.confirmationPending
+            and status.lastConfirmation=='Using in-progress spell synchronization')
+          assert(commandCount('slist affected noprompt')==2)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(not controller:status().inflight
+            and controller:status().lastConfirmation=='Confirmed by synchronized effects')
+        """)
+
+    def test_late_batch_progress_rearms_confirmation_until_queue_drains(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('Queueing spell : Detect magic.')
+          advance(1)
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(controller:status().inflight)
+
+          advance(1)
+          assert(commandCount('slist affected noprompt')==2)
+          advance(1)
+          assert(commandCount('slist affected noprompt')==3)
+          deltaRows({
+            '72,Shield,2,118,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          local status=controller:status()
+          assert(not status.inflight
+            and status.lastConfirmation=='Confirmed by synchronized effects')
+        """)
+
+    def test_progress_after_early_confirmation_arms_a_final_pass(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('Queueing spell : Detect magic.')
+          advance(2)
+          deltaRows({}, {})
+          assert(controller:status().inflight
+            and controller:status().confirmationAttempts==1)
+
+          feed('{affon}72,120');advance(0)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          local status=controller:status()
+          assert(status.inflight and status.confirmationPending
+            and not status.confirmationRequested)
+          advance(2)
+          assert(commandCount('slist affected noprompt')==4)
+          deltaRows({
+            '72,Shield,2,118,100,-1,1',
+            '35,Detect magic,2,90,100,15,1',
+          }, {})
+          status=controller:status()
+          assert(not status.inflight and status.confirmationAttempts==2
+            and status.lastConfirmation=='Confirmed by synchronized effects')
+          assert(commandCount('spellup learned')==1)
+        """)
+
+    def test_incomplete_or_failed_confirmation_keeps_outstanding_lock(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          advance(2)
+          deltaRows({}, {})
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation=='Confirmation snapshot incomplete')
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          advance(2)
+          feed('{spellheaders affected noprompt}')
+          feed('malformed confirmation row')
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          sendFailure=true
+          advance(2)
+          local status=controller:status()
+          assert(status.inflight and status.confirmationRequested
+            and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
+          sendFailure=false
+          advance(20)
+          assert(commandCount('slist affected noprompt')==2
+            and commandCount('spellup learned')==1)
+        """)
+
+    def test_authoritative_completion_cancels_pending_confirmation(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          assert(controller:status().confirmationPending)
+          feed('{spellup-end}')
+          local status=controller:status()
+          assert(not status.inflight and not status.confirmationPending
+            and not status.confirmationRequested
+            and status.lastConfirmation=='Confirmed by spellup-end')
+          advance(2)
           assert(commandCount('slist affected noprompt')==1)
         """)
 
@@ -376,7 +737,8 @@ class SpellupTests(unittest.TestCase):
             '35,Detect magic,2,0,100,15,1',
             '104,Chameleon power,3,0,100,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
 
@@ -402,7 +764,8 @@ class SpellupTests(unittest.TestCase):
             '35,Detect magic,2,0,100,15,1',
             '104,Chameleon power,3,0,100,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
 
           assert(controller:runOnce())
           feed('Queueing skill : chameleon.')
@@ -421,7 +784,8 @@ class SpellupTests(unittest.TestCase):
             '72,Shield,2,0,100,-1,1',
             '606,Catalysis,3,0,0,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
 
           assert(controller:runOnce())
           feed('Queueing skill : catalysis.')
@@ -438,16 +802,41 @@ class SpellupTests(unittest.TestCase):
             '72,Shield,2,0,100,-1,1',
             '606,Catalysis,3,0,0,-1,2',
           }
-          spellRows('',rows);spellRows('spellup',rows)
-          assert(commandCount('spellup learned retry')==1)
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
+          assert(commandCount('spellup learned')==1)
           feed('No spells or skills cast.')
 
           feed('{affon}606,60');advance(0)
           deltaRows({'606,Catalysis,3,60,0,-1,2'}, {})
           advance(59)
-          assert(commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
           advance(3)
-          assert(commandCount('spellup learned retry')==2)
+          assert(commandCount('spellup learned')==2)
+        """)
+
+    def test_server_queued_one_practice_spellup_completes_and_refreshes(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local rows={
+            '72,Shield,2,0,100,-1,1',
+            '910,Sneak,3,0,1,-1,2',
+          }
+          spellRows('',rows);spellRows('spellup',rows);spellRows('bad',{})
+          spellRows('affected',{});recoveryRows({})
+          assert(commandCount('spellup learned')==1)
+
+          feed('Queueing skill : Sneak.')
+          feed('{affon}910,60');advance(0)
+          deltaRows({'910,Sneak,3,60,1,-1,2'}, {})
+          assert(not controller:status().inflight and not controller:status().paused)
+
+          advance(60)
+          local snapshot=spells:snapshot()
+          assert(#snapshot.active==0 and #snapshot.expired==1
+            and snapshot.expired[1].id==910)
+          advance(2)
+          assert(commandCount('spellup learned')==2)
         """)
 
     def test_preexisting_wearoff_does_not_hold_new_batch_open(self):
@@ -476,8 +865,8 @@ class SpellupTests(unittest.TestCase):
           feed('{affon}72,120');advance(0)
           deltaRows({'72,Shield,2,120,100,-1,1'}, {})
           assert(controller:setAutomatic(true));advance(0)
-          synchronize();advance(0)
-          assert(commandCount('spellup learned retry')==1
+          synchronize({'72,Shield,2,120,100,-1,1'}, {});advance(0)
+          assert(commandCount('spellup learned')==1
             and controller:status().inflight)
 
           feed('{affoff}72');advance(0)
@@ -486,7 +875,7 @@ class SpellupTests(unittest.TestCase):
           feed('{spellup-end}')
           assert(controller:status().pending and not controller:status().inflight)
           advance(30)
-          assert(commandCount('spellup learned retry')==2
+          assert(commandCount('spellup learned')==2
             and controller:status().inflight)
         """)
 
@@ -494,28 +883,28 @@ class SpellupTests(unittest.TestCase):
         lua = self.runtime()
         lua.execute("""
           synchronize()
-          for _,command in ipairs({'spellup check','spellup learned retry check',
+          for _,command in ipairs({'spellup check','spellup learned check',
             'spellup OtherPlayer','say spellup','spellups'}) do
             raiseEvent('sysDataSendRequest',command);advance(0)
             assert(not controller:status().inflight)
           end
           assert(controller:setAutomatic(true));advance(0);synchronize();advance(0)
-          assert(commandCount('spellup learned retry')==1)
+          assert(commandCount('spellup learned')==1)
           feed('{sfail}35,0,4,-1');feed('{spellup-end}');advance(0)
-          advance(30);assert(commandCount('spellup learned retry')==1)
+          advance(30);assert(commandCount('spellup learned')==1)
           updateVital('mana',101);advance(2)
-          assert(commandCount('spellup learned retry')==2)
+          assert(commandCount('spellup learned')==2)
           feed('{sfail}35,0,5,-1');feed('{spellup-end}');advance(0)
           gmcp.room.info.num=101;raiseEvent('gmcp.room.info');advance(30)
-          assert(commandCount('spellup learned retry')==3)
+          assert(commandCount('spellup learned')==3)
           feed('{sfail}35,0,10,-1');feed('{spellup-end}');advance(0)
           updateStatus(10,'Resting');advance(30)
-          assert(commandCount('spellup learned retry')==3)
+          assert(commandCount('spellup learned')==3)
           updateStatus(3,'Standing');advance(2)
-          assert(commandCount('spellup learned retry')==4)
+          assert(commandCount('spellup learned')==4)
         """)
 
-    def test_pause_failures_and_unsupported_retry_response(self):
+    def test_terminal_failure_pauses_automation(self):
         lua = self.runtime()
         lua.execute("""
           synchronize();assert(controller:runOnce())
@@ -524,9 +913,23 @@ class SpellupTests(unittest.TestCase):
           feed('{spellup-end}');advance(0)
           controller:resume();advance(30)
           assert(controller:runOnce())
-          feed('Syntax: spellup learned retry is invalid')
-          assert(controller:status().paused and controller:status().inflight)
-          assert(visible[#visible]=='Syntax: spellup learned retry is invalid')
+        """)
+
+    def test_concentration_failure_queues_a_later_documented_batch(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          synchronize()
+          assert(commandCount('spellup learned')==1)
+          feed('Queueing spell : Shield.')
+          feed('{sfail}72,0,1,-1')
+          local status=controller:status()
+          assert(status.inflight and status.pending and not status.paused)
+          feed('{spellup-end}')
+          advance(29)
+          assert(commandCount('spellup learned')==1)
+          advance(1)
+          assert(commandCount('spellup learned')==2
+            and controller:status().inflight)
         """)
 
     def test_spell_tag_visibility_is_persistent_and_does_not_disable_parsing(self):
