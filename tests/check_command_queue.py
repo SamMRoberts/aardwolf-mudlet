@@ -34,6 +34,8 @@ class CommandQueueTests(unittest.TestCase):
           publishStatus(3)
           assert(#sent==1 and sent[1].command=="config echocommands on")
           assert(sent[1].echoCommand==false and queue:status().pending==0)
+          incoming("You entered: config echocommands on")
+          assert(queue:status().pending==0 and #visible==0 and deletedLines==1)
           publishStatus(3)
           assert(#sent==1)
           fire("sysDataSendRequest","north")
@@ -42,7 +44,7 @@ class CommandQueueTests(unittest.TestCase):
           assert(window.text=="1. north\\n2. look\\n")
         ''')
 
-    def test_exact_echo_removes_oldest_identical_and_preserves_console(self):
+    def test_exact_echo_removes_oldest_identical_and_hides_server_echoes(self):
         lua = self.runtime()
         lua.execute('''
           publishStatus(3)
@@ -53,12 +55,15 @@ class CommandQueueTests(unittest.TestCase):
           incoming("Not You entered: look")
           incoming("You entered: LOOK")
           assert(queue:status().pending==3)
+          assert(#visible==1 and visible[1]=="Not You entered: look")
+          assert(deletedLines==2)
           incoming("You entered: look")
           assert(queueWindow().text=="1. north\\n2. look\\n")
           incoming("You entered: look")
           assert(queueWindow().text=="1. north\\n")
           incoming("You entered: north")
           assert(queueWindow().text=="No commands queued\\n")
+          assert(#visible==1 and deletedLines==5)
         ''')
 
     def test_hide_reconnect_and_repeated_lifecycle(self):
@@ -69,6 +74,8 @@ class CommandQueueTests(unittest.TestCase):
           assert(queue:hide() and not queue:status().visible)
           fire("sysDataSendRequest","west")
           assert(queue:status().pending==2)
+          incoming("You entered: east")
+          assert(queue:status().pending==1 and #visible==0 and deletedLines==1)
           assert(queue:show() and queue:status().visible)
           connected=false;fire("sysDisconnectionEvent")
           assert(queue:status().pending==0 and not queue:status().echoRequested)

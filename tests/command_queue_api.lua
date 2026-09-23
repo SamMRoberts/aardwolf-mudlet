@@ -1,4 +1,5 @@
 handlers, triggers, windows, sent = {}, {}, {}, {}
+visible, deletedLines = {}, 0
 nextTrigger = 0
 connected = true
 characterState, characterFresh = nil, false
@@ -39,12 +40,15 @@ function tempRegexTrigger(pattern, callback)
 end
 
 function killTrigger(id) triggers[id] = nil; return true end
+function deleteLine() deletedLines = deletedLines + 1; lineDeleted = true end
 
 function incoming(text)
   line = text
+  lineDeleted = false
   for _, callback in pairs(triggers) do
     if text:match("^You entered: (.*)$") then callback() end
   end
+  if not lineDeleted then visible[#visible + 1] = text end
 end
 
 function send(command, echoCommand)

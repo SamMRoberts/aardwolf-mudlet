@@ -147,6 +147,7 @@ function CommandQueue.new(api, character)
       triggerID = assert(api.tempRegexTrigger(ECHO_TRIGGER, guarded(token, function()
         local text = api.line
         if type(text) == "string" and text:sub(1, 13) == "You entered: " then
+          api.deleteLine()
           executed(text:sub(14))
         end
       end)), "Cannot register command echo trigger")

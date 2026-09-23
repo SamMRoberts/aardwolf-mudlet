@@ -2,6 +2,6 @@
   "package": "aardwolf-vibe",
   "title": "Aardwolf Vibe",
   "description": "Defensive Aardwolf GMCP mapping with room-name search and learned special exits, character state, top character status bay and bottom vitals, ASCII minimap, tagged help popup, configurable chat with font and size settings, command queue dock, and heartbeat-reconciled batch-confirmed overlap-safe opt-in spellup maintenance for Mudlet 5.0.1.",
-  "version": "0.7.47",
+  "version": "0.7.48",
   "author": "SamMRoberts"
 }
