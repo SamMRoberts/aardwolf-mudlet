@@ -100,9 +100,11 @@ function getConnectionInfo() return "offline.fixture",0,connected end
 function send(text,echoCommand)
   commands[#commands+1]={text=text,echoCommand=echoCommand}; return not sendFailure
 end
-function sendTelnetChannel102(payload)
+function sendSocket(payload)
   if transportFailure then error("No channel 102") end
+  if transportRejected then return nil, "socket disconnected" end
   packets[#packets+1]=payload
+  return true
 end
 gmcp={room={info={num=100}}}
 character={fresh={status=true,vitals=true},status={state=3,pos="Standing"},vitals={mana=100,moves=100}}

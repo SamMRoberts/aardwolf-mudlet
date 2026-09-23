@@ -34,11 +34,27 @@ class SpellupTests(unittest.TestCase):
           assert(#visible==2)
         """)
 
+    def test_raw_spell_tag_packet_failure_does_not_send_slist(self):
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute(FIXTURE)
+        lua.globals().SpellsFactory = lua.execute(SPELLS)
+        lua.execute("""
+          transportRejected=true
+          spells=SpellsFactory.new(_G,character,settings)
+          assert(spells:start());advance(0)
+          assert(#packets==0 and #commands==0)
+          assert(spells:status().lastError:find("socket disconnected",1,true))
+          transportRejected=false
+          assert(spells:sync());advance(0)
+          assert(#packets==1 and packets[1]==string.char(255,250,102,7,1,255,240))
+          assert(#commands==1 and commands[1].text=="slist noprompt")
+        """)
+
     def test_sequential_sync_tags_defensive_copies_and_natural_expiry(self):
         lua = self.runtime()
         lua.execute("""
           assert(#commands==1 and commands[1].text=='slist noprompt')
-          assert(#packets==1 and packets[1]==string.char(7,1))
+          assert(#packets==1 and packets[1]==string.char(255,250,102,7,1,255,240))
           synchronize()
           assert(spells:isFresh() and #commands==5)
           assert(gags==14 and #visible==0 and #spells:snapshot().active==0)

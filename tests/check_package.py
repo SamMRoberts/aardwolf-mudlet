@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.46")
+        self.assertEqual(metadata["version"], "0.7.47")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
         self.assertIn("character state", metadata["description"])
@@ -110,7 +110,7 @@ class PackageSourceTests(unittest.TestCase):
         spellup = ROOT / "src/resources/spellup.lua"
         buffs = ROOT / "src/resources/buffs-window.lua"
         self.assertTrue(spells.is_file() and spellup.is_file() and buffs.is_file())
-        self.assertIn("sendTelnetChannel102, string.char(7, 1)", spells.read_text())
+        self.assertIn("sendSocket, SPELL_TAG_PACKET", spells.read_text())
         self.assertIn('{kind = "bad", command = "slist bad noprompt"}', spells.read_text())
         self.assertIn("function self:isBadEffect(id)", spells.read_text())
         self.assertIn("function self:isTrackedSpellup(id)", spells.read_text())

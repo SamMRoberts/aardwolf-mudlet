@@ -7,6 +7,9 @@ local SNAPSHOT_TIMEOUT = 10
 local EXPIRY_HEARTBEAT = 1
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
 local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$)$]]
+-- Mudlet 5.0.1 doubles the IAC frame bytes in sendTelnetChannel102().
+-- Send Aardwolf's fixed spell-tag packet raw so the server sees valid framing.
+local SPELL_TAG_PACKET = string.char(255, 250, 102, 7, 1, 255, 240)
 
 local ACTIVE_REQUEST = {kind = "active", command = "slist affected noprompt"}
 local RECOVERY_REQUEST = {kind = "recoveries", command = "slist recoveries noprompt"}
@@ -579,8 +582,11 @@ function Spells.new(api, character, settings)
   function self:_drive()
     if not self.enabled or busy or frame or not pending or not commandReady() then return false end
     if not monitoring then
-      local ok, message = pcall(api.sendTelnetChannel102, string.char(7, 1))
-      if not ok then fail("Cannot enable Aardwolf spell tags: " .. tostring(message)); return false end
+      local ok, result, message = pcall(api.sendSocket, SPELL_TAG_PACKET)
+      if not ok or result ~= true then
+        fail("Cannot enable Aardwolf spell tags: " .. tostring(ok and (message or result) or result))
+        return false
+      end
       monitoring = true
     end
     requestPlan = requestPlan or REQUESTS

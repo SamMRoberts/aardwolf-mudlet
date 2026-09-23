@@ -2,14 +2,14 @@
 -- aardwolf-vibe.mpackage. Network primitives are temporarily replaced by spies.
 assert(getProfileName() == "AardwolfVibeMinimapTest", "Disposable test profile required")
 assert(not select(3, getConnectionInfo()), "Native spellup acceptance must remain offline")
-assert(AardwolfVibe and AardwolfVibe.version == "0.7.45", "Aardwolf Vibe 0.7.45 required")
+assert(AardwolfVibe and AardwolfVibe.version == "0.7.47", "Aardwolf Vibe 0.7.47 required")
 
 AardwolfVibeNativeSpellups = {commands = {}, packets = {}, seen = 0}
 local test = AardwolfVibeNativeSpellups
 local original = {
   send = send,
   getConnectionInfo = getConnectionInfo,
-  sendTelnetChannel102 = sendTelnetChannel102,
+  sendSocket = sendSocket,
 }
 local observer = tempRegexTrigger([[^.*$]], function() test.seen = test.seen + 1 end)
 
@@ -40,7 +40,7 @@ send = function(command, echoCommand)
   test.commands[#test.commands + 1] = {command = command, echoCommand = echoCommand}
   return true
 end
-sendTelnetChannel102 = function(packet)
+sendSocket = function(packet)
   test.packets[#test.packets + 1] = packet
   return true
 end
@@ -173,6 +173,8 @@ end, badStage) end
 
 catalogStage = function() stage(function()
   assert(test.commands[#test.commands].command == "slist noprompt")
+  assert(#test.packets == 1
+    and test.packets[1] == string.char(255, 250, 102, 7, 1, 255, 240))
   rows("", catalogRows)
 end, classificationStage) end
 

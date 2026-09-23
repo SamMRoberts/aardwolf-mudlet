@@ -2,8 +2,11 @@
 
 `AardwolfVibe.plugins.spells` is a session-only authoritative view of learned
 abilities, spellup and bad-effect classifications, active effects, and
-recoveries. It enables only Aardwolf telnet channel-102 option `7,1`, then
-requests these frames in order after fresh active-character GMCP is available:
+recoveries. It enables only Aardwolf telnet channel-102 option `7,1` using a
+fixed raw telnet frame. Mudlet 5.0.1's `sendTelnetChannel102` corrupts the frame's
+IAC bytes, so the package sends those seven fixed bytes through `sendSocket`.
+It then requests these frames in order after fresh active-character GMCP is
+available:
 
 ```text
 slist noprompt
