@@ -20,13 +20,15 @@ The trigger matches a complete line beginning with the exact literal
 `You entered: `. Comparison ignores spaces and tabs at the beginning and end
 of the command to handle a difference between the send request and server
 echo. The window still shows the command as Mudlet sent it. Case and interior
-spacing must match. A match removes the oldest equivalent entry; an unmatched
-echo leaves the queue alone. Blank commands are not queued. Every exact server
-echo line is hidden from the main console, including echoes without a pending
+spacing must match. A match removes the oldest equivalent entry and every
+entry before it; entries after the match stay queued. An unmatched echo leaves
+the queue alone. Blank commands are not queued. Every exact server echo line
+is hidden from the main console, including echoes without a pending
 match. Other output remains visible.
-Commands that never receive an exact server echo remain listed until the
-connection ends or the component stops. Disconnect clears all pending entries
-to prevent commands from carrying into another character's session.
+An entry without its own matching echo remains listed until a later queued
+command is echoed, the connection ends, or the component stops. Disconnect
+clears all pending entries to prevent commands from carrying into another
+character's session.
 
 ## Commands and API
 

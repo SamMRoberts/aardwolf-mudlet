@@ -137,9 +137,10 @@ The always-active command queue window starts docked on the left and lists
 commands sent to Aardwolf by the command line or scripts. Once authenticated,
 the package sends `config echocommands on`. Each `You entered: <command>` server
 echo removes the oldest matching pending command, ignoring surrounding spaces
-and tabs. The package hides all `You entered: ` server echo lines from the main
-console, including unmatched echoes. Hiding the window does not pause tracking;
-pending commands clear on disconnect. See
+and tabs. It also clears every entry before that match, since those commands
+were sent earlier. The package hides all `You entered: ` server echo lines from
+the main console, including unmatched echoes. Hiding the window does not pause
+tracking; pending commands clear on disconnect. See
 [`docs/command-queue.md`](docs/command-queue.md) for the matching and lifecycle
 contract.
 

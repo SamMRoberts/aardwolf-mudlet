@@ -83,7 +83,11 @@ function CommandQueue.new(api, character)
     local echoed = comparableCommand(command)
     for index, queued in ipairs(pending) do
       if comparableCommand(queued) == echoed then
-        table.remove(pending, index)
+        local remaining = {}
+        for later = index + 1, #pending do
+          remaining[#remaining + 1] = pending[later]
+        end
+        pending = remaining
         render()
         return
       end
