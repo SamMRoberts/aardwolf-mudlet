@@ -95,6 +95,9 @@ class QuestTrackerTests(unittest.TestCase):
           assert(shown:find('Evil &lt;orc&gt;',1,true)
             and shown:find('Area &amp; One',1,true)
             and shown:find('Area or room:',1,true))
+          local card=widgets['aardwolf-vibe.quest-tracker.row.'..row.id]
+          local background=widgets[card.name..'.background']
+          assert(card.height<=80 and background.style:find('border-radius: 7px',1,true))
           incoming('Congratulations, that was one of your CAMPAIGN mobs!')
           assert(#sent==2)
           advance(8)
@@ -189,6 +192,7 @@ class QuestTrackerTests(unittest.TestCase):
           local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.text'].text
           assert(shown:find('Possible rooms',1,true)
             and shown:find('Area or room: Gallows Hill',1,true))
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height>70)
           button.callback()
           incoming('There is no wild turkey around here.')
           row=tracker:snapshot().cp.rows[1]
