@@ -272,8 +272,8 @@ function QuestTracker.new(api, character, workspace)
         .. "; border: 1px solid #34495f; border-left: 3px solid " .. accent
         .. "; border-radius: 7px; }")
       card.label:setStyleSheet(row.completed
-        and "QLabel { color: #9aa7af; qproperty-wordWrap: true; font-size: 11px; }"
-        or "QLabel { color: #eef5ff; qproperty-wordWrap: true; font-size: 11px; }")
+        and "QLabel { background-color: transparent; color: #9aa7af; qproperty-wordWrap: true; font-size: 11px; }"
+        or "QLabel { background-color: transparent; color: #eef5ff; qproperty-wordWrap: true; font-size: 11px; }")
       card.label:rawEcho(markup)
       card.container:show()
       if row.completed then card.button:hide() else card.button:show() end

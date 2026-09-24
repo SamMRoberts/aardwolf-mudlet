@@ -97,6 +97,8 @@ class QuestTrackerTests(unittest.TestCase):
             and shown:find('Area or room:',1,true))
           local card=widgets['aardwolf-vibe.quest-tracker.row.'..row.id]
           local background=widgets[card.name..'.background']
+          assert(widgets[card.name..'.text'].style:find(
+            'background-color: transparent',1,true))
           assert(card.height<=80 and background.style:find('border-radius: 7px',1,true))
           incoming('Congratulations, that was one of your CAMPAIGN mobs!')
           assert(#sent==2)
@@ -230,6 +232,8 @@ class QuestTrackerTests(unittest.TestCase):
           assert(rows[1].completed and rows[1].remaining==0 and not rows[2].completed)
           local oldID=rows[1].id
           widgets['aardwolf-vibe.quest-tracker.tab.gq'].callback()
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..oldID..'.text'].style:find(
+            'background-color: transparent',1,true))
           assert(widgets['aardwolf-vibe.quest-tracker.row.'..oldID..'.where'].hidden)
           incoming('You have now joined Global Quest # 99')
           assert(#tracker:snapshot().gq.rows==0)
