@@ -7,6 +7,7 @@ local CAPTURE_SECONDS = 20
 local MAX_LINES = 160
 local MAX_BYTES = 32768
 local MIN_REFRESH_SECONDS = 8
+local WHERE_QUIET_SECONDS = 1
 local CAPABLE = {[3] = true, [4] = true, [8] = true, [9] = true, [11] = true, [12] = true}
 local TABS = {quest = "Quest", cp = "Campaign", gq = "Global Quest"}
 
@@ -88,6 +89,15 @@ function QuestTracker.parseCheck(kind, lines)
   return {active = state == "active", state = state, rows = rows}
 end
 
+function QuestTracker.parseWhereLine(text, mob)
+  if type(text) ~= "string" or type(mob) ~= "string" then return nil end
+  local name, room = text:match("^%s*(.-)%s%s+(.+)%s*$")
+  name, room = clean(name), clean(room)
+  if not name or not room then return nil end
+  if name:lower():gsub("%s+", " ") ~= mob:lower():gsub("%s+", " ") then return nil end
+  return room
+end
+
 function QuestTracker.new(api, character, workspace)
   local self = {enabled = false, visible = false, lastError = nil}
   local window, root, bar, body, content, workspaceHandle, viewParent
@@ -96,6 +106,8 @@ function QuestTracker.new(api, character, workspace)
   local activeTab = "quest"
   local generation, connected, authenticated, moduleRequested = 0, false, false, false
   local capture, driveTimer, wanted = nil, nil, {}
+  local whereQueue, rowWidgets, nextRowID = {}, {}, 0
+  local queueWhere
   local lastRequest = {quest = -1000000, cp = -1000000, gq = -1000000}
   local quest = {state = "unknown"}
   local lists = {cp = {state = "unknown", rows = {}, stale = false},
@@ -104,6 +116,154 @@ function QuestTracker.new(api, character, workspace)
 
   local function snapshot()
     return {quest = copy(quest), cp = copy(lists.cp), gq = copy(lists.gq)}
+  end
+
+  local function newRow(parsed)
+    nextRowID = nextRowID + 1
+    return {id = nextRowID, mob = parsed.mob, location = parsed.location,
+      dead = parsed.dead, remaining = parsed.remaining,
+      initialRemaining = parsed.remaining, completed = false,
+      whereRooms = {}, whereStatus = "idle"}
+  end
+
+  local function reconcile(kind, parsed)
+    local previous = lists[kind]
+    if parsed.state ~= "active" then
+      previous.state = previous.state == "completed" and "completed" or parsed.state
+      previous.stale = false
+      return
+    end
+    if previous.state ~= "active" or #previous.rows == 0 then
+      local rows = {}
+      for _, item in ipairs(parsed.rows) do rows[#rows + 1] = newRow(item) end
+      lists[kind] = {state = "active", rows = rows, stale = false}
+      return
+    end
+    local used, matched = {}, {}
+    for index, item in ipairs(parsed.rows) do
+      for _, row in ipairs(previous.rows) do
+        if not row.completed and not used[row.id] and row.mob:lower() == item.mob:lower()
+            and row.location:lower() == item.location:lower() then
+          matched[index] = row; used[row.id] = true; break
+        end
+      end
+    end
+    for index, item in ipairs(parsed.rows) do
+      if not matched[index] then
+        local candidates, count = {}, 0
+        for _, row in ipairs(previous.rows) do
+          if not row.completed and not used[row.id] and row.mob:lower() == item.mob:lower() then
+            candidates[#candidates + 1] = row
+          end
+        end
+        for later = index, #parsed.rows do
+          if not matched[later] and parsed.rows[later].mob:lower() == item.mob:lower() then
+            count = count + 1
+          end
+        end
+        if #candidates == 1 and count == 1 then
+          matched[index] = candidates[1]; used[candidates[1].id] = true
+        end
+      end
+    end
+    for _, row in ipairs(previous.rows) do
+      if not used[row.id] then row.remaining, row.completed = 0, true end
+    end
+    for index, item in ipairs(parsed.rows) do
+      local row = matched[index]
+      if row then
+        row.remaining, row.dead, row.completed = item.remaining, item.dead, false
+      else
+        previous.rows[#previous.rows + 1] = newRow(item)
+      end
+    end
+    previous.state, previous.stale = "active", false
+  end
+
+  local function findRow(kind, id)
+    local list = lists[kind]
+    if not list then return nil end
+    for _, row in ipairs(list.rows) do
+      if row.id == id then return row end
+    end
+    return nil
+  end
+
+  local function cardText(kind, row)
+    local status = row.completed and "✓ Killed"
+      or (kind == "gq" and string.format("%d of %d remaining", row.remaining,
+        row.initialRemaining) or "1 remaining")
+    if row.dead and not row.completed then status = status .. "; currently dead" end
+    local parts = {"<b>" .. escape(row.mob) .. "</b>", escape(status),
+      "Area or room: " .. escape(row.location)}
+    if #row.whereRooms == 1 then
+      parts[#parts + 1] = "Where (current area): " .. escape(row.whereRooms[1])
+    elseif #row.whereRooms > 1 then
+      parts[#parts + 1] = "Possible rooms (current area):"
+      for _, room in ipairs(row.whereRooms) do parts[#parts + 1] = "&#8226; " .. escape(room) end
+    end
+    if row.whereStatus == "queued" or row.whereStatus == "searching" then
+      parts[#parts + 1] = "Where: " .. row.whereStatus
+    elseif row.whereStatus == "not-found" then
+      parts[#parts + 1] = "Where: not found in current area"
+    elseif row.whereStatus == "failed" then
+      parts[#parts + 1] = "Where: lookup unconfirmed"
+    end
+    return table.concat(parts, "<br>"), parts
+  end
+
+  local function renderCards()
+    local retained = {}
+    for _, kind in ipairs({"cp", "gq"}) do
+      for _, row in ipairs(lists[kind].rows) do retained[row.id] = true end
+    end
+    for id, card in pairs(rowWidgets) do
+      if not retained[id] then card.container:delete(); rowWidgets[id] = nil
+      elseif card.kind ~= activeTab then card.container:hide() end
+    end
+    if activeTab == "quest" then return end
+    local y = 56
+    for _, row in ipairs(lists[activeTab].rows) do
+      local card = rowWidgets[row.id]
+      if not card then
+        local parent = api.Geyser.Container:new({name = OWNER .. ".row." .. row.id,
+          x = 4, y = y, width = "100%-16", height = 112}, body)
+        local background = api.Geyser.Label:new({name = parent.name .. ".background",
+          x = 0, y = 0, width = "100%", height = "100%"}, parent)
+        local label = api.Geyser.Label:new({name = parent.name .. ".text",
+          x = 8, y = 6, width = "100%-90", height = "100%-12"}, parent)
+        local button = api.Geyser.Label:new({name = parent.name .. ".where",
+          x = "100%-76", y = 8, width = 68, height = 28}, parent)
+        button:rawEcho("Where")
+        button:setStyleSheet("QLabel { background: #304966; color: #eef5ff; "
+          .. "border: 1px solid #7189a2; padding: 4px; } "
+          .. "QLabel:hover { background: #3d5b7b; }")
+        local rowID, rowKind = row.id, activeTab
+        button:setClickCallback(function() queueWhere(rowKind, rowID) end)
+        card = {kind = activeTab, container = parent, background = background, label = label,
+          button = button}
+        rowWidgets[row.id] = card
+      end
+      local markup, parts = cardText(activeTab, row)
+      local lineCount = #parts
+      for _, value in ipairs({row.mob, row.location}) do
+        lineCount = lineCount + math.floor(#value / 28)
+      end
+      for _, room in ipairs(row.whereRooms) do lineCount = lineCount + math.floor(#room / 28) end
+      local height = math.max(112, 16 + lineCount * 20)
+      card.container:move(4, y); card.container:resize("100%-16", height)
+      card.background:setStyleSheet(row.completed
+        and "QLabel { background: #17202a; border: 1px solid #40505d; }"
+        or "QLabel { background: #182635; border: 1px solid #526d8c; }")
+      card.label:setStyleSheet(row.completed
+        and "QLabel { color: #a0acb8; qproperty-wordWrap: true; }"
+        or "QLabel { color: #eef5ff; qproperty-wordWrap: true; }")
+      card.label:rawEcho(markup)
+      card.container:show()
+      if row.completed then card.button:hide() else card.button:show() end
+      y = y + height + 6
+    end
+    content:resize("100%-44px", math.max(250, y + 8))
   end
 
   local function render()
@@ -130,14 +290,14 @@ function QuestTracker.new(api, character, workspace)
       if #list.rows == 0 and list.state == "active" then
         lines[#lines + 1] = "No remaining tasks reported"
       end
-      for index, row in ipairs(list.rows) do
-        lines[#lines + 1] = string.format("<b>%d. %s</b> — %d remaining%s<br>Area or room: %s",
-          index, escape(row.mob), row.remaining, row.dead and " (Dead)" or "",
-          escape(row.location))
-      end
     end
     content:rawEcho(table.concat(lines, "<br>"))
-    content:resize("100%-44px", math.max(250, 45 + #lines * 29))
+    if activeTab == "quest" then
+      content:resize("100%-44px", math.max(250, 45 + #lines * 29))
+    else
+      content:resize("100%-44px", 48)
+    end
+    renderCards()
   end
 
   local function cancelTimer()
@@ -149,12 +309,14 @@ function QuestTracker.new(api, character, workspace)
     if capture.lineID then pcall(api.killTrigger, capture.lineID) end
     if capture.promptID then pcall(api.killTrigger, capture.promptID) end
     if capture.timerID then pcall(api.killTimer, capture.timerID) end
+    if capture.quietID then pcall(api.killTimer, capture.quietID) end
     capture = nil
   end
 
   local function reset()
     clearCapture(); cancelTimer()
     wanted = {}
+    whereQueue = {}
     authenticated = false
     characterName = nil
     quest = {state = "unknown"}
@@ -168,9 +330,17 @@ function QuestTracker.new(api, character, workspace)
   local function finish(kind, lines)
     clearCapture()
     local parsed = lines and QuestTracker.parseCheck(kind, lines)
+    if kind == "cp" and parsed and parsed.active then
+      local complete = false
+      for _, line in ipairs(lines) do
+        if line:match("^You have .+ left to finish this campaign%.$") then
+          complete = true; break
+        end
+      end
+      if not complete then parsed = nil end
+    end
     if parsed then
-      lists[kind] = {state = parsed.state,
-        rows = parsed.rows, stale = false}
+      reconcile(kind, parsed)
       self.lastError = nil
     else
       lists[kind].stale = true
@@ -204,6 +374,11 @@ function QuestTracker.new(api, character, workspace)
                 or (line:find("Global quest #", 1, true)
                   and line:find("has not yet started", 1, true)))) then
             finish(kind, frame.lines)
+          elseif kind == "gq" and line:match("^You still have to kill %d+ %* ") then
+            if frame.quietID then pcall(api.killTimer, frame.quietID) end
+            frame.quietID = api.tempTimer(WHERE_QUIET_SECONDS, function()
+              if capture == frame and token == generation then finish(kind, frame.lines) end
+            end)
           end
         end
       end), "Cannot capture quest check lines")
@@ -230,9 +405,105 @@ function QuestTracker.new(api, character, workspace)
     return true
   end
 
+  local function finishWhere(frame, outcome)
+    clearCapture()
+    local row = findRow(frame.request.kind, frame.request.id)
+    if row and not row.completed then
+      if outcome ~= "failed" and #frame.rooms > 0 then
+        row.whereRooms = frame.rooms
+        row.whereStatus = "found"
+        self.lastError = nil
+      else
+        row.whereStatus = outcome == "not-found" and "not-found" or "failed"
+        if row.whereStatus == "failed" then self.lastError = "Could not confirm where response" end
+      end
+    end
+    render()
+    cancelTimer()
+    driveTimer = api.tempTimer(0.1, function() driveTimer = nil; drive() end)
+  end
+
+  local function beginWhere(request)
+    local row = findRow(request.kind, request.id)
+    if not row or row.completed then return false end
+    local token = generation
+    local frame = {kind = "where", request = request, lines = 0, bytes = 0,
+      rooms = {}, roomSet = {}}
+    capture = frame
+    row.whereStatus = "searching"
+    render()
+    local ok, message = pcall(function()
+      frame.lineID = assert(api.tempRegexTrigger("^.*$", function()
+        if not self.enabled or token ~= generation or capture ~= frame then return end
+        local text = api.line
+        if type(text) ~= "string" then return end
+        frame.lines, frame.bytes = frame.lines + 1, frame.bytes + #text
+        if frame.lines > MAX_LINES or frame.bytes > MAX_BYTES then
+          finishWhere(frame, "failed")
+          return
+        end
+        local room = QuestTracker.parseWhereLine(text, request.mob)
+        if room then
+          if not frame.roomSet[room] then
+            frame.rooms[#frame.rooms + 1] = room
+            frame.roomSet[room] = true
+          end
+          if frame.quietID then pcall(api.killTimer, frame.quietID) end
+          frame.quietID = api.tempTimer(WHERE_QUIET_SECONDS, function()
+            if token == generation and capture == frame then finishWhere(frame, "found") end
+          end)
+        elseif text:match("^There is no .+ around here%.$") then
+          finishWhere(frame, "not-found")
+        end
+      end), "Cannot capture where lines")
+      frame.promptID = assert(api.tempPromptTrigger(function()
+        if self.enabled and token == generation and capture == frame then
+          finishWhere(frame, #frame.rooms > 0 and "found" or "not-found")
+        end
+      end), "Cannot capture where prompt")
+      frame.timerID = assert(api.tempTimer(CAPTURE_SECONDS, function()
+        if self.enabled and token == generation and capture == frame then
+          finishWhere(frame, "failed")
+        end
+      end), "Cannot time out where response")
+      local sent, result = pcall(api.send, "where " .. request.mob, true)
+      if not sent or result == false then error("Cannot send where command", 0) end
+    end)
+    if not ok then
+      clearCapture()
+      row.whereStatus = "failed"
+      self.lastError = tostring(message)
+      render()
+      return false
+    end
+    return true
+  end
+
+  queueWhere = function(kind, id)
+    local row = findRow(kind, id)
+    if not self.enabled or not connected or not authenticated or not row
+        or lists[kind].state ~= "active" or row.completed then return false end
+    local mob = clean(row.mob)
+    if not mob or #mob > 120 or mob:find("[%c;]") then
+      self.lastError = "Cannot search this mob name safely"
+      return false
+    end
+    if capture and capture.kind == "where" and capture.request.id == id then return true end
+    for _, request in ipairs(whereQueue) do if request.id == id then return true end end
+    whereQueue[#whereQueue + 1] = {kind = kind, id = id, mob = mob}
+    row.whereStatus = "queued"
+    render()
+    drive()
+    return true
+  end
+
   drive = function()
     if not self.enabled or not connected or not authenticated or capture then return end
     cancelTimer()
+    while #whereQueue > 0 do
+      local request = table.remove(whereQueue, 1)
+      if beginWhere(request) then return end
+    end
     for _, kind in ipairs({"quest", "cp", "gq"}) do
       if wanted[kind] then
         local now = api.os.time()
@@ -385,24 +656,47 @@ function QuestTracker.new(api, character, workspace)
       on("protocol", "sysProtocolDisabled", function(_, protocol)
         if protocol == "GMCP" then reset() end
       end)
-      local function signal(pattern, kind)
+      local function signal(pattern, kind, change)
         signals[#signals + 1] = assert(api.tempRegexTrigger(pattern, function()
           if self.enabled and token == generation and connected and authenticated then
+            if change == "start" then
+              lists[kind] = {state = "unknown", rows = {}, stale = false}
+              for index = #whereQueue, 1, -1 do
+                if whereQueue[index].kind == kind then table.remove(whereQueue, index) end
+              end
+              if capture and (capture.kind == kind or (capture.kind == "where"
+                  and capture.request.kind == kind)) then clearCapture() end
+              render()
+            elseif change == "complete" then
+              for index = #whereQueue, 1, -1 do
+                if whereQueue[index].kind == kind then table.remove(whereQueue, index) end
+              end
+              if capture and capture.kind == "where"
+                  and capture.request.kind == kind then clearCapture() end
+              for _, row in ipairs(lists[kind].rows) do
+                row.remaining, row.completed = 0, true
+              end
+              lists[kind].state = "completed"
+              render()
+            elseif change == "end" then
+              lists[kind].state = "inactive"
+              render()
+            end
             wanted[kind] = true
             drive()
           end
         end), "Cannot register quest change trigger")
       end
       signal("^Congratulations, that was one of your CAMPAIGN mobs!$", "cp")
-      signal("^.+ tells you 'I have selected [0-9]+ targets for you to hunt", "cp")
-      signal("^CONGRATULATIONS! You have completed your campaign\\.$", "cp")
-      signal("^Campaign cleared\\.$", "cp")
+      signal("^.+ tells you 'I have selected [0-9]+ targets for you to hunt", "cp", "start")
+      signal("^CONGRATULATIONS! You have completed your campaign\\.$", "cp", "complete")
+      signal("^Campaign cleared\\.$", "cp", "end")
       signal("^Congratulations, that was one of the GLOBAL QUEST mobs!$", "gq")
-      signal("^You have now joined Global Quest #", "gq")
+      signal("^You have now joined Global Quest #", "gq", "start")
       signal("^The global quest for levels [0-9]+ to [0-9]+ has now started", "gq")
-      signal("^You have finished this global quest\\.$", "gq")
-      signal("^Global Quest: Global quest # [0-9]+ .* is now over", "gq")
-      signal("^You are no longer part of Global Quest #", "gq")
+      signal("^You have finished this global quest\\.$", "gq", "complete")
+      signal("^Global Quest: Global quest # [0-9]+ .* is now over", "gq", "end")
+      signal("^You are no longer part of Global Quest #", "gq", "end")
       moduleRequested = true
       api.gmod.enableModule(OWNER, "Comm")
       if type(api.getConnectionInfo) == "function" then

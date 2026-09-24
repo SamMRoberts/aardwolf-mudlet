@@ -34,6 +34,10 @@ function incoming(text)
         or (pattern:find("CAMPAIGN mobs", 1, true) and text:find("CAMPAIGN mobs", 1, true))
         or (pattern:find("GLOBAL QUEST mobs", 1, true) and text:find("GLOBAL QUEST mobs", 1, true))
         or (pattern:find("You have now joined", 1, true) and text:find("You have now joined", 1, true))
+        or (pattern:find("I have selected", 1, true) and text:find("I have selected", 1, true))
+        or (pattern:find("completed your campaign", 1, true) and text:find("completed your campaign", 1, true))
+        or (pattern:find("You have finished this global quest", 1, true)
+          and text:find("You have finished this global quest", 1, true))
         or (pattern:find("Campaign cleared", 1, true) and text:find("Campaign cleared", 1, true)) then
       callbacks[#callbacks + 1] = trigger.callback
     end
