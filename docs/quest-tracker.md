@@ -1,16 +1,16 @@
 # Quest Tracker
 
-The Quest Tracker has Quest, Campaign, and Global Quest tabs. The Quest tab
-shows the current target mob and the area and room names Aardwolf sends in
-`Comm.Quest`. Campaign and Global Quest show remaining targets and counts from
-`cp check` and `gq check`. Each remaining target has its own card. Its original
-location is labeled **Area or room**, because those responses do not identify
-which kind of name each target has. The window does not use the mapper or move
-the character.
+The Quest Tracker has Quest, Campaign, and Global Quest tabs. Every active mob
+uses the same compact card style. The Quest card shows the target and the
+separate area and room names Aardwolf sends in `Comm.Quest`; it checks off the
+target when killed. Campaign and Global Quest show remaining targets and counts
+from `cp check` and `gq check`. Their original location is labeled **Area or
+room**, because those responses do not identify which kind of name each target
+has. The window does not use the mapper or move the character.
 
-Each compact Campaign and Global Quest card puts the mob and remaining count
-on one line, with the original location below. The card grows when text wraps
-or a lookup adds room clues. Its **Where** button sends `where <mob name>`
+Each card puts the mob and remaining count on one line, with location clues
+below. Cards grow when text wraps or a lookup adds room clues. Campaign and
+Global Quest cards have a **Where** button that sends `where <mob name>`
 without a leading `a`, `an`, or `the` and adds the returned room to that card.
 If several distinct rooms match, the card lists them as possible rooms. The
 original clue remains visible. `where` searches only the current area, and a

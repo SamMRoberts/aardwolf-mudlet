@@ -207,11 +207,20 @@ function QuestTracker.new(api, character, workspace)
     local clueColor = row.completed and "#7f909e" or "#9aaec1"
     local whereColor = row.completed and "#75a8a1" or "#88d3cb"
     local name = row.completed and "<s>" .. escape(row.mob) .. "</s>" or escape(row.mob)
-    local clue = "Area or room: " .. row.location
-    local lines = {clue}
+    local lines = {}
+    if kind == "quest" then
+      if row.area then lines[#lines + 1] = "Area: " .. row.area end
+      if row.room then lines[#lines + 1] = "Room: " .. row.room end
+      if #lines == 0 then lines[1] = "Location not provided" end
+    else
+      lines[1] = "Area or room: " .. row.location
+    end
     local title = "<b>" .. name .. "</b> <span style='color:" .. statusColor
       .. "'>· " .. escape(status) .. "</span>"
-    local details = {"<span style='color:" .. clueColor .. "'>" .. escape(clue) .. "</span>"}
+    local details = {}
+    for _, clue in ipairs(lines) do
+      details[#details + 1] = "<span style='color:" .. clueColor .. "'>" .. escape(clue) .. "</span>"
+    end
     if #row.whereRooms == 1 then
       local where = "Where (current area): " .. row.whereRooms[1]
       lines[#lines + 1] = where
@@ -236,6 +245,12 @@ function QuestTracker.new(api, character, workspace)
 
   local function renderCards()
     local retained = {}
+    local questRow
+    if quest.mob and (quest.state == "active" or quest.state == "target killed") then
+      questRow = {id = "quest", mob = quest.mob, area = quest.area, room = quest.room,
+        completed = quest.state == "target killed", whereRooms = {}, whereStatus = "idle"}
+      retained.quest = true
+    end
     for _, kind in ipairs({"cp", "gq"}) do
       for _, row in ipairs(lists[kind].rows) do retained[row.id] = true end
     end
@@ -243,14 +258,16 @@ function QuestTracker.new(api, character, workspace)
       if not retained[id] then card.container:delete(); rowWidgets[id] = nil
       elseif card.kind ~= activeTab then card.container:hide() end
     end
-    if activeTab == "quest" then return end
+    local rows
+    if activeTab == "quest" then rows = questRow and {questRow} or {}
+    else rows = lists[activeTab].rows end
     local bodyWidth = 280
     if type(body.get_width) == "function" then
       local ok, width = pcall(body.get_width, body)
       if ok and type(width) == "number" and width > 0 then bodyWidth = width end
     end
     local y = 50
-    for _, row in ipairs(lists[activeTab].rows) do
+    for _, row in ipairs(rows) do
       local card = rowWidgets[row.id]
       if not card then
         local parent = api.Geyser.Container:new({name = OWNER .. ".row." .. row.id,
@@ -261,22 +278,26 @@ function QuestTracker.new(api, character, workspace)
           x = 9, y = 5, width = "100%-74", height = 15}, parent)
         local details = api.Geyser.Label:new({name = parent.name .. ".details",
           x = 9, y = 20, width = "100%-18", height = 14}, parent)
-        local button = api.Geyser.Label:new({name = parent.name .. ".where",
-          x = "100%-59", y = 4, width = 50, height = 20}, parent)
-        button:rawEcho("Where")
-        button:setStyleSheet("QLabel { background: #263c52; color: #d7e9fa; "
-          .. "border: 1px solid #4d6b88; border-radius: 4px; padding: 1px; "
-          .. "qproperty-alignment: 'AlignCenter'; font-size: 10px; } "
-          .. "QLabel:hover { background: #345674; border-color: #83b4df; }")
-        button:setToolTip("Search the current area for this mob")
-        local rowID, rowKind = row.id, activeTab
-        button:setClickCallback(function() queueWhere(rowKind, rowID) end)
+        local button
+        if activeTab ~= "quest" then
+          button = api.Geyser.Label:new({name = parent.name .. ".where",
+            x = "100%-59", y = 4, width = 50, height = 20}, parent)
+          button:rawEcho("Where")
+          button:setStyleSheet("QLabel { background: #263c52; color: #d7e9fa; "
+            .. "border: 1px solid #4d6b88; border-radius: 4px; padding: 1px; "
+            .. "qproperty-alignment: 'AlignCenter'; font-size: 10px; } "
+            .. "QLabel:hover { background: #345674; border-color: #83b4df; }")
+          button:setToolTip("Search the current area for this mob")
+          local rowID, rowKind = row.id, activeTab
+          button:setClickCallback(function() queueWhere(rowKind, rowID) end)
+        end
         card = {kind = activeTab, container = parent, background = background, label = label,
           details = details, button = button}
         rowWidgets[row.id] = card
       end
       local title, details, titleText, lines = cardText(activeTab, row)
-      local titleChars = math.max(8, math.floor((bodyWidth - (row.completed and 30 or 86)) / 7))
+      local fullTitle = row.completed or activeTab == "quest"
+      local titleChars = math.max(8, math.floor((bodyWidth - (fullTitle and 30 or 86)) / 7))
       local detailChars = math.max(8, math.floor((bodyWidth - 36) / 6))
       local titleLines = math.max(1, math.ceil(#titleText / titleChars))
       local detailLines = 0
@@ -285,7 +306,7 @@ function QuestTracker.new(api, character, workspace)
       end
       local height = math.max(42, 10 + titleLines * 15 + detailLines * 14)
       card.container:move(4, y); card.container:resize("100%-12", height)
-      card.label:resize(row.completed and "100%-18" or "100%-74", titleLines * 15)
+      card.label:resize(fullTitle and "100%-18" or "100%-74", titleLines * 15)
       card.details:move(9, 5 + titleLines * 15)
       card.details:resize("100%-18", detailLines * 14)
       local accent = row.completed and "#568675" or (row.dead and "#b88a4b" or "#5b94c6")
@@ -301,7 +322,9 @@ function QuestTracker.new(api, character, workspace)
       card.label:rawEcho(title)
       card.details:rawEcho(details)
       card.container:show()
-      if row.completed then card.button:hide() else card.button:show() end
+      if card.button then
+        if row.completed then card.button:hide() else card.button:show() end
+      end
       y = y + height + 3
     end
     content:resize("100%-44px", math.max(250, y + 8))
@@ -317,12 +340,6 @@ function QuestTracker.new(api, character, workspace)
     if activeTab == "quest" then
       lines[#lines + 1] = "<b>Quest</b>"
       lines[#lines + 1] = "Status: " .. escape(quest.state)
-      if quest.mob then lines[#lines + 1] = "Mob: " .. escape(quest.mob) end
-      if quest.state == "active" or quest.state == "target killed" then
-        lines[#lines + 1] = "Remaining: " .. (quest.state == "active" and "1" or "0")
-      end
-      if quest.area then lines[#lines + 1] = "Area: " .. escape(quest.area) end
-      if quest.room then lines[#lines + 1] = "Room: " .. escape(quest.room) end
     else
       local list = lists[activeTab]
       lines[#lines + 1] = "<b>" .. TABS[activeTab] .. "</b>"
@@ -333,11 +350,7 @@ function QuestTracker.new(api, character, workspace)
       end
     end
     content:rawEcho(table.concat(lines, "<br>"))
-    if activeTab == "quest" then
-      content:resize("100%-44px", math.max(250, 45 + #lines * 29))
-    else
-      content:resize("100%-44px", 48)
-    end
+    content:resize("100%-44px", 48)
     renderCards()
   end
 

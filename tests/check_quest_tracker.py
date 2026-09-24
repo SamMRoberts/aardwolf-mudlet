@@ -61,15 +61,24 @@ class QuestTrackerTests(unittest.TestCase):
           assert(snap.quest.state=='active' and snap.quest.mob=='<dragon>')
           assert(snap.quest.area=='Caves & Ruins' and snap.quest.room=='Outer Space')
           widgets['aardwolf-vibe.quest-tracker.tab.quest'].callback()
-          local shown=widgets['aardwolf-vibe.quest-tracker.content'].text
-          assert(shown:find('&lt;dragon&gt;',1,true) and shown:find('Caves &amp; Ruins',1,true))
-          assert(shown:find('Remaining: 1',1,true))
+          local card=widgets['aardwolf-vibe.quest-tracker.row.quest']
+          assert(card and card.height<=55)
+          assert(widgets[card.name..'.text'].text:find('&lt;dragon&gt;',1,true))
+          assert(widgets[card.name..'.text'].text:find('1 left',1,true))
+          local clues=widgets[card.name..'.details'].text
+          assert(clues:find('Area: Caves &amp; Ruins',1,true)
+            and clues:find('Room: Outer Space',1,true))
+          assert(widgets[card.name..'.background'].style:find('#1b2b3b',1,true))
+          assert(not widgets[card.name..'.where'])
           snap.quest.mob='modified'
           assert(tracker:snapshot().quest.mob=='<dragon>')
           gmcp.comm.quest={action='killed'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='target killed')
+          assert(widgets[card.name..'.text'].text:find('Killed',1,true))
+          assert(widgets[card.name..'.background'].style:find('#182229',1,true))
           gmcp.comm.quest={action='comp'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='inactive')
+          assert(not widgets[card.name])
           gmcp.comm.quest={action='status',status='ready'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='ready')
           assert(tracker:stop() and not widgets['aardwolf-vibe.quest-tracker.window'])
@@ -255,6 +264,13 @@ class QuestTrackerTests(unittest.TestCase):
           rows=tracker:snapshot().gq.rows
           assert(rows[1].remaining==2 and rows[1].initialRemaining==3
             and not rows[1].completed)
+          widgets['aardwolf-vibe.quest-tracker.tab.gq'].callback()
+          local active=widgets['aardwolf-vibe.quest-tracker.row.'..rows[1].id]
+          assert(active.height<=50)
+          assert(widgets[active.name..'.text'].text:find('2 of 3 left',1,true))
+          assert(widgets[active.name..'.details'].text:find('Area or room: The Great Hall',1,true))
+          assert(widgets[active.name..'.background'].style:find('#1b2b3b',1,true))
+          assert(widgets[active.name..'.where'].callback)
           incoming('Congratulations, that was one of the GLOBAL QUEST mobs!')
           advance(8)
           incoming('You still have to kill 1 * a wyvern (Cliff)')
