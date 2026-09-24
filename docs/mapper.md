@@ -54,6 +54,23 @@ Areas are named exactly from `room.info.zone`. A same-name area is reusable only
 when it already carries the mapper's owner metadata. The package never renames
 or takes ownership of a foreign area.
 
+## Closed doors
+
+After a fresh room update, the mapper watches briefly for a matching visible
+room title followed by a complete `[ Exits: ... ]` line. Parenthesized north,
+east, south, and west exits are marked as closed doors when the mapped exit or
+stub exists. It sends no commands and changes no output settings. Unmatched,
+late, or malformed lines do not change the map. Rooms without a confirmed
+visible display may have no door markers.
+
+Door markers are visual; they do not change paths or movement. This source
+does not establish whether a door is locked or whether an unparenthesized exit
+is an open door. An Aardwolf Vibe closed marker remains when a later display
+shows that exit without parentheses, so its yellow status can become stale.
+The mapper removes an unchanged marker it owns only when fresh room data and
+the map both show that the exit and stub are gone. Existing manual markers and
+manual changes to owned markers are preserved.
+
 ## Room search
 
 Room search is a read-only view of the map currently loaded in Mudlet. It does

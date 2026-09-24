@@ -88,6 +88,14 @@ local STANDARD_COMMAND = {
   w = true, west = true, u = true, up = true, d = true, down = true,
 }
 local OPPOSITE = {n = "s", e = "w", s = "n", w = "e", u = "d", d = "u"}
+local VISIBLE_DIRECTIONS = {
+  n = "n", north = "n", e = "e", east = "e", s = "s", south = "s",
+  w = "w", west = "w", u = "u", up = "u", d = "d", down = "d",
+}
+local DOOR_DIRECTIONS = {n = true, e = true, s = true, w = true}
+local REGEX_META = {['\\'] = true, ['^'] = true, ['$'] = true, ['.'] = true,
+  ['*'] = true, ['+'] = true, ['?'] = true, ['('] = true, [')'] = true,
+  ['['] = true, [']'] = true, ['{'] = true, ['}'] = true, ['|'] = true}
 local MAX_LAYOUT_SEARCH_STATES = 200000
 local MAX_SEARCH_QUERY = 256
 
@@ -117,6 +125,39 @@ local function cleanRoomName(value)
   -- control-character and length validation to the visible name.
   local visible = value:gsub("\27%[[0-?]*[ -/]*[@-~]", "")
   return cleanString(visible, 4096, false)
+end
+
+local function regexLiteral(value)
+  return (value:gsub(".", function(char)
+    return REGEX_META[char] and "\\" .. char or char
+  end))
+end
+
+local function closedVisibleExits(text)
+  if type(text) ~= "string" or #text > 256 then return nil end
+  local body = text:match("^%s*%[%s*[Ee]xits:%s*(.-)%s*%]%s*$")
+  if not body or body == "" then return nil end
+  local closed, seen, count = {}, {}, 0
+  for token in body:gmatch("%S+") do
+    count = count + 1
+    if count > 16 then return nil end
+    local name = token:match("^%((%a+)%)$")
+    local shut = name ~= nil
+    name = name or token:match("^(%a+)$")
+    if not name then return nil end
+    name = name:lower()
+    if name == "none" or name == "other" then
+      if shut or seen[name] then return nil end
+      seen[name] = true
+    else
+      local direction = VISIBLE_DIRECTIONS[name]
+      if not direction or seen[direction] then return nil end
+      seen[direction] = true
+      if shut and DOOR_DIRECTIONS[direction] then closed[direction] = true end
+    end
+  end
+  if seen.none and count ~= 1 then return nil end
+  return closed
 end
 
 local function snapshot(value, depth, budget)
@@ -219,6 +260,7 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
   local lastPacket, movementAnchor, pendingCommand, applying, queued = nil, nil, nil, false, false
   local reportedLayoutConflicts = {}
   local backupDone = false
+  local doorContext
   local layoutRoomLists
 
   local function required(value, message)
@@ -1686,6 +1728,124 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
     end
   end
 
+  local function doorStatus(doors, direction)
+    return doors[direction.short] or doors[direction.long]
+  end
+
+  local function readDoors(id)
+    local doors = api.getDoors(id)
+    if type(doors) ~= "table" then error("Cannot inspect room doors", 0) end
+    return doors
+  end
+
+  local function clearDoorContext()
+    local context = doorContext
+    doorContext = nil
+    if not context then return end
+    if context.titleID then pcall(api.killTrigger, context.titleID) end
+    if context.exitsID then pcall(api.killTrigger, context.exitsID) end
+    if context.timerID then pcall(api.killTimer, context.timerID) end
+  end
+
+  local function relinquishDoor(id, direction)
+    required(api.setRoomUserData(id, KEY .. "door:" .. direction.short, "manual"),
+      "Cannot relinquish changed door")
+  end
+
+  local function reconcileDoorRemoval(id, room)
+    local ownedDoors = {}
+    for _, direction in ipairs(DIRECTIONS) do
+      if DOOR_DIRECTIONS[direction.short]
+          and api.getRoomUserData(id, KEY .. "door:" .. direction.short) == "2" then
+        ownedDoors[#ownedDoors + 1] = direction
+      end
+    end
+    if #ownedDoors == 0 then return end
+    local exits = api.getRoomExits(id)
+    if type(exits) ~= "table" then error("Cannot inspect room exits for doors", 0) end
+    local doors = readDoors(id)
+    for _, direction in ipairs(ownedDoors) do
+      local status = doorStatus(doors, direction)
+      if status ~= 2 then
+        relinquishDoor(id, direction)
+      elseif room.exits[direction.short] == nil
+          and exits[direction.long] == nil and not hasStub(id, direction) then
+        local changed, message = api.setDoor(id, direction.short, 0)
+        if changed == nil then error("Cannot remove owned door: " .. tostring(message), 0) end
+        if doorStatus(readDoors(id), direction) ~= nil then
+          error("Door removal readback failed", 0)
+        end
+        required(api.setRoomUserData(id, KEY .. "door:" .. direction.short, ""),
+          "Cannot clear door ownership")
+      end
+    end
+  end
+
+  local function applyClosedDoors(context, closed)
+    local id = context.id
+    if not next(closed) or not self.enabled or self.current ~= id or not managed(id) then return end
+    local exits = api.getRoomExits(id)
+    if type(exits) ~= "table" then error("Cannot inspect room exits for doors", 0) end
+    local doors = readDoors(id)
+    local changedMap = false
+    for _, direction in ipairs(DIRECTIONS) do
+      if closed[direction.short] and context.room.exits[direction.short] ~= nil
+          and (exits[direction.long] ~= nil or hasStub(id, direction)) then
+        local key = KEY .. "door:" .. direction.short
+        local recorded = api.getRoomUserData(id, key)
+        local status = doorStatus(doors, direction)
+        if recorded == "2" and status ~= 2 then
+          relinquishDoor(id, direction)
+        elseif recorded == "" and status == nil then
+          local changed, message = api.setDoor(id, direction.short, 2)
+          if changed == nil then error("Cannot mark closed door: " .. tostring(message), 0) end
+          if doorStatus(readDoors(id), direction) ~= 2 then
+            error("Door creation readback failed", 0)
+          end
+          if changed then
+            required(api.setRoomUserData(id, key, "2"), "Cannot record door ownership")
+            doors[direction.short] = 2
+            changedMap = true
+          end
+        end
+      end
+    end
+    if changedMap then api.updateMap() end
+  end
+
+  local function armDoorContext(room)
+    clearDoorContext()
+    local context = {id = room.id, name = room.name, room = room, titleSeen = false}
+    doorContext = context
+    local ok, message = pcall(function()
+      context.titleID = assert(api.tempRegexTrigger("^\\s*" .. regexLiteral(room.name) .. "\\s*$",
+        function()
+          if doorContext == context and cleanRoomName(api.line) == context.name then
+            context.titleSeen = true
+          end
+        end), "Cannot watch room title")
+      context.exitsID = assert(api.tempRegexTrigger("^\\s*\\[\\s*[Ee]xits:", function()
+        if doorContext ~= context or not context.titleSeen then return end
+        local closed = closedVisibleExits(api.line)
+        if not closed then return end
+        clearDoorContext()
+        local applied, failure = pcall(applyClosedDoors, context, closed)
+        if not applied then
+          self.failed = self.failed + 1
+          note("Door observation failed: " .. tostring(failure), true)
+        end
+      end), "Cannot watch visible exits")
+      context.timerID = assert(api.tempTimer(5, function()
+        if doorContext == context then clearDoorContext() end
+      end), "Cannot expire door observation")
+    end)
+    if not ok then
+      clearDoorContext()
+      self.failed = self.failed + 1
+      note("Cannot watch doors: " .. tostring(message), true)
+    end
+  end
+
   local function specialExits(id)
     local exits = api.getSpecialExitsSwap(id)
     if type(exits) ~= "table" then error("Cannot inspect special exits", 0) end
@@ -1821,6 +1981,11 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
     if not managed(id) then error("Room construction readback failed: " .. id, 0) end
+    local doorsOK, doorsError = pcall(reconcileDoorRemoval, id, room)
+    if not doorsOK then
+      self.failed = self.failed + 1
+      note("Door cleanup failed: " .. tostring(doorsError), true)
+    end
     if command and movementAnchor and command.from == movementAnchor.id
         and movementAnchor.id ~= id and not directionTo(movementAnchor.room, id) then
       learnSpecialExit(movementAnchor.id, id, command.value)
@@ -1850,12 +2015,14 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
   end
 
   function self:resetFreshness()
+    clearDoorContext()
     movementAnchor, pendingCommand, self.current = nil, nil, nil
     local gmcp = api.gmcp
     lastPacket = type(gmcp) == "table" and type(gmcp.room) == "table" and gmcp.room.info or nil
   end
 
   function self:sent(command)
+    clearDoorContext()
     pendingCommand = nil
     if not self.enabled or not self.current or not movementAnchor
         or movementAnchor.id ~= self.current then return false end
@@ -1875,6 +2042,7 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
       if data and data == lastPacket then return false end
       lastPacket = data
     end
+    clearDoorContext()
     local room, message = normalize(data)
     if not room then
       movementAnchor, pendingCommand, self.current = nil, nil, nil
@@ -1889,6 +2057,7 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
     local ok, failure = pcall(apply, room)
     layoutRoomLists = nil
     applying = false
+    if ok then armDoorContext(room) end
     if not ok then
       self.failed = self.failed + 1
       self:stop()
