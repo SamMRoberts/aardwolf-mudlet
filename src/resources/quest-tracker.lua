@@ -177,11 +177,12 @@ function QuestTracker.new(api, character, workspace)
       self.lastError = "Could not confirm " .. TABS[kind] .. " check response"
     end
     render()
-    -- Let the current prompt finish processing before opening the next capture.
+    -- Let the current response finish processing before opening the next capture.
+    cancelTimer()
     driveTimer = api.tempTimer(0.1, function() driveTimer = nil; drive() end)
   end
 
-  local function beginCheck(kind)
+  local function beginCheck(kind, manual)
     local command = kind == "cp" and "cp check" or "gq check"
     local token = generation
     local frame = {kind = kind, lines = {}, bytes = 0}
@@ -196,6 +197,14 @@ function QuestTracker.new(api, character, workspace)
           finish(kind, nil)
         else
           frame.lines[#frame.lines + 1] = line
+          -- Aardwolf can omit GA/EOR, so a Mudlet prompt trigger may never fire.
+          if (kind == "cp" and (line:find("You are not currently on a campaign", 1, true)
+              or line:match("^You have .+ left to finish this campaign%.$")))
+              or (kind == "gq" and (line:find("You are not in a global quest", 1, true)
+                or (line:find("Global quest #", 1, true)
+                  and line:find("has not yet started", 1, true)))) then
+            finish(kind, frame.lines)
+          end
         end
       end), "Cannot capture quest check lines")
       frame.promptID = assert(api.tempPromptTrigger(function()
@@ -206,8 +215,10 @@ function QuestTracker.new(api, character, workspace)
       frame.timerID = assert(api.tempTimer(CAPTURE_SECONDS, function()
         if self.enabled and token == generation and capture == frame then finish(kind, nil) end
       end), "Cannot time out quest check")
-      local sent, result = pcall(api.send, command, false)
-      if not sent or result == false then error("Cannot send " .. command, 0) end
+      if not manual then
+        local sent, result = pcall(api.send, command, false)
+        if not sent or result == false then error("Cannot send " .. command, 0) end
+      end
     end)
     if not ok then
       clearCapture()
@@ -347,6 +358,17 @@ function QuestTracker.new(api, character, workspace)
         end) ~= true then error("Cannot register " .. name .. " quest handler", 0) end
       end
       on("quest", "gmcp.comm.quest", receiveQuest)
+      on("campaign-command", "sysDataSendRequest", function(_, command)
+        if not connected or not authenticated or type(command) ~= "string" then return end
+        command = command:lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
+        if command ~= "cp ch" and command ~= "cp check"
+            and command ~= "campaign ch" and command ~= "campaign check" then return end
+        if capture then return end
+        if beginCheck("cp", true) then
+          wanted.cp = nil
+          lastRequest.cp = api.os.time()
+        end
+      end)
       on("status", "aardwolf-vibe.character.updated.status", statusUpdate)
       on("base", "aardwolf-vibe.character.updated.base", function(_, base)
         local name = type(base) == "table" and clean(base.name) or nil

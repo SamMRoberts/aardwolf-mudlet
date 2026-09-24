@@ -118,6 +118,35 @@ class QuestTrackerTests(unittest.TestCase):
           assert(tracker:stop())
         ''')
 
+    def test_campaign_finishes_without_ga_and_accepts_manual_check(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a singing bat (Art of Melody)')
+          incoming('You still have to kill * a wild turkey (Gallows Hill)')
+          incoming('You have 6 days, 23 hours and 56 minutes left to finish this campaign.')
+          assert(tracker:snapshot().cp.state=='active')
+          assert(#tracker:snapshot().cp.rows==2)
+          assert(not tracker:status().capture)
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          assert(tracker:snapshot().gq.state=='inactive')
+          assert(not tracker:status().capture)
+          raiseEvent('sysDataSendRequest', 'cp ch')
+          assert(tracker:status().capture=='cp')
+          incoming('You still have to kill * a deer tick (Gallows Hill)')
+          incoming('You have 6 days, 23 hours and 55 minutes left to finish this campaign.')
+          assert(tracker:snapshot().cp.state=='active')
+          assert(#tracker:snapshot().cp.rows==1)
+          assert(tracker:snapshot().cp.rows[1].mob=='a deer tick')
+          raiseEvent('sysDataSendRequest', 'campaign check')
+          incoming('You are not currently on a campaign.')
+          assert(tracker:snapshot().cp.state=='inactive')
+          assert(not tracker:status().campaignStale)
+          assert(not tracker:status().capture)
+          assert(tracker:stop())
+        ''')
+
     def test_workspace_rehost_and_standalone_visibility(self):
         lua = self.runtime(workspace=True)
         lua.execute(r'''
