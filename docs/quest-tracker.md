@@ -8,12 +8,15 @@ location is labeled **Area or room**, because those responses do not identify
 which kind of name each target has. The window does not use the mapper or move
 the character.
 
-Each Campaign and Global Quest card has a **Where** button. Clicking it sends
-`where <mob name>` and adds the returned room to that card. If several distinct
-rooms match, the card lists them as possible rooms. The original clue remains
-visible. `where` searches only the current area, and a matching name may refer
-to a different mob; the room is a clue, not confirmed target identity. A failed
-or empty lookup keeps any previous room clues. No lookup runs automatically.
+Each compact Campaign and Global Quest card puts the mob and remaining count
+on one line, with the original location below. The card grows when text wraps
+or a lookup adds room clues. Its **Where** button sends `where <mob name>`
+without a leading `a`, `an`, or `the` and adds the returned room to that card.
+If several distinct rooms match, the card lists them as possible rooms. The
+original clue remains visible. `where` searches only the current area, and a
+matching name may refer to a different mob; the room is a clue, not confirmed
+target identity. A failed or empty lookup keeps any previous room clues. No
+lookup runs automatically.
 
 The first valid check in an activity establishes the visible roster. Later
 complete checks update remaining counts and check off killed targets instead

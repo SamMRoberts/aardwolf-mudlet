@@ -92,14 +92,18 @@ class QuestTrackerTests(unittest.TestCase):
           widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
           local row=tracker:snapshot().cp.rows[1]
           local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.text'].text
+          local details=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'].text
           assert(shown:find('Evil &lt;orc&gt;',1,true)
-            and shown:find('Area &amp; One',1,true)
-            and shown:find('Area or room:',1,true))
+            and shown:find('1 left',1,true)
+            and details:find('Area &amp; One',1,true)
+            and details:find('Area or room:',1,true))
           local card=widgets['aardwolf-vibe.quest-tracker.row.'..row.id]
           local background=widgets[card.name..'.background']
           assert(widgets[card.name..'.text'].style:find(
             'background-color: transparent',1,true))
-          assert(card.height<=80 and background.style:find('border-radius: 7px',1,true))
+          assert(widgets[card.name..'.details'].style:find(
+            'background-color: transparent',1,true))
+          assert(card.height<=50 and background.style:find('border-radius: 7px',1,true))
           incoming('Congratulations, that was one of your CAMPAIGN mobs!')
           assert(#sent==2)
           advance(8)
@@ -171,6 +175,7 @@ class QuestTrackerTests(unittest.TestCase):
           local row=tracker:snapshot().cp.rows[1]
           local button=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.where']
           assert(button and button.callback)
+          local compactHeight=widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height
           button.callback()
           assert(#sent==2 and tracker:snapshot().cp.rows[1].whereStatus=='queued')
           incoming('You are not in a global quest.')
@@ -191,17 +196,43 @@ class QuestTrackerTests(unittest.TestCase):
           row=tracker:snapshot().cp.rows[1]
           assert(#row.whereRooms==2 and row.whereRooms[1]=='The East Field')
           assert(row.whereRooms[2]=='The West Field')
-          local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.text'].text
+          local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'].text
           assert(shown:find('Possible rooms',1,true)
             and shown:find('Area or room: Gallows Hill',1,true))
-          assert(widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height>70)
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height>compactHeight)
           button.callback()
           incoming('There is no wild turkey around here.')
           row=tracker:snapshot().cp.rows[1]
           assert(row.whereStatus=='not-found' and #row.whereRooms==2)
           assert(tracker:stop())
           assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id])
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'])
           assert(not tracker:status().capture)
+        ''')
+
+    def test_compact_cards_expand_for_narrow_panels(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a bat (Cave)')
+          incoming('You still have to kill * the new accounts clerk (Gnomalin Square, West End)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          local body=widgets['aardwolf-vibe.quest-tracker.body']
+          body.get_width=function() return 400 end
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local rows=tracker:snapshot().cp.rows
+          local first=widgets['aardwolf-vibe.quest-tracker.row.'..rows[1].id]
+          local second=widgets['aardwolf-vibe.quest-tracker.row.'..rows[2].id]
+          assert(first.height<=44 and second.height<=44)
+          assert(widgets[first.name..'.where'].values.height<=20)
+          assert(widgets[first.name..'.details'].width=='100%-18')
+          body.get_width=function() return 180 end
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          assert(second.height>first.height)
+          assert(second.y>=first.y+first.height+3)
+          assert(tracker:stop())
         ''')
 
     def test_kill_reconciliation_gq_progress_and_new_activity(self):

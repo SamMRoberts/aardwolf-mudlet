@@ -208,30 +208,30 @@ function QuestTracker.new(api, character, workspace)
     local whereColor = row.completed and "#75a8a1" or "#88d3cb"
     local name = row.completed and "<s>" .. escape(row.mob) .. "</s>" or escape(row.mob)
     local clue = "Area or room: " .. row.location
-    local lines = {row.mob, status, clue}
-    local parts = {"<b>" .. name .. "</b>",
-      "<span style='color:" .. statusColor .. "'>" .. escape(status) .. "</span>",
-      "<span style='color:" .. clueColor .. "'>" .. escape(clue) .. "</span>"}
+    local lines = {clue}
+    local title = "<b>" .. name .. "</b> <span style='color:" .. statusColor
+      .. "'>· " .. escape(status) .. "</span>"
+    local details = {"<span style='color:" .. clueColor .. "'>" .. escape(clue) .. "</span>"}
     if #row.whereRooms == 1 then
       local where = "Where (current area): " .. row.whereRooms[1]
       lines[#lines + 1] = where
-      parts[#parts + 1] = "<span style='color:" .. whereColor .. "'>" .. escape(where) .. "</span>"
+      details[#details + 1] = "<span style='color:" .. whereColor .. "'>" .. escape(where) .. "</span>"
     elseif #row.whereRooms > 1 then
       local where = "Possible rooms (current area): " .. table.concat(row.whereRooms, " · ")
       lines[#lines + 1] = where
-      parts[#parts + 1] = "<span style='color:" .. whereColor .. "'>" .. escape(where) .. "</span>"
+      details[#details + 1] = "<span style='color:" .. whereColor .. "'>" .. escape(where) .. "</span>"
     end
     if row.whereStatus == "queued" or row.whereStatus == "searching" then
       lines[#lines + 1] = "Where: " .. row.whereStatus
-      parts[#parts + 1] = escape(lines[#lines])
+      details[#details + 1] = escape(lines[#lines])
     elseif row.whereStatus == "not-found" then
       lines[#lines + 1] = "Where: not found in current area"
-      parts[#parts + 1] = escape(lines[#lines])
+      details[#details + 1] = escape(lines[#lines])
     elseif row.whereStatus == "failed" then
       lines[#lines + 1] = "Where: lookup unconfirmed"
-      parts[#parts + 1] = escape(lines[#lines])
+      details[#details + 1] = escape(lines[#lines])
     end
-    return table.concat(parts, "<br>"), lines
+    return title, table.concat(details, "<br>"), row.mob .. " · " .. status, lines
   end
 
   local function renderCards()
@@ -244,49 +244,65 @@ function QuestTracker.new(api, character, workspace)
       elseif card.kind ~= activeTab then card.container:hide() end
     end
     if activeTab == "quest" then return end
+    local bodyWidth = 280
+    if type(body.get_width) == "function" then
+      local ok, width = pcall(body.get_width, body)
+      if ok and type(width) == "number" and width > 0 then bodyWidth = width end
+    end
     local y = 50
     for _, row in ipairs(lists[activeTab].rows) do
       local card = rowWidgets[row.id]
       if not card then
         local parent = api.Geyser.Container:new({name = OWNER .. ".row." .. row.id,
-          x = 4, y = y, width = "100%-12", height = 70}, body)
+          x = 4, y = y, width = "100%-12", height = 42}, body)
         local background = api.Geyser.Label:new({name = parent.name .. ".background",
           x = 0, y = 0, width = "100%", height = "100%"}, parent)
         local label = api.Geyser.Label:new({name = parent.name .. ".text",
-          x = 10, y = 6, width = "100%-84", height = "100%-12"}, parent)
+          x = 9, y = 5, width = "100%-74", height = 15}, parent)
+        local details = api.Geyser.Label:new({name = parent.name .. ".details",
+          x = 9, y = 20, width = "100%-18", height = 14}, parent)
         local button = api.Geyser.Label:new({name = parent.name .. ".where",
-          x = "100%-68", y = 8, width = 58, height = 24}, parent)
+          x = "100%-59", y = 4, width = 50, height = 20}, parent)
         button:rawEcho("Where")
         button:setStyleSheet("QLabel { background: #263c52; color: #d7e9fa; "
-          .. "border: 1px solid #4d6b88; border-radius: 5px; padding: 2px; "
-          .. "qproperty-alignment: 'AlignCenter'; font-size: 11px; } "
+          .. "border: 1px solid #4d6b88; border-radius: 4px; padding: 1px; "
+          .. "qproperty-alignment: 'AlignCenter'; font-size: 10px; } "
           .. "QLabel:hover { background: #345674; border-color: #83b4df; }")
         button:setToolTip("Search the current area for this mob")
         local rowID, rowKind = row.id, activeTab
         button:setClickCallback(function() queueWhere(rowKind, rowID) end)
         card = {kind = activeTab, container = parent, background = background, label = label,
-          button = button}
+          details = details, button = button}
         rowWidgets[row.id] = card
       end
-      local markup, lines = cardText(activeTab, row)
-      local lineCount = 0
+      local title, details, titleText, lines = cardText(activeTab, row)
+      local titleChars = math.max(8, math.floor((bodyWidth - (row.completed and 30 or 86)) / 7))
+      local detailChars = math.max(8, math.floor((bodyWidth - 36) / 6))
+      local titleLines = math.max(1, math.ceil(#titleText / titleChars))
+      local detailLines = 0
       for _, value in ipairs(lines) do
-        lineCount = lineCount + math.max(1, math.ceil(#value / 27))
+        detailLines = detailLines + math.max(1, math.ceil(#value / detailChars))
       end
-      local height = math.max(70, 12 + lineCount * 17)
+      local height = math.max(42, 10 + titleLines * 15 + detailLines * 14)
       card.container:move(4, y); card.container:resize("100%-12", height)
+      card.label:resize(row.completed and "100%-18" or "100%-74", titleLines * 15)
+      card.details:move(9, 5 + titleLines * 15)
+      card.details:resize("100%-18", detailLines * 14)
       local accent = row.completed and "#568675" or (row.dead and "#b88a4b" or "#5b94c6")
       card.background:setStyleSheet("QLabel { background: "
         .. (row.completed and "#182229" or "#1b2b3b")
         .. "; border: 1px solid #34495f; border-left: 3px solid " .. accent
         .. "; border-radius: 7px; }")
       card.label:setStyleSheet(row.completed
-        and "QLabel { background-color: transparent; color: #9aa7af; qproperty-wordWrap: true; font-size: 11px; }"
-        or "QLabel { background-color: transparent; color: #eef5ff; qproperty-wordWrap: true; font-size: 11px; }")
-      card.label:rawEcho(markup)
+        and "QLabel { background-color: transparent; color: #9aa7af; qproperty-wordWrap: true; qproperty-alignment: 'AlignLeft | AlignTop'; font-size: 11px; }"
+        or "QLabel { background-color: transparent; color: #eef5ff; qproperty-wordWrap: true; qproperty-alignment: 'AlignLeft | AlignTop'; font-size: 11px; }")
+      card.details:setStyleSheet("QLabel { background-color: transparent; color: #9aaec1; "
+        .. "qproperty-wordWrap: true; qproperty-alignment: 'AlignLeft | AlignTop'; font-size: 10px; }")
+      card.label:rawEcho(title)
+      card.details:rawEcho(details)
       card.container:show()
       if row.completed then card.button:hide() else card.button:show() end
-      y = y + height + 5
+      y = y + height + 3
     end
     content:resize("100%-44px", math.max(250, y + 8))
   end
