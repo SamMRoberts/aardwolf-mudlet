@@ -26,6 +26,15 @@ local function clean(value)
   return value
 end
 
+local function whereQuery(mob)
+  local article, name = mob:match("^(%S+)%s+(.+)$")
+  if article then
+    article = article:lower()
+    if article == "a" or article == "an" or article == "the" then return name end
+  end
+  return mob
+end
+
 local function copy(value)
   if type(value) ~= "table" then return value end
   local result = {}
@@ -482,7 +491,7 @@ function QuestTracker.new(api, character, workspace)
           finishWhere(frame, "failed")
         end
       end), "Cannot time out where response")
-      local sent, result = pcall(api.send, "where " .. request.mob, true)
+      local sent, result = pcall(api.send, "where " .. request.query, true)
       if not sent or result == false then error("Cannot send where command", 0) end
     end)
     if not ok then
@@ -506,7 +515,8 @@ function QuestTracker.new(api, character, workspace)
     end
     if capture and capture.kind == "where" and capture.request.id == id then return true end
     for _, request in ipairs(whereQueue) do if request.id == id then return true end end
-    whereQueue[#whereQueue + 1] = {kind = kind, id = id, mob = mob}
+    whereQueue[#whereQueue + 1] = {kind = kind, id = id, mob = mob,
+      query = whereQuery(mob)}
     row.whereStatus = "queued"
     render()
     drive()

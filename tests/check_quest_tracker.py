@@ -175,7 +175,7 @@ class QuestTrackerTests(unittest.TestCase):
           assert(#sent==2 and tracker:snapshot().cp.rows[1].whereStatus=='queued')
           incoming('You are not in a global quest.')
           advance(0.1)
-          assert(#sent==3 and sent[3].command=='where a wild turkey')
+          assert(#sent==3 and sent[3].command=='where wild turkey')
           assert(tracker:status().capture=='where')
           incoming('a wild turkey                  At the South-West corner of the rye field')
           advance(1)
@@ -301,6 +301,36 @@ class QuestTrackerTests(unittest.TestCase):
           raiseEvent('sysDisconnectionEvent')
           assert(#tracker:snapshot().cp.rows==0)
           assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id])
+          assert(tracker:stop())
+        ''')
+
+    def test_where_commands_drop_only_leading_articles(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          local targets = {
+            {'an ogre', 'ogre'},
+            {'The rabbit', 'rabbit'},
+            {'A bat', 'bat'},
+            {'another rat', 'another rat'},
+          }
+          for _, target in ipairs(targets) do
+            incoming('You still have to kill * '..target[1]..' (Test Area)')
+          end
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local rows = tracker:snapshot().cp.rows
+          assert(#rows == #targets)
+          for index, target in ipairs(targets) do
+            widgets['aardwolf-vibe.quest-tracker.row.'..rows[index].id..'.where'].callback()
+            assert(sent[#sent].command == 'where '..target[2])
+            incoming(target[1]..'                  Room '..index)
+            prompt()
+            assert(tracker:snapshot().cp.rows[index].whereRooms[1] == 'Room '..index)
+            advance(0.1)
+          end
           assert(tracker:stop())
         ''')
 
