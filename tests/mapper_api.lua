@@ -2,6 +2,7 @@ rooms, areas, areaData, hashes = {}, {}, {}, {}
 mapData, environmentColors = {}, {}
 handlers, modules, echoes, backups = {}, {}, {}, {}
 packages, writes, updates, centers, mapOpens, removedSpecial, clearedSpecial = {}, 0, 0, {}, 0, {}, 0
+triggers, timers, triggerSequence, clock = {}, {}, 0, 0
 playerRoom = 3248
 fail = {}
 
@@ -17,7 +18,7 @@ function getRoomName(id) return rooms[id] and rooms[id].name or nil end
 function addRoom(id)
   if fail.addRoom then fail.addRoom=nil; return false end
   if rooms[id] then return false end
-  rooms[id]={name="",area=-1,x=0,y=0,z=0,data={},exits={},stubs={},special={},env=-1,char=""}
+  rooms[id]={name="",area=-1,x=0,y=0,z=0,data={},exits={},stubs={},special={},doors={},env=-1,char=""}
   writes=writes+1; return true
 end
 function setRoomName(id,value) if not rooms[id] then return nil end;rooms[id].name=value;writes=writes+1;return true end
@@ -66,6 +67,19 @@ function setExit(from,to,direction)
 end
 function getExitStubsNames(id) local result={};for name,value in pairs(rooms[id].stubs) do if value then result[#result+1]=name end end;return result end
 function setExitStub(id,direction,enabled) rooms[id].stubs[directionLong[direction] or direction]=enabled or nil;writes=writes+1 end
+function getDoors(id)
+  if not rooms[id] then return nil end
+  local result={};for direction,status in pairs(rooms[id].doors) do result[direction]=status end
+  return result
+end
+function setDoor(id,direction,status)
+  if fail.setDoor then fail.setDoor=nil;return nil,"door failure" end
+  if not rooms[id] or not ({n=true,e=true,s=true,w=true})[direction]
+      or type(status)~="number" or status<0 or status>3 then return nil,"invalid door" end
+  local current=rooms[id].doors[direction] or 0
+  if current==status then return false end
+  rooms[id].doors[direction]=status>0 and status or nil;writes=writes+1;return true
+end
 function getSpecialExitsSwap(id) local result={};for k,v in pairs(rooms[id].special) do result[k]=v end;return result end
 function addSpecialExit(from,to,command) if not rooms[from] or not rooms[to] then return false end;rooms[from].special[command]=to;writes=writes+1;return true end
 function removeSpecialExit(from,command) if rooms[from] then rooms[from].special[command]=nil;writes=writes+1 end;removedSpecial[#removedSpecial+1]={from=from,command=command} end
@@ -94,6 +108,32 @@ function deleteNamedEventHandler(owner,name) handlers[owner..":"..name]=nil;retu
 function fire(event,...)
   local copy={};for key,value in pairs(handlers) do copy[key]=value end
   for _,handler in pairs(copy) do if handler.event==event then handler.fn(event,...) end end
+end
+function tempRegexTrigger(pattern,callback)
+  triggerSequence=triggerSequence+1;triggers[triggerSequence]={pattern=pattern,callback=callback}
+  return triggerSequence
+end
+function killTrigger(id) triggers[id]=nil end
+function tempTimer(delay,callback)
+  triggerSequence=triggerSequence+1;timers[triggerSequence]={at=clock+delay,callback=callback}
+  return triggerSequence
+end
+function killTimer(id) timers[id]=nil end
+function incoming(text)
+  line=text
+  local callbacks={};for _,trigger in pairs(triggers) do callbacks[#callbacks+1]=trigger.callback end
+  for _,callback in ipairs(callbacks) do callback() end
+end
+function advance(seconds)
+  clock=clock+seconds
+  while true do
+    local due,id
+    for key,timer in pairs(timers) do
+      if timer.at<=clock and (not due or timer.at<due) then due,id=timer.at,key end
+    end
+    if not id then break end
+    local callback=timers[id].callback;timers[id]=nil;callback()
+  end
 end
 gmod={}
 function gmod.enableModule(owner,name) if fail.gmod then fail.gmod=nil;error("gmod failure") end;modules[owner..":"..name]=true end

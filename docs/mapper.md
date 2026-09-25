@@ -54,6 +54,27 @@ Areas are named exactly from `room.info.zone`. A same-name area is reusable only
 when it already carries the mapper's owner metadata. The package never renames
 or takes ownership of a foreign area.
 
+## Doors
+
+After a fresh room update, the mapper watches briefly for a matching visible
+room title followed by a complete `[ Exits: ... ]` line. Parenthesized north,
+east, south, and west exits provide closed-door evidence (status `2`) when the
+mapped exit or stub exists. An observed status can only raise a door marker:
+an existing open marker (`1`) becomes closed (`2`), while a locked marker (`3`)
+stays locked. This also applies to manually set markers. It sends no commands
+and changes no output settings. Unmatched,
+late, or malformed lines do not change the map. Rooms without a confirmed
+visible display may have no door markers.
+
+Door markers are visual; they do not change paths or movement. This source
+does not establish whether a door is locked or whether an unparenthesized exit
+is an open door, so it never creates statuses `1` or `3` from room-entry output.
+The mapper does not lower or remove a door marker when a later display shows
+an unparenthesized exit or fresh room data omits the exit. A retained marker
+can become stale, and Mudlet may remove it during map auditing if its exit or
+stub no longer exists. If someone removes a marker the package owned, that
+removal is not recreated; a manual status increase also remains intact.
+
 ## Room search
 
 Room search is a read-only view of the map currently loaded in Mudlet. It does

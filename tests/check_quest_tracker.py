@@ -61,15 +61,24 @@ class QuestTrackerTests(unittest.TestCase):
           assert(snap.quest.state=='active' and snap.quest.mob=='<dragon>')
           assert(snap.quest.area=='Caves & Ruins' and snap.quest.room=='Outer Space')
           widgets['aardwolf-vibe.quest-tracker.tab.quest'].callback()
-          local shown=widgets['aardwolf-vibe.quest-tracker.content'].text
-          assert(shown:find('&lt;dragon&gt;',1,true) and shown:find('Caves &amp; Ruins',1,true))
-          assert(shown:find('Remaining: 1',1,true))
+          local card=widgets['aardwolf-vibe.quest-tracker.row.quest']
+          assert(card and card.height<=55)
+          assert(widgets[card.name..'.text'].text:find('&lt;dragon&gt;',1,true))
+          assert(widgets[card.name..'.text'].text:find('1 left',1,true))
+          local clues=widgets[card.name..'.details'].text
+          assert(clues:find('Area: Caves &amp; Ruins',1,true)
+            and clues:find('Room: Outer Space',1,true))
+          assert(widgets[card.name..'.background'].style:find('#1b2b3b',1,true))
+          assert(not widgets[card.name..'.where'])
           snap.quest.mob='modified'
           assert(tracker:snapshot().quest.mob=='<dragon>')
           gmcp.comm.quest={action='killed'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='target killed')
+          assert(widgets[card.name..'.text'].text:find('Killed',1,true))
+          assert(widgets[card.name..'.background'].style:find('#182229',1,true))
           gmcp.comm.quest={action='comp'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='inactive')
+          assert(not widgets[card.name])
           gmcp.comm.quest={action='status',status='ready'};raiseEvent('gmcp.comm.quest')
           assert(tracker:snapshot().quest.state=='ready')
           assert(tracker:stop() and not widgets['aardwolf-vibe.quest-tracker.window'])
@@ -82,17 +91,28 @@ class QuestTrackerTests(unittest.TestCase):
           assert(tracker:start())
           assert(#gmcpSent==1 and gmcpSent[1]=='request quest')
           assert(#sent==1 and sent[1].command=='cp check' and sent[1].echoCommand==false)
-          incoming('You still have to kill * Evil <orc> (Area & One)');prompt()
+          incoming('You still have to kill * Evil <orc> (Area & One)')
+          incoming('You have 2 days left to finish this campaign.')
           advance(0.1)
           assert(#sent==2 and sent[2].command=='gq check')
           incoming('You still have to kill 2 * an ogre (The Great Hall)');prompt()
           assert(tracker:snapshot().cp.rows[1].location=='Area & One')
           assert(tracker:snapshot().gq.rows[1].remaining==2)
           widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
-          local shown=widgets['aardwolf-vibe.quest-tracker.content'].text
+          local row=tracker:snapshot().cp.rows[1]
+          local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.text'].text
+          local details=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'].text
           assert(shown:find('Evil &lt;orc&gt;',1,true)
-            and shown:find('Area &amp; One',1,true)
-            and shown:find('Area or room:',1,true))
+            and shown:find('1 left',1,true)
+            and details:find('Area &amp; One',1,true)
+            and details:find('Area or room:',1,true))
+          local card=widgets['aardwolf-vibe.quest-tracker.row.'..row.id]
+          local background=widgets[card.name..'.background']
+          assert(widgets[card.name..'.text'].style:find(
+            'background-color: transparent',1,true))
+          assert(widgets[card.name..'.details'].style:find(
+            'background-color: transparent',1,true))
+          assert(card.height<=50 and background.style:find('border-radius: 7px',1,true))
           incoming('Congratulations, that was one of your CAMPAIGN mobs!')
           assert(#sent==2)
           advance(8)
@@ -115,6 +135,276 @@ class QuestTrackerTests(unittest.TestCase):
           connection=true;raiseEvent('sysConnectionEvent')
           raiseEvent('aardwolf-vibe.character.updated.status')
           assert(#gmcpSent==3)
+          assert(tracker:stop())
+        ''')
+
+    def test_campaign_finishes_without_ga_and_accepts_manual_check(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a singing bat (Art of Melody)')
+          incoming('You still have to kill * a wild turkey (Gallows Hill)')
+          incoming('You have 6 days, 23 hours and 56 minutes left to finish this campaign.')
+          assert(tracker:snapshot().cp.state=='active')
+          assert(#tracker:snapshot().cp.rows==2)
+          assert(not tracker:status().capture)
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          assert(tracker:snapshot().gq.state=='inactive')
+          assert(not tracker:status().capture)
+          raiseEvent('sysDataSendRequest', 'cp ch')
+          assert(tracker:status().capture=='cp')
+          incoming('You still have to kill * a deer tick (Gallows Hill)')
+          incoming('You have 6 days, 23 hours and 55 minutes left to finish this campaign.')
+          assert(tracker:snapshot().cp.state=='active')
+          assert(#tracker:snapshot().cp.rows==3)
+          assert(tracker:snapshot().cp.rows[1].completed)
+          assert(tracker:snapshot().cp.rows[2].completed)
+          assert(tracker:snapshot().cp.rows[3].mob=='a deer tick')
+          raiseEvent('sysDataSendRequest', 'campaign check')
+          incoming('You are not currently on a campaign.')
+          assert(tracker:snapshot().cp.state=='inactive')
+          assert(not tracker:status().campaignStale)
+          assert(not tracker:status().capture)
+          assert(tracker:stop())
+        ''')
+
+    def test_where_button_rooms_no_match_and_capture_queue(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(Factory.parseWhereLine(
+            'a wild turkey                  At the South-West corner of the rye field',
+            'a wild turkey')=='At the South-West corner of the rye field')
+          assert(not Factory.parseWhereLine('a wild turkey chick    Wrong Room', 'a wild turkey'))
+          assert(tracker:start())
+          incoming('You still have to kill * a wild turkey (Gallows Hill)')
+          incoming('You have 6 days left to finish this campaign.')
+          advance(0.1)
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local row=tracker:snapshot().cp.rows[1]
+          local button=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.where']
+          assert(button and button.callback)
+          local compactHeight=widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height
+          button.callback()
+          assert(#sent==2 and tracker:snapshot().cp.rows[1].whereStatus=='queued')
+          incoming('You are not in a global quest.')
+          advance(0.1)
+          assert(#sent==3 and sent[3].command=='where wild turkey')
+          assert(tracker:status().capture=='where')
+          incoming('a wild turkey                  At the South-West corner of the rye field')
+          advance(1)
+          row=tracker:snapshot().cp.rows[1]
+          assert(row.whereStatus=='found' and #row.whereRooms==1)
+          assert(row.whereRooms[1]=='At the South-West corner of the rye field')
+          assert(row.location=='Gallows Hill')
+          button.callback()
+          incoming('a wild turkey                 The East Field')
+          incoming('a wild turkey                 The West Field')
+          incoming('a wild turkey                 The West Field')
+          advance(1)
+          row=tracker:snapshot().cp.rows[1]
+          assert(#row.whereRooms==2 and row.whereRooms[1]=='The East Field')
+          assert(row.whereRooms[2]=='The West Field')
+          local shown=widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'].text
+          assert(shown:find('Possible rooms',1,true)
+            and shown:find('Area or room: Gallows Hill',1,true))
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..row.id].height>compactHeight)
+          button.callback()
+          incoming('There is no wild turkey around here.')
+          row=tracker:snapshot().cp.rows[1]
+          assert(row.whereStatus=='not-found' and #row.whereRooms==2)
+          assert(tracker:stop())
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id])
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.details'])
+          assert(not tracker:status().capture)
+        ''')
+
+    def test_compact_cards_expand_for_narrow_panels(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a bat (Cave)')
+          incoming('You still have to kill * the new accounts clerk (Gnomalin Square, West End)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          local body=widgets['aardwolf-vibe.quest-tracker.body']
+          body.get_width=function() return 400 end
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local rows=tracker:snapshot().cp.rows
+          local first=widgets['aardwolf-vibe.quest-tracker.row.'..rows[1].id]
+          local second=widgets['aardwolf-vibe.quest-tracker.row.'..rows[2].id]
+          assert(first.height<=44 and second.height<=44)
+          assert(widgets[first.name..'.where'].values.height<=20)
+          assert(widgets[first.name..'.details'].width=='100%-18')
+          body.get_width=function() return 180 end
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          assert(second.height>first.height)
+          assert(second.y>=first.y+first.height+3)
+          assert(tracker:stop())
+        ''')
+
+    def test_kill_reconciliation_gq_progress_and_new_activity(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You are not currently on a campaign.')
+          advance(0.1)
+          incoming('You still have to kill 3 * an ogre (The Great Hall)')
+          incoming('You still have to kill 1 * a wyvern (Cliff)')
+          advance(1)
+          local rows=tracker:snapshot().gq.rows
+          assert(#rows==2 and rows[1].initialRemaining==3)
+          incoming('Congratulations, that was one of the GLOBAL QUEST mobs!')
+          advance(8)
+          assert(tracker:status().capture=='gq')
+          incoming('You still have to kill 2 * an ogre (The Great Hall)')
+          incoming('You still have to kill 1 * a wyvern (Cliff)')
+          advance(1)
+          rows=tracker:snapshot().gq.rows
+          assert(rows[1].remaining==2 and rows[1].initialRemaining==3
+            and not rows[1].completed)
+          widgets['aardwolf-vibe.quest-tracker.tab.gq'].callback()
+          local active=widgets['aardwolf-vibe.quest-tracker.row.'..rows[1].id]
+          assert(active.height<=50)
+          assert(widgets[active.name..'.text'].text:find('2 of 3 left',1,true))
+          assert(widgets[active.name..'.details'].text:find('Area or room: The Great Hall',1,true))
+          assert(widgets[active.name..'.background'].style:find('#1b2b3b',1,true))
+          assert(widgets[active.name..'.where'].callback)
+          incoming('Congratulations, that was one of the GLOBAL QUEST mobs!')
+          advance(8)
+          incoming('You still have to kill 1 * a wyvern (Cliff)')
+          advance(1)
+          rows=tracker:snapshot().gq.rows
+          assert(rows[1].completed and rows[1].remaining==0 and not rows[2].completed)
+          local oldID=rows[1].id
+          widgets['aardwolf-vibe.quest-tracker.tab.gq'].callback()
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..oldID..'.text'].style:find(
+            'background-color: transparent',1,true))
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..oldID..'.where'].hidden)
+          incoming('You have now joined Global Quest # 99')
+          assert(#tracker:snapshot().gq.rows==0)
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..oldID])
+          assert(tracker:stop())
+        ''')
+
+    def test_duplicate_names_and_failed_refresh_do_not_invent_kills(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a guard (North Hall)')
+          incoming('You still have to kill * a guard (South Hall)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          assert(tracker:refresh())
+          incoming('unrelated output');prompt()
+          local rows=tracker:snapshot().cp.rows
+          assert(#rows==2 and not rows[1].completed and not rows[2].completed)
+          assert(tracker:refresh())
+          incoming('You still have to kill * a guard (South Hall)');prompt()
+          rows=tracker:snapshot().cp.rows
+          assert(tracker:status().campaignStale and not rows[1].completed)
+          assert(tracker:refresh())
+          incoming('You still have to kill * a guard (South Hall)')
+          incoming('You have 2 days left to finish this campaign.')
+          rows=tracker:snapshot().cp.rows
+          assert(rows[1].completed and not rows[2].completed)
+          incoming("Questor tells you 'I have selected 2 targets for you to hunt'")
+          assert(#tracker:snapshot().cp.rows==0)
+          assert(tracker:stop())
+        ''')
+
+    def test_new_activity_cancels_where_and_completion_retains_cards(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a wild turkey (Gallows Hill)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local old=tracker:snapshot().cp.rows[1]
+          local oldButton=widgets['aardwolf-vibe.quest-tracker.row.'..old.id..'.where']
+          oldButton.callback()
+          assert(tracker:status().capture=='where')
+          incoming("Questor tells you 'I have selected 1 targets for you to hunt'")
+          assert(not tracker:status().capture and #tracker:snapshot().cp.rows==0)
+          incoming('a wild turkey           Stale Room');prompt()
+          assert(#tracker:snapshot().cp.rows==0)
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..old.id])
+          advance(8)
+          assert(tracker:status().capture=='cp')
+          incoming('You still have to kill * a new target (New Area)')
+          incoming('You have 2 days left to finish this campaign.')
+          local row=tracker:snapshot().cp.rows[1]
+          assert(row.mob=='a new target' and not row.completed)
+          incoming('CONGRATULATIONS! You have completed your campaign.')
+          row=tracker:snapshot().cp.rows[1]
+          assert(row.completed and row.remaining==0)
+          assert(widgets['aardwolf-vibe.quest-tracker.row.'..row.id..'.where'].hidden)
+          incoming('Campaign cleared.')
+          assert(#tracker:snapshot().cp.rows==1)
+          raiseEvent('sysDisconnectionEvent')
+          assert(#tracker:snapshot().cp.rows==0)
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..row.id])
+          assert(tracker:stop())
+        ''')
+
+    def test_where_commands_drop_only_leading_articles(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          local targets = {
+            {'an ogre', 'ogre'},
+            {'The rabbit', 'rabbit'},
+            {'A bat', 'bat'},
+            {'another rat', 'another rat'},
+          }
+          for _, target in ipairs(targets) do
+            incoming('You still have to kill * '..target[1]..' (Test Area)')
+          end
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local rows = tracker:snapshot().cp.rows
+          assert(#rows == #targets)
+          for index, target in ipairs(targets) do
+            widgets['aardwolf-vibe.quest-tracker.row.'..rows[index].id..'.where'].callback()
+            assert(sent[#sent].command == 'where '..target[2])
+            incoming(target[1]..'                  Room '..index)
+            prompt()
+            assert(tracker:snapshot().cp.rows[index].whereRooms[1] == 'Room '..index)
+            advance(0.1)
+          end
+          assert(tracker:stop())
+        ''')
+
+    def test_where_timeout_and_command_validation(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * a mob;quit (Unsafe Area)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1)
+          incoming('You are not in a global quest.')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local bad=tracker:snapshot().cp.rows[1]
+          local count=#sent
+          widgets['aardwolf-vibe.quest-tracker.row.'..bad.id..'.where'].callback()
+          assert(#sent==count and tracker:status().lastError=='Cannot search this mob name safely')
+          incoming("Questor tells you 'I have selected 1 targets for you to hunt'")
+          advance(8)
+          incoming('You still have to kill * a safe mob (Safe Area)')
+          incoming('You have 2 days left to finish this campaign.')
+          local safe=tracker:snapshot().cp.rows[1]
+          widgets['aardwolf-vibe.quest-tracker.row.'..safe.id..'.where'].callback()
+          assert(tracker:status().capture=='where')
+          advance(20)
+          safe=tracker:snapshot().cp.rows[1]
+          assert(safe.whereStatus=='failed' and #safe.whereRooms==0)
+          assert(not tracker:status().capture)
           assert(tracker:stop())
         ''')
 
