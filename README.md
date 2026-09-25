@@ -111,6 +111,11 @@ commands after login and relevant quest changes. The tracker displays only
 server-provided mob and location names. Use `aardwolf-vibe quests
 show|hide|refresh|status`; see [`docs/quest-tracker.md`](docs/quest-tracker.md).
 
+The Mob Deaths panel records `mobdeaths here` results when entering an area,
+and visible manual runs update the same profile-local database. Search by mob,
+area, or level using the panel or `aardwolf-vibe mobs search`; see
+[`docs/mob-deaths.md`](docs/mob-deaths.md).
+
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures
 complete `<MAPSTART>` / `<MAPEND>` frames and displays

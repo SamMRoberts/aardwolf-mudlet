@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.62")
+        self.assertEqual(metadata["version"], "0.7.63")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("map run navigation", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
@@ -25,6 +25,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("default docked workspace", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         self.assertIn("quest tracker", metadata["description"])
+        self.assertIn("searchable mob deaths", metadata["description"])
         self.assertIn("heartbeat-reconciled", metadata["description"])
         self.assertIn("batch-confirmed", metadata["description"])
         self.assertIn("overlap-safe", metadata["description"])
@@ -43,6 +44,8 @@ class PackageSourceTests(unittest.TestCase):
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
                 "quests": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$",
+                "mobs": "^aardwolf-vibe mobs(?: (show|hide|status))?$",
+                "mobs-search": "^aardwolf-vibe mobs search (name|area|levels) (.+)$",
                 "workspace": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
                 "stats": "^aardwolf-vibe stats(?: (show|hide|status))?$",
@@ -63,6 +66,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.helpWindow", source)
         self.assertIn("AardwolfVibe.plugins.chat", source)
         self.assertIn("AardwolfVibe.plugins.questTracker", source)
+        self.assertIn("AardwolfVibe.plugins.mobDeaths", source)
         self.assertIn("AardwolfVibe.plugins.commandQueue", source)
         self.assertIn("AardwolfVibe.plugins.workspace", source)
         self.assertIn("AardwolfVibe.plugins.mapperDisplay", source)

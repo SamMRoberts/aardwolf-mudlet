@@ -40,6 +40,16 @@
     "regex": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$"
   },
   {
+    "name": "mobs",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe mobs(?: (show|hide|status))?$"
+  },
+  {
+    "name": "mobs-search",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe mobs search (name|area|levels) (.+)$"
+  },
+  {
     "name": "workspace",
     "isActive": "yes",
     "regex": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$"
