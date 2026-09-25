@@ -996,7 +996,7 @@ class MapperTests(unittest.TestCase):
           assert(writes==before and getDoors(101).n==2)
         ''')
 
-    def test_door_stub_manual_ownership_and_confirmed_exit_removal(self):
+    def test_door_stub_manual_ownership_and_absent_exit_preservation(self):
         self.check('''
           assert(mapper:receive(packet(101,{n='?',e=102})))
           setDoor(101,'e',3)
@@ -1008,14 +1008,36 @@ class MapperTests(unittest.TestCase):
           assert(mapper:receive(packet(101,{n='?',e=102})))
           assert(rooms[101].data['aardwolf-vibe:door:n']=='manual')
           incoming('Room 101');incoming('[ Exits: (north) ]')
-          assert(getDoors(101).n==1)
+          assert(getDoors(101).n==2 and rooms[101].data['aardwolf-vibe:door:n']=='manual')
           assert(mapper:receive(packet(101,{s='?'})))
           incoming('Room 101');incoming('[ Exits: (south) ]')
           assert(getDoors(101).s==2)
           mapper:stop();mapper=factory.new(_G,settings);assert(mapper:start())
           assert(mapper:receive(packet(101,{})))
-          assert(getDoors(101).s==nil and rooms[101].data['aardwolf-vibe:door:s']=='')
-          assert(getDoors(101).n==1 and getDoors(101).e==3)
+          assert(getDoors(101).s==2 and rooms[101].data['aardwolf-vibe:door:s']=='2')
+          assert(getDoors(101).n==2 and getDoors(101).e==3)
+        ''')
+
+    def test_observed_doors_only_raise_existing_status(self):
+        self.check('''
+          assert(mapper:receive(packet(101,{n=102,e=103,s=104,w='?'})))
+          setDoor(101,'n',1)
+          setRoomUserData(101,'aardwolf-vibe:door:n','1')
+          setDoor(101,'e',3)
+          setDoor(101,'w',1)
+          incoming('Room 101');incoming('[ Exits: (north) (east) south (west) ]')
+          assert(getDoors(101).n==2 and getDoors(101).e==3)
+          assert(getDoors(101).s==nil and getDoors(101).w==2)
+          assert(rooms[101].data['aardwolf-vibe:door:n']=='2')
+          assert(rooms[101].data['aardwolf-vibe:door:e']==nil)
+          assert(rooms[101].data['aardwolf-vibe:door:w']==nil)
+          assert(mapper:receive(packet(101,{n=102,e=103,s=104,w='?'})))
+          local before=writes
+          incoming('Room 101');incoming('[ Exits: north east south west ]')
+          assert(getDoors(101).n==2 and getDoors(101).e==3
+            and getDoors(101).w==2 and writes==before)
+          assert(mapper:receive(packet(101,{})))
+          assert(getDoors(101).n==2 and getDoors(101).e==3 and getDoors(101).w==2)
         ''')
 
     def test_door_observation_expiry_stale_lines_and_nonfatal_failure(self):

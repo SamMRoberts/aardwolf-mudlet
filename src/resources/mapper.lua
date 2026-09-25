@@ -133,11 +133,11 @@ local function regexLiteral(value)
   end))
 end
 
-local function closedVisibleExits(text)
+local function visibleDoorStates(text)
   if type(text) ~= "string" or #text > 256 then return nil end
   local body = text:match("^%s*%[%s*[Ee]xits:%s*(.-)%s*%]%s*$")
   if not body or body == "" then return nil end
-  local closed, seen, count = {}, {}, 0
+  local states, seen, count = {}, {}, 0
   for token in body:gmatch("%S+") do
     count = count + 1
     if count > 16 then return nil end
@@ -153,11 +153,11 @@ local function closedVisibleExits(text)
       local direction = VISIBLE_DIRECTIONS[name]
       if not direction or seen[direction] then return nil end
       seen[direction] = true
-      if shut and DOOR_DIRECTIONS[direction] then closed[direction] = true end
+      if shut and DOOR_DIRECTIONS[direction] then states[direction] = 2 end
     end
   end
   if seen.none and count ~= 1 then return nil end
-  return closed
+  return states
 end
 
 local function snapshot(value, depth, budget)
@@ -1752,59 +1752,57 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
       "Cannot relinquish changed door")
   end
 
-  local function reconcileDoorRemoval(id, room)
-    local ownedDoors = {}
+  local function reconcileDoorOwnership(id)
+    local owned = {}
     for _, direction in ipairs(DIRECTIONS) do
-      if DOOR_DIRECTIONS[direction.short]
-          and api.getRoomUserData(id, KEY .. "door:" .. direction.short) == "2" then
-        ownedDoors[#ownedDoors + 1] = direction
+      if DOOR_DIRECTIONS[direction.short] then
+        local status = tonumber(api.getRoomUserData(id, KEY .. "door:" .. direction.short))
+        if status then owned[#owned + 1] = {direction = direction, status = status} end
       end
     end
-    if #ownedDoors == 0 then return end
-    local exits = api.getRoomExits(id)
-    if type(exits) ~= "table" then error("Cannot inspect room exits for doors", 0) end
+    if #owned == 0 then return end
     local doors = readDoors(id)
-    for _, direction in ipairs(ownedDoors) do
-      local status = doorStatus(doors, direction)
-      if status ~= 2 then
-        relinquishDoor(id, direction)
-      elseif room.exits[direction.short] == nil
-          and exits[direction.long] == nil and not hasStub(id, direction) then
-        local changed, message = api.setDoor(id, direction.short, 0)
-        if changed == nil then error("Cannot remove owned door: " .. tostring(message), 0) end
-        if doorStatus(readDoors(id), direction) ~= nil then
-          error("Door removal readback failed", 0)
-        end
-        required(api.setRoomUserData(id, KEY .. "door:" .. direction.short, ""),
-          "Cannot clear door ownership")
+    for _, entry in ipairs(owned) do
+      if doorStatus(doors, entry.direction) ~= entry.status then
+        relinquishDoor(id, entry.direction)
       end
     end
   end
 
-  local function applyClosedDoors(context, closed)
+  local function applyObservedDoors(context, observed)
     local id = context.id
-    if not next(closed) or not self.enabled or self.current ~= id or not managed(id) then return end
+    if not next(observed) or not self.enabled or self.current ~= id or not managed(id) then return end
     local exits = api.getRoomExits(id)
     if type(exits) ~= "table" then error("Cannot inspect room exits for doors", 0) end
     local doors = readDoors(id)
     local changedMap = false
     for _, direction in ipairs(DIRECTIONS) do
-      if closed[direction.short] and context.room.exits[direction.short] ~= nil
+      local observedStatus = observed[direction.short]
+      if observedStatus and context.room.exits[direction.short] ~= nil
           and (exits[direction.long] ~= nil or hasStub(id, direction)) then
         local key = KEY .. "door:" .. direction.short
         local recorded = api.getRoomUserData(id, key)
+        local ownedStatus = tonumber(recorded)
         local status = doorStatus(doors, direction)
-        if recorded == "2" and status ~= 2 then
+        if ownedStatus and status ~= ownedStatus then
           relinquishDoor(id, direction)
-        elseif recorded == "" and status == nil then
-          local changed, message = api.setDoor(id, direction.short, 2)
-          if changed == nil then error("Cannot mark closed door: " .. tostring(message), 0) end
-          if doorStatus(readDoors(id), direction) ~= 2 then
-            error("Door creation readback failed", 0)
+          recorded, ownedStatus = "manual", nil
+        end
+        local ownedCurrent = ownedStatus ~= nil and status == ownedStatus
+        local newlyObserved = recorded == "" and status == nil
+        if observedStatus > (status or 0)
+            and (status ~= nil or recorded == "") then
+          local changed, message = api.setDoor(id, direction.short, observedStatus)
+          if changed == nil then error("Cannot mark observed door: " .. tostring(message), 0) end
+          if doorStatus(readDoors(id), direction) ~= observedStatus then
+            error("Door status readback failed", 0)
           end
           if changed then
-            required(api.setRoomUserData(id, key, "2"), "Cannot record door ownership")
-            doors[direction.short] = 2
+            if ownedCurrent or newlyObserved then
+              required(api.setRoomUserData(id, key, tostring(observedStatus)),
+                "Cannot record door ownership")
+            end
+            doors[direction.short] = observedStatus
             changedMap = true
           end
         end
@@ -1826,10 +1824,10 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
         end), "Cannot watch room title")
       context.exitsID = assert(api.tempRegexTrigger("^\\s*\\[\\s*[Ee]xits:", function()
         if doorContext ~= context or not context.titleSeen then return end
-        local closed = closedVisibleExits(api.line)
-        if not closed then return end
+        local observed = visibleDoorStates(api.line)
+        if not observed then return end
         clearDoorContext()
-        local applied, failure = pcall(applyClosedDoors, context, closed)
+        local applied, failure = pcall(applyObservedDoors, context, observed)
         if not applied then
           self.failed = self.failed + 1
           note("Door observation failed: " .. tostring(failure), true)
@@ -1981,10 +1979,10 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
       "Cannot finish room exit metadata")
     required(api.setRoomUserData(id, KEY .. "ready", "1"), "Cannot finish room construction")
     if not managed(id) then error("Room construction readback failed: " .. id, 0) end
-    local doorsOK, doorsError = pcall(reconcileDoorRemoval, id, room)
+    local doorsOK, doorsError = pcall(reconcileDoorOwnership, id)
     if not doorsOK then
       self.failed = self.failed + 1
-      note("Door cleanup failed: " .. tostring(doorsError), true)
+      note("Door ownership check failed: " .. tostring(doorsError), true)
     end
     if command and movementAnchor and command.from == movementAnchor.id
         and movementAnchor.id ~= id and not directionTo(movementAnchor.room, id) then
