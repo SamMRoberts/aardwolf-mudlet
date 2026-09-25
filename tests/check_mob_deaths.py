@@ -66,6 +66,7 @@ class MobDeathsTests(unittest.TestCase):
             function item:print(value) self.text=value end
             function item:getText() return self.text end
             function item:setAction(callback) self.action=callback end
+            function item:setStyleSheet(value) self.style=value end
             function item:delete() widgets[self.name]=nil end
             return item
           end}
@@ -218,13 +219,44 @@ class MobDeathsTests(unittest.TestCase):
           assert(root.width=='100%' and root.height=='100%')
           gmcp.room={info={zone='lake'}};raiseEvent('gmcp.room.info')
           response('A & B',7,false)
+          assert(#assert(tracker:search({area='A & B',minimum=4}))==1)
+          assert(widgets['aardwolf-vibe.mob-deaths.area'].text=='A & B')
+          assert(widgets['aardwolf-vibe.mob-deaths.minimum'].text=='4')
           widgets['aardwolf-vibe.mob-deaths.area']:print('a & b')
           widgets['aardwolf-vibe.mob-deaths.minimum']:print('4')
           widgets['aardwolf-vibe.mob-deaths.maximum']:print('4')
           widgets['aardwolf-vibe.mob-deaths.search'].callback()
-          local result=widgets['aardwolf-vibe.mob-deaths.results'].text
-          assert(result:find('1 matching mob',1,true))
-          assert(result:find('A &amp; B',1,true))
+          assert(widgets['aardwolf-vibe.mob-deaths.results'].text=='1 mob found')
+          local row=widgets['aardwolf-vibe.mob-deaths.row.1']
+          assert(row and row.height>=46)
+          assert(widgets[row.name..'.name'].text=='A duck')
+          assert(widgets[row.name..'.area'].text=='A &amp; B')
+          assert(widgets[row.name..'.stats'].text=='L4 · K7')
+          assert(widgets[row.name..'.stats'].toolTip:find('Level 4',1,true))
+          assert(widgets['aardwolf-vibe.mob-deaths.name'].style:find('QPlainTextEdit',1,true))
+          assert(widgets['aardwolf-vibe.mob-deaths.search'].style:find('QLabel:hover',1,true))
+          dbRows['long']={identity='long',name=string.rep('Long mob name ',10),
+            area=string.rep('Faraway area ',6),level=17,killed=12,observed=10}
+          local body=widgets['aardwolf-vibe.mob-deaths.body']
+          body.get_width=function() return 430 end
+          assert(#assert(tracker:search({name='Long mob name'}))==1)
+          local wideHeight=row.height
+          body.get_width=function() return 250 end
+          workspace.spec.onResize()
+          assert(row.height>wideHeight)
+          assert(widgets[row.name..'.area'].height>14)
+          assert(#assert(tracker:search({name='absent'}))==0)
+          assert(not widgets[row.name])
+          assert(widgets['aardwolf-vibe.mob-deaths.results'].text:find('No mobs found',1,true))
+          widgets['aardwolf-vibe.mob-deaths.minimum']:print('20')
+          widgets['aardwolf-vibe.mob-deaths.maximum']:print('4')
+          widgets['aardwolf-vibe.mob-deaths.search'].callback()
+          workspace.spec.onResize()
+          assert(widgets['aardwolf-vibe.mob-deaths.results'].text
+            :find('Minimum level exceeds maximum level',1,true))
+          assert(widgets['aardwolf-vibe.mob-deaths.results'].style:find('#f0b3a9',1,true))
+          widgets['aardwolf-vibe.mob-deaths.clear'].callback()
+          assert(widgets['aardwolf-vibe.mob-deaths.results'].text=='2 mobs found')
           assert(tracker:hide() and not tracker:status().visible)
           assert(tracker:show() and tracker:status().visible)
           local smaller=Geyser.Container:new({name='mob-deaths-smaller-host'})

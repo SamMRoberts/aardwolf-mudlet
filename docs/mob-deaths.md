@@ -26,8 +26,11 @@ aardwolf-vibe mobs search levels 1-20
 Name and area searches match literal text without case sensitivity. Level
 bounds are inclusive. The command prints up to 50 results with the total count.
 The panel has combinable name, area, minimum level, and maximum level fields,
-plus Search and Clear. It joins the workspace beside Chat, or appears in a
-restorable right dock when workspace mode is off. Hiding it does not stop
+plus Search and Clear. Results use compact cards with the mob name above its
+area and an `L` (level) / `K` (killed count) badge; the full meanings are also
+available on hover. Long names and areas wrap when the dock is narrow. The
+panel joins the workspace beside Chat, or appears in a restorable right dock
+when workspace mode is off. Hiding it does not stop
 collection. Its database persists across package upgrades.
 
 An overlapping manual request makes the in-progress capture visible so manual
