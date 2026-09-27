@@ -169,6 +169,111 @@ class QuestTrackerTests(unittest.TestCase):
           assert(tracker:stop())
         ''')
 
+    def test_campaign_correlation_failures_changed_clues_and_lifecycle(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          lookups=0;lookupAreas={'Forest'};lookupError=nil;throwLookup=false
+          mobs={correlateCampaign=function(_,targets)
+            lookups=lookups+1
+            if throwLookup then error('lookup threw') end
+            if lookupError then return nil,lookupError end
+            local result={}
+            for index in ipairs(targets) do result[index]=lookupAreas end
+            return result
+          end}
+          tracker=Factory.new(_G,character,nil,mobs)
+          assert(tracker:start() and tracker:start())
+          incoming('You still have to kill * A duck (Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          advance(0.1);incoming('You are not in a global quest.')
+          local first=tracker:snapshot().cp.rows[1]
+          assert(first.correlatedAreas[1]=='Forest' and lookups==1)
+          lookupAreas[1]='Not copied'
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='Forest')
+          lookupError='database busy'
+          local commands=#sent
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(lookups==2 and #sent==commands)
+          assert(tracker:status().correlationError:find('database busy',1,true))
+          assert(not tracker:status().lastError and not tracker:status().campaignStale)
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='Forest')
+          lookupError=nil;lookupAreas={false}
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(tracker:status().correlationError:find('Invalid',1,true))
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='Forest')
+          lookupError='database busy'
+          raiseEvent('sysDataSendRequest','cp check')
+          incoming('You still have to kill * A duck (Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='Forest')
+          local before=lookups
+          raiseEvent('sysDataSendRequest','cp check')
+          incoming('You still have to kill * broken target')
+          incoming('You have 2 days left to finish this campaign.')
+          assert(lookups==before and tracker:status().campaignStale)
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='Forest')
+          raiseEvent('sysDataSendRequest','cp check')
+          incoming('You still have to kill * A duck (New clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          local changed=tracker:snapshot().cp.rows[1]
+          assert(changed.id==first.id and changed.location=='New clearing')
+          assert(#changed.correlatedAreas==0 and not changed.completed and changed.remaining==1)
+          lookupError=nil;throwLookup=true
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(tracker:status().enabled and tracker:status().correlationError:find('lookup threw',1,true))
+          throwLookup=false;lookupAreas={'New Forest'}
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(not tracker:status().correlationError)
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='New Forest')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          widgets['aardwolf-vibe.quest-tracker.row.'..first.id..'.where'].callback()
+          advance(0.1)
+          incoming('A duck                      By the pond');prompt()
+          assert(tracker:snapshot().cp.rows[1].whereRooms[1]=='By the pond')
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(tracker:snapshot().cp.rows[1].whereRooms[1]=='By the pond')
+          raiseEvent('sysDataSendRequest','cp check')
+          incoming('You still have to kill * A goose (Meadow)')
+          incoming('You have 2 days left to finish this campaign.')
+          assert(tracker:snapshot().cp.rows[1].completed)
+          assert(tracker:snapshot().cp.rows[1].whereRooms[1]=='By the pond')
+          raiseEvent('aardwolf-vibe.character.updated.base',{name='First'})
+          raiseEvent('aardwolf-vibe.character.updated.base',{name='Second'})
+          assert(#tracker:snapshot().cp.rows==0 and not tracker:status().correlationError)
+          raiseEvent('sysDisconnectionEvent')
+          before=lookups;raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(lookups==before and #tracker:snapshot().cp.rows==0)
+          connection=true;raiseEvent('sysConnectionEvent')
+          raiseEvent('aardwolf-vibe.character.updated.status')
+          incoming('You still have to kill * A duck (Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          assert(tracker:snapshot().cp.rows[1].correlatedAreas[1]=='New Forest')
+          local oldHandler=handlers['aardwolf-vibe.quest-tracker:mob-deaths']
+          assert(tracker:stop())
+          before=lookups;raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(lookups==before and not handlers['aardwolf-vibe.quest-tracker:mob-deaths'])
+          assert(tracker:start())
+          incoming('You still have to kill * A duck (Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          before=lookups
+          oldHandler.callback('aardwolf-vibe.mob-deaths.updated')
+          assert(lookups==before)
+          raiseEvent('aardwolf-vibe.mob-deaths.updated')
+          assert(lookups==before+1)
+        ''')
+
+    def test_campaign_capture_works_without_mob_database(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          incoming('You still have to kill * A duck (Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          local row=tracker:snapshot().cp.rows[1]
+          assert(row.mob=='A duck' and row.location=='Clearing' and #row.correlatedAreas==0)
+          assert(tracker:status().correlationError and not tracker:status().lastError)
+          assert(not tracker:status().campaignStale)
+        ''')
+
     def test_where_button_rooms_no_match_and_capture_queue(self):
         lua = self.runtime()
         lua.execute(r'''

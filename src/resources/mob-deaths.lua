@@ -209,6 +209,10 @@ function MobDeaths.new(api, character, workspace, Store)
     listBackground:resize("100%", math.max(y + 8, bodyHeight))
   end
 
+  function self:correlateCampaign(targets)
+    return store:correlateCampaign(targets)
+  end
+
   function self:search(query, fromPanel)
     query = query or {}
     if type(query) ~= "table" then return nil, "Invalid search filters" end
@@ -275,6 +279,7 @@ function MobDeaths.new(api, character, workspace, Store)
         if saved then
           self.scans = self.scans + 1
           self.lastError = nil
+          api.raiseEvent("aardwolf-vibe.mob-deaths.updated")
           if filters then renderResults() end
         else self.lastError = why end
       else self.lastError = message end
@@ -539,6 +544,7 @@ function MobDeaths.new(api, character, workspace, Store)
       statusUpdate()
     end)
     if not ok then teardown("Cannot start mob deaths: " .. tostring(message)); return false, self.lastError end
+    api.raiseEvent("aardwolf-vibe.mob-deaths.updated")
     return true
   end
 

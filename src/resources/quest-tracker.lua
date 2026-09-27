@@ -107,7 +107,7 @@ function QuestTracker.parseWhereLine(text, mob)
   return room
 end
 
-function QuestTracker.new(api, character, workspace)
+function QuestTracker.new(api, character, workspace, mobDeaths)
   local self = {enabled = false, visible = false, lastError = nil}
   local window, root, bar, body, content, workspaceHandle, viewParent
   local tabs = {}
@@ -122,16 +122,46 @@ function QuestTracker.new(api, character, workspace)
   local lists = {cp = {state = "unknown", rows = {}, stale = false},
     gq = {state = "unknown", rows = {}, stale = false}}
   local characterName
+  local correlationError
 
   local function snapshot()
     return {quest = copy(quest), cp = copy(lists.cp), gq = copy(lists.gq)}
   end
 
-  local function newRow(parsed)
+  local function correlateCampaign()
+    if #lists.cp.rows == 0 then correlationError = nil; return end
+    if type(mobDeaths) ~= "table" or type(mobDeaths.correlateCampaign) ~= "function" then
+      correlationError = "Mob deaths database is unavailable"
+      return
+    end
+    local ok, results, message = pcall(mobDeaths.correlateCampaign, mobDeaths, lists.cp.rows)
+    if not ok or type(results) ~= "table" then
+      correlationError = "Cannot correlate campaign areas: " .. tostring(ok and message or results)
+      return
+    end
+    -- Validate the complete batch before replacing any last-valid hints.
+    for index in ipairs(lists.cp.rows) do
+      if type(results[index]) ~= "table" then
+        correlationError = "Invalid campaign area correlation result"
+        return
+      end
+      for _, area in ipairs(results[index]) do
+        if not clean(area) then
+          correlationError = "Invalid campaign area correlation result"
+          return
+        end
+      end
+    end
+    for index, row in ipairs(lists.cp.rows) do row.correlatedAreas = copy(results[index]) end
+    correlationError = nil
+  end
+
+  local function newRow(parsed, kind)
     nextRowID = nextRowID + 1
     return {id = nextRowID, mob = parsed.mob, location = parsed.location,
       dead = parsed.dead, remaining = parsed.remaining,
       initialRemaining = parsed.remaining, completed = false,
+      correlatedAreas = kind == "cp" and {} or nil,
       whereRooms = {}, whereStatus = "idle"}
   end
 
@@ -144,7 +174,7 @@ function QuestTracker.new(api, character, workspace)
     end
     if previous.state ~= "active" or #previous.rows == 0 then
       local rows = {}
-      for _, item in ipairs(parsed.rows) do rows[#rows + 1] = newRow(item) end
+      for _, item in ipairs(parsed.rows) do rows[#rows + 1] = newRow(item, kind) end
       lists[kind] = {state = "active", rows = rows, stale = false}
       return
     end
@@ -181,9 +211,15 @@ function QuestTracker.new(api, character, workspace)
     for index, item in ipairs(parsed.rows) do
       local row = matched[index]
       if row then
+        if kind == "cp" then
+          if row.mob ~= item.mob or row.location ~= item.location then
+            row.correlatedAreas = {}
+          end
+          row.mob, row.location = item.mob, item.location
+        end
         row.remaining, row.dead, row.completed = item.remaining, item.dead, false
       else
-        previous.rows[#previous.rows + 1] = newRow(item)
+        previous.rows[#previous.rows + 1] = newRow(item, kind)
       end
     end
     previous.state, previous.stale = "active", false
@@ -214,6 +250,11 @@ function QuestTracker.new(api, character, workspace)
       if #lines == 0 then lines[1] = "Location not provided" end
     else
       lines[1] = "Area or room: " .. row.location
+      if kind == "cp" then
+        for _, area in ipairs(row.correlatedAreas or {}) do
+          lines[#lines + 1] = "Area: " .. area .. " (maybe?)"
+        end
+      end
     end
     local title = "<b>" .. name .. "</b> <span style='color:" .. statusColor
       .. "'>· " .. escape(status) .. "</span>"
@@ -373,6 +414,7 @@ function QuestTracker.new(api, character, workspace)
     whereQueue = {}
     authenticated = false
     characterName = nil
+    correlationError = nil
     quest = {state = "unknown"}
     lists = {cp = {state = "unknown", rows = {}, stale = false},
       gq = {state = "unknown", rows = {}, stale = false}}
@@ -395,6 +437,7 @@ function QuestTracker.new(api, character, workspace)
     end
     if parsed then
       reconcile(kind, parsed)
+      if kind == "cp" then correlateCampaign() end
       self.lastError = nil
     else
       lists[kind].stale = true
@@ -684,6 +727,10 @@ function QuestTracker.new(api, character, workspace)
         end) ~= true then error("Cannot register " .. name .. " quest handler", 0) end
       end
       on("quest", "gmcp.comm.quest", receiveQuest)
+      on("mob-deaths", "aardwolf-vibe.mob-deaths.updated", function()
+        correlateCampaign()
+        render()
+      end)
       on("campaign-command", "sysDataSendRequest", function(_, command)
         if not connected or not authenticated or type(command) ~= "string" then return end
         command = command:lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
@@ -716,6 +763,7 @@ function QuestTracker.new(api, character, workspace)
           if self.enabled and token == generation and connected and authenticated then
             if change == "start" then
               lists[kind] = {state = "unknown", rows = {}, stale = false}
+              if kind == "cp" then correlationError = nil end
               for index = #whereQueue, 1, -1 do
                 if whereQueue[index].kind == kind then table.remove(whereQueue, index) end
               end
@@ -817,6 +865,7 @@ function QuestTracker.new(api, character, workspace)
       capture = capture and capture.kind or nil,
       quest = quest.state, campaign = lists.cp.state, globalQuest = lists.gq.state,
       campaignStale = lists.cp.stale, globalQuestStale = lists.gq.stale,
+      correlationError = correlationError,
       lastError = self.lastError}
   end
   return self

@@ -2,6 +2,16 @@ local Store = {}
 
 local DATABASE_NAME = "aardwolfvibemobdeaths"
 
+local function normalized(value)
+  return value:lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
+end
+
+local function withoutArticle(name)
+  local article, rest = name:match("^(%S+)%s+(.+)$")
+  if article == "a" or article == "an" or article == "the" then return rest end
+  return name
+end
+
 local function key(row)
   -- Length prefixes avoid collisions when names or areas contain punctuation.
   local name, area = row.name:lower(), row.area:lower()
@@ -111,6 +121,44 @@ function Store.new(api)
     if database then pcall(api.db.close, api.db, DATABASE_NAME) end
     database = nil
     return true
+  end
+
+  function self:correlateCampaign(targets)
+    if type(targets) ~= "table" then return nil, "Invalid campaign targets" end
+    for _, target in ipairs(targets) do
+      if type(target) ~= "table" or type(target.mob) ~= "string"
+          or type(target.location) ~= "string" then
+        return nil, "Invalid campaign target"
+      end
+    end
+    local records, message = self:search({})
+    if not records then return nil, message end
+    local areas, exact, articles = {}, {}, {}
+    for _, record in ipairs(records) do
+      local name, area = normalized(record.name), normalized(record.area)
+      if name ~= "" and area ~= "" then
+        -- Keep a deterministic server spelling when scans differ only in case.
+        if not areas[area] or record.area < areas[area] then areas[area] = record.area end
+        exact[name] = exact[name] or {}
+        exact[name][area] = true
+        local bare = withoutArticle(name)
+        articles[bare] = articles[bare] or {}
+        articles[bare][area] = true
+      end
+    end
+    local results = {}
+    for index, target in ipairs(targets) do
+      local candidates = {}
+      if not areas[normalized(target.location)] then
+        local name = normalized(target.mob)
+        local matched = exact[name] or articles[withoutArticle(name)] or {}
+        for area in pairs(matched) do candidates[#candidates + 1] = area end
+        table.sort(candidates)
+        for position, area in ipairs(candidates) do candidates[position] = areas[area] end
+      end
+      results[index] = candidates
+    end
+    return results
   end
 
   return self

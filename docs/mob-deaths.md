@@ -33,6 +33,16 @@ panel joins the workspace beside Chat, or appears in a restorable right dock
 when workspace mode is off. Hiding it does not stop
 collection. Its database persists across package upgrades.
 
+`MobDeaths:correlateCampaign(targets)` is a separate, read-only API for campaign
+area hints. It accepts an array of `{mob, location}` rows and returns a matching
+array of candidate-area arrays, or `nil, error` when the database is unavailable.
+It reads the database once per batch, prefers normalized exact names over
+article-stripped matches, and skips clues matching known areas. It does not
+alter the interactive filters or write records. The owned event
+`aardwolf-vibe.mob-deaths.updated` fires after successful startup and committed
+scans, with no payload; failed or incomplete scans do not publish it. See
+[`quest-tracker.md`](quest-tracker.md) for the `(maybe?)` display and failure rules.
+
 An overlapping manual request makes the in-progress capture visible so manual
 output is not removed. Untagged server responses cannot always be attributed
 when two requests overlap. Unrecognized output is left visible rather than

@@ -16,7 +16,7 @@ class MobDeathsTests(unittest.TestCase):
           local function copy(row)
             local result={};for key,value in pairs(row) do result[key]=value end;return result
           end
-          dbRows={};writes=0;rollbacks=0;deletedLines=0;dbOperation=0
+          dbRows={};writes=0;rollbacks=0;deletedLines=0;dbOperation=0;dbReads=0
           local originalSend=send
           function send(command,echoCommand)
             local result=originalSend(command,echoCommand)
@@ -40,6 +40,8 @@ class MobDeathsTests(unittest.TestCase):
           function db:close(name) assert(name=='aardwolfvibemobdeaths') end
           function db:eq(field,value) return value end
           function db:fetch(sheet,identity)
+            dbReads=dbReads+1
+            if failRead then error('simulated read failure') end
             local result={}
             for key,row in pairs(dbRows) do
               if not identity or key==identity then result[#result+1]=copy(row) end
@@ -98,6 +100,121 @@ class MobDeathsTests(unittest.TestCase):
             (ROOT / "src/resources/mob-deaths.lua").read_text())
         lua.execute("tracker=Factory.new(_G,character,nil,StoreFactory)")
         return lua
+
+    def test_campaign_correlation_matching_and_search_isolation(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          assert(tracker:start())
+          local function add(name,area,level)
+            dbRows[#dbRows+1]={name=name,area=area,level=level or 10,killed=1}
+          end
+          add('A sleeping rabbit', "Sen'narre Lake")
+          add('a SLEEPING   rabbit', "sen'narre lake", 11)
+          add('The sleeping rabbit', 'Wrong exact fallback')
+          add('An owl', 'Zoo');add('the owl', 'Aviary');add('An owl','Zoo',99)
+          add("Gale's pet rabbit", 'Garden & <Park>')
+          add('A rabbit', 'Fields');add('A rabbit king', 'Castle')
+          assert(tracker:search({name='owl',minimum=1,maximum=20}))
+          local count=tracker:status().results
+          local reads,written,commands=dbReads,writes,#sent
+          local hints=assert(tracker:correlateCampaign({
+            {mob=' a sleeping RABBIT ',location='A Quiet Clearing'},
+            {mob='owl',location='Room'},
+            {mob="Gale's pet rabbit",location='Room'},
+            {mob='gales pet rabbit',location='Room'},
+            {mob='rabbit',location='Room'},
+            {mob='A rabbit',location="  SEN'NARRE   LAKE "},
+            {mob='missing',location='Room'},
+          }))
+          assert(dbReads==reads+1 and writes==written and #sent==commands)
+          assert(#hints==7 and #hints[1]==1 and hints[1][1]=="Sen'narre Lake")
+          assert(#hints[2]==2 and hints[2][1]=='Aviary' and hints[2][2]=='Zoo')
+          assert(hints[3][1]=='Garden & <Park>' and #hints[4]==0)
+          assert(#hints[5]==1 and hints[5][1]=='Fields')
+          assert(#hints[6]==0 and #hints[7]==0)
+          assert(widgets['aardwolf-vibe.mob-deaths.name'].text=='owl')
+          assert(widgets['aardwolf-vibe.mob-deaths.minimum'].text=='1')
+          assert(widgets['aardwolf-vibe.mob-deaths.maximum'].text=='20')
+          assert(tracker:status().results==count)
+          hints[1][1]='mutated'
+          assert(tracker:correlateCampaign({{mob='A sleeping rabbit',location='Room'}})[1][1]
+            =="Sen'narre Lake")
+          failRead=true
+          local result,message=tracker:correlateCampaign({{mob='owl',location='Room'}})
+          assert(not result and message:find('simulated read failure',1,true))
+          failRead=false;assert(tracker:stop())
+          result,message=tracker:correlateCampaign({{mob='owl',location='Room'}})
+          assert(not result and message:find('not open',1,true))
+        ''')
+
+    def test_database_update_events_only_follow_startup_and_commits(self):
+        lua = self.runtime()
+        lua.execute(r'''
+          updates=0
+          registerNamedEventHandler('test','updates','aardwolf-vibe.mob-deaths.updated',function()
+            updates=updates+1
+            assert(tracker:correlateCampaign({{mob='A duck',location='Room'}}))
+          end)
+          assert(tracker:start() and updates==1)
+          assert(tracker:start() and updates==1)
+          gmcp.room={info={zone='lake'}};raiseEvent('gmcp.room.info')
+          response('Lake',1,false)
+          assert(updates==2 and writes==1)
+          advance(0.1);raiseEvent('sysDataSendRequest','mobdeaths here')
+          failWrite=true;response('Failed',2,false)
+          assert(updates==2 and rollbacks==1)
+          failWrite=false;advance(0.1)
+          raiseEvent('sysDataSendRequest','mobdeaths here')
+          incoming('     [ Most popular kills for levels 1 to 999 (Current Area) ]')
+          incoming('  1 - malformed')
+          assert(updates==2)
+          assert(tracker:stop() and tracker:start() and updates==3)
+        ''')
+
+    def test_campaign_cards_refresh_from_late_database_start_and_scans(self):
+        lua = self.runtime()
+        lua.globals().QuestFactory = lua.execute(
+            (ROOT / "src/resources/quest-tracker.lua").read_text())
+        lua.execute(r'''
+          mobs=tracker
+          campaigns=QuestFactory.new(_G,character,nil,mobs)
+          assert(campaigns:start())
+          incoming('You still have to kill * A duck (A Quiet Clearing)')
+          incoming('You have 2 days left to finish this campaign.')
+          assert(campaigns:status().correlationError:find('not open',1,true))
+          local row=campaigns:snapshot().cp.rows[1]
+          assert(#row.correlatedAreas==0)
+          dbRows['persisted']={name='A duck',area='A & <Park>',level=4,killed=5}
+          local commands=#sent
+          assert(mobs:start())
+          assert(not campaigns:status().correlationError and #sent==commands)
+          assert(campaigns:snapshot().cp.rows[1].correlatedAreas[1]=='A & <Park>')
+          widgets['aardwolf-vibe.quest-tracker.tab.cp'].callback()
+          local card=widgets['aardwolf-vibe.quest-tracker.row.'..row.id]
+          local firstHeight=card.height
+          local details=widgets[card.name..'.details']
+          assert(details.text:find('Area: A &amp; &lt;Park&gt; (maybe?)',1,true))
+          assert(details.text:find('Area or room: A Quiet Clearing',1,true))
+          raiseEvent('sysDataSendRequest','mobdeaths here')
+          response("Sen'narre Lake",377,false)
+          local hints=campaigns:snapshot().cp.rows[1].correlatedAreas
+          assert(#hints==2 and hints[1]=='A & <Park>' and hints[2]=="Sen'narre Lake")
+          assert(card.height>firstHeight and #sent==commands)
+          assert(details.text:find('Area: Sen&#39;narre Lake (maybe?)',1,true))
+          hints[1]='corrupted'
+          assert(campaigns:snapshot().cp.rows[1].correlatedAreas[1]=='A & <Park>')
+          advance(0.1)
+          incoming('You still have to kill 2 * A duck (A Quiet Clearing)');prompt()
+          assert(campaigns:snapshot().gq.rows[1].correlatedAreas==nil)
+          widgets['aardwolf-vibe.quest-tracker.tab.gq'].callback()
+          local gq=campaigns:snapshot().gq.rows[1]
+          assert(not widgets['aardwolf-vibe.quest-tracker.row.'..gq.id..'.details'].text
+            :find('(maybe?)',1,true))
+          raiseEvent('sysDataSendRequest','mobdeaths here')
+          response('A Quiet Clearing',10,false)
+          assert(#campaigns:snapshot().cp.rows[1].correlatedAreas==0)
+          assert(campaigns:stop() and mobs:stop())
+        ''')
 
     def test_parser_complete_rows_and_invalid_frames(self):
         lua = self.runtime()

@@ -8,6 +8,28 @@ from `cp check` and `gq check`. Their original location is labeled **Area or
 room**, because those responses do not identify which kind of name each target
 has. The window does not use the mapper or move the character.
 
+Campaign cards automatically look up possible areas in the local Mob Deaths
+database when their original clue does not match any recorded area name.
+The original **Area or room** clue remains visible; each candidate appears on
+its own line as **Area: Area Name (maybe?)**. An unknown clue is not proof of a
+room name, and a name match is not proof of the target's identity.
+
+Matching ignores case and extra whitespace, preserves punctuation, and prefers
+exact mob names. Only when there is no exact match does it retry without a
+leading `a`, `an`, or `the` on either name. All distinct matching areas are shown
+alphabetically across all recorded levels; there is no kill-count ranking or
+player-level filter. No match adds no hint. Regular Quest and Global Quest do
+not use this correlation.
+
+Hints refresh after valid campaign checks and successful mob database updates,
+including when the database starts after the tracker. These are local reads;
+they do not send game commands or change the Mob Deaths search panel. Temporary
+database failures retain previous hints for unchanged targets and clues, while
+changed clues discard obsolete hints. `snapshot().cp.rows` exposes each row's
+`correlatedAreas` separately from its server-provided `location`;
+`status().correlationError` reports lookup failures independently of capture errors.
+Hints clear with campaign/session resets and do not persist separately.
+
 Each card puts the mob and remaining count on one line, with location clues
 below. Cards grow when text wraps or a lookup adds room clues. Campaign and
 Global Quest cards have a **Where** button that sends `where <mob name>`
@@ -16,7 +38,7 @@ If several distinct rooms match, the card lists them as possible rooms. The
 original clue remains visible. `where` searches only the current area, and a
 matching name may refer to a different mob; the room is a clue, not confirmed
 target identity. A failed or empty lookup keeps any previous room clues. No
-lookup runs automatically.
+Where lookup runs automatically.
 
 The first valid check in an activity establishes the visible roster. Later
 complete checks update remaining counts and check off killed targets instead

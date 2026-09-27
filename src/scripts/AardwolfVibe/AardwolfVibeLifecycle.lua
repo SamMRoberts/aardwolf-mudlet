@@ -53,11 +53,12 @@ AardwolfVibe.plugins.helpWindow = HelpWindow.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.chat = Chat.new(
   _G, ChatModel, AardwolfVibe.settings, AardwolfVibe.plugins.workspace)
-AardwolfVibe.plugins.questTracker = QuestTracker.new(
-  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace)
 AardwolfVibe.plugins.mobDeaths = MobDeaths.new(
   _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace,
   MobDeathsStore)
+AardwolfVibe.plugins.questTracker = QuestTracker.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace,
+  AardwolfVibe.plugins.mobDeaths)
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(
@@ -117,14 +118,14 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.chat:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
-  local questsOK = AardwolfVibe.plugins.questTracker:start()
-  if not questsOK then
-    local status = AardwolfVibe.plugins.questTracker:status()
-    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
-  end
   local mobsOK = AardwolfVibe.plugins.mobDeaths:start()
   if not mobsOK then
     local status = AardwolfVibe.plugins.mobDeaths:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
+  local questsOK = AardwolfVibe.plugins.questTracker:start()
+  if not questsOK then
+    local status = AardwolfVibe.plugins.questTracker:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
   if workspaceOK and AardwolfVibe.plugins.workspace:status().enabled

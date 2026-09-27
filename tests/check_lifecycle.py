@@ -240,9 +240,14 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
-          QuestTrackerFactory={new=function()
+          mobStarts=0;questStarts=0
+          QuestTrackerFactory={new=function(api,character,workspace,mobDeaths)
+            questMobDependency=mobDeaths
             return {
-              start=function() return true end,
+              start=function()
+                assert(mobStarts>0)
+                questStarts=questStarts+1;return true
+              end,
               stop=function() return true end,
               show=function() return true end,
               hide=function() return true end,
@@ -253,7 +258,7 @@ class LifecycleTests(unittest.TestCase):
           MobDeathsStoreFactory={new=function() return {} end}
           MobDeathsFactory={new=function()
             return {
-              start=function() return true end,
+              start=function() mobStarts=mobStarts+1;return not failMobStart end,
               stop=function() return true end,
               show=function() return true end,
               hide=function() return true end,
@@ -261,7 +266,8 @@ class LifecycleTests(unittest.TestCase):
                 mobSearchQuery=query
                 return {{name="A duck",level=4,area="Sen'narre Lake",killed=377}}
               end,
-              status=function() return {enabled=true,scans=0} end,
+              status=function() return {enabled=not failMobStart,scans=0,
+                lastError=failMobStart and "database unavailable" or nil} end,
             }
           end}
           QueueFactory={new=function()
@@ -309,6 +315,15 @@ class LifecycleTests(unittest.TestCase):
         ''')
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
+
+    def test_campaign_dependency_injected_and_failure_does_not_block_tracker(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(questMobDependency==AardwolfVibe.plugins.mobDeaths)
+          failMobStart=true
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(mobStarts==1 and questStarts==1 and AardwolfVibe.active)
+        ''')
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
         lua = self.runtime()
