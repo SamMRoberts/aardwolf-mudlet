@@ -1,10 +1,10 @@
 local CharacterWindow = {}
 
 local OWNER = "aardwolf-vibe.character-window"
-local BAY_HEIGHT = 42
-local COMPACT_BREAKPOINT = 1100
-local NORMAL_NAME_LIMIT = 24
-local COMPACT_NAME_LIMIT = 14
+local BAY_ROW_HEIGHT = 24
+local BAY_PADDING = 3
+local BAY_GAP = 4
+local NAME_LIMIT = 24
 local BOTTOM_BREAKPOINT = 960
 local BAR_HEIGHT = 26
 local BOTTOM_PADDING = 5
@@ -143,11 +143,14 @@ function CharacterWindow.new(api, character)
   local self = {enabled = false, visible = false, lastError = nil}
   local topRoot, topBox, bottomRoot
   local bayLabels, gauges, gaugeColors, handlers = {}, {}, {}, {}
+  local bayText = {}
   local groups, fresh = {}, {}
   local generation, session, sequence = 0, 0, 0
   local topBefore, topWritten, bottomBefore, bottomWritten = nil, nil, nil, nil
   local bottomRows, lastGaugeWidth, usableWidth = 0, 0, 0
   local compact, layingOut = false, false
+  local topRows = 0
+  local layout
 
   local function clearReadings()
     groups, fresh = {}, {}
@@ -269,8 +272,8 @@ function CharacterWindow.new(api, character)
   end
 
   local function fieldMarkup(label, value)
-    return "<span style='color:#7dd3fc;font-weight:bold;'>" .. label
-      .. "</span> <span style='color:#f7fbff;font-weight:bold;'>" .. value .. "</span>"
+    return "<span style='color:#9eafc1;'>" .. label
+      .. "</span> <span style='color:#edf4fa;font-weight:600;'>" .. value .. "</span>"
   end
 
   local function attributeValue(key)
@@ -281,9 +284,8 @@ function CharacterWindow.new(api, character)
   local function renderBay()
     if not topRoot then return true end
     local fullName = textReading("base", "name") or "--"
-    local nameLimit = compact and COMPACT_NAME_LIMIT or NORMAL_NAME_LIMIT
-    bayLabels.name:echo("<span style='color:#ffffff;font-weight:bold;'>"
-      .. escape(truncate(fullName, nameLimit)) .. "</span>")
+    bayLabels.name:echo("<span style='color:#7de0cf;font-weight:600;'>"
+      .. escape(truncate(fullName, NAME_LIMIT)) .. "</span>")
     bayLabels.name:setToolTip("Character: " .. escape(fullName))
 
     local level = formatInteger(currentLevel())
@@ -299,6 +301,7 @@ function CharacterWindow.new(api, character)
     for _, key in ipairs({"level", "total", "remorts", "tier"}) do
       local item = progression[key]
       bayLabels[key]:echo(fieldMarkup(item[1], item[2]))
+      bayText[key] = item[1] .. " " .. item[2]
       bayLabels[key]:setToolTip(item[3])
     end
 
@@ -306,28 +309,57 @@ function CharacterWindow.new(api, character)
       local value = attributeValue(key)
       local label = key:upper()
       bayLabels[key]:echo(fieldMarkup(label, value))
+      bayText[key] = label .. " " .. value
       bayLabels[key]:setToolTip(label .. " current/max: " .. value)
     end
     return true
   end
 
   local function render()
-    renderBay()
-    renderGauges()
+    layout()
     return true
   end
 
-  local function applyDensity(width)
-    local nextCompact = width < COMPACT_BREAKPOINT
-    local changed = compact ~= nextCompact
-    compact = nextCompact
+  local function layoutBay(width)
+    renderBay()
+    local available = math.max(1, width - BAY_PADDING * 2)
+    local sizes, rowHeight = {}, BAY_ROW_HEIGHT
     for _, key in ipairs(BAY_KEYS) do
-      local size
-      if key == "name" then size = compact and 13 or 16
-      else size = compact and 10 or 12 end
-      bayLabels[key]:setFontSize(size)
+      local field = bayLabels[key]
+      local fieldWidth, fieldHeight = field:getSizeHint()
+      if not finite(fieldWidth) or not finite(fieldHeight)
+          or fieldWidth <= 0 or fieldHeight <= 0 then
+        error("Cannot measure character status field: " .. key, 0)
+      end
+      -- Qt measures the actual rich text and font. Only unusually long names or
+      -- values wider than an entire row are elided; tooltips retain full text.
+      local limit = key == "name" and math.min(180, available) or available
+      if fieldWidth > limit then
+        local plain = key == "name" and (textReading("base", "name") or "--")
+          or bayText[key]
+        for length = math.min(#plain, key == "name" and NAME_LIMIT or #plain), 0, -1 do
+          local short = escape(truncate(plain, length)) .. (length == 0 and "…" or "")
+          field:echo(key == "name" and ("<span style='color:#7de0cf;font-weight:600;'>"
+            .. short .. "</span>") or short)
+          fieldWidth, fieldHeight = field:getSizeHint()
+          if fieldWidth + 2 <= limit then break end
+        end
+      end
+      sizes[key] = math.min(available, math.ceil(fieldWidth) + 2)
+      rowHeight = math.max(rowHeight, math.ceil(fieldHeight) + 2)
     end
-    if changed then renderBay() end
+    local x, row = BAY_PADDING, 0
+    for _, key in ipairs(BAY_KEYS) do
+      local fieldWidth = sizes[key]
+      if x > BAY_PADDING and x + fieldWidth > width - BAY_PADDING then
+        x, row = BAY_PADDING, row + 1
+      end
+      bayLabels[key]:move(x, BAY_PADDING + row * (rowHeight + BAY_GAP))
+      bayLabels[key]:resize(fieldWidth, rowHeight)
+      x = x + fieldWidth + BAY_GAP
+    end
+    topRows, compact = row + 1, row > 0
+    return BAY_PADDING * 2 + topRows * rowHeight + row * BAY_GAP
   end
 
   local function restoreBorder(getter, setter, written, before)
@@ -338,19 +370,21 @@ function CharacterWindow.new(api, character)
     return pcall(setter, before)
   end
 
-  local function reserveTop()
+  local function reserveTop(height)
     if topWritten ~= nil then
       if api.getBorderTop() ~= topWritten then
         error("Top border changed outside aardwolf-vibe; character status bay stopped to preserve the new layout", 0)
       end
-      return true
+    else
+      topBefore = api.getBorderTop()
+      if not finite(topBefore) or topBefore < 0 then error("Invalid Mudlet top border", 0) end
     end
-    topBefore = api.getBorderTop()
-    if not finite(topBefore) or topBefore < 0 then error("Invalid Mudlet top border", 0) end
-    topWritten = BAY_HEIGHT
-    api.setBorderTop(BAY_HEIGHT)
-    if api.getBorderTop() ~= BAY_HEIGHT then
-      error("Cannot reserve top space for character status bay", 0)
+    if topWritten ~= height then
+      topWritten = height
+      api.setBorderTop(height)
+      if api.getBorderTop() ~= height then
+        error("Cannot reserve top space for character status bay", 0)
+      end
     end
     return true
   end
@@ -367,7 +401,7 @@ function CharacterWindow.new(api, character)
     return true
   end
 
-  local function layout()
+  layout = function()
     if not self.enabled or not bottomRoot or not topRoot or layingOut then return true end
     layingOut = true
     local ok, message = pcall(function()
@@ -375,7 +409,6 @@ function CharacterWindow.new(api, character)
       if bottomWritten ~= nil and currentBottom ~= bottomWritten then
         error("Bottom border changed outside aardwolf-vibe; character gauges stopped to preserve the new layout", 0)
       end
-      if self.visible then reserveTop() end
 
       local windowWidth, windowHeight = api.getMainWindowSize()
       if not finite(windowWidth) or windowWidth <= 0
@@ -388,9 +421,10 @@ function CharacterWindow.new(api, character)
       end
       usableWidth = math.max(1, windowWidth - left - right)
 
+      local bayHeight = layoutBay(usableWidth)
+      if self.visible then reserveTop(bayHeight) end
       topRoot:move(left, 0)
-      topRoot:resize(usableWidth, BAY_HEIGHT)
-      applyDensity(usableWidth)
+      topRoot:resize(usableWidth, bayHeight)
 
       bottomRows = usableWidth >= BOTTOM_BREAKPOINT and 1 or 2
       local panelHeight = bottomRows == 1 and ONE_ROW_HEIGHT or TWO_ROW_HEIGHT
@@ -425,10 +459,9 @@ function CharacterWindow.new(api, character)
   local function reveal()
     if not topRoot then return false, "Character status bay is not available" end
     local ok, message = pcall(function()
-      reserveTop()
-      topRoot:show()
       self.visible = true
       layout()
+      topRoot:show()
     end)
     if not ok then
       self.visible = false
@@ -475,9 +508,11 @@ function CharacterWindow.new(api, character)
     if not bottomOK and not cleanupError then cleanupError = tostring(bottomError) end
     topRoot, topBox, bottomRoot = nil, nil, nil
     bayLabels, gauges, gaugeColors = {}, {}, {}
+    bayText = {}
     topBefore, topWritten, bottomBefore, bottomWritten = nil, nil, nil, nil
     bottomRows, lastGaugeWidth, usableWidth = 0, 0, 0
     compact, layingOut = false, false
+    topRows = 0
     session = 0
     clearReadings()
     if message then self.lastError = tostring(message)
@@ -550,7 +585,6 @@ function CharacterWindow.new(api, character)
         "Aardwolf Vibe character handler is required")
       local geyser = assert(api.Geyser, "Geyser is required for the character status bay")
       assert(type(geyser.Container) == "table", "Geyser.Container is required")
-      assert(type(geyser.HBox) == "table", "Geyser.HBox is required")
       assert(type(geyser.Label) == "table", "Geyser.Label is required")
       assert(type(geyser.Gauge) == "table", "Geyser.Gauge is required")
       assert(type(api.getBorderTop) == "function"
@@ -567,20 +601,22 @@ function CharacterWindow.new(api, character)
 
       stage = "create top status bay"
       topRoot = geyser.Container:new({name = OWNER .. ".top", x = 0, y = 0,
-        width = 1, height = BAY_HEIGHT})
+        width = 1, height = BAY_ROW_HEIGHT + BAY_PADDING * 2})
       assert(type(topRoot.delete) == "function", "Geyser.Container deletion is required")
       topRoot:hide()
-      topBox = geyser.HBox:new({name = OWNER .. ".row", x = 0, y = 0,
+      local background = geyser.Label:new({name = OWNER .. ".background", x = 0, y = 0,
+        width = "100%", height = "100%"}, topRoot)
+      background:setStyleSheet("QLabel { background-color: #101923; border: none; "
+        .. "border-bottom: 1px solid #263646; }")
+      topBox = geyser.Container:new({name = OWNER .. ".row", x = 0, y = 0,
         width = "100%", height = "100%"}, topRoot)
       for _, key in ipairs(BAY_KEYS) do
-        local stretch = key == "name" and 2 or (key == "total" and 1.25 or 1)
         bayLabels[key] = geyser.Label:new({name = OWNER .. ".field." .. key,
-          h_stretch_factor = stretch}, topBox)
-        local alignment = key == "name" and "AlignVCenter | AlignLeft"
-          or "AlignVCenter | AlignHCenter"
-        bayLabels[key]:setStyleSheet("QLabel { background-color: #111b27; "
-          .. "color: #f7fbff; border: 1px solid #30445c; padding: 0px 5px; "
-          .. "qproperty-wordWrap: false; qproperty-alignment: '" .. alignment .. "'; }")
+          x = 0, y = 0, width = 1, height = BAY_ROW_HEIGHT}, topBox)
+        bayLabels[key]:setFontSize(key == "name" and 11 or 10)
+        bayLabels[key]:setStyleSheet("QLabel { background-color: #162330; "
+          .. "color: #edf4fa; border: none; border-radius: 4px; padding: 0px 6px; "
+          .. "qproperty-wordWrap: false; qproperty-alignment: 'AlignVCenter | AlignLeft'; }")
       end
 
       stage = "create bottom gauges"
@@ -669,6 +705,7 @@ function CharacterWindow.new(api, character)
       session = session,
       sequence = sequence,
       bottomRows = bottomRows,
+      topRows = topRows,
       compact = compact,
       fresh = copyBooleanMap(fresh),
       lastError = self.lastError,

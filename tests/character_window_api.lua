@@ -105,6 +105,14 @@ function Widget:setAlignment(value) self.alignment = value end
 function Widget:setBold(value) self.bold = value end
 function Widget:move(x, y) self.x, self.y = x, y end
 function Widget:resize(width, height) self.width, self.height = width, height end
+function Widget:getSizeHint()
+  -- Deterministic font metrics for layout contracts, not native Qt rendering.
+  local plain = (self.label or ""):gsub("<[^>]*>", ""):gsub("&[^;]+;", "x")
+  local count = 0
+  for _ in plain:gmatch("[%z\1-\127\194-\244][\128-\191]*") do count = count + 1 end
+  return count * (self.fontSize or 10) * 0.7 * (metricScale or 1) + 12,
+    (self.fontSize or 10) * 1.5 * (metricScale or 1) + 2
+end
 function Widget:echo(value)
   if fail.echo == "once" then fail.echo = nil; error("echo failure") end
   if fail.echo then error("echo failure") end

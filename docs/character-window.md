@@ -16,7 +16,7 @@ owns the top character status bay and the responsive bottom gauge strip.
 - `hide()` hides the bay and releases its top-border space for the current
   session only. Bottom gauges remain visible while the component is active.
 - `status()` returns `enabled`, `lifecycle`, `visible`, `session`, `sequence`,
-  `bottomRows`, `compact`, per-group `fresh` flags, and `lastError` without
+  `bottomRows`, `topRows`, `compact` (more than one top row), per-group `fresh` flags, and `lastError` without
   printing output.
 
 The `aardwolf-vibe stats [show|hide|status]` command delegates to that API; no
@@ -46,7 +46,7 @@ Session and sequence numbers reject stale updates. A reset immediately clears
 the displays. Missing or stale values display as `--`; accepted text is
 HTML-escaped and safe integers use thousands separators.
 
-The 42-pixel top bay is one horizontal row containing, in order:
+The top bay contains, in order:
 
 - character name;
 - current level, preferring `char.status.level` and falling back to
@@ -55,11 +55,17 @@ The 42-pixel top bay is one horizontal row containing, in order:
 - remorts and tier;
 - STR, INT, WIS, DEX, CON, and LUCK as current/max pairs.
 
-The name receives twice the ordinary horizontal stretch and total levels
-receives 1.25 times the ordinary stretch. At less than 1100 usable pixels the
-bay changes from 16/12-point name/value text to 13/10-point text and truncates
-the visible name from 24 to 14 characters. Full values remain available in
-tooltips. Fields never wrap or create a second row.
+The bay uses a dark background, subtle rounded fields, muted labels, bright
+values, and a teal character name. Text stays at 11 points for the name and
+10 points for stats. Each field is sized using Qt's rich-text size hint, including
+its padding, rather than a fixed share of the available width. Whole fields flow
+onto additional rows as needed, in the same order, and return to a single row
+when space is available. New readings also trigger layout, so wider numbers fit.
+Rows are at least 24 pixels tall and grow with measured font height.
+
+Names are limited to 24 characters and 180 pixels. A numeric field is elided
+only if it exceeds the entire available row width. Ellipses identify shortened
+text, and tooltips always retain full names and values.
 
 HP, mana, moves, TNL progress, enemy percentage, and alignment gauges remain in
 a separate strip across the bottom of Mudlet's main window. Gauge fills are
@@ -69,8 +75,9 @@ values, including over-cap and negative readings.
 ## Layout and ownership
 
 The top bay and bottom strip use the main Geyser root and span the main window
-between its current left and right borders. The bay reserves exactly 42 pixels
-at the top. The bottom strip reserves exactly 36 pixels for one row or 68
+between its current left and right borders. The bay reserves its measured height:
+normally 30 pixels for one row or 58 pixels for two, including padding and gaps.
+The bottom strip reserves exactly 36 pixels for one row or 68
 pixels for two rows below 960 usable pixels.
 
 The component records the previous top and bottom borders independently and
@@ -87,7 +94,7 @@ session-only. The obsolete dock-layout marker is ignored and is not deleted.
 
 Pure-Lua tests establish validation handoff, rendering decisions, responsive
 constraints, event fencing, border ownership, lifecycle order, and cleanup
-without a second GMCP subscription. Native font rendering, HBox geometry,
+without a second GMCP subscription. Native font rendering, Qt size hints,
 tooltips, resize behavior, and border placement still require a disposable
 Mudlet profile. Connected Aardwolf GMCP delivery is a separate acceptance
 layer.

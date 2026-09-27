@@ -89,9 +89,10 @@ the new producer starts empty, so the authenticated-state gate also accepts
 Mudlet's current cached `gmcp.char.status` while the connection remains active.
 
 The always-active character status bay renders the character name, current and
-total levels, remorts, tier, and the six primary attributes as one compact row
-across the top of the main Mudlet window. It switches to smaller text at narrow
-widths without wrapping. HP, mana, moves, TNL, enemy, and alignment gauges
+total levels, remorts, tier, and the six primary attributes across the top of
+the main Mudlet window. Compact fields are sized to their text and flow onto
+additional rows at narrow widths while keeping the font readable.
+HP, mana, moves, TNL, enemy, and alignment gauges
 remain in a responsive strip across the bottom. The bay opens visibly on each
 profile launch; hiding it releases the top space for the current session and
 leaves the bottom gauges visible. See
