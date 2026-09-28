@@ -42,9 +42,10 @@ intentional long gaps are not compacted automatically.
 
 When a north/south connection is diagonal or passes through an unrelated room,
 the mapper can shift the connected north/south column sideways to open a gap.
-East/west rows receive the equivalent vertical repair. This targeted repair can
-move intact mapper-owned established rooms and carry required provisional side
-exits; manual, foreign, and continent placements remain fixed. Every affected
+East/west rows receive the equivalent vertical repair. On a fresh room update,
+this targeted repair can also move one eligible endpoint of an isolated diagonal
+link. It can move intact mapper-owned established rooms and carry required
+provisional side exits; manual, foreign, and continent placements remain fixed. Every affected
 exit must remain correctly aligned and clear of intervening rooms, and moved
 rooms must not obstruct other connectors. If no safe plan exists, the original
 layout and exit destinations are retained and a conflict is reported.
@@ -89,9 +90,10 @@ the new producer starts empty, so the authenticated-state gate also accepts
 Mudlet's current cached `gmcp.char.status` while the connection remains active.
 
 The always-active character status bay renders the character name, current and
-total levels, remorts, tier, and the six primary attributes as one compact row
-across the top of the main Mudlet window. It switches to smaller text at narrow
-widths without wrapping. HP, mana, moves, TNL, enemy, and alignment gauges
+total levels, remorts, tier, and the six primary attributes across the top of
+the main Mudlet window. Compact fields are sized to their text and flow onto
+additional rows at narrow widths while keeping the font readable.
+HP, mana, moves, TNL, enemy, and alignment gauges
 remain in a responsive strip across the bottom. The bay opens visibly on each
 profile launch; hiding it releases the top space for the current session and
 leaves the bottom gauges visible. See
@@ -110,6 +112,11 @@ campaign and global quest tasks come from rate-limited, read-only `check`
 commands after login and relevant quest changes. The tracker displays only
 server-provided mob and location names. Use `aardwolf-vibe quests
 show|hide|refresh|status`; see [`docs/quest-tracker.md`](docs/quest-tracker.md).
+
+The Mob Deaths panel records `mobdeaths here` results when entering an area,
+and visible manual runs update the same profile-local database. Search by mob,
+area, or level using the panel or `aardwolf-vibe mobs search`; see
+[`docs/mob-deaths.md`](docs/mob-deaths.md).
 
 The always-active ASCII minimap enables Aardwolf's master tag output and then
 requests the `MAP` tag with `tags on` followed by `tags map on`. It captures

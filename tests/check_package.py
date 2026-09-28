@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.62")
+        self.assertEqual(metadata["version"], "0.7.68")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("map run navigation", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
@@ -25,6 +25,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("default docked workspace", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         self.assertIn("quest tracker", metadata["description"])
+        self.assertIn("searchable mob deaths", metadata["description"])
         self.assertIn("heartbeat-reconciled", metadata["description"])
         self.assertIn("batch-confirmed", metadata["description"])
         self.assertIn("overlap-safe", metadata["description"])
@@ -43,6 +44,8 @@ class PackageSourceTests(unittest.TestCase):
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
                 "quests": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$",
+                "mobs": "^aardwolf-vibe mobs(?: (show|hide|status))?$",
+                "mobs-search": "^aardwolf-vibe mobs search (name|area|levels) (.+)$",
                 "workspace": "^aardwolf-vibe workspace(?: (on|off|show|hide|status|reset))?$",
                 "help": "^aardwolf-vibe help(?: (show|hide|status))?$",
                 "stats": "^aardwolf-vibe stats(?: (show|hide|status))?$",
@@ -63,6 +66,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.helpWindow", source)
         self.assertIn("AardwolfVibe.plugins.chat", source)
         self.assertIn("AardwolfVibe.plugins.questTracker", source)
+        self.assertIn("AardwolfVibe.plugins.mobDeaths", source)
         self.assertIn("AardwolfVibe.plugins.commandQueue", source)
         self.assertIn("AardwolfVibe.plugins.workspace", source)
         self.assertIn("AardwolfVibe.plugins.mapperDisplay", source)
@@ -77,15 +81,14 @@ class PackageSourceTests(unittest.TestCase):
         self.assertTrue(character_window.is_file())
         self.assertFalse((ROOT / "src/resources/character-bars.lua").exists())
         character_window_source = character_window.read_text()
-        self.assertIn("geyser.HBox:new", character_window_source)
+        self.assertIn("geyser.Container:new", character_window_source)
         self.assertNotIn("geyser.UserWindow:new", character_window_source)
         self.assertNotIn("geyser.ScrollBox:new", character_window_source)
         self.assertNotIn("gmod", character_window_source)
         self.assertNotIn("gmcp", character_window_source)
-        self.assertIn("api.setBorderTop(BAY_HEIGHT)", character_window_source)
+        self.assertIn("api.setBorderTop(height)", character_window_source)
         self.assertIn("api.setBorderBottom(panelHeight)", character_window_source)
-        self.assertIn("local BAY_HEIGHT = 42", character_window_source)
-        self.assertIn("local COMPACT_BREAKPOINT = 1100", character_window_source)
+        self.assertIn("field:getSizeHint()", character_window_source)
         self.assertIn("qproperty-wordWrap: false", character_window_source)
         self.assertIn("level + 201 * remorts + 1407 * redos", character_window_source)
         ascii_map = ROOT / "src/resources/ascii-map.lua"

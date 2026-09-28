@@ -301,6 +301,95 @@ class MapperTests(unittest.TestCase):
           assert(mapper.reflowedRooms==5 and mapper.layoutConflicts==0)
         ''')
 
+    def test_isolated_established_diagonal_cardinal_link_aligns_on_refresh(self):
+        for short, dx, dy in (("n", 0, 1), ("e", 1, 0),
+                              ("s", 0, -1), ("w", -1, 0)):
+            with self.subTest(direction=short):
+                self.check(f'''
+                  local short="{short}"
+                  local names={{n="north",e="east",s="south",w="west"}}
+                  assert(mapper:receive(packet(100,{{[short]=101}},"test")))
+                  local x,y={4 * dx + (2 if dx == 0 else 0)},
+                    {4 * dy + (2 if dy == 0 else 0)}
+                  setRoomCoordinates(101,x,y,0)
+                  setRoomUserData(101,"aardwolf-vibe:placement-x",tostring(x))
+                  setRoomUserData(101,"aardwolf-vibe:placement-y",tostring(y))
+                  setRoomUserData(101,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+                  local first=mapper.reflowedRooms
+                  assert(mapper:stop() and mapper:start())
+                  assert(getRoomCoordinates(101)==x and mapper.reflowedRooms==first)
+                  assert(mapper:receive(packet(100,{{[short]=101}},"test")))
+                  local sx,sy,sz=getRoomCoordinates(100)
+                  local tx,ty,tz=getRoomCoordinates(101)
+                  assert(sz==tz)
+                  assert({f'sx==tx and (ty-sy)>0' if short == 'n' else 'sx==tx and (sy-ty)>0' if short == 's' else 'sy==ty and (tx-sx)>0' if short == 'e' else 'sy==ty and (sx-tx)>0'})
+                  assert({f'ty-sy>=4' if short == 'n' else 'sy-ty>=4' if short == 's' else 'tx-sx>=4' if short == 'e' else 'sx-tx>=4'})
+                  assert(getRoomExits(100)[names[short]]==101)
+                  assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+                  assert(mapper.reflowedRooms==first+1 and mapper.layoutConflicts==0)
+                  assert(mapper:receive(packet(100,{{[short]=101}},"test")))
+                  assert(mapper.reflowedRooms==first+1 and mapper.layoutConflicts==0)
+                ''')
+
+    def test_isolated_repair_moves_eligible_endpoint_around_fixed_and_foreign_rooms(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101},"test")))
+          setRoomCoordinates(101,4,2,0)
+          setRoomUserData(101,"aardwolf-vibe:placement-x","4")
+          setRoomUserData(101,"aardwolf-vibe:placement-y","2")
+          setRoomUserData(101,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,0,2,0)
+          assert(mapper:receive(packet(100,{e=101},"test")))
+          assert(rooms[100].x==0 and rooms[100].y==0)
+          assert(rooms[101].x==4 and rooms[101].y==0)
+          assert(rooms[999].x==0 and rooms[999].y==2)
+          assert(rooms[101].data["aardwolf-vibe:placement-y"]=="0")
+          assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+          assert(rooms[100].exits.east==101 and mapper.reflowedRooms==1)
+        ''')
+
+    def test_isolated_repair_preserves_continent_anchor(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{n=101},"test")))
+          setRoomCoordinates(101,2,4,0)
+          setRoomUserData(101,"aardwolf-vibe:placement-x","2")
+          setRoomUserData(101,"aardwolf-vibe:placement-y","4")
+          setRoomUserData(101,"aardwolf-vibe:placement-authority","gmcp-reciprocal")
+          setRoomUserData(100,"aardwolf-vibe:placement-authority","gmcp-continent")
+          assert(mapper:receive(packet(100,{n=101},"test")))
+          assert(rooms[100].x==0 and rooms[100].y==0)
+          assert(rooms[101].x==0 and rooms[101].y==4)
+          assert(rooms[100].data["aardwolf-vibe:placement-authority"]=="gmcp-continent")
+          assert(rooms[101].data["aardwolf-vibe:placement-authority"]=="gmcp-reciprocal")
+          assert(mapper.reflowedRooms==1 and mapper.layoutConflicts==0)
+        ''')
+
+    def test_isolated_repair_moves_owned_source_to_manual_destination(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101},"test")))
+          setRoomCoordinates(101,4,2,0)
+          assert(mapper:receive(packet(100,{e=101},"test")))
+          assert(rooms[100].x==0 and rooms[100].y==2)
+          assert(rooms[101].x==4 and rooms[101].y==2)
+          assert(rooms[101].data["aardwolf-vibe:placement-y"]=="0")
+          assert(rooms[100].exits.east==101)
+          assert(mapper.reflowedRooms==1 and mapper.layoutConflicts==0)
+        ''')
+
+    def test_isolated_repair_does_not_move_cross_area_destination(self):
+        self.check('''
+          assert(mapper:receive(packet(100,{e=101},"first")))
+          assert(mapper:receive(packet(101,{},"second")))
+          setRoomCoordinates(101,4,2,0)
+          setRoomUserData(101,"aardwolf-vibe:placement-x","4")
+          setRoomUserData(101,"aardwolf-vibe:placement-y","2")
+          local before=mapper.reflowedRooms
+          assert(mapper:receive(packet(100,{e=101},"first")))
+          assert(rooms[100].exits.east==101)
+          assert(rooms[101].x==4 and rooms[101].y==2)
+          assert(mapper.reflowedRooms==before)
+        ''')
+
     def test_column_corridor_ignores_rooms_on_other_floors_or_areas(self):
         self.column_check('''
           addRoom(998);setRoomArea(998,areas.test);setRoomCoordinates(998,6,-2,1)
@@ -787,12 +876,14 @@ class MapperTests(unittest.TestCase):
           assert(rooms[101].x==4 and rooms[103].x==4)
         ''')
 
-    def test_unsatisfied_established_layout_keeps_topology_and_mapper_running(self):
+    def test_protected_continent_and_blocked_source_keep_topology_and_mapper_running(self):
         self.check('''
           assert(mapper:receive(packet(100,{e=101},"test")))
           assert(mapper:receive(packet(101,{w=100},"test")))
           setRoomCoordinates(101,2,2,0)
           setRoomUserData(101,"aardwolf-vibe:placement-y","2")
+          setRoomUserData(101,"aardwolf-vibe:placement-authority","gmcp-continent")
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,0,2,0)
           assert(mapper:receive(packet(100,{e=101},"test")))
           assert(mapper.enabled and rooms[101].x==2 and rooms[101].y==2)
           assert(rooms[100].exits.east==101)
@@ -811,6 +902,7 @@ class MapperTests(unittest.TestCase):
         self.check('''
           assert(mapper:receive(packet(100,{e=101},"test")))
           setRoomCoordinates(101,4,2,0)
+          addRoom(999);setRoomArea(999,areas.test);setRoomCoordinates(999,0,2,0)
           assert(mapper:receive(packet(100,{e=101},"test")))
           assert(mapper.enabled and rooms[101].x==4 and rooms[101].y==2)
           assert(rooms[101].data["aardwolf-vibe:placement-x"]=="2")

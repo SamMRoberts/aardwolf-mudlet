@@ -22,7 +22,7 @@ class LifecycleTests(unittest.TestCase):
         lua.globals().initial_character_ready = character_ready
         lua.execute('''
           messages={};sentCommands={};stopOrder={};mapperStarts=0;mapperStops=0;characterStarts=0;characterStops=0
-          mapperSearchQuery=nil;mapperSearchArea=nil;mapperLocateID=nil
+          mapperSearchQuery=nil;mapperSearchArea=nil;mapperLocateID=nil;mobSearchQuery=nil
           barsStarts=0;barsStops=0;barsShows=0;barsHides=0
           asciiStarts=0;asciiStops=0;asciiShows=0
           helpStarts=0;helpStops=0;helpRequests=0;helpShows=0;helpHides=0
@@ -240,14 +240,34 @@ class LifecycleTests(unittest.TestCase):
               end,
             }
           end}
-          QuestTrackerFactory={new=function()
+          mobStarts=0;questStarts=0
+          QuestTrackerFactory={new=function(api,character,workspace,mobDeaths)
+            questMobDependency=mobDeaths
             return {
-              start=function() return true end,
+              start=function()
+                assert(mobStarts>0)
+                questStarts=questStarts+1;return true
+              end,
               stop=function() return true end,
               show=function() return true end,
               hide=function() return true end,
               refresh=function() return true end,
               status=function() return {quest="unknown",campaign="unknown",globalQuest="unknown"} end,
+            }
+          end}
+          MobDeathsStoreFactory={new=function() return {} end}
+          MobDeathsFactory={new=function()
+            return {
+              start=function() mobStarts=mobStarts+1;return not failMobStart end,
+              stop=function() return true end,
+              show=function() return true end,
+              hide=function() return true end,
+              search=function(_,query)
+                mobSearchQuery=query
+                return {{name="A duck",level=4,area="Sen'narre Lake",killed=377}}
+              end,
+              status=function() return {enabled=not failMobStart,scans=0,
+                lastError=failMobStart and "database unavailable" or nil} end,
             }
           end}
           QueueFactory={new=function()
@@ -284,6 +304,8 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/chat%-model.lua$") then return ChatModelFactory end
             if string.match(path,"/chat.lua$") then return ChatFactory end
             if string.match(path,"/quest%-tracker.lua$") then return QuestTrackerFactory end
+            if string.match(path,"/mob%-deaths%-store.lua$") then return MobDeathsStoreFactory end
+            if string.match(path,"/mob%-deaths.lua$") then return MobDeathsFactory end
             if string.match(path,"/command%-queue.lua$") then return QueueFactory end
             if string.match(path,"/map%-navigation.lua$") then return NavigationFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
@@ -293,6 +315,15 @@ class LifecycleTests(unittest.TestCase):
         ''')
         lua.execute(SOURCE.replace("@VERSION@", "0.7.0").replace("@PKGNAME@", "aardwolf-vibe"))
         return lua
+
+    def test_campaign_dependency_injected_and_failure_does_not_block_tracker(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(questMobDependency==AardwolfVibe.plugins.mobDeaths)
+          failMobStart=true
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(mobStarts==1 and questStarts==1 and AardwolfVibe.active)
+        ''')
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
         lua = self.runtime()
@@ -373,6 +404,21 @@ class LifecycleTests(unittest.TestCase):
           local ok,result=AardwolfVibe.handleMapperLocate("10")
           assert(ok and result.id==10 and mapperLocateID=="10")
           assert(messages[1]:find("centered on [10] Gate — Alpha",1,true))
+        ''')
+
+    def test_mob_search_commands_route_filters_and_format_results(self):
+        lua = self.runtime()
+        lua.execute('''
+          local rows=AardwolfVibe.handleMobsSearch("name","duck")
+          assert(#rows==1 and mobSearchQuery.name=="duck")
+          assert(messages[1]:find("1 matching mobs",1,true))
+          assert(messages[2]:find("A duck",1,true))
+          rows=AardwolfVibe.handleMobsSearch("area","Sen'narre")
+          assert(#rows==1 and mobSearchQuery.area=="Sen'narre")
+          rows=AardwolfVibe.handleMobsSearch("levels","1-20")
+          assert(#rows==1 and mobSearchQuery.minimum=="1" and mobSearchQuery.maximum=="20")
+          assert(not AardwolfVibe.handleMobsSearch("levels","bad"))
+          assert(AardwolfVibe.handleMobsCommand("status").enabled)
         ''')
 
     def test_mapper_search_and_locate_report_api_failures(self):

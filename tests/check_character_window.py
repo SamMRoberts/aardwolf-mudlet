@@ -28,7 +28,7 @@ class CharacterWindowTests(unittest.TestCase):
           assert(widgets["aardwolf-vibe.character-window.scroll"]==nil)
           local bay=statusBay();local row=statusRow()
           assert(bay and bay.parent==nil and bay.x==10 and bay.y==0)
-          assert(bay.width==1170 and bay.height==42)
+          assert(bay.width==1170 and bay.height==30)
           assert(row and row.parent==bay and row.width=="100%" and row.height=="100%")
           local keys={"name","level","total","remorts","tier","str","int","wis","dex","con","luck"}
           assert(#row.children==#keys)
@@ -36,18 +36,16 @@ class CharacterWindowTests(unittest.TestCase):
             local field=statusField(key)
             assert(field==row.children[index] and field.parent==row)
             assert(field.styles[1]:find("qproperty-wordWrap: false",1,true))
-            assert(field.styles[1]:find("background-color: #111b27",1,true))
+            assert(field.styles[1]:find("background-color: #162330",1,true))
           end
-          assert(statusField("name").cons.h_stretch_factor==2)
-          assert(statusField("total").cons.h_stretch_factor==1.25)
-          assert(statusField("level").cons.h_stretch_factor==1)
-          assert(statusField("name").fontSize==16 and statusField("level").fontSize==12)
+          assert(statusField("name").fontSize==11 and statusField("level").fontSize==10)
+          assert(panel:status().topRows==1)
           assert(statusField("name").styles[1]:find("AlignVCenter | AlignLeft",1,true))
-          assert(statusField("level").styles[1]:find("AlignVCenter | AlignHCenter",1,true))
+          assert(statusField("level").styles[1]:find("AlignVCenter | AlignLeft",1,true))
           local bottom=bottomGaugeRoot()
           assert(bottom and bottom.parent==nil and bottom.y==-36 and bottom.height==36)
           assert(bottom.x==10 and bottom.width==1170)
-          assert(borderTop==42 and borderBottom==36)
+          assert(borderTop==30 and borderBottom==36)
           assert(topBorderSetCalls==1 and borderSetCalls==1)
           assert(gauge("hp").parent==bottom and gauge("hp").fontSize==12 and gauge("hp").bold)
           assert(gauge("align").x+gauge("align").width<=bottom.width)
@@ -59,13 +57,73 @@ class CharacterWindowTests(unittest.TestCase):
           assert(borderTop==13 and borderBottom==36)
           assert(not bottom.hidden and gauge("hp")~=nil)
           assert(panel:show() and panel:status().visible and not bay.hidden)
-          assert(borderTop==42 and topBorderSetCalls==3)
+          assert(borderTop==30 and topBorderSetCalls==3)
 
           assert(panel:stop() and count(handlers)==0 and count(widgets)==0)
           assert(borderTop==13 and borderBottom==17)
           assert(panel:start())
           assert(statusBay() and characterWindow()==nil)
           assert(#remembered==0 and AardwolfVibeCharacterWindowLayout==nil)
+        ''')
+
+    def test_fields_fit_after_resize_and_larger_readings(self):
+        lua = self.runtime()
+        lua.execute('''
+          update("base",{name="Tesobi",level=21,remorts=4,redos=0,tier=0},1,1)
+          update("stats",{str=66,int=50,wis=56,dex=40,con=60,luck=41},1,2)
+          update("maxstats",{maxstr=52,maxint=43,maxwis=47,maxdex=30,maxcon=5,maxluck=35},1,3)
+          local keys={"name","level","total","remorts","tier","str","int","wis","dex","con","luck"}
+          local function fits()
+            local bay=statusBay()
+            local previous
+            for _,key in ipairs(keys) do
+              local field=statusField(key)
+              local required=field:getSizeHint()
+              assert(type(field.width)=="number" and field.width>=required,key.." clipped")
+              assert(field.x>=0 and field.x+field.width<=bay.width,key.." outside bay")
+              assert(field.y>=0 and field.y+field.height<=bay.height,key.." outside height")
+              if previous then
+                assert(field.y>previous.y or field.x>=previous.x+previous.width,key.." overlaps")
+              end
+              previous=field
+            end
+            assert(borderTop==bay.height)
+          end
+          for _,width in ipairs({1170,780,480,280,780,1170}) do
+            mainWindowWidth=width+borderLeft+borderRight
+            fire("sysWindowResizeEvent")
+            fits()
+          end
+          mainWindowWidth=810;fire("sysWindowResizeEvent")
+          local oldHeight=statusBay().height
+          update("stats",{str=1250,int=1250,wis=1250,dex=1250,con=1250,luck=1250},1,4)
+          update("maxstats",{maxstr=1300,maxint=1300,maxwis=1300,maxdex=1300,maxcon=1300,maxluck=1300},1,5)
+          fits()
+          assert(statusBay().height>=oldHeight)
+          assert(statusField("luck").label:find("1,250/1,300",1,true))
+          assert(panel:hide() and borderTop==13)
+          mainWindowWidth=310;fire("sysWindowResizeEvent")
+          assert(borderTop==13)
+          assert(panel:show());fits()
+          metricScale=1.5
+          fire("sysWindowResizeEvent");fits()
+          assert(statusField("name").height>=statusField("name").fontSize*1.5*metricScale+2)
+          assert(panel:stop() and borderTop==13 and borderBottom==17)
+        ''')
+
+    def test_extreme_values_are_elided_only_when_wider_than_a_row(self):
+        lua = self.runtime()
+        lua.execute('''
+          mainWindowWidth=230;fire("sysWindowResizeEvent")
+          update("stats",{str=9007199254740991},1,1)
+          update("maxstats",{maxstr=9007199254740991},1,2)
+          local field=statusField("str")
+          assert(field.label:find("…",1,true))
+          assert(field.tooltip:find("9,007,199,254,740,991/9,007,199,254,740,991",1,true))
+          assert(field.width>=field:getSizeHint())
+          mainWindowWidth=1200;fire("sysWindowResizeEvent")
+          assert(not field.label:find("…",1,true))
+          assert(field.label:find("9,007,199,254,740,991/9,007,199,254,740,991",1,true))
         ''')
 
     def test_full_snapshot_renders_status_bay_and_all_bottom_gauges(self):
@@ -236,32 +294,36 @@ class CharacterWindowTests(unittest.TestCase):
           end
         ''')
 
-    def test_responsive_single_row_density_and_name_truncation(self):
+    def test_responsive_flow_keeps_font_readable_and_elides_long_names(self):
         lua = self.runtime()
         lua.execute('''
           local long="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<name>"
           update("base",{name=long,level=200,remorts=0,redos=0,tier=0},1,1)
-          assert(not panel:status().compact)
-          assert(statusField("name").fontSize==16 and statusField("str").fontSize==12)
-          assert(statusField("name").label:find("ABCDEFGHIJKLMNOPQRSTUVWX…",1,true))
+          assert(not panel:status().compact and panel:status().topRows==1)
+          assert(statusField("name").fontSize==11 and statusField("str").fontSize==10)
+          assert(statusField("name").label:find("…",1,true))
+          assert(statusField("name").width<=182)
           assert(statusField("name").tooltip:find("&lt;name&gt;",1,true))
           mainWindowWidth=1050;borderLeft=10;borderRight=20
           fire("sysWindowResizeEvent")
-          assert(panel:status().compact and panel:status().bottomRows==1)
-          assert(statusBay().x==10 and statusBay().width==1020 and statusBay().height==42)
-          assert(statusField("name").fontSize==13 and statusField("str").fontSize==10)
-          assert(statusField("name").label:find("ABCDEFGHIJKLMN…",1,true))
+          assert(panel:status().bottomRows==1)
+          assert(statusBay().x==10 and statusBay().width==1020 and statusBay().height==30)
+          assert(statusField("name").fontSize==11 and statusField("str").fontSize==10)
           assert(#statusRow().children==11)
           mainWindowWidth=800;borderLeft=25;borderRight=35
           fire("sysWindowResizeEvent")
-          assert(panel:status().compact and panel:status().bottomRows==2)
-          assert(statusBay().x==25 and statusBay().width==740)
+          assert(panel:status().compact and panel:status().topRows==2)
+          assert(panel:status().bottomRows==2)
+          assert(statusBay().x==25 and statusBay().width==740 and statusBay().height==58)
           local bottom=bottomGaugeRoot()
           assert(bottom.x==25 and bottom.width==740 and bottom.y==-68 and bottom.height==68)
           for _,key in ipairs({"hp","mana","moves","tnl","enemy","align"}) do
             local bar=gauge(key)
             assert(bar.x>=0 and bar.x+bar.width<=bottom.width)
           end
+          mainWindowWidth=1200
+          fire("sysWindowResizeEvent")
+          assert(not panel:status().compact and borderTop==30)
         ''')
 
     def test_top_and_bottom_border_ownership_preserves_foreign_changes(self):
@@ -269,7 +331,7 @@ class CharacterWindowTests(unittest.TestCase):
         lua.execute('''
           assert(panel:hide() and borderTop==13)
           borderTop=29
-          assert(panel:show() and borderTop==42)
+          assert(panel:show() and borderTop==30)
           assert(panel:stop() and borderTop==29 and borderBottom==17)
           assert(panel:start())
           borderTop=91
@@ -293,14 +355,14 @@ class CharacterWindowTests(unittest.TestCase):
           fail.hide=true
           local ok,message=panel:hide()
           assert(not ok and message:find("Cannot hide character status bay",1,true))
-          assert(panel:status().enabled and panel:status().visible and borderTop==42)
+          assert(panel:status().enabled and panel:status().visible and borderTop==30)
           fail.hide=nil;assert(panel:hide() and not panel:status().visible and borderTop==13)
           fail.topBorder=true
           ok,message=panel:show()
           assert(not ok and message:find("Cannot show character status bay",1,true))
           assert(panel:status().enabled and not panel:status().visible and borderTop==13)
           fail.topBorder=nil;assert(panel:show() and panel:status().visible)
-          assert(borderTop==42)
+          assert(borderTop==30)
           assert(panel:hide())
           fail.show=true
           ok,message=panel:show()
@@ -324,11 +386,11 @@ class CharacterWindowTests(unittest.TestCase):
         ''')
         lua = self.runtime(False)
         lua.execute('''
-          local hboxClass=Geyser.HBox
-          Geyser.HBox=nil
+          local labelClass=Geyser.Label
+          Geyser.Label=nil
           assert(not panel:start())
           assert(count(handlers)==0 and count(widgets)==0)
-          Geyser.HBox=hboxClass
+          Geyser.Label=labelClass
           constructionCount=0;fail.constructionAt=4
           assert(not panel:start())
           assert(count(handlers)==0 and count(widgets)==0)

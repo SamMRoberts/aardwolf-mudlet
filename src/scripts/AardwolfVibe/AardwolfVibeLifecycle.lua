@@ -27,6 +27,8 @@ local HelpWindow = resource("help-window")
 local ChatModel = resource("chat-model")
 local Chat = resource("chat")
 local QuestTracker = resource("quest-tracker")
+local MobDeathsStore = resource("mob-deaths-store")
+local MobDeaths = resource("mob-deaths")
 local CommandQueue = resource("command-queue")
 local Mapper = resource("mapper")
 local MapNavigation = resource("map-navigation")
@@ -51,8 +53,12 @@ AardwolfVibe.plugins.helpWindow = HelpWindow.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.chat = Chat.new(
   _G, ChatModel, AardwolfVibe.settings, AardwolfVibe.plugins.workspace)
+AardwolfVibe.plugins.mobDeaths = MobDeaths.new(
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace,
+  MobDeathsStore)
 AardwolfVibe.plugins.questTracker = QuestTracker.new(
-  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace)
+  _G, AardwolfVibe.plugins.character, AardwolfVibe.plugins.workspace,
+  AardwolfVibe.plugins.mobDeaths)
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.mapper = Mapper.new(
@@ -112,6 +118,11 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.chat:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local mobsOK = AardwolfVibe.plugins.mobDeaths:start()
+  if not mobsOK then
+    local status = AardwolfVibe.plugins.mobDeaths:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   local questsOK = AardwolfVibe.plugins.questTracker:start()
   if not questsOK then
     local status = AardwolfVibe.plugins.questTracker:status()
@@ -137,13 +148,13 @@ function AardwolfVibe.start()
   if AardwolfVibe.active then
     return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK
       and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK
-      and questsOK
+      and questsOK and mobsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK and characterWindowOK
     and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK and mapperOK
-    and questsOK
+    and questsOK and mobsOK
 end
 
 function AardwolfVibe.stop()
@@ -158,6 +169,7 @@ function AardwolfVibe.stop()
   local mapDisplayOK = stopPlugin(plugins.mapperDisplay)
   local queueOK = stopPlugin(plugins.commandQueue)
   local questsOK = stopPlugin(plugins.questTracker)
+  local mobsOK = stopPlugin(plugins.mobDeaths)
   local chatOK = stopPlugin(plugins.chat)
   local helpOK = stopPlugin(plugins.helpWindow)
   local asciiOK = stopPlugin(plugins.asciiMap)
@@ -170,7 +182,62 @@ function AardwolfVibe.stop()
   AardwolfVibe.active = false
   return navigationOK and mapperOK and mapDisplayOK and queueOK and chatOK and helpOK and asciiOK
     and characterWindowOK and buffsOK and spellupOK and spellsOK and characterOK and workspaceOK
-    and questsOK
+    and questsOK and mobsOK
+end
+
+function AardwolfVibe.handleMobsCommand(action)
+  local mobs = AardwolfVibe.plugins.mobDeaths
+  action = action or "show"
+  if action == "status" then
+    local status = mobs:status()
+    echo("Aardwolf Vibe mob deaths: " .. (status.enabled and "on" or "off")
+      .. ", " .. tostring(status.scans) .. " captured scans"
+      .. (status.lastZone and (", last area " .. status.lastZone) or "")
+      .. (status.lastError and ("; " .. status.lastError) or "") .. ".\n")
+    return status
+  end
+  local ok, message
+  if action == "show" then ok, message = mobs:show()
+  elseif action == "hide" then ok, message = mobs:hide()
+  else
+    echo("Usage: aardwolf-vibe mobs show|hide|status\n")
+    return false
+  end
+  if not ok then
+    echo("Aardwolf Vibe mob deaths: " .. tostring(message) .. "\n")
+    return false, message
+  end
+  return true
+end
+
+function AardwolfVibe.handleMobsSearch(kind, value)
+  local query = {}
+  if kind == "name" or kind == "area" then
+    query[kind] = value
+  elseif kind == "levels" then
+    local minimum, maximum = tostring(value):match("^(%d+)%-(%d+)$")
+    if not minimum then
+      echo("Usage: aardwolf-vibe mobs search levels <min>-<max>\n")
+      return false
+    end
+    query.minimum, query.maximum = minimum, maximum
+  else
+    echo("Usage: aardwolf-vibe mobs search name <text> | area <text> | levels <min>-<max>\n")
+    return false
+  end
+  local rows, message = AardwolfVibe.plugins.mobDeaths:search(query)
+  if not rows then
+    echo("Aardwolf Vibe mob deaths search: " .. tostring(message) .. ".\n")
+    return false, message
+  end
+  echo(string.format("Aardwolf Vibe mob deaths: %d matching mobs.\n", #rows))
+  for index = 1, math.min(#rows, 50) do
+    local row = rows[index]
+    echo(string.format("%s · level %d · %s · killed %d\n",
+      row.name, row.level, row.area, row.killed))
+  end
+  if #rows > 50 then echo("Showing the first 50; refine your search.\n") end
+  return rows
 end
 
 function AardwolfVibe.handleQuestsCommand(action)
