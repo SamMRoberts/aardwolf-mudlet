@@ -195,12 +195,13 @@ The mapper checks the complete segment, including rooms on non-grid coordinates,
 rather than only checking whether the destination cell is vacant.
 
 If a known north/south edge is diagonal or obstructed, the mapper evaluates
-sideways translations of the affected aligned north/south chain. East/west chains
-are handled symmetrically with vertical translations. It checks both sides of
+sideways translations of each affected aligned north/south strand, including a
+single eligible endpoint of an isolated diagonal link. East/west strands are
+handled symmetrically with vertical translations. It checks both sides of
 a misaligned boundary and shifts of 2 through 64 coordinate units, preferring
-fewer moved rooms and then less movement, with deterministic ties. A candidate
-must move a connected row or column of at least two rooms; this is not a general
-re-layout of isolated established destinations or a whole-map migration.
+fewer moved rooms and then less movement, with deterministic ties. This repair
+runs on a fresh room update, not as a full-map migration. It preserves valid
+positive-distance gaps between endpoints.
 
 Unlike ordinary provisional loop repair, this targeted operation may move intact
 mapper-owned established rooms while preserving their placement authorities.

@@ -42,9 +42,10 @@ intentional long gaps are not compacted automatically.
 
 When a north/south connection is diagonal or passes through an unrelated room,
 the mapper can shift the connected north/south column sideways to open a gap.
-East/west rows receive the equivalent vertical repair. This targeted repair can
-move intact mapper-owned established rooms and carry required provisional side
-exits; manual, foreign, and continent placements remain fixed. Every affected
+East/west rows receive the equivalent vertical repair. On a fresh room update,
+this targeted repair can also move one eligible endpoint of an isolated diagonal
+link. It can move intact mapper-owned established rooms and carry required
+provisional side exits; manual, foreign, and continent placements remain fixed. Every affected
 exit must remain correctly aligned and clear of intervening rooms, and moved
 rooms must not obstruct other connectors. If no safe plan exists, the original
 layout and exit destinations are retained and a conflict is reported.

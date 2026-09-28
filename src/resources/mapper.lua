@@ -1301,7 +1301,9 @@ function Mapper.new(api, settings, workspace, mapperDisplay)
         for _, seed in ipairs(seedIDs) do
           local members = strand(seed)
           local signature, ids = setSignature(members)
-          if #ids >= 2 and not seen[signature] then
+          -- A lone established endpoint can be the smallest safe repair for
+          -- a diagonal cardinal edge; incident exits still constrain its move.
+          if not seen[signature] then
             seen[signature] = true
             for distance = 2, 64, 2 do
               for _, sign in ipairs({1, -1}) do
