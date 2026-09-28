@@ -109,6 +109,7 @@ function Geyser.Label:new(cons)
 end
 function Geyser.CommandLine:new(cons)
   local widget = {cons = cons, text = ""}
+  function widget:setStyleSheet(value) self.style = value end
   function widget:print(value) self.text = value end
   function widget:getText() return self.text end
   function widget:setAction(callback) self.action = callback end

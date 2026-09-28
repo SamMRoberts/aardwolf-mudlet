@@ -32,6 +32,14 @@ class PortalTests(unittest.TestCase):
           local window=windows["aardwolf-vibe.portal.window"]
           assert(window and window.cons.dockPosition=="floating" and window.visible)
           assert(window.cons.width==430 and window.cons.height==180)
+          assert(widgets["aardwolf-vibe.portal.background"].style:find("background: #0f1721",1,true))
+          assert(widgets["aardwolf-vibe.portal.heading"].style:find("color: #eef5fc",1,true))
+          assert(widgets["aardwolf-vibe.portal.notice"].style:find("color: #c5d2df",1,true))
+          local inputStyle=widgets["aardwolf-vibe.portal.input"].style
+          assert(inputStyle:find("QPlainTextEdit { background: #0e1a24; color: #edf5fa",1,true))
+          assert(inputStyle:find("selection-background-color: #376d9c",1,true))
+          assert(inputStyle:find("selection-color: #ffffff",1,true))
+          assert(widgets["aardwolf-vibe.portal.button.Save"].style:find("QLabel:hover",1,true))
           widgets["aardwolf-vibe.portal.input"].action("school bus")
           assert(not windows["aardwolf-vibe.portal.window"])
           assert(portal:status().name=="school bus")

@@ -221,7 +221,9 @@ function Portal.new(api, settings)
   local function button(text, x, width, callback)
     local label = api.Geyser.Label:new({name = OWNER .. ".button." .. text,
       x = x, y = 131, width = width, height = 32}, window)
-    label:setStyleSheet("background-color: #26384b; color: #eef5fc; border-radius: 6px; padding: 5px;")
+    label:setStyleSheet("QLabel { background: #26384b; color: #eef5fc; "
+      .. "border: 1px solid #4b657d; border-radius: 6px; padding: 5px; } "
+      .. "QLabel:hover { background: #345371; color: #ffffff; }")
     label:echo("<center>" .. text .. "</center>")
     label:setClickCallback(callback)
     return label
@@ -241,16 +243,24 @@ function Portal.new(api, settings)
         x = 120, y = 100, width = 430, height = 180, restoreLayout = false,
         autoDock = false, docked = false, dockPosition = "floating"})
       window:setColor(15, 23, 33, 255)
+      local background = api.Geyser.Label:new({name = OWNER .. ".background",
+        x = 0, y = 0, width = "100%", height = "100%"}, window)
+      background:setStyleSheet("QLabel { background: #0f1721; }")
       local heading = api.Geyser.Label:new({name = OWNER .. ".heading",
         x = 14, y = 10, width = 400, height = 28}, window)
-      heading:setStyleSheet("color: #eef5fc; font-size: 15px; font-weight: bold;")
+      heading:setStyleSheet("QLabel { background: #0f1721; color: #eef5fc; "
+        .. "font-size: 15px; font-weight: bold; }")
       heading:echo("Portal name or inventory keyword")
       input = api.Geyser.CommandLine:new({name = OWNER .. ".input",
         x = 14, y = 43, width = 400, height = 30}, window)
+      input:setStyleSheet("QPlainTextEdit { background: #0e1a24; color: #edf5fa; "
+        .. "border: 1px solid #60798e; border-radius: 5px; padding: 3px 6px; "
+        .. "selection-background-color: #376d9c; selection-color: #ffffff; } "
+        .. "QPlainTextEdit:focus { border-color: #83c4f2; }")
       input:print(name or "")
       notice = api.Geyser.Label:new({name = OWNER .. ".notice",
         x = 14, y = 80, width = 400, height = 42}, window)
-      notice:setStyleSheet("color: #a9bacb; font-size: 11px;")
+      notice:setStyleSheet("QLabel { background: #0f1721; color: #c5d2df; font-size: 11px; }")
       notice:echo(locked and "Saved setting is malformed. Clear preserves the original file."
         or "Used by hold &lt;name&gt;. Nothing is sent until you type port.")
       local function save(value)
