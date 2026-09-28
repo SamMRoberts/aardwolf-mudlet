@@ -29,6 +29,7 @@ class LifecycleTests(unittest.TestCase):
           chatStarts=0;chatStops=0;mapWidgetOpens=0;mapWidgetCloses=0
           saved=nil;spellupSaved=nil;spellTagsSaved=nil
           queueStarts=0;queueStops=0;queueShows=0;queueHides=0
+          portalStarts=0;portalStops=0;portalUses=0;portalConfigs=0
           navigationStarts=0;navigationStops=0
           workspaceStarts=0;workspaceStops=0;workspaceEnabled=false
           mapDisplayStarts=0;mapDisplayStops=0
@@ -291,6 +292,15 @@ class LifecycleTests(unittest.TestCase):
               status=function() return {enabled=true,lastError=nil} end,
             }
           end}
+          PortalFactory={new=function()
+            return {
+              start=function() portalStarts=portalStarts+1;return true end,
+              stop=function() portalStops=portalStops+1;return true end,
+              use=function() portalUses=portalUses+1;return true end,
+              openConfig=function() portalConfigs=portalConfigs+1;return true end,
+              status=function() return {enabled=true,lastError=nil} end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/workspace.lua$") then return WorkspaceFactory end
@@ -307,6 +317,7 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/mob%-deaths%-store.lua$") then return MobDeathsStoreFactory end
             if string.match(path,"/mob%-deaths.lua$") then return MobDeathsFactory end
             if string.match(path,"/command%-queue.lua$") then return QueueFactory end
+            if string.match(path,"/portal.lua$") then return PortalFactory end
             if string.match(path,"/map%-navigation.lua$") then return NavigationFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
@@ -323,6 +334,21 @@ class LifecycleTests(unittest.TestCase):
           failMobStart=true
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mobStarts==1 and questStarts==1 and AardwolfVibe.active)
+        ''')
+
+    def test_port_alias_delegates_without_sending_on_its_own(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibeLifecycle("sysLoadEvent")
+          matches={"port"}
+        ''')
+        lua.execute((ROOT / "src/aliases/AardwolfVibe/port.lua").read_text())
+        lua.execute('''
+          matches={"port config", "config"}
+        ''')
+        lua.execute((ROOT / "src/aliases/AardwolfVibe/port.lua").read_text())
+        lua.execute('''
+          assert(portalUses==1 and portalConfigs==1 and #sentCommands==0)
         ''')
 
     def test_stop_attempts_all_plugins_when_one_teardown_fails(self):
@@ -360,7 +386,8 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1
-            and helpStarts==1 and chatStarts==1 and queueStarts==1 and navigationStarts==1)
+            and helpStarts==1 and chatStarts==1 and queueStarts==1 and portalStarts==1
+            and navigationStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
@@ -452,7 +479,7 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
-            and helpStops==1 and chatStops==1 and navigationStops==1)
+            and helpStops==1 and chatStops==1 and portalStops==1 and navigationStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
@@ -465,12 +492,12 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
-            and characterStops==1 and mapperStops==1)
+            and characterStops==1 and mapperStops==1 and portalStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(chatStarts==2 and helpStarts==2 and asciiStarts==2 and barsStarts==2
-            and characterStarts==2 and mapperStarts==2)
+            and characterStarts==2 and mapperStarts==2 and portalStarts==2)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
         ''')

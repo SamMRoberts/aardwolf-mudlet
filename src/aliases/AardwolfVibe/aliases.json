@@ -35,6 +35,11 @@
     "regex": "^aardwolf-vibe queue(?: (show|hide|status))?$"
   },
   {
+    "name": "port",
+    "isActive": "yes",
+    "regex": "^port(?: (config))?$"
+  },
+  {
     "name": "quests",
     "isActive": "yes",
     "regex": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$"

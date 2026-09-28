@@ -30,6 +30,7 @@ local QuestTracker = resource("quest-tracker")
 local MobDeathsStore = resource("mob-deaths-store")
 local MobDeaths = resource("mob-deaths")
 local CommandQueue = resource("command-queue")
+local Portal = resource("portal")
 local Mapper = resource("mapper")
 local MapNavigation = resource("map-navigation")
 AardwolfVibe.settings = Settings.new(_G)
@@ -61,6 +62,7 @@ AardwolfVibe.plugins.questTracker = QuestTracker.new(
   AardwolfVibe.plugins.mobDeaths)
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
+AardwolfVibe.plugins.portal = Portal.new(_G, AardwolfVibe.settings)
 AardwolfVibe.plugins.mapper = Mapper.new(
   _G, AardwolfVibe.settings, AardwolfVibe.plugins.workspace,
   AardwolfVibe.plugins.mapperDisplay)
@@ -140,6 +142,11 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.commandQueue:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local portalOK = AardwolfVibe.plugins.portal:start()
+  if not portalOK then
+    local status = AardwolfVibe.plugins.portal:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   local navigationOK = AardwolfVibe.plugins.mapNavigation:start()
   if not navigationOK then
     local status = AardwolfVibe.plugins.mapNavigation:status()
@@ -147,13 +154,13 @@ function AardwolfVibe.start()
   end
   if AardwolfVibe.active then
     return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK
-      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK
+      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and portalOK and navigationOK and settingsOK
       and questsOK and mobsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK and characterWindowOK
-    and asciiOK and helpOK and chatOK and queueOK and navigationOK and settingsOK and mapperOK
+    and asciiOK and helpOK and chatOK and queueOK and portalOK and navigationOK and settingsOK and mapperOK
     and questsOK and mobsOK
 end
 
@@ -168,6 +175,7 @@ function AardwolfVibe.stop()
   local mapperOK = stopPlugin(plugins.mapper)
   local mapDisplayOK = stopPlugin(plugins.mapperDisplay)
   local queueOK = stopPlugin(plugins.commandQueue)
+  local portalOK = stopPlugin(plugins.portal)
   local questsOK = stopPlugin(plugins.questTracker)
   local mobsOK = stopPlugin(plugins.mobDeaths)
   local chatOK = stopPlugin(plugins.chat)
@@ -180,9 +188,15 @@ function AardwolfVibe.stop()
   local characterOK = stopPlugin(plugins.character)
   local workspaceOK = stopPlugin(plugins.workspace)
   AardwolfVibe.active = false
-  return navigationOK and mapperOK and mapDisplayOK and queueOK and chatOK and helpOK and asciiOK
+  return navigationOK and mapperOK and mapDisplayOK and queueOK and portalOK and chatOK and helpOK and asciiOK
     and characterWindowOK and buffsOK and spellupOK and spellsOK and characterOK and workspaceOK
     and questsOK and mobsOK
+end
+
+function AardwolfVibe.handlePortCommand(action)
+  local portal = AardwolfVibe.plugins.portal
+  if action == "config" then return portal:openConfig() end
+  return portal:use()
 end
 
 function AardwolfVibe.handleMobsCommand(action)

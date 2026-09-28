@@ -221,6 +221,8 @@ aardwolf-vibe queue
 aardwolf-vibe queue show
 aardwolf-vibe queue hide
 aardwolf-vibe queue status
+port
+port config
 aardwolf-vibe help
 aardwolf-vibe help show
 aardwolf-vibe help hide
@@ -250,6 +252,22 @@ The same settings file stores the automatic-spellup opt-in and spell-tag
 visibility; automatic casting defaults to `false` and tag hiding defaults to
 `true`. Mudlet owns spellup-window geometry and docking through its saved layout
 rather than package JSON.
+
+`port config` opens a small window to save the name or inventory keyword of a
+handheld portal. The choice is stored in `aardwolf-vibe-data/portal.json` under
+the active profile. With no configured portal, `port` opens that window without
+sending a command. Otherwise, `port` sends `hold <name>` and waits up to eight
+seconds for Aardwolf's hold confirmation. It captures any offhand item displaced
+by the hold, then requests `invdata ansi` and resolves the displaced item's
+unique object ID. It sends `enter` followed by `dual <id>` if the item was being
+wielded, or `wear <id>` otherwise. If the inventory response has no unique match,
+it leaves the portal held, does not enter, and reports that the offhand needs
+manual restoration. When the offhand was empty, it sends
+`remove <portal>` after `enter`. A failed or unconfirmed hold never sends
+`enter`; any captured displaced item is restored by object ID if possible. Only one `port`
+operation can run at a time, and temporary captures are cleared on disconnect,
+reload, or uninstall. A malformed portal setting is preserved until Clear is
+chosen in the settings window.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known
