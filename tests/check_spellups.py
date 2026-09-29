@@ -1254,6 +1254,55 @@ class SpellupTests(unittest.TestCase):
             and controller:status().inflight)
         """)
 
+    def test_concentration_failure_completes_without_spellup_end(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          synchronize()
+          assert(commandCount('spellup learned')==1)
+          feed('Queueing spell : Shield.')
+          feed('{sfail}72,0,1,-1')
+          assert(controller:status().inflight and controller:status().pending)
+          advance(2)
+          assert(commandCount('slist affected noprompt')==2)
+          deltaRows({}, {})
+          local status=controller:status()
+          assert(not status.inflight and not status.paused
+            and status.lastConfirmation=='Confirmed by synchronized effects')
+          advance(28)
+          assert(commandCount('spellup learned')==2)
+        """)
+
+    def test_concentration_failure_resolves_queued_alias(self):
+        lua = self.runtime()
+        lua.execute("""
+          local rows={'104,Chameleon power,3,0,100,-1,2'}
+          synchronizeRows(rows, rows, {})
+          assert(controller:runOnce())
+          feed('Queueing skill : chameleon.')
+          assert(controller:status().unresolvedQueued==1)
+          feed('{sfail}104,0,1,-1')
+          assert(controller:status().unresolvedQueued==0)
+          advance(2)
+          deltaRows({}, {})
+          assert(not controller:status().inflight
+            and not controller:status().paused)
+        """)
+
+    def test_concentration_failure_waits_for_other_queued_spell(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('Queueing spell : Detect magic.')
+          feed('{sfail}72,0,1,-1')
+          advance(2)
+          deltaRows({}, {})
+          assert(controller:status().inflight)
+          feed('{affon}35,90');advance(0)
+          deltaRows({'35,Detect magic,2,90,100,15,1'}, {})
+          assert(not controller:status().inflight)
+        """)
+
     def test_spell_tag_visibility_is_persistent_and_does_not_disable_parsing(self):
         lua = self.runtime()
         lua.execute("""

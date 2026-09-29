@@ -473,12 +473,6 @@ function Spellup.new(api, character, spells, settings)
         if observed and unresolvedQueued == 0 and not targets[event.id]
             and not namedTargets[event.id] and not resolvedUnknown[event.id] then return end
         rearmConfirmation()
-        local reason = event.reason
-        if reason == 1 then
-          if self.automatic then queueWork() end
-          emit()
-          return
-        end
         if unresolvedQueued > 0 and not namedTargets[event.id]
             and not resolvedUnknown[event.id] then
           resolvedUnknown[event.id] = true
@@ -486,6 +480,12 @@ function Spellup.new(api, character, spells, settings)
           unresolvedQueued = unresolvedQueued - 1
         end
         settled[event.id] = true
+        local reason = event.reason
+        if reason == 1 then
+          if self.automatic then queueWork() end
+          emit()
+          return
+        end
         if reason == 2 then targets[event.id] = nil; emit(); return end
         local key = tostring(event.id) .. ":" .. tostring(reason)
         failures[key] = (failures[key] or 0) + 1

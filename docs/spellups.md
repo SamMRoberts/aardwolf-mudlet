@@ -155,7 +155,9 @@ that lock because the old server queue can no longer execute.
 
 Failure codes are conservative: a concentration failure queues another
 documented `spellup learned` batch after the current batch completes and the
-minimum interval passes; already-affected is satisfied; recoveries, resources,
+minimum interval passes. The failed attempt also counts as settled for batch
+confirmation when Aardwolf does not send `{spellup-end}`; other queued spells
+must still be confirmed. Already-affected is satisfied; recoveries, resources,
 room changes, and fresh standing status are awaited where applicable. Unknown,
 disabled, unknown-spell, invalid-target, or repeated unresolved failures pause
 automation until Resume. Failures for other self-casts are ignored once the
