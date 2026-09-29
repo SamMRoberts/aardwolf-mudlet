@@ -10,6 +10,9 @@ local CRITICAL_COLOR = "#e06161"
 local HEADING_COLOR = "#eef5ff"
 local COLUMN_COLOR = "#aebdd0"
 local MUTED_COLOR = "#8291a4"
+local SECTION_HEIGHT = 49
+local ROW_HEIGHT = 26
+local SECTION_GAP = 8
 
 -- Component tables take the direct branch in Mudlet 5.0.1's color parser.
 -- This avoids its broken single-number path if another package has polluted a
@@ -46,50 +49,33 @@ local function font(value, color, bold)
   return '<font color="' .. color .. '">' .. content .. "</font>"
 end
 
-local function section(title, leftHeading, rightHeading, rows, renderRow)
-  local markup = {
+local function sectionHeader(title, leftHeading, rightHeading)
+  return table.concat({
     '<table width="100%" cellspacing="0" cellpadding="4" border="0">',
     '<tr><td colspan="2">' .. font(title, HEADING_COLOR, true) .. "</td></tr>",
     '<tr bgcolor="#182433"><td>' .. font(leftHeading, COLUMN_COLOR, true)
       .. '</td><td align="right">' .. font(rightHeading, COLUMN_COLOR, true)
-      .. "</td></tr>",
-  }
-  if #rows == 0 then
-    markup[#markup + 1] = '<tr><td colspan="2"><font color="' .. MUTED_COLOR
-      .. '"><i>None confirmed</i></font></td></tr>'
-  else
-    for _, row in ipairs(rows) do
-      local left, right, rightColor = renderRow(row)
-      markup[#markup + 1] = "<tr><td>" .. font(left, HEADING_COLOR)
-        .. '</td><td align="right">' .. font(right, rightColor) .. "</td></tr>"
-    end
+      .. "</td></tr></table>",
+  })
+end
+
+local function rowMarkup(left, right, rightColor)
+  if not right then
+    return '<table width="100%" cellspacing="0" cellpadding="4" border="0"><tr>'
+      .. '<td colspan="2"><font color="' .. MUTED_COLOR
+      .. '"><i>None confirmed</i></font></td></tr></table>'
   end
-  markup[#markup + 1] = "</table>"
-  return table.concat(markup)
+  return '<table width="100%" cellspacing="0" cellpadding="4" border="0"><tr><td>'
+    .. font(left, HEADING_COLOR) .. '</td><td align="right">'
+    .. font(right, rightColor) .. '</td></tr></table>'
 end
 
-local function tableMarkup(snapshot)
-  local active = section("Active Effects", "Effect", "Remaining", snapshot.active,
-    function(effect)
-      return effect.name, duration(effect.remaining, effect.awaiting),
-        timeColor(effect.remaining, effect.awaiting)
-    end)
-  local expired = section("Expired Effects", "Effect", "Expired", snapshot.expired or {},
-    function(effect)
-      return effect.name, duration(effect.elapsed, false) .. " ago", CRITICAL_COLOR
-    end)
-  local recoveries = section("Recoveries", "Recovery", "Remaining", snapshot.recoveries,
-    function(recovery)
-      return recovery.name, duration(recovery.remaining, recovery.awaiting),
-        timeColor(recovery.remaining, recovery.awaiting)
-    end)
-  return active .. "<br>" .. expired .. "<br>" .. recoveries
-end
-
-local function tableHeight(snapshot)
-  local rows = math.max(1, #snapshot.active) + math.max(1, #(snapshot.expired or {}))
-    + math.max(1, #snapshot.recoveries)
-  return math.max(260, 190 + rows * 25)
+local function rowContents(kind, row)
+  if kind == "expired" then
+    return row.name, duration(row.elapsed, false) .. " ago", CRITICAL_COLOR
+  end
+  return row.name, duration(row.remaining, row.awaiting),
+    timeColor(row.remaining, row.awaiting)
 end
 
 function BuffsWindow.new(api, spells, spellup, workspace)
@@ -99,6 +85,11 @@ function BuffsWindow.new(api, spells, spellup, workspace)
   local menuItems, menuOpen = {}, false
   local timer, contentHeight, generation = nil, nil, 0
   local handlers = {}
+  local headings = {}
+  local headingY = {}
+  local rowWidgets = {active = {}, expired = {}, recoveries = {}}
+  local dismissedExpired = {}
+  local render
 
   local function cancelTimer()
     if timer then pcall(api.killTimer, timer); timer = nil end
@@ -136,7 +127,70 @@ function BuffsWindow.new(api, spells, spellup, workspace)
     for _, item in ipairs(menuItems) do item:hide() end
   end
 
-  local function render()
+  local function makeRow(kind, id)
+    local item = api.Geyser.Label:new({name = OWNER .. ".row." .. kind .. "." .. tostring(id),
+      x = 0, y = 0, width = "100%", height = ROW_HEIGHT,
+      fgColor = "nocolor", bgColor = color(0, 0, 0),
+      color = color(11, 17, 24)}, content)
+    local card = {label = item}
+    local style = "QLabel { background: transparent; color: #eef5ff; padding: 0px; }"
+    if kind == "expired" and id ~= "empty" then
+      style = style .. " QLabel:hover { background: #263b4f; }"
+      item:setToolTip("Click to dismiss expired effect")
+      local token = generation
+      item:setClickCallback(function()
+        if not self.enabled or token ~= generation
+            or rowWidgets.expired[id] ~= card then return end
+        dismissedExpired[id] = card.expiredAt
+        render()
+      end)
+    end
+    item:setStyleSheet(style)
+    rowWidgets[kind][id] = card
+    return card
+  end
+
+  local function renderSection(kind, rows, y)
+    if headingY[kind] ~= y then
+      headings[kind]:move(0, y)
+      headingY[kind] = y
+    end
+    y = y + SECTION_HEIGHT
+    local seen = {}
+    local function showRow(row)
+      local id = row and row.id or "empty"
+      local card = rowWidgets[kind][id] or makeRow(kind, id)
+      local markup
+      if row then
+        local left, right, rightColor = rowContents(kind, row)
+        markup = rowMarkup(left, right, rightColor)
+        if kind == "expired" then card.expiredAt = row.expiredAt end
+      else
+        markup = rowMarkup()
+      end
+      if markup ~= card.markup then
+        card.label:rawEcho(markup)
+        card.markup = markup
+      end
+      if card.y ~= y then
+        card.label:move(0, y)
+        card.y = y
+      end
+      seen[id] = true
+      y = y + ROW_HEIGHT
+    end
+    if #rows == 0 then showRow(nil)
+    else for _, row in ipairs(rows) do showRow(row) end end
+    for id, card in pairs(rowWidgets[kind]) do
+      if not seen[id] then
+        card.label:delete()
+        rowWidgets[kind][id] = nil
+      end
+    end
+    return y
+  end
+
+  render = function()
     if not self.enabled or not body or not content then return end
     local snapshot = spells:snapshot()
     local control = spellup:status()
@@ -154,8 +208,16 @@ function BuffsWindow.new(api, spells, spellup, workspace)
       and (control.paused and "Resume automatic" or "Pause automatic")
       or "Enable automatic")
     tagsMenuItem:rawEcho(snapshot.hideTags and "Show spell tags" or "Hide spell tags")
-    content:rawEcho(tableMarkup(snapshot))
-    local height = tableHeight(snapshot)
+    local visibleExpired = {}
+    for _, effect in ipairs(snapshot.expired or {}) do
+      if dismissedExpired[effect.id] ~= effect.expiredAt then
+        visibleExpired[#visibleExpired + 1] = effect
+      end
+    end
+    local y = renderSection("active", snapshot.active, 4) + SECTION_GAP
+    y = renderSection("expired", visibleExpired, y) + SECTION_GAP
+    y = renderSection("recoveries", snapshot.recoveries, y)
+    local height = math.max(260, y + 4)
     if height ~= contentHeight then
       content:resize("100%-4", height)
       contentHeight = height
@@ -208,6 +270,10 @@ function BuffsWindow.new(api, spells, spellup, workspace)
     if window and type(window.delete) == "function" then pcall(window.delete, window) end
     window, root, header, body, content = nil, nil, nil, nil, nil
     contentHeight = nil
+    headings = {}
+    headingY = {}
+    rowWidgets = {active = {}, expired = {}, recoveries = {}}
+    dismissedExpired = {}
     menuButton, automaticMenuItem, tagsMenuItem = nil, nil, nil
     menuItems, menuOpen = {}, false
     self.lastError = message and tostring(message) or nil
@@ -254,7 +320,22 @@ function BuffsWindow.new(api, spells, spellup, workspace)
       assert(type(content.rawEcho) == "function" and type(content.resize) == "function",
         "Geyser spellup table rendering is required")
       content:setStyleSheet("QLabel { background: #0b1118; color: #eef5ff; "
-        .. "padding: 4px; }")
+        .. "padding: 0px; }")
+
+      stage = "create section headings"
+      for _, spec in ipairs({
+        {"active", "Active Effects", "Effect", "Remaining"},
+        {"expired", "Expired Effects", "Effect", "Expired"},
+        {"recoveries", "Recoveries", "Recovery", "Remaining"},
+      }) do
+        local item = geyser.Label:new({name = OWNER .. ".heading." .. spec[1],
+          x = 0, y = 0, width = "100%", height = SECTION_HEIGHT,
+          fgColor = "nocolor", bgColor = color(0, 0, 0),
+          color = color(11, 17, 24)}, content)
+        item:setStyleSheet("QLabel { background: transparent; color: #eef5ff; padding: 0px; }")
+        item:rawEcho(sectionHeader(spec[2], spec[3], spec[4]))
+        headings[spec[1]] = item
+      end
 
       stage = "create action menu"
       menuButton = geyser.Label:new({name = OWNER .. ".menu", x = "100%-33", y = 5,

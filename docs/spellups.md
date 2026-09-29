@@ -175,8 +175,11 @@ visibility actions so the tables keep the remaining window space. The
 standalone window keeps its own name and saved Mudlet placement. When an
 active-effect countdown reaches zero, the effect moves into Expired Effects;
 with automatic maintenance enabled, that same transition queues the server-owned
-spellup batch. Recovery countdowns may still display “Awaiting server
-confirmation.” Active effects and recoveries use green remaining time above two
+spellup batch. Click an expired effect to dismiss that occurrence from the
+window for the current session. A later expiry of the same effect appears
+again; dismissal does not change tracking or automatic maintenance. Recovery
+countdowns may still display “Awaiting server confirmation.” Active effects and
+recoveries use green remaining time above two
 minutes, dark yellow from 31 through 120 seconds, and red at 30 seconds or less.
 The server's complete recovery catalog includes inactive rows with duration
 zero; those rows are not tracked or displayed. The table pane starts at the top

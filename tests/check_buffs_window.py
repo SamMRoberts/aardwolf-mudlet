@@ -54,19 +54,27 @@ class BuffsWindowTests(unittest.TestCase):
           assert(body and content and content.parent==body)
           assert(body.values.x==5 and body.values.y==38
             and body.values.width=='100%-10' and body.values.height=='100%-43')
-          assert(content.text:find('Active Effects',1,true)
-            and content.text:find('Expired Effects',1,true)
-            and content.text:find('Recoveries',1,true))
-          assert(content.text:find('Shield',1,true) and content.text:find('1:01',1,true))
-          assert(content.text:find('Detect magic',1,true)
-            and content.text:find('0:05 ago',1,true))
-          assert(content.text:find('Awaiting server confirmation',1,true))
+          local activeHeading=widgets['aardwolf-vibe.buffs-window.heading.active']
+          local expiredHeading=widgets['aardwolf-vibe.buffs-window.heading.expired']
+          local recoveryHeading=widgets['aardwolf-vibe.buffs-window.heading.recoveries']
+          local activeRow=widgets['aardwolf-vibe.buffs-window.row.active.72']
+          local expiredRow=widgets['aardwolf-vibe.buffs-window.row.expired.35']
+          local recoveryRow=widgets['aardwolf-vibe.buffs-window.row.recoveries.15']
+          assert(activeHeading.text:find('Active Effects',1,true)
+            and expiredHeading.text:find('Expired Effects',1,true)
+            and recoveryHeading.text:find('Recoveries',1,true))
+          assert(activeRow.text:find('Shield',1,true)
+            and activeRow.text:find('1:01',1,true))
+          assert(expiredRow.text:find('Detect magic',1,true)
+            and expiredRow.text:find('0:05 ago',1,true))
+          assert(recoveryRow.text:find('Awaiting server confirmation',1,true))
           assert(body.scrollTo==nil and body.getScroll==nil and body.clear==nil)
           local bodyIdentity,contentIdentity=body,content
           assert(content.resizeCalls==1)
           raiseEvent('aardwolf-vibe.spells.updated')
           assert(widgets['aardwolf-vibe.buffs-window.body']==bodyIdentity
             and widgets['aardwolf-vibe.buffs-window.content']==contentIdentity
+            and widgets['aardwolf-vibe.buffs-window.row.expired.35']==expiredRow
             and content.resizeCalls==1)
           local sync=widgets['aardwolf-vibe.buffs-window.menu.sync']
           local now=widgets['aardwolf-vibe.buffs-window.menu.now']
@@ -94,7 +102,7 @@ class BuffsWindowTests(unittest.TestCase):
           assert(widgets['aardwolf-vibe.buffs-window.body']==bodyIdentity
             and widgets['aardwolf-vibe.buffs-window.content']==contentIdentity
             and content.resizeCalls==1)
-          assert(content.rawEchoCalls>=4 and type(content.height)=='number')
+          assert(type(content.height)=='number')
           menu.callback();now.callback();assert(spellup.runs==1 and now.hidden)
           menu.callback();automatic.callback()
           assert(spellup.automatic and spellup.sets==1)
@@ -105,15 +113,15 @@ class BuffsWindowTests(unittest.TestCase):
           assert(not spells.hideTags and spells.tagSets==1)
           assert(tags.text:find('Hide spell tags',1,true))
           menu.callback();assert(not tags.hidden)
-          local renderCalls=content.rawEchoCalls
+          local renderCalls=status.rawEchoCalls
           assert(window:hide() and native.hideCalls==1 and not window:status().visible)
           assert(count(timers)==0)
           assert(sync.hidden and now.hidden and automatic.hidden and tags.hidden)
           raiseEvent('aardwolf-vibe.spells.updated')
-          assert(content.rawEchoCalls==renderCalls)
+          assert(status.rawEchoCalls==renderCalls)
           assert(window:show() and native.showCalls==2 and native.raiseCalls==2
             and window:status().visible)
-          assert(content.rawEchoCalls==renderCalls+1 and count(timers)==1)
+          assert(status.rawEchoCalls==renderCalls+1 and count(timers)==1)
           assert(window:start() and count(handlers)==2)
           assert(window:stop() and count(handlers)==0 and count(timers)==0 and count(widgets)==0)
 
@@ -131,6 +139,64 @@ class BuffsWindowTests(unittest.TestCase):
           Geyser.ScrollBox=nil
           assert(not window:start())
           assert(not window:status().enabled and count(handlers)==0 and count(timers)==0)
+        """)
+
+    def test_click_dismisses_only_current_expiry_from_display(self):
+        lua = self.runtime()
+        lua.execute("""
+          spells.snapshotValue.expired={
+            {id=35,name='Detect magic',elapsed=5,expiredAt=100},
+            {id=36,name='Detect magic',elapsed=9,expiredAt=110},
+          }
+          assert(window:start())
+          local first=widgets['aardwolf-vibe.buffs-window.row.expired.35']
+          local second=widgets['aardwolf-vibe.buffs-window.row.expired.36']
+          assert(first and second and first.callback)
+          assert(first.toolTip=='Click to dismiss expired effect')
+          assert(first.style:find('QLabel:hover',1,true))
+          assert(not widgets['aardwolf-vibe.buffs-window.row.active.72'].callback)
+          first.callback()
+          assert(widgets[first.name]==nil and widgets[second.name]==second)
+          assert(#spells.snapshotValue.expired==2 and spells.syncs==0 and spellup.runs==0)
+          raiseEvent('aardwolf-vibe.spells.updated')
+          assert(widgets[first.name]==nil and widgets[second.name]==second)
+          assert(window:hide() and window:show())
+          assert(widgets[first.name]==nil and widgets[second.name]==second)
+          spells.snapshotValue.expired[1].expiredAt=120
+          raiseEvent('aardwolf-vibe.spells.updated')
+          assert(widgets[first.name] and widgets[first.name]~=first)
+          assert(window:stop())
+          assert(count(widgets)==0)
+          first.callback()
+          assert(count(widgets)==0)
+          spells.snapshotValue.expired[1].expiredAt=100
+          assert(window:start())
+          assert(widgets[first.name])
+          assert(window:stop())
+        """)
+
+    def test_dismissal_compacts_scroll_content_without_rebuilding_other_rows(self):
+        lua = self.runtime()
+        lua.execute("""
+          spells.snapshotValue.active={}
+          spells.snapshotValue.recoveries={}
+          spells.snapshotValue.expired={}
+          for id=1,10 do
+            spells.snapshotValue.expired[id]={id=id,name='Buff '..id,
+              elapsed=id,expiredAt=100+id}
+          end
+          assert(window:start())
+          local body=widgets['aardwolf-vibe.buffs-window.body']
+          local content=widgets['aardwolf-vibe.buffs-window.content']
+          local retained=widgets['aardwolf-vibe.buffs-window.row.expired.10']
+          local removed=widgets['aardwolf-vibe.buffs-window.row.expired.1']
+          local before=content.height
+          removed.callback()
+          assert(widgets[removed.name]==nil)
+          assert(widgets[retained.name]==retained)
+          assert(widgets['aardwolf-vibe.buffs-window.body']==body)
+          assert(content.height==before-26)
+          assert(window:stop())
         """)
 
     def test_compact_header_statuses_and_exact_blocking_reasons(self):
@@ -175,7 +241,11 @@ class BuffsWindowTests(unittest.TestCase):
             expired={{id=6,name='<Expired & gone>',elapsed=65,expiredAt=0}},
             recoveries={}}
           assert(window:start())
-          local text=widgets['aardwolf-vibe.buffs-window.content'].text
+          local function row(kind,id)
+            return widgets['aardwolf-vibe.buffs-window.row.'..kind..'.'..id].text
+          end
+          local text=table.concat({row('active',1),row('active',2),row('active',3),
+            row('active',4),row('active',5),row('expired',6),row('recoveries','empty')})
           assert(text:find('#55c878',1,true) and text:find('#b89b22',1,true)
             and text:find('#e06161',1,true))
           assert(text:find('Green &amp; safe',1,true))
@@ -236,12 +306,17 @@ class BuffsWindowTests(unittest.TestCase):
           assert(window:start() and workspace.spec)
           local root=widgets["aardwolf-vibe.buffs-window.root"]
           local content=widgets["aardwolf-vibe.buffs-window.content"]
+          local expired=widgets["aardwolf-vibe.buffs-window.row.expired.35"]
+          expired.callback()
+          assert(widgets[expired.name]==nil)
           spellup.automatic=true
           local target=Geyser.Container:new({name="workspace.slot",x=0,y=0,width=400,height=400})
           assert(workspace.spec.unmount(root))
           assert(workspace.spec.mount(target)==root and root.parent==target)
           assert(widgets["aardwolf-vibe.buffs-window.content"]==content)
-          assert(content.text:find("Shield",1,true) and spellup.automatic)
+          assert(widgets["aardwolf-vibe.buffs-window.row.active.72"].text:find("Shield",1,true)
+            and spellup.automatic)
+          assert(widgets[expired.name]==nil)
           assert(count(handlers)==2)
           assert(window:hide() and not window:status().visible and count(timers)==0)
           assert(window:show() and window:status().visible and count(timers)==1)

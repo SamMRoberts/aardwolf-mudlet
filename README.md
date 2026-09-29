@@ -176,6 +176,8 @@ mob debuffs cannot hold a spellup batch open. Remaining time changes from green
 to dark yellow to red as expiry approaches. Its standalone mount creates
 a distinct right-side dock; Mudlet restores the player's later placement. Its scroll area starts at the top, retains the user's
 position across refreshes, and does not use Mudlet's split console scrollback.
+Clicking an expired effect dismisses that occurrence from the window for the
+current session without changing spell tracking or automatic maintenance.
 Spell machine tags are hidden by default and can be made visible without
 disabling their parsing. A compact header shows only the current automation
 status, while a small vertical-ellipsis menu provides Sync, Spellup now,
