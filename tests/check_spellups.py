@@ -107,6 +107,262 @@ class SpellupTests(unittest.TestCase):
           assert(controller:status().inflight)
         """)
 
+    def test_level_refresh_uses_status_and_coalesces_packets(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateBase({name='Hero',level=50,classes='3'})
+          updateLevel(10)
+          updateLevel(10)
+          advance(2)
+          assert(commandCount('slist noprompt')==1)
+          updateLevel(11)
+          updateLevel(11)
+          assert(not spells:isFresh() and spells:status().pending)
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+          synchronize()
+          assert(spells:isFresh())
+          local latest
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.synced' then latest=event[3] end
+          end
+          assert(latest.mode=='full' and latest.causes.level)
+          updateBase({name='Hero',level=51,classes='3'})
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+        """)
+
+    def test_existing_character_level_is_baseline_on_start(self):
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute(FIXTURE)
+        lua.globals().SpellsFactory = lua.execute(SPELLS)
+        lua.execute("""
+          character.status.level=10
+          spells=SpellsFactory.new(_G,character,settings)
+          assert(spells:start());advance(0)
+          synchronize()
+          updateLevel(11)
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+        """)
+
+    def test_base_level_is_used_only_without_status_level(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateBase({name='Hero',level=10,classes='3'})
+          updateBase({name='Hero',level=11,classes='3'})
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+          synchronize()
+          updateLevel(11)
+          updateBase({name='Hero',level=12,classes='3'})
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+          updateLevel(12)
+          advance(2)
+          assert(commandCount('slist noprompt')==3)
+          synchronize()
+          updateBase({name='Hero2',level=12,classes='3'})
+          advance(2)
+          assert(commandCount('slist noprompt')==4)
+        """)
+
+    def test_level_change_mid_sync_waits_for_final_full_snapshot(self):
+        lua = self.runtime()
+        lua.execute("""
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          synchronize()
+          assert(not spells:isFresh() and commandCount('slist noprompt')==2)
+          local synced=0
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.synced' then synced=synced+1 end
+          end
+          assert(synced==0)
+          synchronize()
+          assert(spells:isFresh())
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.synced' then synced=synced+1 end
+          end
+          assert(synced==1)
+        """)
+
+    def test_level_and_practice_refresh_cast_only_new_eligible_spellup(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local shield='72,Shield,2,0,100,-1,1'
+          local held='72,Shield,2,120,100,-1,1'
+          synchronizeRows({shield},{shield},{held})
+          assert(commandCount('spellup learned')==1)
+          feed('No spells or skills cast.')
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          local new='95,New Ward,2,0,1,-1,1'
+          synchronizeRows({shield,new},{shield,new},{held})
+          assert(not controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned')==1)
+
+          raiseEvent('sysDataSendRequest','practice New Ward full')
+          advance(2)
+          local practiced='95,New Ward,2,0,50,-1,1'
+          synchronizeRows({shield,practiced},{shield,practiced},{held})
+          assert(controller:status().pending)
+          advance(2)
+          assert(commandCount('spellup learned')==2)
+          feed('No spells or skills cast.')
+
+          raiseEvent('sysDataSendRequest','practice Missing')
+          advance(2)
+          synchronizeRows({shield,practiced},{shield,practiced},{held})
+          assert(not controller:status().pending)
+          advance(30)
+          assert(commandCount('spellup learned')==2)
+          for _,command in ipairs({'practice','practice New Ward full check',
+            'practice New Ward check','say practice New Ward',
+            'practice New Ward;spellup all'}) do
+            raiseEvent('sysDataSendRequest',command)
+          end
+          advance(2)
+          assert(commandCount('slist noprompt')==4)
+        """)
+
+    def test_failed_level_refresh_retries_twice_and_exposes_error(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          assert(commandCount('slist noprompt')==2)
+          advance(10)
+          assert(not spells:isFresh() and spells:status().pending)
+          advance(2)
+          assert(commandCount('slist noprompt')==3)
+          advance(10)
+          advance(5)
+          assert(commandCount('slist noprompt')==4)
+          advance(10)
+          assert(not spells:isFresh() and not spells:status().pending)
+          assert(controller:status().blockingReason:find('use Sync to retry',1,true))
+          advance(30)
+          assert(commandCount('slist noprompt')==4)
+          feed('{affon}72,60');advance(0)
+          assert(commandCount('slist affected noprompt')==1
+            and commandCount('slist noprompt')==4)
+          assert(spells:sync());advance(0)
+          assert(commandCount('slist noprompt')==5)
+          synchronize()
+          assert(spells:isFresh())
+        """)
+
+    def test_transient_level_refresh_timeout_recovers_without_early_batch(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local shield='72,Shield,2,0,100,-1,1'
+          synchronizeRows({shield},{shield},{'72,Shield,2,120,100,-1,1'})
+          feed('No spells or skills cast.')
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          advance(10)
+          assert(not spells:isFresh() and controller:status().blockingReason
+            =='Waiting for synchronized spell data')
+          assert(commandCount('spellup learned')==1)
+          advance(2)
+          local new='95,New Ward,2,0,60,-1,1'
+          synchronizeRows({shield,new},{shield,new},
+            {'72,Shield,2,108,100,-1,1'})
+          assert(spells:isFresh() and controller:status().pending)
+          advance(16)
+          assert(commandCount('spellup learned')==2)
+        """)
+
+    def test_new_level_restarts_refresh_after_retry_exhaustion(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          advance(10);advance(2);advance(10);advance(5);advance(10)
+          assert(not spells:status().pending and commandCount('slist noprompt')==4)
+          updateLevel(12)
+          advance(2)
+          assert(commandCount('slist noprompt')==5)
+          synchronize()
+          assert(spells:isFresh() and not spells:status().lastError)
+        """)
+
+    def test_practice_refresh_waits_behind_outstanding_batch(self):
+        lua = self.runtime(automatic=True)
+        lua.execute("""
+          local shield='72,Shield,2,0,100,-1,1'
+          synchronizeRows({shield},{shield},{})
+          assert(controller:status().inflight)
+          raiseEvent('sysDataSendRequest','practice New Ward')
+          advance(2)
+          local new='95,New Ward,2,0,60,-1,1'
+          synchronizeRows({shield,new},{shield,new},{})
+          assert(controller:status().pending and controller:status().inflight)
+          assert(commandCount('spellup learned')==1)
+          feed('{spellup-end}')
+          advance(28)
+          assert(commandCount('spellup learned')==2)
+        """)
+
+    def test_refresh_debounce_and_retry_timers_are_removed_on_stop(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateLevel(10)
+          updateLevel(11)
+          assert(count(timers)==1)
+          assert(spells:stop())
+          assert(controller:stop())
+          assert(count(timers)==0)
+          advance(30)
+          assert(commandCount('slist noprompt')==1)
+        """)
+
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateLevel(10)
+          updateLevel(11)
+          advance(2)
+          advance(10)
+          assert(count(timers)==1)
+          assert(spells:stop())
+          assert(controller:stop())
+          assert(count(timers)==0)
+          advance(30)
+          assert(commandCount('slist noprompt')==2)
+        """)
+
+    def test_level_refresh_waits_for_readiness_and_cancels_on_disconnect(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize()
+          updateLevel(10)
+          updateStatus(8,'Standing')
+          updateLevel(11)
+          advance(2)
+          assert(commandCount('slist noprompt')==1 and spells:status().pending)
+          updateStatus(3,'Standing')
+          assert(commandCount('slist noprompt')==2)
+          connected=false
+          raiseEvent('sysDisconnectionEvent')
+          advance(0)
+          assert(not spells:isFresh() and count(timers)==0)
+          advance(30)
+          assert(commandCount('slist noprompt')==2)
+        """)
+
     def test_manual_confirm_refreshes_active_state_without_full_catalog_sync(self):
         lua = self.runtime()
         lua.execute("""
@@ -120,6 +376,11 @@ class SpellupTests(unittest.TestCase):
           local snapshot=spells:snapshot()
           assert(snapshot.fresh and #snapshot.active==2 and #snapshot.recoveries==1)
           assert(commandCount('slist noprompt')==catalogRequests)
+          local metadata
+          for _,event in ipairs(events) do
+            if event[1]=='aardwolf-vibe.spells.synced' then metadata=event[3] end
+          end
+          assert(metadata.mode=='delta' and not next(metadata.causes))
         """)
 
     def test_confirmed_expirations_are_current_ordered_and_defensive(self):
@@ -709,7 +970,7 @@ class SpellupTests(unittest.TestCase):
           assert(status.inflight and status.confirmationRequested
             and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
           advance(20)
-          assert(commandCount('slist affected noprompt')==2
+          assert(commandCount('slist affected noprompt')==4
             and commandCount('spellup learned')==1)
         """)
 
@@ -724,7 +985,7 @@ class SpellupTests(unittest.TestCase):
             and status.lastConfirmation:find('Confirmation snapshot failed:',1,true)==1)
           sendFailure=false
           advance(20)
-          assert(commandCount('slist affected noprompt')==2
+          assert(commandCount('slist affected noprompt')==4
             and commandCount('spellup learned')==1)
         """)
 

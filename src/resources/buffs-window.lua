@@ -140,9 +140,12 @@ function BuffsWindow.new(api, spells, spellup, workspace)
     if not self.enabled or not body or not content then return end
     local snapshot = spells:snapshot()
     local control = spellup:status()
+    local syncFailure = type(control.blockingReason) == "string"
+      and control.blockingReason:match("^Spell sync failed")
     local status = not control.automatic and "Off"
       or control.paused and (control.blockingReason or "Paused")
       or control.inflight and "Batch outstanding"
+      or syncFailure and control.blockingReason
       or control.pending and "Work queued"
       or control.blockingReason
       or "Ready"

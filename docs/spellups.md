@@ -28,8 +28,11 @@ state immediately.
 
 Each frame is bounded and committed atomically. A malformed, duplicate,
 interrupted, oversized, or timed-out frame leaves the last valid data intact
-but marks synchronization stale. Exact machine records and package-owned
-frames are removed from the main console by default. This suppression is
+but marks synchronization stale. The tracker retries a failed refresh after
+two and then five seconds. After a third failure it stays stale, shows the
+failure in spellup status, and waits for manual Sync or a new level/practice
+change. Exact machine records and package-owned frames are removed from the
+main console by default. This suppression is
 configurable and does not affect parsing. Ordinary spell messages, prompts,
 and queue text remain visible. While hiding is enabled, bounded tagged
 `spellheaders` and `recoveries` frames are also suppressed even when another
@@ -64,6 +67,9 @@ exposing spell data.
 `spells:status()` also reports active/expired counts, the next wall-clock expiry,
 heartbeat state, and the last expiry check. `spells:sync()` refreshes all five
 spell datasets; `spells:confirm()` refreshes only active effects and recoveries.
+The existing `aardwolf-vibe.spells.synced` event keeps its snapshot argument
+and adds optional metadata with `mode` (`full` or `delta`), `causes` (level,
+practice, or character identity), and `newlyEligible` spell IDs.
 
 Consumers can subscribe to `aardwolf-vibe.spells.updated`,
 `aardwolf-vibe.spells.reset`, `aardwolf-vibe.spells.synced`, and
@@ -98,8 +104,16 @@ On opt-in, the tracker synchronizes the catalog, classifications, existing
 active effects, and recoveries before the initial batch. Later batches react
 when a server-eligible spellup reaches its tracked server-reported
 expiration, when `{affoff}` confirms it missing, or when a blocking recovery
-ends. Eligibility includes learned abilities above 1% practice, granted or clan
-abilities reported at 0%, and active spellup-classified racial abilities that
+ends. A changed `char.status.level` (or `char.base.level` when status level is
+unavailable) refreshes the full catalog. Sent `practice <spell>` commands also
+refresh it after a short debounce; listings and `check` previews do not. A
+level refresh queues automatic work when an eligible spellup is absent, while
+a practice refresh does so only when a newly eligible spellup is absent. Both
+wait for the final fresh snapshot, and automatic mode must already be on.
+Aardwolf starts newly gained spells at 1%; `spellup learned` will include them
+after they are practiced above 1%. Eligibility includes learned abilities
+above 1% practice, granted or clan abilities reported at 0%, and active
+spellup-classified racial abilities that
 Aardwolf may queue while reporting 1% practice. The spell tracker reschedules
 its single local heartbeat while effects are active. The heartbeat performs no
 server polling. Its missing-effect event queues maintenance only for non-bad

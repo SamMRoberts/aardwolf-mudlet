@@ -119,6 +119,17 @@ function updateStatus(state,pos)
   raiseEvent("aardwolf-vibe.character.updated.status",character.status,character.status,1,1)
   advance(0)
 end
+function updateLevel(level)
+  character.status.level=level
+  character.fresh.status=true
+  raiseEvent("aardwolf-vibe.character.updated.status",character.status,character.status,1,1)
+  advance(0)
+end
+function updateBase(base)
+  character.base=base
+  raiseEvent("aardwolf-vibe.character.updated.base",base,base,1,1)
+  advance(0)
+end
 function updateVital(name,value)
   character.vitals[name]=value; character.fresh.vitals=true
   raiseEvent("aardwolf-vibe.character.updated.vitals",character.vitals,character.vitals,1,1)
@@ -143,6 +154,14 @@ function synchronize(affectedRows,recoveryRowsList)
   spellRows("bad",{})
   spellRows("affected",affectedRows or {})
   recoveryRows(recoveryRowsList or {})
+  advance(0)
+end
+function synchronizeRows(catalogRows, spellupRows, affectedRows)
+  spellRows("",catalogRows)
+  spellRows("spellup",spellupRows)
+  spellRows("bad",{})
+  spellRows("affected",affectedRows or {})
+  recoveryRows({})
   advance(0)
 end
 function recoveryRows(rows)

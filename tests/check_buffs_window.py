@@ -148,6 +148,9 @@ class BuffsWindowTests(unittest.TestCase):
           expect('Off')
           spellup.automatic=true;expect('Ready')
           spellup.pending=true;expect('Work queued')
+          spellup.blockingReason='Spell sync failed; use Sync to retry: timed out'
+          expect('Spell sync failed; use Sync to retry: timed out')
+          spellup.blockingReason=nil
           spellup.pending=false;spellup.inflight=true;expect('Batch outstanding')
           spellup.inflight=false;spellup.blockingReason='Character is not standing'
           expect('Character is not standing')

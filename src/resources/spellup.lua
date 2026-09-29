@@ -69,7 +69,13 @@ function Spellup.new(api, character, spells, settings)
   local function gate()
     if not self.enabled then return "Controller is stopped" end
     if not connected() then return "Disconnected" end
-    if not spells:isFresh() then return "Waiting for synchronized spell data" end
+    if not spells:isFresh() then
+      local sync = spells:status()
+      if not sync.pending and sync.lastError then
+        return "Spell sync failed; use Sync to retry: " .. sync.lastError
+      end
+      return "Waiting for synchronized spell data"
+    end
     if not character:isFresh("status") then return "Waiting for fresh character status" end
     local status = select(1, character:getGroup("status"))
     if type(status) ~= "table" or status.state ~= 3 then
@@ -361,7 +367,7 @@ function Spellup.new(api, character, spells, settings)
         schedule()
         emit()
       end, token)
-      on("synced", "aardwolf-vibe.spells.synced", function()
+      on("synced", "aardwolf-vibe.spells.synced", function(_, _, metadata)
         if inflight then
           local active = activeSet()
           for id in pairs(active) do
@@ -381,6 +387,21 @@ function Spellup.new(api, character, spells, settings)
           elseif confirmationRequested then
             lastConfirmation = "Confirmation snapshot incomplete"
             emit()
+          end
+        end
+        if self.automatic and type(metadata) == "table" and metadata.mode == "full"
+            and type(metadata.causes) == "table" then
+          local causes = metadata.causes
+          if causes.level or causes.identity or causes.practice then
+            local current = activeSet()
+            local newlyEligible = metadata.newlyEligible or {}
+            for id in pairs(spells:snapshot().catalog) do
+              if spells:isAutomaticSpellup(id) and not current[id]
+                  and (causes.level or causes.identity or newlyEligible[id]) then
+                queueWork()
+                break
+              end
+            end
           end
         end
         schedule()

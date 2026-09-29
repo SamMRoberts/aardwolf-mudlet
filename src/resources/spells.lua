@@ -5,6 +5,8 @@ local MAX_ROWS = 4096
 local MAX_BYTES = 1024 * 1024
 local SNAPSHOT_TIMEOUT = 10
 local EXPIRY_HEARTBEAT = 1
+local REFRESH_DEBOUNCE = 2
+local RETRY_DELAYS = {2, 5}
 local TAG_TRIGGER = [[^\{(?:spellup-(?:start|end)\}|(?:affon|affoff|recon|recoff|sfail)\}|spellheaders(?:\s|\})|recoveries(?:\s|\})|/(?:spellheaders|recoveries)\})]]
 local RESPONSE_TRIGGER = [[^(?:Queueing (?:spell|skill) : .+\.$|No spells or skills cast\.$)$]]
 -- Mudlet 5.0.1 doubles the IAC frame bytes in sendTelnetChannel102().
@@ -112,12 +114,16 @@ function Spells.new(api, character, settings)
   local handlers = {}
   local triggerIDs, captureID = {}, nil
   local frame, timeout, driveTimer, expiryTimer, hiddenFrame, hiddenFrameTimeout
+  local refreshTimer, retryTimer
   local generation, session = 0, 0
   local monitoring, fresh, busy, pending = false, false, false, true
   local resyncAfter = false
   local deltaRefreshPending = false
   local requestPlan, requestIndex, request
   local lastBaseSignature
+  local lastStatusLevel, lastBaseLevel
+  local refreshReasons, stableEligible = {}, {}
+  local cycleHadFull, retryCount, retryExhausted = false, 0, false
   local nextExpiry, lastExpiryCheck, lastExpiryReason
   local receive, snapshotAt, reconcileExpirations, armExpiryHeartbeat
 
@@ -207,11 +213,32 @@ function Spells.new(api, character, settings)
   end
 
   local function fail(reason)
+    local failedPlan = requestPlan or REQUESTS
     cancelRequest()
-    requestPlan, requestIndex, pending, fresh = nil, nil, false, false
+    cancelTimer(retryTimer)
+    retryTimer = nil
+    if next(refreshReasons) or resyncAfter then failedPlan = REQUESTS end
+    cancelTimer(refreshTimer)
+    refreshTimer = nil
+    resyncAfter = false
+    requestPlan, requestIndex, fresh = nil, nil, false
     self.rejected = self.rejected + 1
     self.lastError = tostring(reason)
     emit("invalid", self.lastError)
+    if retryCount < #RETRY_DELAYS and connected() then
+      retryCount = retryCount + 1
+      pending = true
+      local token = generation
+      retryTimer = api.tempTimer(RETRY_DELAYS[retryCount], function()
+        retryTimer = nil
+        if not self.enabled or token ~= generation then return end
+        requestPlan, requestIndex = failedPlan, 1
+        scheduleDrive()
+      end)
+    else
+      pending = false
+      retryExhausted = true
+    end
     changed()
   end
 
@@ -235,6 +262,16 @@ function Spells.new(api, character, settings)
     -- `slist bad`. A server-owned self-spellup is beneficial for this
     -- tracker, so the explicit spellup classification wins the overlap.
     return bad[id] == true and classification[id] ~= true
+  end
+
+  local function eligibleSet()
+    local result = {}
+    for id, row in pairs(catalog) do
+      if classification[id] and not isBadEffect(id) and row.practice ~= 1 then
+        result[id] = true
+      end
+    end
+    return result
   end
 
   local function confirmExpired(id, at)
@@ -394,21 +431,42 @@ function Spells.new(api, character, settings)
     request, busy = nil, false
     requestIndex = requestIndex + 1
     if requestIndex > #requestPlan then
+      cycleHadFull = cycleHadFull or requestPlan == REQUESTS
       requestPlan, requestIndex = nil, nil
-      fresh, pending = true, false
-      self.lastError = nil
-      emit("synced", self:snapshot())
-      changed()
-      if resyncAfter then
+      if refreshTimer then
+        pending, fresh = true, false
+        changed()
+      elseif resyncAfter then
         resyncAfter = false
         requestPlan, requestIndex = REQUESTS, 1
         pending, fresh = true, false
         scheduleDrive()
+        changed()
       elseif deltaRefreshPending then
         deltaRefreshPending = false
         requestPlan, requestIndex = DELTA_REQUESTS, 1
         pending, fresh = true, false
         scheduleDrive()
+        changed()
+      else
+        local newlyEligible = {}
+        if cycleHadFull then
+          local eligible = eligibleSet()
+          for id in pairs(eligible) do
+            if not stableEligible[id] then newlyEligible[id] = true end
+          end
+          stableEligible = eligible
+        end
+        local metadata = {
+          mode = cycleHadFull and "full" or "delta",
+          causes = copy(refreshReasons),
+          newlyEligible = newlyEligible,
+        }
+        refreshReasons, cycleHadFull, retryCount, retryExhausted = {}, false, 0, false
+        fresh, pending = true, false
+        self.lastError = nil
+        emit("synced", self:snapshot(), metadata)
+        changed()
       end
     else
       scheduleDrive()
@@ -444,6 +502,7 @@ function Spells.new(api, character, settings)
     return event
   end
   local function requestDeltaRefresh()
+    if retryExhausted then return end
     deltaRefreshPending = true
     if not busy and not frame and not requestPlan and fresh then
       deltaRefreshPending = false
@@ -565,13 +624,18 @@ function Spells.new(api, character, settings)
     clearHiddenFrame()
     cancelTimer(driveTimer)
     cancelTimer(expiryTimer)
-    driveTimer, expiryTimer = nil, nil
+    cancelTimer(refreshTimer)
+    cancelTimer(retryTimer)
+    driveTimer, expiryTimer, refreshTimer, retryTimer = nil, nil, nil, nil
     catalog, classification, bad, active, expired, recoveries = {}, {}, {}, {}, {}, {}
     requestPlan, requestIndex = nil, nil
     monitoring, fresh, busy, pending = false, false, false, true
     resyncAfter = false
     deltaRefreshPending = false
     lastBaseSignature = nil
+    lastStatusLevel, lastBaseLevel = nil, nil
+    refreshReasons, stableEligible = {}, {}
+    cycleHadFull, retryCount, retryExhausted = false, 0, false
     nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     session = session + 1
     self.lastError = nil
@@ -580,7 +644,8 @@ function Spells.new(api, character, settings)
   end
 
   function self:_drive()
-    if not self.enabled or busy or frame or not pending or not commandReady() then return false end
+    if not self.enabled or busy or frame or retryTimer or refreshTimer
+        or not pending or not commandReady() then return false end
     if not monitoring then
       local ok, result, message = pcall(api.sendSocket, SPELL_TAG_PACKET)
       if not ok or result ~= true then
@@ -607,6 +672,17 @@ function Spells.new(api, character, settings)
   local function queue(plan)
     if not self.enabled then return false, "Tracking is disabled" end
     if busy or frame then return false, "Spell synchronization already running" end
+    if plan == DELTA_REQUESTS and (refreshTimer or next(refreshReasons)) then
+      return false, "Spell synchronization already running"
+    end
+    cancelTimer(retryTimer)
+    retryTimer = nil
+    if plan == REQUESTS then
+      cancelTimer(refreshTimer)
+      refreshTimer = nil
+    end
+    retryCount = 0
+    retryExhausted = false
     requestPlan = plan
     requestIndex = 1
     pending, fresh = true, false
@@ -621,6 +697,45 @@ function Spells.new(api, character, settings)
 
   function self:confirm()
     return queue(DELTA_REQUESTS)
+  end
+
+  local function requestFullRefresh(cause)
+    if not self.enabled then return end
+    refreshReasons[cause] = true
+    pending, fresh = true, false
+    cancelTimer(retryTimer)
+    retryTimer = nil
+    retryCount = 0
+    retryExhausted = false
+    cancelTimer(refreshTimer)
+    local token = generation
+    refreshTimer = api.tempTimer(REFRESH_DEBOUNCE, function()
+      refreshTimer = nil
+      if not self.enabled or token ~= generation then return end
+      if busy or frame then
+        resyncAfter = true
+      else
+        requestPlan, requestIndex = REQUESTS, 1
+        scheduleDrive()
+      end
+    end)
+    changed()
+  end
+
+  local function isPracticeCommand(command)
+    if type(command) ~= "string" or command:find("[;%c]") then return false end
+    local words = {}
+    for word in command:lower():gmatch("%S+") do words[#words + 1] = word end
+    return words[1] == "practice" and #words > 1 and words[#words] ~= "check"
+  end
+
+  local function baseSignature(normalized)
+    if type(normalized) ~= "table" then return nil end
+    return table.concat({
+      tostring(normalized.name), tostring(normalized.classes),
+      tostring(normalized.subclass), tostring(normalized.remorts),
+      tostring(normalized.tier), tostring(normalized.redos),
+    }, ":")
   end
 
   function self:setHideTags(value)
@@ -819,19 +934,44 @@ function Spells.new(api, character, settings)
       on("protocol", "sysProtocolDisabled", function(_, protocol)
         if protocol == "GMCP" then clearState("gmcp-disabled") end
       end)
-      on("status", "aardwolf-vibe.character.updated.status", function() scheduleDrive() end)
+      on("status", "aardwolf-vibe.character.updated.status", function(_, normalized)
+        if type(normalized) == "table" and type(normalized.level) == "number" then
+          if lastStatusLevel and normalized.level ~= lastStatusLevel then
+            requestFullRefresh("level")
+          end
+          lastStatusLevel = normalized.level
+        end
+        scheduleDrive()
+      end)
       on("base", "aardwolf-vibe.character.updated.base", function(_, normalized)
-        local signature = type(normalized) == "table" and table.concat({
-          tostring(normalized.name), tostring(normalized.level), tostring(normalized.classes),
-          tostring(normalized.subclass), tostring(normalized.remorts), tostring(normalized.tier),
-          tostring(normalized.redos),
-        }, ":") or nil
+        local signature = baseSignature(normalized)
         if lastBaseSignature and signature and signature ~= lastBaseSignature then
-          if busy or frame then resyncAfter = true else self:sync() end
+          requestFullRefresh("identity")
         end
         lastBaseSignature = signature
+        if type(normalized) == "table" and type(normalized.level) == "number" then
+          if not lastStatusLevel and lastBaseLevel and normalized.level ~= lastBaseLevel then
+            requestFullRefresh("level")
+          end
+          lastBaseLevel = normalized.level
+        end
+      end)
+      on("practice", "sysDataSendRequest", function(_, command)
+        if connected() and isPracticeCommand(command) then requestFullRefresh("practice") end
       end)
       clearState("start")
+      if type(character) == "table" and type(character.isFresh) == "function"
+          and type(character.getGroup) == "function" then
+        if character:isFresh("status") then
+          local status = select(1, character:getGroup("status"))
+          if type(status) == "table" then lastStatusLevel = status.level end
+        end
+        if character:isFresh("base") then
+          local base = select(1, character:getGroup("base"))
+          lastBaseSignature = baseSignature(base)
+          if type(base) == "table" then lastBaseLevel = base.level end
+        end
+      end
       scheduleDrive()
     end)
     if not ok then
@@ -849,7 +989,9 @@ function Spells.new(api, character, settings)
     clearHiddenFrame()
     cancelTimer(driveTimer)
     cancelTimer(expiryTimer)
-    driveTimer, expiryTimer = nil, nil
+    cancelTimer(refreshTimer)
+    cancelTimer(retryTimer)
+    driveTimer, expiryTimer, refreshTimer, retryTimer = nil, nil, nil, nil
     removeHandlers()
     cancelLineCapture()
     for _, id in ipairs(triggerIDs) do pcall(api.killTrigger, id) end
@@ -859,6 +1001,9 @@ function Spells.new(api, character, settings)
     monitoring, fresh, busy, pending = false, false, false, false
     resyncAfter = false
     deltaRefreshPending = false
+    lastBaseSignature, lastStatusLevel, lastBaseLevel = nil, nil, nil
+    refreshReasons, stableEligible = {}, {}
+    cycleHadFull, retryCount, retryExhausted = false, 0, false
     nextExpiry, lastExpiryCheck, lastExpiryReason = nil, nil, nil
     return true
   end
