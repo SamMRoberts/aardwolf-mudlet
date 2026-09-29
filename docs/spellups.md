@@ -21,8 +21,10 @@ active when the package started or was reloaded. They are requested again after
 a valid `{affon}` or `{affoff}` record. After a spellup batch's observed queue
 output has been quiet for two seconds, an affected/recovery snapshot is also
 requested as completion evidence. Aardwolf creates its command queue before
-those commands finish executing, so each later apply/failure tag rearms one
-final quiet confirmation pass. This is event-driven batch confirmation, not
+those commands finish executing, so each later relevant apply/failure tag
+rearms one final quiet confirmation pass. If a reused snapshot completes before
+the queued spell lands, the controller requests a fresh confirmation. This is
+event-driven batch confirmation, not
 continuous polling. Live `{recon}` and `{recoff}` records still update recovery
 state immediately.
 
@@ -127,8 +129,9 @@ another player are ignored.
 In its absence, every observed Queueing line rearms a two-second quiet timer.
 When the queue settles, the controller requests an affected/recovery snapshot,
 or reuses one already in progress, to confirm all observed queued abilities and
-terminal failures. Since the queued commands execute after their queue messages
-are printed, a later apply/failure tag rearms a final confirmation pass; this
+terminal failures. If an in-progress snapshot completes too early, it schedules
+one more quiet confirmation pass. Since the queued commands execute after their
+queue messages are printed, a later relevant apply/failure tag rearms a final pass; this
 prevents an early partial snapshot from permanently holding the lock. A partial,
 malformed, timed-out, or failed confirmation still preserves the outstanding
 lock and cannot submit a duplicate batch without new server progress. Queue
@@ -155,7 +158,9 @@ documented `spellup learned` batch after the current batch completes and the
 minimum interval passes; already-affected is satisfied; recoveries, resources,
 room changes, and fresh standing status are awaited where applicable. Unknown,
 disabled, unknown-spell, invalid-target, or repeated unresolved failures pause
-automation until Resume.
+automation until Resume. Failures for other self-casts are ignored once the
+server has identified this batch's queued targets. A paused failure names the
+ability and spell number so the user can identify the blocker.
 
 ## Window, persistence, and boundaries
 

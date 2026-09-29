@@ -40,7 +40,7 @@ function Spellup.new(api, character, spells, settings)
   local paused, blocked
   local initial = false
   local observed, unresolvedQueued = false, 0
-  local confirmationRequested, lastConfirmation = false, nil
+  local confirmationRequested, confirmationReused, lastConfirmation = false, false, nil
   local confirmationAttempts = 0
   local baseline, namedTargets, resolvedUnknown = {}, {}, {}
   local targets, settled = {}, {}
@@ -108,7 +108,7 @@ function Spellup.new(api, character, spells, settings)
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled = {}, {}
     observed, unresolvedQueued = false, 0
-    confirmationRequested = false
+    confirmationRequested, confirmationReused = false, false
     lastConfirmation = reason or "Spellup complete"
     if paused == "Batch completion unconfirmed" then paused = nil end
     self.lastError = nil
@@ -140,10 +140,12 @@ function Spellup.new(api, character, spells, settings)
       confirmationRequested = true
       confirmationAttempts = confirmationAttempts + 1
       if status.busy or status.pending then
+        confirmationReused = true
         lastConfirmation = "Using in-progress spell synchronization"
         emit()
         return
       end
+      confirmationReused = false
       local ok, message = spells:confirm()
       if ok then
         lastConfirmation = "Confirmation snapshot requested"
@@ -156,7 +158,7 @@ function Spellup.new(api, character, spells, settings)
 
   local function rearmConfirmation()
     if not self.enabled or not inflight or not observed then return end
-    confirmationRequested = false
+    confirmationRequested, confirmationReused = false, false
     scheduleConfirmation()
   end
 
@@ -193,7 +195,7 @@ function Spellup.new(api, character, spells, settings)
     observed, unresolvedQueued = false, 0
     cancel(confirmationTimer)
     confirmationTimer = nil
-    confirmationRequested, lastConfirmation = false, nil
+    confirmationRequested, confirmationReused, lastConfirmation = false, false, nil
     confirmationAttempts = 0
     failures, blocked = {}, nil
     pendingAt, initial = nil, false
@@ -351,7 +353,7 @@ function Spellup.new(api, character, spells, settings)
       on("vitals", "aardwolf-vibe.character.updated.vitals", vitalsChanged, token)
       on("reset", "aardwolf-vibe.spells.reset", function()
         cancel(confirmationTimer); confirmationTimer = nil
-        confirmationRequested = false
+        confirmationRequested, confirmationReused = false, false
         confirmationAttempts = 0
         lastConfirmation = "Cancelled by spell state reset"
         if not connected() then
@@ -386,6 +388,12 @@ function Spellup.new(api, character, spells, settings)
             finish("Confirmed by synchronized effects")
           elseif confirmationRequested then
             lastConfirmation = "Confirmation snapshot incomplete"
+            if confirmationReused then
+              -- An unrelated effect update can finish its snapshot before the
+              -- queued spell lands. Request one snapshot owned by this batch.
+              confirmationRequested, confirmationReused = false, false
+              scheduleConfirmation()
+            end
             emit()
           end
         end
@@ -459,6 +467,11 @@ function Spellup.new(api, character, spells, settings)
       end, token)
       on("failure", "aardwolf-vibe.spells.failure", function(_, event)
         if not inflight or type(event) ~= "table" or event.target ~= 0 then return end
+        -- Spell tags also report self-casts outside this server-owned batch.
+        -- Once the server has named every queued target, ignore other IDs.
+        if not observed and not spells:isTrackedSpellup(event.id) then return end
+        if observed and unresolvedQueued == 0 and not targets[event.id]
+            and not namedTargets[event.id] and not resolvedUnknown[event.id] then return end
         rearmConfirmation()
         local reason = event.reason
         if reason == 1 then
@@ -476,11 +489,15 @@ function Spellup.new(api, character, spells, settings)
         if reason == 2 then targets[event.id] = nil; emit(); return end
         local key = tostring(event.id) .. ":" .. tostring(reason)
         failures[key] = (failures[key] or 0) + 1
-        local text = FAILURE_TEXT[reason] or ("Unknown failure code " .. tostring(reason))
+        local ability = spells:get(event.id)
+        local name = ability and ability.name:gsub("%c", "") or "Spell"
+        local text = (FAILURE_TEXT[reason] or ("Unknown failure code " .. tostring(reason)))
+          .. " (" .. name .. " #" .. tostring(event.id) .. ")"
         local vitals = select(1, character:getGroup("vitals")) or {}
         local room = type(api.gmcp) == "table" and api.gmcp.room
           and api.gmcp.room.info and api.gmcp.room.info.num
-        blocked = {reason = text, code = reason, recovery = event.recovery,
+        blocked = {reason = text, code = reason, id = event.id, spell = name,
+          recovery = event.recovery,
           room = room,
           value = reason == 4 and vitals.mana or reason == 12 and vitals.moves or nil}
         if reason == 8 or reason == 9 or reason == 11 or not FAILURE_TEXT[reason]
@@ -521,7 +538,7 @@ function Spellup.new(api, character, spells, settings)
     baseline, namedTargets, resolvedUnknown = {}, {}, {}
     targets, settled, failures = {}, {}, {}
     observed, unresolvedQueued = false, 0
-    confirmationRequested, lastConfirmation = false, nil
+    confirmationRequested, confirmationReused, lastConfirmation = false, false, nil
     confirmationAttempts = 0
     return true
   end

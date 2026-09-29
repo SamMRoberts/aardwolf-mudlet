@@ -892,6 +892,51 @@ class SpellupTests(unittest.TestCase):
             and controller:status().lastConfirmation=='Confirmed by synchronized effects')
         """)
 
+    def test_forgotten_effect_expiry_does_not_finish_confirmation_early(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronizeRows({
+            '72,Shield,2,0,100,-1,1',
+            '333,Underwater breathing,2,0,86,-1,1',
+          }, {'72,Shield,2,0,100,-1,1'}, {
+            '333,Underwater breathing,2,90,86,-1,1',
+          })
+          assert(not spells:isTrackedSpellup(333))
+          assert(controller:runOnce())
+          feed('{sfail}333,0,11,-1')
+          assert(not controller:status().paused and not controller:status().blocked)
+          feed('Queueing spell : Shield.')
+          feed('{affoff}333');advance(0)
+          feed('{sfail}333,0,11,-1')
+          assert(not controller:status().paused and not controller:status().blocked)
+          assert(commandCount('slist affected noprompt')==2)
+          advance(2)
+          assert(controller:status().confirmationRequested)
+          deltaRows({}, {})
+          local status=controller:status()
+          assert(status.inflight and status.confirmationPending
+            and not status.confirmationRequested)
+          advance(2)
+          assert(commandCount('slist affected noprompt')==3)
+          deltaRows({'72,Shield,2,120,100,-1,1'}, {})
+          assert(not controller:status().inflight)
+          assert(controller:status().lastConfirmation=='Confirmed by synchronized effects')
+          assert(commandCount('spellup learned')==1)
+        """)
+
+    def test_queued_spell_failure_identifies_the_spell(self):
+        lua = self.runtime()
+        lua.execute("""
+          synchronize();assert(controller:runOnce())
+          feed('Queueing spell : Shield.')
+          feed('{sfail}72,0,11,-1')
+          local status=controller:status()
+          assert(status.paused=='Spell is disabled (Shield #72)')
+          assert(status.blocked.id==72 and status.blocked.spell=='Shield')
+          feed('{spellup-end}')
+          assert(not controller:status().inflight)
+        """)
+
     def test_late_batch_progress_rearms_confirmation_until_queue_drains(self):
         lua = self.runtime()
         lua.execute("""
