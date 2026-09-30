@@ -227,6 +227,12 @@ aardwolf-vibe queue hide
 aardwolf-vibe queue status
 port
 port config
+aardwolf-vibe hunt
+aardwolf-vibe hunt target <mob name>
+aardwolf-vibe hunt on
+aardwolf-vibe hunt off
+aardwolf-vibe hunt clear
+aardwolf-vibe hunt status
 aardwolf-vibe help
 aardwolf-vibe help show
 aardwolf-vibe help hide
@@ -272,6 +278,16 @@ manual restoration. When the offhand was empty, it sends
 operation can run at a time, and temporary captures are cleared on disconnect,
 reload, or uninstall. A malformed portal setting is preserved until Clear is
 chosen in the settings window.
+
+`aardwolf-vibe hunt target <mob name>` selects a session-only target, and
+`aardwolf-vibe hunt on` sends `hunt <mob name>` after each confirmed move to a
+different GMCP room number. The cached room or first update establishes a baseline;
+duplicate updates do not send another hunt. `off` retains the target, `clear`
+removes it and turns automatic hunting off, and bare `aardwolf-vibe hunt` shows
+status. Disconnect, reload, and uninstall clear the target and opt-in. Every
+recognized hunt direction, including a manual `hunt` result, gains a bold,
+colored arrow line immediately below the server response. Other hunt output is
+left alone. See [`docs/hunt.md`](docs/hunt.md) for details.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its
 metadata. A numeric room collision, a same-name foreign area, or a known

@@ -31,6 +31,7 @@ local MobDeathsStore = resource("mob-deaths-store")
 local MobDeaths = resource("mob-deaths")
 local CommandQueue = resource("command-queue")
 local Portal = resource("portal")
+local Hunt = resource("hunt")
 local Mapper = resource("mapper")
 local MapNavigation = resource("map-navigation")
 AardwolfVibe.settings = Settings.new(_G)
@@ -63,6 +64,7 @@ AardwolfVibe.plugins.questTracker = QuestTracker.new(
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.portal = Portal.new(_G, AardwolfVibe.settings)
+AardwolfVibe.plugins.hunt = Hunt.new(_G)
 AardwolfVibe.plugins.mapper = Mapper.new(
   _G, AardwolfVibe.settings, AardwolfVibe.plugins.workspace,
   AardwolfVibe.plugins.mapperDisplay)
@@ -147,6 +149,11 @@ function AardwolfVibe.start()
     local status = AardwolfVibe.plugins.portal:status()
     echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
   end
+  local huntOK = AardwolfVibe.plugins.hunt:start()
+  if not huntOK then
+    local status = AardwolfVibe.plugins.hunt:status()
+    echo("Aardwolf Vibe: " .. tostring(status.lastError) .. "\n")
+  end
   local navigationOK = AardwolfVibe.plugins.mapNavigation:start()
   if not navigationOK then
     local status = AardwolfVibe.plugins.mapNavigation:status()
@@ -154,13 +161,15 @@ function AardwolfVibe.start()
   end
   if AardwolfVibe.active then
     return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK
-      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and portalOK and navigationOK and settingsOK
+      and characterWindowOK and asciiOK and helpOK and chatOK and queueOK and portalOK and huntOK
+      and navigationOK and settingsOK
       and questsOK and mobsOK
   end
   AardwolfVibe.active = true
   local mapperOK = not settingsOK or not enabled or AardwolfVibe.plugins.mapper:start()
   return characterOK and workspaceOK and mapDisplayOK and spellsOK and spellupOK and buffsOK and characterWindowOK
-    and asciiOK and helpOK and chatOK and queueOK and portalOK and navigationOK and settingsOK and mapperOK
+    and asciiOK and helpOK and chatOK and queueOK and portalOK and huntOK and navigationOK
+    and settingsOK and mapperOK
     and questsOK and mobsOK
 end
 
@@ -176,6 +185,7 @@ function AardwolfVibe.stop()
   local mapDisplayOK = stopPlugin(plugins.mapperDisplay)
   local queueOK = stopPlugin(plugins.commandQueue)
   local portalOK = stopPlugin(plugins.portal)
+  local huntOK = stopPlugin(plugins.hunt)
   local questsOK = stopPlugin(plugins.questTracker)
   local mobsOK = stopPlugin(plugins.mobDeaths)
   local chatOK = stopPlugin(plugins.chat)
@@ -188,7 +198,8 @@ function AardwolfVibe.stop()
   local characterOK = stopPlugin(plugins.character)
   local workspaceOK = stopPlugin(plugins.workspace)
   AardwolfVibe.active = false
-  return navigationOK and mapperOK and mapDisplayOK and queueOK and portalOK and chatOK and helpOK and asciiOK
+  return navigationOK and mapperOK and mapDisplayOK and queueOK and portalOK and huntOK
+    and chatOK and helpOK and asciiOK
     and characterWindowOK and buffsOK and spellupOK and spellsOK and characterOK and workspaceOK
     and questsOK and mobsOK
 end
@@ -197,6 +208,34 @@ function AardwolfVibe.handlePortCommand(action)
   local portal = AardwolfVibe.plugins.portal
   if action == "config" then return portal:openConfig() end
   return portal:use()
+end
+
+function AardwolfVibe.handleHuntCommand(action, target)
+  local hunt = AardwolfVibe.plugins.hunt
+  if not action or action == "status" then
+    local status = hunt:status()
+    echo("Aardwolf Vibe hunt: automatic " .. (status.automatic and "on" or "off")
+      .. "; target " .. (status.target or "not set")
+      .. (status.lastError and ("; " .. status.lastError) or "") .. ".\n")
+    return status
+  end
+  local ok, message
+  if action == "target" then ok, message = hunt:setTarget(target)
+  elseif action == "on" or action == "off" then
+    ok, message = hunt:setAutomatic(action == "on")
+  elseif action == "clear" then ok, message = hunt:clear()
+  else
+    echo("Usage: aardwolf-vibe hunt target <mob name>|on|off|clear|status\n")
+    return false
+  end
+  if not ok then
+    echo("Aardwolf Vibe hunt: " .. tostring(message) .. "\n")
+    return false, message
+  end
+  if action == "target" then echo("Aardwolf Vibe hunt target: " .. hunt:status().target .. "\n")
+  elseif action == "clear" then echo("Aardwolf Vibe hunt target cleared; automatic hunting off.\n")
+  else echo("Aardwolf Vibe automatic hunting " .. action .. ".\n") end
+  return true
 end
 
 function AardwolfVibe.handleMobsCommand(action)

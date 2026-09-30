@@ -30,6 +30,7 @@ class LifecycleTests(unittest.TestCase):
           saved=nil;spellupSaved=nil;spellTagsSaved=nil
           queueStarts=0;queueStops=0;queueShows=0;queueHides=0
           portalStarts=0;portalStops=0;portalUses=0;portalConfigs=0
+          huntStarts=0;huntStops=0;huntTarget=nil;huntAuto=false
           navigationStarts=0;navigationStops=0
           workspaceStarts=0;workspaceStops=0;workspaceEnabled=false
           mapDisplayStarts=0;mapDisplayStops=0
@@ -301,6 +302,26 @@ class LifecycleTests(unittest.TestCase):
               status=function() return {enabled=true,lastError=nil} end,
             }
           end}
+          HuntFactory={new=function()
+            return {
+              start=function() huntStarts=huntStarts+1;return true end,
+              stop=function()
+                huntStops=huntStops+1;huntTarget=nil;huntAuto=false;return true
+              end,
+              setTarget=function(_,value)
+                if not value or value=="" then return false,"Invalid hunt target" end
+                huntTarget=value;return true
+              end,
+              setAutomatic=function(_,value)
+                if value and not huntTarget then return false,"Set a hunt target first" end
+                huntAuto=value;return true
+              end,
+              clear=function() huntTarget=nil;huntAuto=false;return true end,
+              status=function()
+                return {enabled=true,automatic=huntAuto,target=huntTarget,lastError=nil}
+              end,
+            }
+          end}
           function dofile(path)
             if string.match(path,"/settings.lua$") then return SettingsFactory end
             if string.match(path,"/workspace.lua$") then return WorkspaceFactory end
@@ -318,6 +339,7 @@ class LifecycleTests(unittest.TestCase):
             if string.match(path,"/mob%-deaths.lua$") then return MobDeathsFactory end
             if string.match(path,"/command%-queue.lua$") then return QueueFactory end
             if string.match(path,"/portal.lua$") then return PortalFactory end
+            if string.match(path,"/hunt.lua$") then return HuntFactory end
             if string.match(path,"/map%-navigation.lua$") then return NavigationFactory end
             if string.match(path,"/character.lua$") then return CharacterFactory end
             if string.match(path,"/mapper.lua$") then return MapperFactory end
@@ -387,7 +409,7 @@ class LifecycleTests(unittest.TestCase):
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(mapperStarts==1 and characterStarts==1 and barsStarts==1 and asciiStarts==1
             and helpStarts==1 and chatStarts==1 and queueStarts==1 and portalStarts==1
-            and navigationStarts==1)
+            and huntStarts==1 and navigationStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
@@ -448,6 +470,22 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleMobsCommand("status").enabled)
         ''')
 
+    def test_hunt_commands_route_session_controls(self):
+        lua = self.runtime()
+        lua.execute('''
+          AardwolfVibeLifecycle("sysLoadEvent")
+          assert(not AardwolfVibe.handleHuntCommand("on"))
+          assert(not AardwolfVibe.handleHuntCommand("target", ""))
+          assert(AardwolfVibe.handleHuntCommand("target", "priestess"))
+          assert(huntTarget=="priestess")
+          assert(AardwolfVibe.handleHuntCommand("on") and huntAuto)
+          assert(AardwolfVibe.handleHuntCommand("status").automatic)
+          assert(AardwolfVibe.handleHuntCommand().target=="priestess")
+          assert(AardwolfVibe.handleHuntCommand("off") and not huntAuto)
+          assert(AardwolfVibe.handleHuntCommand("clear") and huntTarget==nil)
+          assert(not AardwolfVibe.handleHuntCommand("unknown"))
+        ''')
+
     def test_mapper_search_and_locate_report_api_failures(self):
         lua = self.runtime()
         lua.execute('''
@@ -472,14 +510,15 @@ class LifecycleTests(unittest.TestCase):
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysInstallPackage","aardwolf-vibe")
           assert(mapperStarts==0 and characterStarts==1 and barsStarts==1 and asciiStarts==1
-            and helpStarts==1 and chatStarts==1 and navigationStarts==1)
+            and helpStarts==1 and chatStarts==1 and huntStarts==1 and navigationStarts==1)
           assert(spellsStarts==1 and spellupStarts==1 and buffsStarts==1)
           assert(helpRequests==1 and #sentCommands==0)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(AardwolfVibe.active)
           AardwolfVibeLifecycle("sysUninstallPackage","aardwolf-vibe")
           assert(mapperStops==1 and characterStops==1 and barsStops==1 and asciiStops==1
-            and helpStops==1 and chatStops==1 and portalStops==1 and navigationStops==1)
+            and helpStops==1 and chatStops==1 and portalStops==1 and huntStops==1
+            and navigationStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(AardwolfVibe==nil and AardwolfVibeLifecycle==nil)
@@ -492,12 +531,13 @@ class LifecycleTests(unittest.TestCase):
         lua.execute('''
           assert(table.concat(stopOrder,",")=="navigation,mapper,queue,chat,help,ascii,character-window,buffs,spellup,spells,character")
           assert(chatStops==1 and helpStops==1 and asciiStops==1 and barsStops==1
-            and characterStops==1 and mapperStops==1 and portalStops==1)
+            and characterStops==1 and mapperStops==1 and portalStops==1 and huntStops==1)
           assert(spellsStops==1 and spellupStops==1 and buffsStops==1)
           assert(not AardwolfVibe.active)
           AardwolfVibeLifecycle("sysLoadEvent")
           assert(chatStarts==2 and helpStarts==2 and asciiStarts==2 and barsStarts==2
-            and characterStarts==2 and mapperStarts==2 and portalStarts==2)
+            and characterStarts==2 and mapperStarts==2 and portalStarts==2
+            and huntStarts==2)
           assert(asciiShows==1 and mapWidgetOpens==1)
           assert(#sentCommands==0)
         ''')

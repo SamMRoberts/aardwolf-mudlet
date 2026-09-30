@@ -40,6 +40,16 @@
     "regex": "^port(?: (config))?$"
   },
   {
+    "name": "hunt-target",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe hunt target(?: (.*))?$"
+  },
+  {
+    "name": "hunt",
+    "isActive": "yes",
+    "regex": "^aardwolf-vibe hunt(?: (on|off|status|clear))?$"
+  },
+  {
     "name": "quests",
     "isActive": "yes",
     "regex": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$"

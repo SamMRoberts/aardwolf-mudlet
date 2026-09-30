@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.71")
+        self.assertEqual(metadata["version"], "0.7.74")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("map run navigation", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
@@ -23,6 +23,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("font and size settings", metadata["description"])
         self.assertIn("command queue dock", metadata["description"])
         self.assertIn("configurable held-portal travel", metadata["description"])
+        self.assertIn("session-only hunt guidance", metadata["description"])
         self.assertIn("default docked workspace", metadata["description"])
         self.assertIn("spellup maintenance", metadata["description"])
         self.assertIn("quest tracker", metadata["description"])
@@ -45,6 +46,8 @@ class PackageSourceTests(unittest.TestCase):
                 "chat": "^aardwolf-vibe chat(?: (show|hide|status|config))?$",
                 "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
                 "port": "^port(?: (config))?$",
+                "hunt-target": "^aardwolf-vibe hunt target(?: (.*))?$",
+                "hunt": "^aardwolf-vibe hunt(?: (on|off|status|clear))?$",
                 "quests": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$",
                 "mobs": "^aardwolf-vibe mobs(?: (show|hide|status))?$",
                 "mobs-search": "^aardwolf-vibe mobs search (name|area|levels) (.+)$",
@@ -71,6 +74,7 @@ class PackageSourceTests(unittest.TestCase):
         self.assertIn("AardwolfVibe.plugins.mobDeaths", source)
         self.assertIn("AardwolfVibe.plugins.commandQueue", source)
         self.assertIn("AardwolfVibe.plugins.portal", source)
+        self.assertIn("AardwolfVibe.plugins.hunt", source)
         self.assertIn("AardwolfVibe.plugins.workspace", source)
         self.assertIn("AardwolfVibe.plugins.mapperDisplay", source)
         self.assertIn("AardwolfVibe.plugins.spells", source)
