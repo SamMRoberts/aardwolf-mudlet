@@ -20,6 +20,7 @@ class HuntTests(unittest.TestCase):
     def test_config_window_sets_clears_and_toggles_target(self):
         lua = self.runtime()
         lua.execute('''
+          failFormattedEcho=true
           assert(hunt:openConfig())
           local window=windows["aardwolf-vibe.hunt.window"]
           assert(window and window.visible and window.cons.dockPosition=="right")

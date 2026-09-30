@@ -48,18 +48,18 @@ function Hunt.new(api)
     if not window then return end
     local state = self.automatic and "ON" or "OFF"
     local target = self.target or "not set"
-    statusLabel:echo("Auto-hunt <b>" .. state .. "</b> · Target: " .. escape(target))
+    statusLabel:rawEcho("Auto-hunt <b>" .. state .. "</b> · Target: " .. escape(target))
     statusLabel:setStyleSheet("QLabel { background: #0f1721; color: "
       .. (self.automatic and "#a9efd4" or "#c5d2df")
       .. "; font-size: 11px; qproperty-wordWrap: true; }")
-    toggleButton:echo("<center>" .. (self.automatic and "Turn Off" or "Turn On")
+    toggleButton:rawEcho("<center>" .. (self.automatic and "Turn Off" or "Turn On")
       .. "</center>")
     toggleButton:setStyleSheet("QLabel { background: "
       .. (self.automatic and "#236556" or "#285b83")
       .. "; color: #ffffff; border: 1px solid #6d9cae; border-radius: 6px; "
       .. "padding: 5px; font-weight: bold; qproperty-alignment: 'AlignCenter'; } "
       .. "QLabel:hover { background: #397a8b; color: #ffffff; }")
-    notice:echo(escape(message or "Session only. Hunts after each new room."))
+    notice:rawEcho(escape(message or "Session only. Hunts after each new room."))
   end
 
   local function closeWindow()
@@ -174,7 +174,7 @@ function Hunt.new(api)
         x = 14, y = 10, width = "100%-28", height = 28}), window)
       heading:setStyleSheet("QLabel { background: #0f1721; color: #eef5fc; "
         .. "font-size: 15px; font-weight: bold; }")
-      heading:echo("Hunt target")
+      heading:rawEcho("Hunt target")
       stage = "create input"
       input = api.Geyser.CommandLine:new(coloredWidget({name = OWNER .. ".input",
         x = 14, y = 43, width = "100%-28", height = 30}), window)
@@ -199,7 +199,7 @@ function Hunt.new(api)
           .. "border: 1px solid #4b657d; border-radius: 6px; padding: 5px; "
           .. "qproperty-alignment: 'AlignCenter'; } "
           .. "QLabel:hover { background: #345371; color: #ffffff; }")
-        label:echo("<center>" .. text .. "</center>")
+        label:rawEcho("<center>" .. text .. "</center>")
         label:setClickCallback(callback)
         return label
       end

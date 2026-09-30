@@ -81,7 +81,11 @@ function Geyser.Label:new(cons)
   if failWidget == cons.name then error("widget creation failed") end
   local widget = {cons = cons}
   function widget:setStyleSheet(value) self.style = value end
-  function widget:echo(value) self.text = value end
+  function widget:echo(value)
+    if failFormattedEcho then error("Geyser formatted echo color parser failed") end
+    self.text = value
+  end
+  function widget:rawEcho(value) self.text = value end
   function widget:setClickCallback(callback) self.callback = callback end
   widgets[cons.name] = widget
   return widget
