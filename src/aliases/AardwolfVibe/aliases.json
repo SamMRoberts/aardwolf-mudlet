@@ -47,7 +47,7 @@
   {
     "name": "hunt",
     "isActive": "yes",
-    "regex": "^aardwolf-vibe hunt(?: (on|off|status|clear))?$"
+    "regex": "^aardwolf-vibe hunt(?: (on|off|status|clear|config))?$"
   },
   {
     "name": "quests",

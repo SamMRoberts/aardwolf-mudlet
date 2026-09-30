@@ -17,6 +17,80 @@ class HuntTests(unittest.TestCase):
         lua.execute("hunt=Hunt.new(_G);assert(hunt:start())")
         return lua
 
+    def test_config_window_sets_clears_and_toggles_target(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(hunt:openConfig())
+          local window=windows["aardwolf-vibe.hunt.window"]
+          assert(window and window.visible and window.cons.dockPosition=="floating")
+          assert(window.cons.width==440 and window.cons.height==200)
+          assert(widgets["aardwolf-vibe.hunt.background"].style:find("background: #0f1721",1,true))
+          assert(widgets["aardwolf-vibe.hunt.heading"].style:find("color: #eef5fc",1,true))
+          local field=widgets["aardwolf-vibe.hunt.input"]
+          assert(field.style:find("background: #0e1a24; color: #edf5fa",1,true))
+          assert(field.style:find("selection-color: #ffffff",1,true))
+          field.text="  an Ivarian priestess  "
+          widgets["aardwolf-vibe.hunt.button.Save"].callback()
+          assert(hunt:status().target=="an Ivarian priestess")
+          assert(field.text=="an Ivarian priestess")
+          assert(not hunt:status().automatic and #commands==0)
+          widgets["aardwolf-vibe.hunt.button.Toggle"].callback()
+          assert(hunt:status().automatic)
+          assert(widgets["aardwolf-vibe.hunt.button.Toggle"].text:find("Turn Off",1,true))
+          room(1);room(2)
+          assert(commands[1].command=="hunt an Ivarian priestess")
+          widgets["aardwolf-vibe.hunt.button.Toggle"].callback()
+          assert(not hunt:status().automatic)
+          widgets["aardwolf-vibe.hunt.button.Clear"].callback()
+          assert(hunt:status().target==nil and field.text=="")
+          assert(not hunt:status().automatic)
+          assert(#commands==1)
+          widgets["aardwolf-vibe.hunt.button.Toggle"].callback()
+          assert(not hunt:status().automatic)
+          assert(widgets["aardwolf-vibe.hunt.notice"].text:find("Invalid hunt target",1,true))
+          field.text="priestess"
+          field.action(field.text)
+          assert(hunt:status().target=="priestess")
+          field.text="new priestess"
+          widgets["aardwolf-vibe.hunt.button.Toggle"].callback()
+          assert(hunt:status().target=="new priestess" and hunt:status().automatic)
+          widgets["aardwolf-vibe.hunt.button.Close"].callback()
+          assert(not window.visible)
+          assert(hunt:openConfig() and window.visible)
+          assert(windows["aardwolf-vibe.hunt.window"]==window)
+          assert(field.text=="new priestess")
+        ''')
+
+    def test_config_window_escapes_errors_and_resets_on_disconnect(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(hunt:openConfig())
+          local field=widgets["aardwolf-vibe.hunt.input"]
+          field.text="<bad>"
+          widgets["aardwolf-vibe.hunt.button.Save"].callback()
+          assert(hunt:status().target=="<bad>")
+          assert(widgets["aardwolf-vibe.hunt.status"].text:find("&lt;bad&gt;",1,true))
+          assert(hunt:setAutomatic(true))
+          fire("sysDisconnectionEvent")
+          assert(field.text=="" and hunt:status().target==nil)
+          assert(not hunt:status().automatic)
+          assert(widgets["aardwolf-vibe.hunt.status"].text:find("OFF",1,true))
+          assert(hunt:stop())
+          assert(windows["aardwolf-vibe.hunt.window"]==nil)
+          assert(count(handlers)==0 and count(triggers)==0 and count(modules)==0)
+        ''')
+
+    def test_config_window_partial_creation_cleans_up(self):
+        lua = self.runtime()
+        lua.execute('''
+          failWidget="aardwolf-vibe.hunt.notice"
+          assert(not hunt:openConfig())
+          assert(windows["aardwolf-vibe.hunt.window"]==nil)
+          assert(hunt:status().enabled)
+          failWidget=nil
+          assert(hunt:openConfig())
+        ''')
+
     def test_target_controls_and_validation(self):
         lua = self.runtime()
         lua.execute('''

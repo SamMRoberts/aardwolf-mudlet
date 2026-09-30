@@ -1,6 +1,7 @@
 local Hunt = {}
 
 local OWNER = "aardwolf-vibe.hunt"
+local WINDOW_NAME = OWNER .. ".window"
 local RESULT_TRIGGER = [[^You are confident that .+ passed through here, heading (north|east|south|west|up|down)\.?$]]
 local DIRECTIONS = {
   north = {"↑", "NORTH"}, east = {"→", "EAST"},
@@ -8,6 +9,11 @@ local DIRECTIONS = {
   up = {"⇧", "UP"}, down = {"⇩", "DOWN"},
 }
 local EVENTS = {"room", "connect", "disconnect", "protocol"}
+
+local function escape(value)
+  return tostring(value):gsub("&", "&amp;"):gsub("<", "&lt;")
+    :gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("'", "&#39;")
+end
 
 local function targetName(value, separator)
   if type(value) ~= "string" then return nil end
@@ -29,6 +35,30 @@ function Hunt.new(api)
   local self = {enabled = false, automatic = false, target = nil, lastError = nil}
   local lastRoom, triggerID, subscribed = nil, nil, false
   local handlers, generation = {}, 0
+  local window, input, statusLabel, notice, toggleButton
+
+  local function renderWindow(message)
+    if not window then return end
+    local state = self.automatic and "ON" or "OFF"
+    local target = self.target or "not set"
+    statusLabel:echo("Auto-hunt <b>" .. state .. "</b> · Target: " .. escape(target))
+    statusLabel:setStyleSheet("QLabel { background: #0f1721; color: "
+      .. (self.automatic and "#a9efd4" or "#c5d2df")
+      .. "; font-size: 11px; qproperty-wordWrap: true; }")
+    toggleButton:echo("<center>" .. (self.automatic and "Turn Off" or "Turn On")
+      .. "</center>")
+    toggleButton:setStyleSheet("QLabel { background: "
+      .. (self.automatic and "#236556" or "#285b83")
+      .. "; color: #ffffff; border: 1px solid #6d9cae; border-radius: 6px; "
+      .. "padding: 5px; font-weight: bold; qproperty-alignment: 'AlignCenter'; } "
+      .. "QLabel:hover { background: #397a8b; color: #ffffff; }")
+    notice:echo(escape(message or "Session only. Hunts after each new room."))
+  end
+
+  local function closeWindow()
+    if window then pcall(window.delete, window) end
+    window, input, statusLabel, notice, toggleButton = nil, nil, nil, nil, nil
+  end
 
   local function report(message)
     self.lastError = tostring(message)
@@ -37,6 +67,8 @@ function Hunt.new(api)
 
   local function resetSession()
     self.automatic, self.target, self.lastError, lastRoom = false, nil, nil, nil
+    if input then input:print("") end
+    renderWindow()
   end
 
   local function currentRoom()
@@ -88,6 +120,8 @@ function Hunt.new(api)
     local target = targetName(value, separator)
     if not target then return false, "Invalid hunt target" end
     self.target, self.lastError = target, nil
+    if input then input:print(target) end
+    renderWindow()
     return true
   end
 
@@ -96,11 +130,97 @@ function Hunt.new(api)
     if value and not self.enabled then return false, "Hunt guidance is not active" end
     if value and not self.target then return false, "Set a hunt target first" end
     self.automatic, self.lastError = value, nil
+    renderWindow()
     return true
   end
 
   function self:clear()
     self.target, self.automatic, self.lastError = nil, false, nil
+    if input then input:print("") end
+    renderWindow()
+    return true
+  end
+
+  function self:openConfig()
+    if not self.enabled then return false, "Hunt guidance is not active" end
+    if window then
+      input:print(self.target or "")
+      renderWindow()
+      window:show()
+      if type(window.raise) == "function" then window:raise() end
+      return true
+    end
+    local ok, message = pcall(function()
+      assert(api.Geyser and api.Geyser.UserWindow and api.Geyser.Label
+        and api.Geyser.CommandLine, "Geyser hunt controls are unavailable")
+      window = api.Geyser.UserWindow:new({name = WINDOW_NAME, titleText = "Hunt",
+        x = 130, y = 110, width = 440, height = 200, restoreLayout = false,
+        autoDock = false, docked = false, dockPosition = "floating"})
+      window:setColor(15, 23, 33, 255)
+      local background = api.Geyser.Label:new({name = OWNER .. ".background",
+        x = 0, y = 0, width = "100%", height = "100%"}, window)
+      background:setStyleSheet("QLabel { background: #0f1721; }")
+      local heading = api.Geyser.Label:new({name = OWNER .. ".heading",
+        x = 14, y = 10, width = "100%-28", height = 28}, window)
+      heading:setStyleSheet("QLabel { background: #0f1721; color: #eef5fc; "
+        .. "font-size: 15px; font-weight: bold; }")
+      heading:echo("Hunt target")
+      input = api.Geyser.CommandLine:new({name = OWNER .. ".input",
+        x = 14, y = 43, width = "100%-28", height = 30}, window)
+      input:setStyleSheet("QPlainTextEdit { background: #0e1a24; color: #edf5fa; "
+        .. "border: 1px solid #60798e; border-radius: 5px; padding: 3px 6px; "
+        .. "selection-background-color: #376d9c; selection-color: #ffffff; } "
+        .. "QPlainTextEdit:focus { border-color: #83c4f2; }")
+      input:print(self.target or "")
+      statusLabel = api.Geyser.Label:new({name = OWNER .. ".status",
+        x = 14, y = 80, width = "100%-28", height = 34}, window)
+      notice = api.Geyser.Label:new({name = OWNER .. ".notice",
+        x = 14, y = 119, width = "100%-28", height = 24}, window)
+      notice:setStyleSheet("QLabel { background: #0f1721; color: #c5d2df; "
+        .. "font-size: 11px; }")
+      local function button(name, text, x, width, callback)
+        local label = api.Geyser.Label:new({name = OWNER .. ".button." .. name,
+          x = x, y = 152, width = width, height = 34}, window)
+        label:setStyleSheet("QLabel { background: #26384b; color: #eef5fc; "
+          .. "border: 1px solid #4b657d; border-radius: 6px; padding: 5px; "
+          .. "qproperty-alignment: 'AlignCenter'; } "
+          .. "QLabel:hover { background: #345371; color: #ffffff; }")
+        label:echo("<center>" .. text .. "</center>")
+        label:setClickCallback(callback)
+        return label
+      end
+      local function save(value)
+        local submitted = type(value) == "string" and value or input:getText()
+        local saved, why = self:setTarget(submitted)
+        renderWindow(saved and "Target saved for this session." or why)
+      end
+      input:setAction(save)
+      button("Save", "Save", 14, "25%-19", save)
+      button("Clear", "Clear", "25%+4", "25%-19", function()
+        self:clear()
+        renderWindow("Target cleared; auto-hunt is off.")
+      end)
+      toggleButton = button("Toggle", "Turn On", "50%+1", "25%-19", function()
+        if self.automatic then
+          self:setAutomatic(false)
+          renderWindow("Auto-hunt is off.")
+          return
+        end
+        local saved, why = self:setTarget(input:getText())
+        if not saved then renderWindow(why); return end
+        local enabled, reason = self:setAutomatic(true)
+        renderWindow(enabled and "Auto-hunt is on." or reason)
+      end)
+      button("Close", "Close", "75%-2", "25%-12", function() window:hide() end)
+      renderWindow()
+      window:show()
+      if type(window.raise) == "function" then window:raise() end
+    end)
+    if not ok then
+      closeWindow()
+      report("Cannot open hunt controls: " .. tostring(message))
+      return false, self.lastError
+    end
     return true
   end
 
@@ -118,6 +238,7 @@ function Hunt.new(api)
     end
     handlers = {}
     if subscribed then pcall(api.gmod.disableModule, OWNER, "Room"); subscribed = false end
+    closeWindow()
     resetSession()
     return true
   end

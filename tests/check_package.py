@@ -10,7 +10,7 @@ class PackageSourceTests(unittest.TestCase):
     def test_metadata_and_native_objects(self):
         metadata = json.loads((ROOT / "mfile").read_text())
         self.assertEqual(metadata["package"], "aardwolf-vibe")
-        self.assertEqual(metadata["version"], "0.7.74")
+        self.assertEqual(metadata["version"], "0.7.75")
         self.assertIn("room-name search", metadata["description"])
         self.assertIn("map run navigation", metadata["description"])
         self.assertIn("learned special exits", metadata["description"])
@@ -47,7 +47,7 @@ class PackageSourceTests(unittest.TestCase):
                 "queue": "^aardwolf-vibe queue(?: (show|hide|status))?$",
                 "port": "^port(?: (config))?$",
                 "hunt-target": "^aardwolf-vibe hunt target(?: (.*))?$",
-                "hunt": "^aardwolf-vibe hunt(?: (on|off|status|clear))?$",
+                "hunt": "^aardwolf-vibe hunt(?: (on|off|status|clear|config))?$",
                 "quests": "^aardwolf-vibe quests(?: (show|hide|refresh|status))?$",
                 "mobs": "^aardwolf-vibe mobs(?: (show|hide|status))?$",
                 "mobs-search": "^aardwolf-vibe mobs search (name|area|levels) (.+)$",

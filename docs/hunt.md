@@ -8,7 +8,7 @@ the same cue even when automatic hunting is off. Other responses stay unchanged.
 
 ```text
 aardwolf-vibe hunt target <mob name>
-aardwolf-vibe hunt on|off|clear|status
+aardwolf-vibe hunt on|off|clear|status|config
 aardwolf-vibe hunt
 ```
 
@@ -17,6 +17,12 @@ It cannot be empty, exceed 120 bytes, or contain control characters, a
 semicolon, or the profile's command separator. `on` requires a target.
 Changing the target while automatic hunting is on affects the next hunt.
 `off` retains the target; `clear` removes it.
+
+`config` opens a small floating Geyser window with a target field, Save, Clear,
+an On/Off toggle, and Close. Turning on uses the text currently in the field;
+Save changes the target without changing the toggle. Clear removes the target
+and turns auto-hunt off. Closing and reopening the window retains the current
+session state. Errors appear below the field.
 
 Automatic hunting uses the `gmcp.room.info.num` stream separately from the
 mapper. The current cached room or first valid update is a baseline. Each later

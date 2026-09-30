@@ -212,6 +212,11 @@ end
 
 function AardwolfVibe.handleHuntCommand(action, target)
   local hunt = AardwolfVibe.plugins.hunt
+  if action == "config" then
+    local ok, message = hunt:openConfig()
+    if not ok then echo("Aardwolf Vibe hunt: " .. tostring(message) .. "\n") end
+    return ok, message
+  end
   if not action or action == "status" then
     local status = hunt:status()
     echo("Aardwolf Vibe hunt: automatic " .. (status.automatic and "on" or "off")
@@ -225,7 +230,7 @@ function AardwolfVibe.handleHuntCommand(action, target)
     ok, message = hunt:setAutomatic(action == "on")
   elseif action == "clear" then ok, message = hunt:clear()
   else
-    echo("Usage: aardwolf-vibe hunt target <mob name>|on|off|clear|status\n")
+    echo("Usage: aardwolf-vibe hunt target <mob name>|on|off|clear|status|config\n")
     return false
   end
   if not ok then

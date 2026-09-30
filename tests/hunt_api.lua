@@ -1,4 +1,5 @@
 handlers, triggers, modules, commands, messages, annotations = {}, {}, {}, {}, {}, {}
+windows, widgets = {}, {}
 gmcp = {room = {}}
 nextTrigger, failSend = 0, false
 commandSeparator = ";;"
@@ -54,4 +55,37 @@ function count(items)
   local result = 0
   for _ in pairs(items) do result = result + 1 end
   return result
+end
+
+Geyser = {UserWindow = {}, Label = {}, CommandLine = {}}
+function Geyser.UserWindow:new(cons)
+  local widget = {cons = cons, visible = false}
+  function widget:setColor() end
+  function widget:show() self.visible = true end
+  function widget:hide() self.visible = false end
+  function widget:raise() self.raised = true end
+  function widget:delete()
+    self.deleted = true
+    windows[cons.name] = nil
+  end
+  windows[cons.name] = widget
+  return widget
+end
+function Geyser.Label:new(cons)
+  if failWidget == cons.name then error("widget creation failed") end
+  local widget = {cons = cons}
+  function widget:setStyleSheet(value) self.style = value end
+  function widget:echo(value) self.text = value end
+  function widget:setClickCallback(callback) self.callback = callback end
+  widgets[cons.name] = widget
+  return widget
+end
+function Geyser.CommandLine:new(cons)
+  local widget = {cons = cons, text = ""}
+  function widget:setStyleSheet(value) self.style = value end
+  function widget:print(value) self.text = value end
+  function widget:getText() return self.text end
+  function widget:setAction(callback) self.action = callback end
+  widgets[cons.name] = widget
+  return widget
 end

@@ -30,7 +30,7 @@ class LifecycleTests(unittest.TestCase):
           saved=nil;spellupSaved=nil;spellTagsSaved=nil
           queueStarts=0;queueStops=0;queueShows=0;queueHides=0
           portalStarts=0;portalStops=0;portalUses=0;portalConfigs=0
-          huntStarts=0;huntStops=0;huntTarget=nil;huntAuto=false
+          huntStarts=0;huntStops=0;huntConfigs=0;huntTarget=nil;huntAuto=false
           navigationStarts=0;navigationStops=0
           workspaceStarts=0;workspaceStops=0;workspaceEnabled=false
           mapDisplayStarts=0;mapDisplayStops=0
@@ -317,6 +317,7 @@ class LifecycleTests(unittest.TestCase):
                 huntAuto=value;return true
               end,
               clear=function() huntTarget=nil;huntAuto=false;return true end,
+              openConfig=function() huntConfigs=huntConfigs+1;return true end,
               status=function()
                 return {enabled=true,automatic=huntAuto,target=huntTarget,lastError=nil}
               end,
@@ -483,6 +484,7 @@ class LifecycleTests(unittest.TestCase):
           assert(AardwolfVibe.handleHuntCommand().target=="priestess")
           assert(AardwolfVibe.handleHuntCommand("off") and not huntAuto)
           assert(AardwolfVibe.handleHuntCommand("clear") and huntTarget==nil)
+          assert(AardwolfVibe.handleHuntCommand("config") and huntConfigs==1)
           assert(not AardwolfVibe.handleHuntCommand("unknown"))
         ''')
 
