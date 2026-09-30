@@ -22,7 +22,8 @@ class HuntTests(unittest.TestCase):
         lua.execute('''
           assert(hunt:openConfig())
           local window=windows["aardwolf-vibe.hunt.window"]
-          assert(window and window.visible and window.cons.dockPosition=="floating")
+          assert(window and window.visible and window.cons.dockPosition=="right")
+          assert(window.cons.docked and window.cons.autoDock)
           assert(window.cons.width==440 and window.cons.height==200)
           assert(widgets["aardwolf-vibe.hunt.background"].style:find("background: #0f1721",1,true))
           assert(widgets["aardwolf-vibe.hunt.heading"].style:find("color: #eef5fc",1,true))
@@ -87,6 +88,7 @@ class HuntTests(unittest.TestCase):
           assert(not hunt:openConfig())
           assert(windows["aardwolf-vibe.hunt.window"]==nil)
           assert(hunt:status().enabled)
+          assert(hunt:status().lastError:find("create notice",1,true))
           failWidget=nil
           assert(hunt:openConfig())
         ''')

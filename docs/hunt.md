@@ -18,8 +18,8 @@ semicolon, or the profile's command separator. `on` requires a target.
 Changing the target while automatic hunting is on affects the next hunt.
 `off` retains the target; `clear` removes it.
 
-`config` opens a small floating Geyser window with a target field, Save, Clear,
-an On/Off toggle, and Close. Turning on uses the text currently in the field;
+`config` opens a small Geyser window docked on the right with a target field,
+Save, Clear, an On/Off toggle, and Close. Turning on uses the text in the field;
 Save changes the target without changing the toggle. Clear removes the target
 and turns auto-hunt off. Closing and reopening the window retains the current
 session state. Errors appear below the field.

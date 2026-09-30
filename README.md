@@ -288,7 +288,7 @@ removes it and turns automatic hunting off, and bare `aardwolf-vibe hunt` shows
 status. Disconnect, reload, and uninstall clear the target and opt-in. Every
 recognized hunt direction, including a manual `hunt` result, gains a bold,
 colored arrow line immediately below the server response. Other hunt output is
-left alone. `aardwolf-vibe hunt config` opens a compact Geyser window for the
+left alone. `aardwolf-vibe hunt config` opens a compact, right-docked Geyser window for the
 target and automatic toggle. See [`docs/hunt.md`](docs/hunt.md) for details.
 
 The mapper owns only rooms, areas, palette entries, and exits carrying its

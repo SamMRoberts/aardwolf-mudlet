@@ -58,7 +58,12 @@ function count(items)
 end
 
 Geyser = {UserWindow = {}, Label = {}, CommandLine = {}}
+local function validColors(cons)
+  assert(type(cons.color) == "string" and type(cons.fgColor) == "string"
+    and type(cons.bgColor) == "string", "Geyser requires parseable widget colors")
+end
 function Geyser.UserWindow:new(cons)
+  validColors(cons)
   local widget = {cons = cons, visible = false}
   function widget:setColor() end
   function widget:show() self.visible = true end
@@ -72,6 +77,7 @@ function Geyser.UserWindow:new(cons)
   return widget
 end
 function Geyser.Label:new(cons)
+  validColors(cons)
   if failWidget == cons.name then error("widget creation failed") end
   local widget = {cons = cons}
   function widget:setStyleSheet(value) self.style = value end
@@ -81,6 +87,7 @@ function Geyser.Label:new(cons)
   return widget
 end
 function Geyser.CommandLine:new(cons)
+  validColors(cons)
   local widget = {cons = cons, text = ""}
   function widget:setStyleSheet(value) self.style = value end
   function widget:print(value) self.text = value end
