@@ -1,7 +1,7 @@
-handlers, triggers, modules, commands, messages, annotations = {}, {}, {}, {}, {}, {}
+handlers, triggers, modules, timers, commands, messages, annotations = {}, {}, {}, {}, {}, {}, {}
 windows, widgets = {}, {}
 gmcp = {room = {}}
-nextTrigger, failSend = 0, false
+nextTrigger, nextTimer, failSend = 0, 0, false
 commandSeparator = ";;"
 
 function echo(message) messages[#messages + 1] = message end
@@ -22,6 +22,17 @@ function tempRegexTrigger(pattern, callback)
   return nextTrigger
 end
 function killTrigger(id) triggers[id] = nil; return true end
+function tempTimer(delay, callback)
+  nextTimer = nextTimer + 1
+  timers[nextTimer] = {delay = delay, callback = callback}
+  return nextTimer
+end
+function killTimer(id) timers[id] = nil; return true end
+function fireTimer(id)
+  local timer = assert(timers[id])
+  timers[id] = nil
+  timer.callback()
+end
 function fire(event, ...)
   local callbacks = {}
   for _, handler in pairs(handlers) do

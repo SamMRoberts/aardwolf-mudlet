@@ -138,6 +138,79 @@ class HuntTests(unittest.TestCase):
           room(0);room("bad");assert(#commands==3)
         ''')
 
+    def test_run_suppresses_hunts_until_running_state_and_tail_finish(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(hunt:setTarget("priestess") and hunt:setAutomatic(true))
+          room(100)
+          fire("sysDataSendRequest", "run 3n2e")
+          room(101);assert(#commands==0)
+          gmcp.char={status={state=12}}
+          fire("gmcp.char.status")
+          room(102);assert(#commands==0)
+          gmcp.char.status.state=3
+          fire("gmcp.char.status")
+          room(103);assert(#commands==0)
+          local timer=nextTimer
+          fireTimer(timer)
+          room(104);assert(#commands==1 and commands[1].command=="hunt priestess")
+          fire("sysDataSendRequest", "runto academy")
+          room(105);assert(#commands==1)
+          fireTimer(nextTimer)
+          room(106);assert(#commands==2)
+          fire("sysDataSendRequest", "run nowhere")
+          assert(next(timers))
+          fire("sysDisconnectionEvent")
+          assert(next(timers)==nil and count(handlers)==9)
+        ''')
+
+    def test_speedwalk_and_map_route_suppress_intermediate_and_final_rooms(self):
+        lua = self.runtime()
+        lua.execute('''
+          local navigation={running=false,lastTravelRoom=nil}
+          hunt:stop()
+          hunt=Hunt.new(_G,{status=function() return navigation end})
+          assert(hunt:start())
+          assert(hunt:setTarget("priestess") and hunt:setAutomatic(true))
+          room(1)
+          fire("sysSpeedwalkStarted")
+          room(2);room(3);assert(#commands==0)
+          fire("sysSpeedwalkFinished")
+          room(4);assert(#commands==0)
+          fireTimer(nextTimer)
+          room(5);assert(#commands==1)
+          navigation.running=true
+          room(6);assert(#commands==1)
+          navigation.running=false
+          navigation.lastTravelRoom=7
+          room(7);assert(#commands==1)
+          room(8);assert(#commands==2)
+          fire("sysSpeedwalkStarted")
+          room(9);assert(#commands==2)
+          fire("sysSpeedwalkStopped")
+          room(10);assert(#commands==2)
+          fireTimer(nextTimer)
+          room(11);assert(#commands==3)
+          fire("sysSpeedwalkStarted")
+          room(12);assert(#commands==3)
+          fireTimer(nextTimer) -- Mudlet's immediate speedwalk can omit a finish event.
+          room(13);assert(#commands==4)
+          assert(hunt:stop() and next(timers)==nil)
+        ''')
+
+    def test_running_state_without_observed_command_suppresses_hunts(self):
+        lua = self.runtime()
+        lua.execute('''
+          assert(hunt:setTarget("priestess") and hunt:setAutomatic(true))
+          room(1)
+          gmcp.char={status={state=12}}
+          room(2);assert(#commands==0)
+          gmcp.char.status.state=3
+          room(3);assert(#commands==1)
+          fire("sysDataSendRequest", "runner 3n")
+          room(4);assert(#commands==2)
+        ''')
+
     def test_cached_room_is_baseline_when_started_mid_session(self):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.execute(API)
@@ -203,7 +276,7 @@ class HuntTests(unittest.TestCase):
           incoming("You are confident that a mob passed through here, heading north.")
           assert(#annotations==0)
           assert(hunt:start())
-          assert(count(handlers)==4 and count(triggers)==1 and count(modules)==1)
+          assert(count(handlers)==9 and count(triggers)==1 and count(modules)==1)
           assert(hunt:stop())
         ''')
 

@@ -29,11 +29,18 @@ mapper. The current cached room or first valid update is a baseline. Each later
 change to a valid room number sends one `hunt <target>` with local command echo
 disabled. Repeated updates for the same room do not send another command. A
 failed send is reported in the main console; the next move attempts another
-hunt. The feature never
-sends movement commands.
+hunt. Auto-hunt waits while a Mudlet speedwalk, a manual `run` or `runto`, or an
+Aardwolf Vibe map route is in progress. It also skips the final travel room
+update, including one received just after a speedwalk completion event. A
+five-second quiet period follows `run`, `runto`, and Mudlet speedwalk activity;
+the next ordinary room change then resumes auto-hunt. Aardwolf's GMCP running
+state and the quiet period cover travel that has no reliable completion event.
+Manual hunt results still receive direction cues. The feature never sends
+movement commands.
 
 Target and automatic state are in memory only and clear on disconnect, reload,
-or uninstall. The room event handler, output trigger, and GMCP Room subscription
-are removed when the package stops. The direction is Aardwolf's report, not a
-guarantee that similarly named mobs refer to the intended target; see
+or uninstall. The room and travel handlers, output trigger, GMCP Room
+subscription, and travel timers are removed when the package stops. The
+direction is Aardwolf's report, not a guarantee that similarly named mobs
+refer to the intended target; see
 [Aardwolf's Hunt Trick help](https://aardwolf.com/wiki/index.php/Help/HuntTrick).

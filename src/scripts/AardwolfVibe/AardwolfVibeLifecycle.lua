@@ -64,11 +64,11 @@ AardwolfVibe.plugins.questTracker = QuestTracker.new(
 AardwolfVibe.plugins.commandQueue = CommandQueue.new(
   _G, AardwolfVibe.plugins.character)
 AardwolfVibe.plugins.portal = Portal.new(_G, AardwolfVibe.settings)
-AardwolfVibe.plugins.hunt = Hunt.new(_G)
 AardwolfVibe.plugins.mapper = Mapper.new(
   _G, AardwolfVibe.settings, AardwolfVibe.plugins.workspace,
   AardwolfVibe.plugins.mapperDisplay)
 AardwolfVibe.plugins.mapNavigation = MapNavigation.new(_G)
+AardwolfVibe.plugins.hunt = Hunt.new(_G, AardwolfVibe.plugins.mapNavigation)
 
 function AardwolfVibe.start()
   local characterOK = AardwolfVibe.plugins.character:start()

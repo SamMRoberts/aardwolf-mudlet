@@ -285,7 +285,9 @@ chosen in the settings window.
 different GMCP room number. The cached room or first update establishes a baseline;
 duplicate updates do not send another hunt. `off` retains the target, `clear`
 removes it and turns automatic hunting off, and bare `aardwolf-vibe hunt` shows
-status. Disconnect, reload, and uninstall clear the target and opt-in. Every
+status. Auto-hunt waits during Mudlet speedwalks, Aardwolf `run`/`runto`, and
+Aardwolf Vibe map routes. A brief quiet period follows speedwalks and server runs.
+Disconnect, reload, and uninstall clear the target and opt-in. Every
 recognized hunt direction, including a manual `hunt` result, gains a bold,
 colored arrow line immediately below the server response. Other hunt output is
 left alone. `aardwolf-vibe hunt config` opens a compact, right-docked Geyser window for the

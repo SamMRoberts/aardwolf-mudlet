@@ -8,7 +8,8 @@ local DIRECTIONS = {
   south = {"↓", "SOUTH"}, west = {"←", "WEST"},
   up = {"⇧", "UP"}, down = {"⇩", "DOWN"},
 }
-local EVENTS = {"room", "connect", "disconnect", "protocol"}
+local EVENTS = {"room", "connect", "disconnect", "protocol", "outgoing",
+  "status", "speedwalk-start", "speedwalk-finish", "speedwalk-stop"}
 
 local function escape(value)
   return tostring(value):gsub("&", "&amp;"):gsub("<", "&lt;")
@@ -38,11 +39,13 @@ local function roomID(value)
   return number
 end
 
-function Hunt.new(api)
+function Hunt.new(api, navigation)
   local self = {enabled = false, automatic = false, target = nil, lastError = nil}
   local lastRoom, triggerID, subscribed = nil, nil, false
   local handlers, generation = {}, 0
   local window, input, statusLabel, notice, toggleButton
+  local runActive, sawRunningState, speedwalkActive, travelTail = false, false, false, false
+  local travelTimer
 
   local function renderWindow(message)
     if not window then return end
@@ -72,8 +75,27 @@ function Hunt.new(api)
     api.echo("Aardwolf Vibe hunt: " .. self.lastError .. "\n")
   end
 
+  local function clearTravel()
+    if travelTimer then pcall(api.killTimer, travelTimer); travelTimer = nil end
+    runActive, sawRunningState, speedwalkActive, travelTail = false, false, false, false
+  end
+
+  local function armTravelQuiet(seconds)
+    if travelTimer then pcall(api.killTimer, travelTimer); travelTimer = nil end
+    local token = generation
+    local ok, id = pcall(api.tempTimer, seconds, function()
+      if self.enabled and token == generation then clearTravel() end
+    end)
+    if ok and id then travelTimer = id
+    else
+      clearTravel()
+      report("Cannot time travel completion: " .. tostring(id))
+    end
+  end
+
   local function resetSession()
     self.automatic, self.target, self.lastError, lastRoom = false, nil, nil, nil
+    clearTravel()
     if input then input:print("") end
     renderWindow()
   end
@@ -92,6 +114,15 @@ function Hunt.new(api)
     if room == lastRoom then return false end
     lastRoom = room
     if not self.automatic or not self.target then return true end
+    if runActive or speedwalkActive or travelTail then armTravelQuiet(5) end
+    local status = navigation and navigation:status() or nil
+    local character = type(api.gmcp) == "table" and api.gmcp.char or nil
+    local characterStatus = type(character) == "table" and character.status or nil
+    if runActive or speedwalkActive or travelTail
+        or (type(characterStatus) == "table" and tonumber(characterStatus.state) == 12)
+        or (status and (status.running or status.lastTravelRoom == room)) then
+      return true
+    end
     local ok, result = pcall(api.send, "hunt " .. self.target, false)
     if not ok or result == false then
       report("Could not send hunt: " .. tostring(result))
@@ -99,6 +130,38 @@ function Hunt.new(api)
     end
     self.lastError = nil
     return true
+  end
+
+  local function outgoing(_, command)
+    if type(command) ~= "string" then return end
+    local verb = command:match("^%s*(%a+)%s+")
+    if verb then verb = verb:lower() end
+    if verb == "run" or verb == "runto" then
+      runActive = true
+      sawRunningState = false
+      armTravelQuiet(5)
+    elseif speedwalkActive then
+      armTravelQuiet(5)
+    end
+  end
+
+  local function receiveStatus()
+    local character = type(api.gmcp) == "table" and api.gmcp.char or nil
+    local status = type(character) == "table" and character.status or nil
+    local state = type(status) == "table" and tonumber(status.state) or nil
+    if state == 12 then
+      runActive, sawRunningState = true, true
+      armTravelQuiet(5)
+    elseif state and sawRunningState then
+      runActive, sawRunningState, travelTail = false, false, true
+      armTravelQuiet(5)
+    end
+  end
+
+  local function finishSpeedwalk()
+    if not speedwalkActive then return end
+    speedwalkActive, travelTail = false, true
+    armTravelQuiet(5)
   end
 
   local function annotate()
@@ -253,6 +316,7 @@ function Hunt.new(api)
     end
     handlers = {}
     if subscribed then pcall(api.gmod.disableModule, OWNER, "Room"); subscribed = false end
+    clearTravel()
     closeWindow()
     resetSession()
     return true
@@ -277,10 +341,23 @@ function Hunt.new(api)
           event, handler = "sysConnectionEvent", resetSession
         elseif name == "disconnect" then
           event, handler = "sysDisconnectionEvent", resetSession
-        else
+        elseif name == "protocol" then
           event, handler = "sysProtocolDisabled", function(_, protocol)
-            if protocol == "GMCP" then lastRoom = nil end
+            if protocol == "GMCP" then lastRoom = nil; clearTravel() end
           end
+        elseif name == "outgoing" then
+          event, handler = "sysDataSendRequest", outgoing
+        elseif name == "status" then
+          event, handler = "gmcp.char.status", receiveStatus
+        elseif name == "speedwalk-start" then
+          event, handler = "sysSpeedwalkStarted", function()
+            speedwalkActive, travelTail = true, false
+            armTravelQuiet(5)
+          end
+        elseif name == "speedwalk-finish" then
+          event, handler = "sysSpeedwalkFinished", finishSpeedwalk
+        else
+          event, handler = "sysSpeedwalkStopped", finishSpeedwalk
         end
         if api.registerNamedEventHandler(OWNER, name, event, function(...)
           if self.enabled and token == generation then handler(...) end

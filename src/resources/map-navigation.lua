@@ -75,7 +75,7 @@ local function routeSegments(api, origin, directions, rooms, destination)
 end
 
 function MapNavigation.new(api)
-  local self = {enabled = false, current = nil, lastError = nil}
+  local self = {enabled = false, current = nil, lastTravelRoom = nil, lastError = nil}
   local connected, subscribed, timer, route = false, false, nil, nil
   local generation, callback, previousCallback, previousCustom = 0, nil, nil, nil
 
@@ -95,7 +95,7 @@ function MapNavigation.new(api)
   end
 
   local function reset(isConnected, reason)
-    connected, self.current = isConnected, nil
+    connected, self.current, self.lastTravelRoom = isConnected, nil, nil
     clearRoute(reason and route and reason or nil)
   end
 
@@ -138,7 +138,11 @@ function MapNavigation.new(api)
       return
     end
     self.current = id
-    if not route then return end
+    if not route then
+      if id ~= self.lastTravelRoom then self.lastTravelRoom = nil end
+      return
+    end
+    self.lastTravelRoom = id
     local segment = route.segments[route.index]
     if id == route.lastRoom then return end
     local progress
@@ -182,6 +186,7 @@ function MapNavigation.new(api)
       report(message)
       return false, self.lastError
     end
+    self.lastTravelRoom = nil
     route = {segments = segments, index = 1, progress = 0, lastRoom = self.current}
     self.lastError = nil
     return sendSegment()
@@ -254,7 +259,8 @@ function MapNavigation.new(api)
 
   function self:status()
     return {enabled = self.enabled, current = self.current,
-      running = route ~= nil, lastError = self.lastError}
+      running = route ~= nil, lastTravelRoom = self.lastTravelRoom,
+      lastError = self.lastError}
   end
 
   return self
