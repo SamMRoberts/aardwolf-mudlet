@@ -59,6 +59,7 @@ function gmod.disableModule(owner, name)
 end
 function send(command, echoCommand)
   if failSend then return false end
+  fire("sysDataSendRequest", command)
   commands[#commands + 1] = {command = command, echoCommand = echoCommand}
   return true
 end

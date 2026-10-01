@@ -3,8 +3,12 @@
 `AardwolfVibe.plugins.hunt` adds a direction cue to successful Aardwolf `hunt`
 output in the main console. It recognizes the six standard directions in the
 server line `You are confident that ... passed through here, heading north.`
-and inserts a bold arrow banner on the next line. Manual `hunt` commands receive
-the same cue even when automatic hunting is off. Other responses stay unchanged.
+and inserts a bold arrow banner on the next line. A result ending in
+`heading here!` gets a green **HERE** banner. The `<target> is here!` form gets
+that banner only after a recently sent `hunt` command, so ordinary room text
+does not count as a hunt result. Manual `hunt`
+commands receive the same cues even when automatic hunting is off. Other
+responses stay unchanged.
 
 ```text
 aardwolf-vibe hunt target <mob name>
@@ -35,7 +39,7 @@ update, including one received just after a speedwalk completion event. A
 five-second quiet period follows `run`, `runto`, and Mudlet speedwalk activity;
 the next ordinary room change then resumes auto-hunt. Aardwolf's GMCP running
 state and the quiet period cover travel that has no reliable completion event.
-Manual hunt results still receive direction cues. The feature never sends
+Manual hunt results still receive direction and HERE cues. The feature never sends
 movement commands.
 
 Target and automatic state are in memory only and clear on disconnect, reload,

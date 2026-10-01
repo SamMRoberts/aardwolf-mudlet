@@ -2,11 +2,12 @@ local Hunt = {}
 
 local OWNER = "aardwolf-vibe.hunt"
 local WINDOW_NAME = OWNER .. ".window"
-local RESULT_TRIGGER = [[^You are confident that .+ passed through here, heading (north|east|south|west|up|down)\.?$]]
+local RESULT_TRIGGER = [[^(?:You are confident that .+ passed through here, heading (?:north|east|south|west|up|down|here)[.!]?|.+ is here[.!]|You seem unable to hunt that target for some reason\.)$]]
 local DIRECTIONS = {
   north = {"↑", "NORTH"}, east = {"→", "EAST"},
   south = {"↓", "SOUTH"}, west = {"←", "WEST"},
   up = {"⇧", "UP"}, down = {"⇩", "DOWN"},
+  here = {"◆", "HERE"},
 }
 local EVENTS = {"room", "connect", "disconnect", "protocol", "outgoing",
   "status", "speedwalk-start", "speedwalk-finish", "speedwalk-stop"}
@@ -45,7 +46,7 @@ function Hunt.new(api, navigation)
   local handlers, generation = {}, 0
   local window, input, statusLabel, notice, toggleButton
   local runActive, sawRunningState, speedwalkActive, travelTail = false, false, false, false
-  local travelTimer
+  local travelTimer, huntTimer, pendingHunt
 
   local function renderWindow(message)
     if not window then return end
@@ -80,6 +81,24 @@ function Hunt.new(api, navigation)
     runActive, sawRunningState, speedwalkActive, travelTail = false, false, false, false
   end
 
+  local function clearPendingHunt()
+    if huntTimer then pcall(api.killTimer, huntTimer); huntTimer = nil end
+    pendingHunt = false
+  end
+
+  local function expectHunt()
+    clearPendingHunt()
+    local token = generation
+    local ok, id = pcall(api.tempTimer, 10, function()
+      if self.enabled and token == generation then clearPendingHunt() end
+    end)
+    if ok and id then
+      huntTimer, pendingHunt = id, true
+    else
+      report("Cannot time hunt response: " .. tostring(id))
+    end
+  end
+
   local function armTravelQuiet(seconds)
     if travelTimer then pcall(api.killTimer, travelTimer); travelTimer = nil end
     local token = generation
@@ -96,6 +115,7 @@ function Hunt.new(api, navigation)
   local function resetSession()
     self.automatic, self.target, self.lastError, lastRoom = false, nil, nil, nil
     clearTravel()
+    clearPendingHunt()
     if input then input:print("") end
     renderWindow()
   end
@@ -123,12 +143,13 @@ function Hunt.new(api, navigation)
         or (status and (status.running or status.lastTravelRoom == room)) then
       return true
     end
+    self.lastError = nil
     local ok, result = pcall(api.send, "hunt " .. self.target, false)
     if not ok or result == false then
+      clearPendingHunt()
       report("Could not send hunt: " .. tostring(result))
       return false
     end
-    self.lastError = nil
     return true
   end
 
@@ -140,6 +161,8 @@ function Hunt.new(api, navigation)
       runActive = true
       sawRunningState = false
       armTravelQuiet(5)
+    elseif verb == "hunt" and command:match("^%s*%a+%s+%S") then
+      expectHunt()
     elseif speedwalkActive then
       armTravelQuiet(5)
     end
@@ -167,14 +190,23 @@ function Hunt.new(api, navigation)
   local function annotate()
     local text = api.line
     if type(text) ~= "string" then return end
+    if text == "You seem unable to hunt that target for some reason." then
+      clearPendingHunt()
+      return
+    end
     local direction = text:match(
-      "^You are confident that .+ passed through here, heading ([a-z]+)%.?$")
+      "^You are confident that .+ passed through here, heading ([a-z]+)[%.!]?$")
+    if not direction and pendingHunt and text:match("^.+ is here[%.!]$") then
+      direction = "here"
+    end
     local display = DIRECTIONS[direction]
     if not display then return end
+    clearPendingHunt()
     local arrow, name = display[1], display[2]
-    api.decho("\n<255,211,105:24,48,74><b>  " .. arrow .. " " .. arrow
+    local accent = direction == "here" and "75,230,166" or "255,211,105"
+    api.decho("\n<" .. accent .. ":24,48,74><b>  " .. arrow .. " " .. arrow
       .. "  <255,255,255:24,48,74>" .. name
-      .. "  <255,211,105:24,48,74>" .. arrow .. " " .. arrow
+      .. "  <" .. accent .. ":24,48,74>" .. arrow .. " " .. arrow
       .. "  </b><r>\n")
   end
 
@@ -317,6 +349,7 @@ function Hunt.new(api, navigation)
     handlers = {}
     if subscribed then pcall(api.gmod.disableModule, OWNER, "Room"); subscribed = false end
     clearTravel()
+    clearPendingHunt()
     closeWindow()
     resetSession()
     return true
@@ -343,7 +376,11 @@ function Hunt.new(api, navigation)
           event, handler = "sysDisconnectionEvent", resetSession
         elseif name == "protocol" then
           event, handler = "sysProtocolDisabled", function(_, protocol)
-            if protocol == "GMCP" then lastRoom = nil; clearTravel() end
+            if protocol == "GMCP" then
+              lastRoom = nil
+              clearTravel()
+              clearPendingHunt()
+            end
           end
         elseif name == "outgoing" then
           event, handler = "sysDataSendRequest", outgoing

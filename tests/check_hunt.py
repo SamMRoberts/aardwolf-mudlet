@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 from lupa.lua51 import LuaRuntime
@@ -10,6 +11,19 @@ SOURCE = (ROOT / "src/resources/hunt.lua").read_text()
 
 
 class HuntTests(unittest.TestCase):
+    def test_result_trigger_matches_here_without_matching_room_text(self):
+        pattern = re.search(r"local RESULT_TRIGGER = \[\[(.*?)\]\]", SOURCE).group(1)
+        for line in (
+            "You are confident that an Ivarian priestess passed through here, heading north.",
+            "You are confident that an Ivarian priestess passed through here, heading here!",
+            "An Ivarian priestess is here!",
+            "An Ivarian priestess is here.",
+        ):
+            self.assertIsNotNone(re.fullmatch(pattern, line))
+        for line in ("An Ivarian priestess is here", "A goblin waits here!",
+                     "You are confident that a citizen passed through here, heading northeast."):
+            self.assertIsNone(re.fullmatch(pattern, line))
+
     def runtime(self):
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.execute(API)
@@ -228,7 +242,7 @@ class HuntTests(unittest.TestCase):
           room(503);assert(#commands==2)
         ''')
 
-    def test_manual_and_automatic_results_annotate_only_six_directions(self):
+    def test_manual_and_automatic_results_annotate_directions_and_here(self):
         lua = self.runtime()
         lua.execute('''
           local names={north="NORTH",east="EAST",south="SOUTH",west="WEST",
@@ -244,6 +258,14 @@ class HuntTests(unittest.TestCase):
             assert(output:find("<b>",1,true) and output:find("<r>",1,true))
             assert(output:find(title,1,true) and output:find(arrows[direction],1,true))
           end
+          local beforeHere=#annotations
+          incoming("You are confident that an Ivarian priestess passed through here, heading here.")
+          assert(#annotations==beforeHere+1)
+          assert(annotations[#annotations]:find("HERE",1,true))
+          assert(annotations[#annotations]:find("<b>",1,true))
+          assert(annotations[#annotations]:find("75,230,166",1,true))
+          incoming("You are confident that an Ivarian priestess passed through here, heading here!")
+          assert(#annotations==beforeHere+2)
           local before=#annotations
           incoming("You are confident that a citizen passed through here, heading south")
           assert(#annotations==before+1)
@@ -256,6 +278,40 @@ class HuntTests(unittest.TestCase):
           room(1);room(2)
           incoming("You are confident that a citizen passed through here, heading east.")
           assert(#annotations==before+1)
+        ''')
+
+    def test_here_result_requires_a_recent_hunt_and_is_shown_once(self):
+        lua = self.runtime()
+        lua.execute('''
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==0)
+          fire("sysDataSendRequest", "hunt priestess")
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==1)
+          assert(annotations[1]:find("HERE",1,true))
+          assert(annotations[1]:find("<b>",1,true))
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==1)
+          fire("sysDataSendRequest", "hunt 2.priestess")
+          incoming("An Ivarian priestess is here.")
+          assert(#annotations==2)
+          fire("sysDataSendRequest", "hunt 3.priestess")
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==3)
+          fire("sysDataSendRequest", "hunt priestess")
+          fireTimer(nextTimer)
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==3)
+          fire("sysDataSendRequest", "hunt priestess")
+          incoming("You seem unable to hunt that target for some reason.")
+          incoming("An Ivarian priestess is here!")
+          assert(#annotations==3 and next(timers)==nil)
+          assert(hunt:setTarget("priestess") and hunt:setAutomatic(true))
+          room(1);room(2)
+          assert(commands[1].command=="hunt priestess")
+          incoming("An Ivarian priestess is here.")
+          assert(#annotations==4)
+          assert(hunt:stop() and next(timers)==nil)
         ''')
 
     def test_disconnect_reload_and_cleanup(self):
